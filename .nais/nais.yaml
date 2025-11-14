@@ -1,0 +1,42 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  labels:
+    team: appsec
+  name: security-champion-stats-frontend
+  namespace: appsec
+spec:
+  image: "{{ image }}"
+  port: 8080
+  ingress:
+    - https://security-champion-levels.nav.no
+  replicas:
+    max: 2
+    min: 1
+  accessPolicy:
+    outbound:
+      rules:
+        - application: security-champion-stats-backend
+  azure:
+    application:
+      enabled: true
+      claims:
+        extra:
+          - "NAVident"
+    sidecar:
+      enabled: true
+      autoLogin: true
+  resources:
+    limits:
+      memory: "512Mi"
+    requests:
+      cpu: "50m"
+      memory: "128Mi"
+  envFrom:
+    - secret: security-champion-stats
+  gcp:
+    sqlInstances:
+      - type: POSTGRES_17
+        tier: db-f1-micro
+        databases:
+          - name: security-champion-stats-db

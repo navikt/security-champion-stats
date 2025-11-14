@@ -11,13 +11,13 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "3.3.1"
-val slf4jVersion = "2.0.12"
-val logbackVersion = "1.5.13"
-val hikariVersion = "5.1.0"
-val postgresVersion = "42.7.3"
+val ktorVersion = "3.3.2"
+val slf4jVersion = "2.0.17"
+val logbackVersion = "1.5.21"
+val hikariVersion = "7.0.2"
+val postgresVersion = "42.7.8"
 val jacksonVersion = "2.20.1"
-val slackVersion = "1.45.2"
+val slackVersion = "1.46.0"
 
 dependencies {
 

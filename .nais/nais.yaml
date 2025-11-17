@@ -8,7 +8,7 @@ metadata:
 spec:
   image: "{{ image }}"
   port: 8080
-  ingress:
+  ingresses:
     - https://security-champion-levels.nav.no
   replicas:
     max: 2

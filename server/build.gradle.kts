@@ -7,10 +7,6 @@ plugins {
 group = "no.navikt.appsec.securitychampionstats"
 version = "1.0-SNAPSHOT"
 
-repositories {
-    mavenCentral()
-}
-
 val ktorVersion = "3.3.2"
 val slf4jVersion = "2.0.17"
 val logbackVersion = "1.5.21"

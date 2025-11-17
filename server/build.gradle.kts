@@ -51,13 +51,41 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-tasks.test {
-    useJUnitPlatform()
-}
 kotlin {
     jvmToolchain(21)
 }
 
 application {
     mainClass = "navikt.appsec.securitychampionstats.backend.Server"
+}
+
+tasks {
+    withType<Jar> {
+        archiveBaseName.set("security-champions-stats")
+
+        manifest {
+            attributes["Main-Class"] = "navikt.appsec.securitychampionstats.Server"
+            attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") {
+                it.name
+            }
+        }
+
+        doLast {
+            configurations.runtimeClasspath.get().forEach {
+                val file = File("${layout.buildDirectory.get()}/libs/${it.name}")
+                if (!file.exists()) it.copyTo(file)
+            }
+        }
+    }
+
+    withType<Test> {
+        useJUnitPlatform()
+        testLogging {
+            showExceptions = true
+        }
+    }
+
+    withType<Wrapper> {
+        gradleVersion = "8.14.2"
+    }
 }

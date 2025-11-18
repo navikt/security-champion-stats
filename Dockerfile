@@ -6,4 +6,4 @@ WORKDIR /security-champions-stats
 
 EXPOSE 8080
 
-CMD ["security-champions-stats.jar"]
+CMD ["security-champions-stats-1.0-SNAPSHOT.jar"]

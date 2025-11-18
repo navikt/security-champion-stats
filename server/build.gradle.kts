@@ -65,7 +65,7 @@ tasks {
         archiveBaseName.set("security-champions-stats")
 
         manifest {
-            attributes["Main-Class"] = "navikt.appsec.securitychampionstats.Server"
+            attributes["Main-Class"] = "navikt.appsec.securitychampionstats.backend.Server"
             attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") {
                 it.name
             }

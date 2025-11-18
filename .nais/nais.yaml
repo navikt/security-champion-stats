@@ -16,7 +16,10 @@ spec:
   azure:
     application:
       enabled: true
+      allowAllUsers: false
       claims:
+        groups:
+          - id: "nais-team-appsec"
         extra:
           - "NAVident"
     sidecar:

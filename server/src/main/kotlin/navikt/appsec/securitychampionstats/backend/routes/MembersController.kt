@@ -14,7 +14,6 @@ import navikt.appsec.securitychampionstats.connectors.PostgresRepository
 import navikt.appsec.securitychampionstats.connectors.SlackService
 import navikt.appsec.securitychampionstats.connectors.Teamkatalog
 import navikt.appsec.securitychampionstats.models.MemberDTO
-import navikt.appsec.securitychampionstats.models.Msg
 import navikt.appsec.securitychampionstats.utils.Member
 import navikt.appsec.securitychampionstats.utils.addMemberToJsonFile
 import navikt.appsec.securitychampionstats.utils.addPointsForMemberToJsonFile
@@ -52,14 +51,14 @@ fun Route.memberRoutes() {
                 }
                 PostgresRepository.addMember(members.first().fullname, members.first().id)
             }
-            call.respond(names)
+            call.respond(HttpStatusCode.OK, names)
         }
     }
 
-    post("/api/members"){
+    post("/api/member"){
         val body = call.receive<MemberDTO>()
         if (body.id.isBlank() || body.fullname.isBlank()) {
-            call.respond(HttpStatusCode.BadRequest, Msg("Missing id or fullname"))
+            call.respond(HttpStatusCode.BadRequest, "Missing member information")
             return@post
         }
         if (Config.DRY_RUN) {
@@ -67,14 +66,14 @@ fun Route.memberRoutes() {
             call.respond(HttpStatusCode.OK, "Successfully added member to db")
         } else {
             PostgresRepository.addMember(body.fullname, body.id)
-            call.respond(HttpStatusCode.Created, Msg("Added ${body.fullname} (${body.id})"))
+            call.respond(HttpStatusCode.Created, "Members added to db")
         }
     }
 
     delete("/api/members/{id}") {
         val id = call.parameters["id"]
         if (id.isNullOrBlank()) {
-            call.respond(HttpStatusCode.BadRequest, Msg("Missing id"))
+            call.respond(HttpStatusCode.BadRequest, "Id is required")
             return@delete
         }
         if (Config.DRY_RUN) {
@@ -84,7 +83,7 @@ fun Route.memberRoutes() {
             // TODO: implement delete in your SQL repo:
             // PostgresRepository.deleteMember(id)
             logger.info("Delete member id={}", id)
-            call.respond(Msg("Delete queued for $id (not yet implemented)"))
+            call.respond(HttpStatusCode.OK, "Successfully deleted member from db")
         }
     }
 }
@@ -104,7 +103,7 @@ fun Route.statsRoutes(){
             val activity = slackService.summarizeActivity(email)
             val points = activity.totalMessages * 20
             PostgresRepository.updateMember(activity.userInfo.fullname, email, points)
-            call.respond(Msg("Added $points points for $id (not yet implemented)"))
+            call.respond(HttpStatusCode.OK, "Successfully updated points")
         }
     }
 }

@@ -3,20 +3,14 @@ kind: Application
 metadata:
   labels:
     team: appsec
-  name: security-champion-stats-frontend
+  name: security-champion-stats-backend
   namespace: appsec
 spec:
   image: "{{ image }}"
   port: 8080
-  ingresses:
-    - https://security-champion-levels.nav.no
   replicas:
     max: 2
     min: 1
-  accessPolicy:
-    outbound:
-      rules:
-        - application: security-champion-stats-backend
   azure:
     application:
       enabled: true

@@ -2,9 +2,9 @@ name: Build and deploy main
 on:
   push:
     branches:
-      - main
-    paths-ignore:
-      - "*.md"
+      - 'main'
+    paths:
+      - 'apps/backend/**'
 jobs:
   test-build-deploy:
     permissions:
@@ -25,7 +25,7 @@ jobs:
           distribution: temurin
       - uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
       - name: Test & build
-        run: ./gradlew test build
+        run:  apps/./gradlew test build
       - name: Build & push docker image + SBOM
         uses: nais/docker-build-push@1fae4798c79f4af4c3cdbd3fe65e51f8f3ba2368
         id: docker-push

@@ -19,7 +19,7 @@ spec:
       allowAllUsers: false
       claims:
         groups:
-          - id: "nais-team-appsec"
+          - id: "d633d27b-a470-4b9d-984e-85499f126e18"
         extra:
           - "NAVident"
     sidecar:

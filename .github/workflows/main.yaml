@@ -5,6 +5,11 @@ on:
       - 'main'
     paths:
       - 'apps/backend/**'
+
+defaults:
+  run:
+    working-directory: apps/backend
+
 jobs:
   test-build-deploy:
     permissions:

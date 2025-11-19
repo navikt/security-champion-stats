@@ -1,6 +1,6 @@
 .gradle
 build/
-!gradle/wrapper/gradle-wrapper.jar
+!apps/backend/gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
@@ -18,7 +18,7 @@ out/
 
 ### Kotlin ###
 .kotlin
-
+apps/backend/src/main/gen
 ### Eclipse ###
 .apt_generated
 .classpath

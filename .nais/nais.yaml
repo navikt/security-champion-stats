@@ -9,7 +9,7 @@ spec:
   image: "{{ image }}"
   port: 8080
   ingresses:
-    - https://security-champion-levels-backend.nav.no
+    - https://security-champion-levels-backend.intern.nav.no
   replicas:
     max: 2
     min: 1

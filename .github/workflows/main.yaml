@@ -66,6 +66,26 @@ jobs:
           persist-credentials: false
       - uses: nais/deploy/actions/deploy@7c152a10f4da3ca352d57a25eba0b3a8e04882f9
         env:
-          RESOURCE: .nais/nais.yaml
+          RESOURCE: apps/backend/.nais/nais.yaml
           CLUSTER: prod-gcp
           IMAGE: ${{ needs.test-build-deploy.outputs.image }}
+
+  sbom:
+    name: Generate SBOM, attest and sign image
+    needs: [test-build-deploy]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: NAIS login
+        uses: nais/login@v0
+        id: login
+        with:
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          team: appsec
+      - name: Generate SBOM, attest and sign image
+        id: attest-sign
+        uses: nais/attest-sign@v1
+        with:
+          image_ref: ${{needs.build.outputs.image}}@${{ needs.build.outputs.digest }}

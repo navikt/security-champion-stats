@@ -13,6 +13,7 @@ junit-jupiter = "6.0.1"
 #Ktor server part
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 ktor-server-natty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors-jvm", version.ref = "ktor" }
 ktor-server-content = { module = "io.ktor:ktor-server-content-negotiation-jvm", version.ref = "ktor" }
 ktor-server-serialization-kotlinx = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 ktor-server-logging = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
@@ -54,7 +55,8 @@ ktor-server = [
     "ktor-server-auth",
     "ktor-server-content",
     "ktor-server-logging",
-    "ktor-server-serialization-kotlinx"
+    "ktor-server-serialization-kotlinx",
+    "ktor-server-cors"
 ]
 
 ktor-client = [

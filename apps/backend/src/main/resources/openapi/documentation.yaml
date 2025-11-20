@@ -4,7 +4,7 @@ info:
   description: "Api for security champion stats"
   version: "1.0.0"
 servers:
-  - url: "http://0.0.0.0:8080"
+  - url: "http://127.0.0.0:8080"
   - url: "https://security-champion-levels-backend.intern.nav.no"
 paths:
   /api/members:

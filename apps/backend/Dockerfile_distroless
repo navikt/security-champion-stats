@@ -2,7 +2,7 @@ FROM gcr.io/distroless/java21-debian12
 
 USER nonroot
 
-COPY build/libs/*.jar /app/
+COPY ./build/libs/*.jar /app/
 
 WORKDIR /app
 

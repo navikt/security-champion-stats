@@ -6,8 +6,6 @@ USER nonroot
 
 COPY build/libs/*.jar /app/
 
-COPY docs /app
-
 WORKDIR /app
 
 CMD ["app.jar"]

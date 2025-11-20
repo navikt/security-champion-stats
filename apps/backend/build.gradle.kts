@@ -27,7 +27,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth-jwt:${ktorVersion}")
 
     //Swagger
-    implementation("io.ktor:ktor-server-openapi:${ktorVersion}")
+    implementation("io.ktor:ktor-server-swagger:${ktorVersion}")
 
     //ktor client
     implementation("io.ktor:ktor-client-core:$ktorVersion")

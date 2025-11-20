@@ -7,9 +7,13 @@ metadata:
   namespace: appsec
 spec:
   image: "{{ image }}"
-  port: 8090
+  port: 8080
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
+  accessPolicy:
+    outbound:
+      external:
+        - host: https://teamkatalog-api.prod-fss-pub.nais.io
   replicas:
     max: 2
     min: 1

@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory
 
 object PostgresRepository {
     private val logger = LoggerFactory.getLogger(LoggerFactory::class.java)
-    private val dbUsername = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_USERNAME")
-    private val dbPassword = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_PASSWORD")
-    private val jdcUrl = System.getenv("NAIS_DATABASE_MYAPP_MYDB_JDBC_URL")
+    private val dbUsername = System.getenv("NAIS_DATABASE_SECURITY_CHAMPION_STATS_BACKEND_SECURITY_CHAMPION_STATS_DB_USERNAME")
+    private val dbPassword = System.getenv("NAIS_DATABASE_SECURITY_CHAMPION_STATS_BACKEND_SECURITY_CHAMPION_STATS_DB_PASSWORD")
+    private val jdcUrl = System.getenv("NAIS_DATABASE_SECURITY_CHAMPION_STATS_BACKEND_SECURITY_CHAMPION_STATS_DB_JDBC_URL")
 
     private val dataSource: HikariDataSource by lazy {
         val hikariConfig = HikariConfig().apply {
@@ -25,6 +25,10 @@ object PostgresRepository {
             leakDetectionThreshold = 10_000
         }
         HikariDataSource(hikariConfig)
+    }
+
+    fun createTable() {
+
     }
 
     fun getMember(fullname: String, email: String): MemberDTO {

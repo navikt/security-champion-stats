@@ -26,6 +26,23 @@ object PostgresRepository {
         }
         HikariDataSource(hikariConfig)
     }
+    //TODO: Create source table for sql (tips look at teamkatalog)
+    private fun checkIfTableExist(tableName: String): Boolean {
+        val sqlStatement = "IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'?'"
+        return try {
+            dataSource.connection.use { connection ->
+                connection.prepareStatement(sqlStatement).use { preparedStatement ->
+                    preparedStatement.setString(1, tableName)
+                    preparedStatement.executeQuery().use { resultSet ->
+                        resultSet.next()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("[Postgres]: Failed to check if table exist: ${e.message}")
+            false
+        }
+    }
 
     fun createTable() {
 
@@ -60,6 +77,7 @@ object PostgresRepository {
     }
 
     fun getAllMembers(): List<MemberDTO>{
+        if (!checkIfTableExist("Members")) return emptyList()
         val sql = "SELECT name FROM Members"
         return try {
             dataSource.connection.use { connection ->

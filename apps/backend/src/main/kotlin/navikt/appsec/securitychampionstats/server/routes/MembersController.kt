@@ -45,6 +45,7 @@ fun Route.memberRoutes() {
                 val teamkatalog = Teamkatalog(teamKatalogUrl)
 
                 val membersToUpload = teamkatalog.getMembersWithRile("SECURITY_CHAMPION")
+                logger.info(membersToUpload.toString())
                 val members: MutableList<MemberDTO> = mutableListOf()
                 membersToUpload.members.members.forEach { member ->
                     members.add(MemberDTO(member.navIdent, member.fullname, 0, member.email))

@@ -7,15 +7,13 @@ import org.slf4j.LoggerFactory
 
 object PostgresRepository {
     private val logger = LoggerFactory.getLogger(LoggerFactory::class.java)
-    private val host = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_HOST")
-    private val port = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_PORT")
     private val dbUsername = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_USERNAME")
     private val dbPassword = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_PASSWORD")
-    private val name = System.getenv("NAIS_DATABASE_MYAPP_MY_DB_DATABASE")
+    private val jdcUrl = System.getenv("NAIS_DATABASE_MYAPP_MYDB_JDBC_URL")
 
     private val dataSource: HikariDataSource by lazy {
         val hikariConfig = HikariConfig().apply {
-            jdbcUrl = "jdbc:postgresql://$host:$port/$name"
+            jdbcUrl = jdcUrl
             username = dbUsername
             password = dbPassword
             driverClassName = "org.postgresql.Driver"

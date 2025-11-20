@@ -13,7 +13,7 @@ spec:
   accessPolicy:
     outbound:
       external:
-        - host: https://teamkatalog-api.intern.nav.no
+        - host: teamkatalog-api.intern.nav.no
   replicas:
     max: 2
     min: 1

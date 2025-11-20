@@ -6,51 +6,23 @@ plugins {
 
 group = "no.navikt.appsec.securitychampionstats"
 
-val ktorVersion = "3.3.2"
-val slf4jVersion = "2.0.17"
-val logbackVersion = "1.5.21"
-val hikariVersion = "7.0.2"
-val postgresVersion = "42.7.8"
-val jacksonVersion = "2.20.1"
-val slackVersion = "1.46.0"
-
 dependencies {
 
-    //ktor server
-    implementation("io.ktor:ktor-server-core:${ktorVersion}")
-    implementation("io.ktor:ktor-server-cors:${ktorVersion}")
-    implementation("io.ktor:ktor-server-netty:${ktorVersion}")
-    implementation("io.ktor:ktor-server-content-negotiation:${ktorVersion}")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:${ktorVersion}")
-    implementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
-    implementation("io.ktor:ktor-server-auth:${ktorVersion}")
-    implementation("io.ktor:ktor-server-auth-jwt:${ktorVersion}")
+    //bundles
+    implementation(libs.bundles.jackson)
+    implementation(libs.bundles.postgres)
+    implementation(libs.bundles.logging)
+    implementation(libs.bundles.ktor.client)
+    implementation(libs.bundles.ktor.server)
 
-    //Swagger
-    implementation("io.ktor:ktor-server-swagger:${ktorVersion}")
+    // singles
+    implementation(libs.slack.api)
+    implementation(libs.swagger)
 
-    //ktor client
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-
-    // logging
-    implementation("org.slf4j:slf4j-api:${slf4jVersion}")
-
-    // postgres
-    implementation("com.zaxxer:HikariCP:${hikariVersion}")
-    implementation("org.postgresql:postgresql:${postgresVersion}")
-
-    // Jackson
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
-
-    // Slack
-    implementation("com.slack.api:slack-api-client:$slackVersion")
-
-    runtimeOnly("ch.qos.logback:logback-classic:${logbackVersion}")
-
-    testImplementation(kotlin("test"))
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.ktor.server.test.host)
 }
 
 kotlin {

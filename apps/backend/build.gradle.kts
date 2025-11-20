@@ -58,7 +58,7 @@ kotlin {
 }
 
 application {
-    mainClass = "navikt.appsec.securitychampionstats.backend.Server"
+    mainClass = "navikt.appsec.securitychampionstats.server.Server"
 }
 
 tasks {
@@ -66,7 +66,7 @@ tasks {
         archiveBaseName.set("app")
 
         manifest {
-            attributes["Main-Class"] = "navikt.appsec.securitychampionstats.backend.Server"
+            attributes["Main-Class"] = "navikt.appsec.securitychampionstats.server.Server"
             attributes["Class-Path"] = configurations.runtimeClasspath.get().joinToString(separator = " ") {
                 it.name
             }

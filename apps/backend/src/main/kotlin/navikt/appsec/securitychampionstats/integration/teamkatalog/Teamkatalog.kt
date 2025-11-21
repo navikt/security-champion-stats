@@ -9,7 +9,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import io.ktor.http.headers
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import navikt.appsec.securitychampionstats.integration.teamkatalog.dto.ResourceGroup
 import navikt.appsec.securitychampionstats.integration.teamkatalog.dto.ResourceMemberWithGroup
 import navikt.appsec.securitychampionstats.integration.teamkatalog.dto.TeamkatalogResourceType
@@ -36,12 +36,12 @@ class Teamkatalog(
         return getResponse.body()
     }
 
-    private suspend fun getAllMemberGroups(): List<ResourceGroup> {
-        val responses = TeamkatalogResourceType.entries.map { type -> getResource(type) }
+    private fun getAllMemberGroups(): List<ResourceGroup> {
+        val responses = runBlocking { TeamkatalogResourceType.entries.map { type -> getResource(type) } }
         return responses
     }
 
-    suspend fun getMembersWithRile(role: String): ResourceMemberWithGroup {
+    fun getMembersWithRile(role: String): ResourceMemberWithGroup {
         val groups = getAllMemberGroups()
         val allMembers = groups.flatMap { group ->
             group.members.map { member ->

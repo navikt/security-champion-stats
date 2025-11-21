@@ -76,7 +76,7 @@ object PostgresRepository {
     }
 
     fun getAllMembers(): List<MemberDTO>{
-        if (!checkIfTableExist("Members")) return emptyList()
+        if (!checkIfTableExist()) return emptyList()
         val sql = "SELECT name FROM Members"
         return try {
             dataSource.connection.use { connection ->

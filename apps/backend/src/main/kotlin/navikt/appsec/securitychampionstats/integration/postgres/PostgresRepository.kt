@@ -27,12 +27,11 @@ object PostgresRepository {
         HikariDataSource(hikariConfig)
     }
     //TODO: Create source table for sql (tips look at teamkatalog)
-    private fun checkIfTableExist(tableName: String): Boolean {
+    private fun checkIfTableExist(): Boolean {
         val sqlStatement = "SELECT COUNT(*) = 0 AS no_tables FROM information_schema.tables WHERE table_schema NOT IN (\'pg_catalog\', \'information_schema\')"
         return try {
             dataSource.connection.use { connection ->
                 connection.prepareStatement(sqlStatement).use { preparedStatement ->
-                    preparedStatement.setString(1, tableName)
                     preparedStatement.executeQuery().use { resultSet ->
                         resultSet.next()
                     }

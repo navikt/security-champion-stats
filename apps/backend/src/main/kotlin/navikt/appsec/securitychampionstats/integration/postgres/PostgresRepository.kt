@@ -28,7 +28,7 @@ object PostgresRepository {
     }
     //TODO: Create source table for sql (tips look at teamkatalog)
     private fun checkIfTableExist(tableName: String): Boolean {
-        val sqlStatement = "IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'?'"
+        val sqlStatement = "SELECT COUNT(*) = 0 AS no_tables FROM information_schema.tables WHERE table_schema NOT IN (\'pg_catalog\', \'information_schema\')"
         return try {
             dataSource.connection.use { connection ->
                 connection.prepareStatement(sqlStatement).use { preparedStatement ->

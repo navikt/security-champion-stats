@@ -33,7 +33,7 @@ object PostgresRepository {
             dataSource.connection.use { connection ->
                 connection.prepareStatement(sqlStatement).use { preparedStatement ->
                     preparedStatement.executeQuery().use { resultSet ->
-                        resultSet.next()
+                        resultSet.getBoolean("no_tables")
                     }
                 }
             }

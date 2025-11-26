@@ -37,7 +37,7 @@ jobs:
         id: docker-push
         with:
           team: appsec
-          dockerfile: apps/backend/Dockerfile_distroless
+          dockerfile: apps/backend/Dockerfile
           docker_context: apps/backend
           pull: true
       - name: Generate and submit dependency graph

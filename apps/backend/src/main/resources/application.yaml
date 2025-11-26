@@ -1,0 +1,40 @@
+server:
+  shutdown: graceful
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+      base-path: /internal
+    endpoint:
+      security:
+        enabled: 'false'
+      health:
+        show-details: always
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+  datasource:
+    url: ${NAIS_DATABASE_SECURITY_CHAMPION_STATS_BACKEND_SECURITY_CHAMPION_STATS_DB_JDBC_URL}
+    username: ${NAIS_DATABASE_SECURITY_CHAMPION_STATS_BACKEND_SECURITY_CHAMPION_STATS_DB_USERNAME}
+    password: ${NAIS_DATABASE_SECURITY_CHAMPION_STATS_BACKEND_SECURITY_CHAMPION_STATS_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  sql:
+    init:
+      mode: never
+  flyway:
+    enabled: true
+    schemas: dbo
+
+teamCatalog:
+  url: ${TEAM_CATALOG_URL}

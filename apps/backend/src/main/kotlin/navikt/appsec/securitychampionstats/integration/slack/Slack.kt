@@ -7,6 +7,8 @@ import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.conversations.ConversationsHistoryRequest
 import com.slack.api.methods.request.users.UsersConversationsRequest
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest
+import navikt.appsec.securitychampionstats.integration.slack.dto.SlackActivitySummary
+import navikt.appsec.securitychampionstats.integration.slack.dto.UserInfo
 import org.slf4j.LoggerFactory
 import java.time.temporal.ChronoUnit
 import java.time.Instant
@@ -92,7 +94,7 @@ class SlackService {
         return SlackActivitySummary(
             userInfo = userInfo,
             inTrackedChannels = setOf(channel),
-            messagesPerChannel = mapOf(Pair(channel,amountPerChannel)),
+            messagesPerChannel = mapOf(Pair(channel, amountPerChannel)),
             totalMessages = amountPerChannel
         )
     }

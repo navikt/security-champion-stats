@@ -1,4 +1,4 @@
-package navikt.appsec.securitychampionstats.integration.slack
+package navikt.appsec.securitychampionstats.integration.slack.dto
 
 data class SlackConfig(
     val botToken: String,

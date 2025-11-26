@@ -14,6 +14,10 @@ spec:
     outbound:
       external:
         - host: teamkatalog-api.intern.nav.no
+    rules:
+      - application: team-catalog-backend
+        namespace: org
+        cluster: prod-gcp
   replicas:
     max: 2
     min: 1

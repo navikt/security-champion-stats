@@ -1,0 +1,77 @@
+### SERVICES ###
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    volumes:
+      - ./db/migration/:/docker-entrypoint-initdb.d/
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - postgres
+
+  pgadmin:
+    image: dpage/pgadmin4
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+      PGADMIN_SERVER_JSON_FILE: /var/lib/pgadmin/servers.json
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        
+        cat >/var/lib/pgadmin/servers.json <<'EOF'
+        {
+          "Servers": {
+            "1": {
+              "Name": "postgres",
+              "Group": "Servers",
+              "Host": "postgres",
+              "Port": 5432,
+              "MaintenanceDB": "postgres",
+              "Username": "postgres",
+              "SSLMode": "prefer",
+              "PassFile": "/var/lib/pgadmin/storage/admin_admin.com/.pgpass"
+            }
+          }
+        }
+        EOF
+        
+        # We need to store the access credentials for the db connection, all of this is to avoid having to type password in pgAdmin UI
+        storage_dir="/var/lib/pgadmin/storage/admin_admin.com"
+        mkdir -p "$$storage_dir"
+        echo "postgres:5432:postgres:user:password" \
+          > "$$storage_dir/.pgpass"
+        chmod 600 "$$storage_dir/.pgpass"
+        # own it as UID 5050 (the pgadmin user) and GID 0
+        chown 5050:0 "$$storage_dir" "$$storage_dir/.pgpass"
+        
+        exec /entrypoint.sh "$$@"
+### VOLUMES ###
+volumes:
+  postgres-data:
+    name: postgres-data
+  pgadmin_data:
+    name: admin
+
+### NETWORKS ###
+networks:
+  postgres:
+    name: postgres

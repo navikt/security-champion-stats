@@ -34,7 +34,7 @@ spring:
       mode: never
   flyway:
     enabled: true
-    schemas: dbo
+    locations: classpath:db/migration
 
 teamCatalog:
   url: ${TEAM_CATALOG_URL}

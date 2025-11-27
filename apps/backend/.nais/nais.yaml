@@ -13,7 +13,7 @@ spec:
   accessPolicy:
     outbound:
       external:
-        - host: teamkatalog-api.intern.nav.no
+        - host: team-catalog-backend.org.svc.cluster.local
       rules:
         - application: team-catalog-backend
           namespace: org

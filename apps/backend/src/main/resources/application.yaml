@@ -38,3 +38,7 @@ spring:
 
 teamCatalog:
   url: ${TEAM_CATALOG_URL}
+
+springdoc:
+  api-docs:
+    enabled: true

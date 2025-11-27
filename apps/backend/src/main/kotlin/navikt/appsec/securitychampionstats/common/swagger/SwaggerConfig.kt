@@ -22,5 +22,4 @@ open class SwaggerConfig {
                     .contact(Contact().name("AppSec Team"))
                     .license(License().name("MIT License").url("https://opensource.org/licenses/MIT"))
             )
-            .addServersItem(Server().url("http://localhost:8080").description("Local server"))
 }

@@ -1,7 +1,7 @@
 package navikt.appsec.securitychampionstats.integration.teamCatalog
 
 import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.Member
-import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.Teams
+import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.Team
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -13,12 +13,12 @@ class TeamCatalog(
 ) {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
 
-    private fun fetchAllTeams(): Teams {
+    private fun fetchAllTeams(): List<Team> {
         val result =  externalServiceWebClient
             .get()
             .uri("/team?status=ACTIVE")
             .retrieve()
-            .bodyToMono<Teams>()
+            .bodyToMono<List<Team>>()
             .block()
             ?: throw IllegalStateException("Something went wrong then fetching teams")
         return result
@@ -26,7 +26,7 @@ class TeamCatalog(
 
     fun fetchMembersWithRole(role: String): List<Member> {
         return try {
-            val teamsWithRole = fetchAllTeams().teams.map { team ->
+            val teamsWithRole = fetchAllTeams().map { team ->
                 team.copy(
                     members = team.members.filter { member ->
                         member?.roles?.contains(role) ?: false

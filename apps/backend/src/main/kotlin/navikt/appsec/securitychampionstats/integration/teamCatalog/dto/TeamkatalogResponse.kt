@@ -44,8 +44,3 @@ data class Resource(
     val endDate: String?,
     val stale: Boolean?
 )
-
-@JsonInclude(JsonInclude.Include.NON_NULL)
-data class Teams(
-    val teams: List<Team>
-)

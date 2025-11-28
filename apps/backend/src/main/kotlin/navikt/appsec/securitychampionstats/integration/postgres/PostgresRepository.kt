@@ -28,7 +28,7 @@ class PostgresRepository(
     }
 
     fun addMember(fullname: String, id: String) {
-        val sql = "INSERT INTO Members (id, fullname, points) VALUES (?, ?, ?, 0)"
+        val sql = "INSERT INTO Members (id, fullname, points) VALUES (?, ?, 0)"
         try {
             jdbcTemplate.update(sql, id, fullname)
         } catch (e: Exception) {

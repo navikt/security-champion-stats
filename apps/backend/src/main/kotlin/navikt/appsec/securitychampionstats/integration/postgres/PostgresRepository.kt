@@ -12,7 +12,7 @@ class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
     fun getAllMembers(): List<Member> {
-        val sql = "SELECT id, fullname, points, email FROM Members"
+        val sql = "SELECT id, fullname, points FROM Members"
         return try {
             jdbcTemplate.query(sql) { response, _ ->
                 Member(

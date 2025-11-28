@@ -1,7 +1,5 @@
 package navikt.appsec.securitychampionstats.integration.slack
 
-
-import com.slack.api.Slack
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.conversations.ConversationsHistoryRequest
@@ -10,19 +8,17 @@ import com.slack.api.methods.request.users.UsersLookupByEmailRequest
 import navikt.appsec.securitychampionstats.integration.slack.dto.SlackActivitySummary
 import navikt.appsec.securitychampionstats.integration.slack.dto.UserInfo
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Service
 import java.time.temporal.ChronoUnit
 import java.time.Instant
 import kotlin.math.max
 
-class SlackService {
+@Service
+class SlackService(
+    @Value("\${slack.channelId}") private val channel: String,
     val client: MethodsClient
-    val channel = System.getenv("SLACK_CHANNEL_ID")
-
-    init {
-        val slack = Slack()
-        val token = System.getenv("SLACK_TOKEN")
-        client = slack.methods(token)
-    }
+) {
 
     private val logger = LoggerFactory.getLogger(SlackService::class.java)
 
@@ -99,10 +95,6 @@ class SlackService {
         )
     }
 
-}
-
-object SlackClientFactory {
-    fun methods(token: String): MethodsClient = Slack.getInstance().methods(token)
 }
 
 

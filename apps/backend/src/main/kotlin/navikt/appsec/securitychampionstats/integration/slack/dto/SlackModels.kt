@@ -1,11 +1,5 @@
 package navikt.appsec.securitychampionstats.integration.slack.dto
 
-data class SlackConfig(
-    val botToken: String,
-    val trackedChannels: Set<String>,
-    val activityLookbackHours: Long = 24
-)
-
 data class SlackActivitySummary(
     val userInfo: UserInfo,
     val inTrackedChannels: Set<String>,

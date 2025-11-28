@@ -36,9 +36,17 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+slack:
+    token: ${SLACK_TOKEN}
+    channelId: ${SLACK_CHANNEL_ID}
+
 teamCatalog:
   url: ${TEAM_CATALOG_URL}
 
 springdoc:
   api-docs:
     enabled: true
+
+testData:
+  testEmail: ${TEST_EMAIL}
+  testUserId: ${TEST_USER_ID}

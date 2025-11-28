@@ -1,46 +1,39 @@
 package navikt.appsec.securitychampionstats.integration.teamCatalog.dto
 
-import com.fasterxml.jackson.annotation.JsonInclude
+import lombok.AllArgsConstructor
+import lombok.Data
+import lombok.NoArgsConstructor
+import java.util.*
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-data class Team(
-    val id: String?,
-    val name: String?,
-    val description: String?,
-    val slackChannel: String?,
-    val contactPersonIdent: String?,
-    val productAreaId: String?,
-    val avdelingNomId: String?,
-    val avdelingNavn: String?,
-    val teamOwnerIdent: String?,
-    val clusterIds: List<String?>,
-    val teamType: String?,
-    val qaTime: String?,
-    val naisTeams: List<String?>,
-    val members: List<Member?>
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+data class TeamResponse(
+    val id: UUID,
+    val name: String,
+    val naisTeam: List<MemberResponse>
 )
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-data class Member(
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+data class MemberResponse(
     val navIdent: String,
-    val description: String?,
-    val roles: List<String>,
-    val teamPercent: Int?,
-    val startDate: String?,
-    val endDate: String?,
-    val resource: Resource
+    val roles: List<TeamRole>,
+    val resource: ResourceResponse
 )
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-data class Resource(
+enum class TeamRole {
+    SECURITY_CHAMPION,
+    TEAM_MEMBER,
+    OTHER
+}
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+data class ResourceResponse(
     val navIdent: String,
-    val givenName: String?,
-    val familyName: String?,
-    val fullName: String,
-    val email: String?,
-    val onLeave: Boolean?,
-    val resourceType: String?,
-    val startDate: String?,
-    val endDate: String?,
-    val stale: Boolean?
+    val fullName: String?,
+    val email: String?
 )

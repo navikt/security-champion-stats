@@ -1,7 +1,7 @@
 package navikt.appsec.securitychampionstats.integration.teamCatalog
 
-import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.Member
-import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.Team
+import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.ResourceResponse
+import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.TeamResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -13,31 +13,30 @@ class TeamCatalog(
 ) {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
 
-    private fun fetchAllTeams(): List<Team> {
+    private fun fetchAllTeams(): List<TeamResponse> {
         val result =  externalServiceWebClient
             .get()
             .uri("/team?status=ACTIVE")
             .retrieve()
-            .bodyToMono<List<Team>>()
+            .bodyToMono<List<TeamResponse>>()
             .block()
             ?: throw IllegalStateException("Something went wrong then fetching teams")
         return result
     }
 
-    fun fetchMembersWithRole(role: String): List<Member> {
+    fun fetchMembersWithRole(role: String): List<ResourceResponse> {
         return try {
             val teamsWithRole = fetchAllTeams().map { team ->
                 team.copy(
-                    members = team.members.filter { member ->
-                        member?.roles?.contains(role) ?: false
+                    naisTeam = team.naisTeam.filter { member ->
+                        member.roles.any { it.name == role }
                     }
                 )
             }
-            val securityChampions = mutableListOf<Member>()
+            val securityChampions = mutableListOf<ResourceResponse>()
             teamsWithRole.forEach { team ->
-                team.members.forEach {
-                    if (it != null)
-                    securityChampions.add(it)
+                team.naisTeam.forEach {
+                    securityChampions.add(it.resource)
                 }
             }
             securityChampions.toList()
@@ -46,8 +45,4 @@ class TeamCatalog(
             emptyList()
         }
     }
-
-
-
-
 }

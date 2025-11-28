@@ -1,12 +1,14 @@
 package navikt.appsec.securitychampionstats.stats
 
 import navikt.appsec.securitychampionstats.integration.postgres.PostgresRepository
+import navikt.appsec.securitychampionstats.integration.slack.SlackService
 import navikt.appsec.securitychampionstats.integration.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionstats.stats.dto.DeleteMember
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import navikt.appsec.securitychampionstats.stats.dto.MemberInfo
 import navikt.appsec.securitychampionstats.stats.dto.Points
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -21,7 +23,10 @@ import java.util.UUID
 @RequestMapping(path = ["/api"])
 class Controller(
     private val repo: PostgresRepository,
-    private val catalog: TeamCatalog
+    private val catalog: TeamCatalog,
+    private val slackService: SlackService,
+    @Value("\${testData.testEmail}") private val testEmail: String,
+    @Value("\${testData.testUserId}") private val testId: String
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
 
@@ -57,5 +62,11 @@ class Controller(
     fun addPoints(@RequestBody points: Points): ResponseEntity<Any>{
         repo.addPoints(points.id, points.points)
         return ResponseEntity.status(HttpStatus.ACCEPTED).build()
+    }
+
+    @GetMapping("/slackTest")
+    fun slackTest() {
+        val member = repo.getMember(testId)
+        val activity = slackService.summarizeActivity(testEmail)
     }
 }

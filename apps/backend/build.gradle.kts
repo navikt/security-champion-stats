@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.2.21"
+    id("io.freefair.lombok") version "8.14.2"
     application
     java
     kotlin("plugin.serialization") version "2.2.21"

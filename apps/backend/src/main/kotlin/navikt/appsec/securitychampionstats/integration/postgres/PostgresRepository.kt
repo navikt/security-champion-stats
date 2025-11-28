@@ -1,5 +1,6 @@
 package navikt.appsec.securitychampionstats.integration.postgres
 
+import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.ResourceResponse
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
@@ -19,6 +20,7 @@ class PostgresRepository(
                     id = response.getString("id"),
                     fullname = response.getString("fullname"),
                     points = response.getInt("points"),
+                    lastUpdated = null
                 )
             }
         } catch (e: Exception) {
@@ -36,11 +38,28 @@ class PostgresRepository(
         }
     }
 
-    fun addMembers(members: List<navikt.appsec.securitychampionstats.integration.teamCatalog.dto.Member>) {
+    fun getMember(id: String): Member? {
+        val sql = "SELECT id, fullname, points FROM Members WHERE id = ?"
+        return try {
+            jdbcTemplate.query(sql) { response, _ ->
+                Member(
+                    id = response.getString("id"),
+                    fullname = response.getString("fullname"),
+                    points = response.getInt("points"),
+                    lastUpdated = response.getString("update_at")
+                )
+            }.firstOrNull()
+        } catch (e: Exception) {
+            logger.error("Failed to fetch member from db due to error: ${e.message}")
+            null
+        }
+    }
+
+    fun addMembers(members: List<ResourceResponse>) {
         members.forEach { member ->
             addMember(
-                fullname = member.resource.fullName,
-                id = member.resource.navIdent
+                fullname = member.fullName ?: "Unknown",
+                id = member.navIdent
             )
         }
     }

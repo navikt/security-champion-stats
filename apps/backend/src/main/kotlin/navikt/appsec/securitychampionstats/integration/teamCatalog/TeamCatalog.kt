@@ -29,13 +29,14 @@ class TeamCatalog(
             val teamsWithRole = fetchAllTeams().teams.map { team ->
                 team.copy(
                     members = team.members.filter { member ->
-                        role in member.roles
+                        member?.roles?.contains(role) ?: false
                     }
                 )
             }
             val securityChampions = mutableListOf<Member>()
             teamsWithRole.forEach { team ->
                 team.members.forEach {
+                    if (it != null)
                     securityChampions.add(it)
                 }
             }

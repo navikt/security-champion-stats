@@ -7,10 +7,9 @@ import org.springframework.util.unit.DataSize
 import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
-class TeamCatalogConfig(
-    @Value($$"${teamCatalog.url}") private val url: String,
-) {
+class TeamCatalogConfig() {
     private val size = DataSize.ofMegabytes(16).toBytes().toInt()
+    private val url = "http://team-catalog-backend.org.svc.cluster.local"
     @Bean
     fun externalServiceWebClient(builder: WebClient.Builder): WebClient =
         builder

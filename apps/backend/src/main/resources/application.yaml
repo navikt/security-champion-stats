@@ -40,9 +40,6 @@ slack:
     token: ${SLACK_TOKEN}
     channelId: ${SLACK_CHANNEL_ID}
 
-teamCatalog:
-  url: ${TEAM_CATALOG_URL}
-
 springdoc:
   api-docs:
     enabled: true

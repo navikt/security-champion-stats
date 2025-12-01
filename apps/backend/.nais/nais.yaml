@@ -12,8 +12,6 @@ spec:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:
     outbound:
-      external:
-        - host: teamkatalog-api.intern.nav.no
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

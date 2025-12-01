@@ -12,6 +12,8 @@ spec:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:
     outbound:
+      external:
+        - host: zooms.us
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

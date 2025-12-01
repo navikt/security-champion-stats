@@ -21,6 +21,7 @@ class TeamCatalog(
             .bodyToMono<TeamResponse>()
             .block()
             ?: throw IllegalStateException("Something went wrong then fetching teams")
+        logger.info("Fetched teams from Team Catalog: $result")
         return result
     }
 
@@ -29,7 +30,6 @@ class TeamCatalog(
             val teamsWithRole = fetchAllTeams().naisTeam?.filter { member ->
                 member.roles.any { it?.name == role }
             }
-            logger.info("Fetched: $teamsWithRole")
             teamsWithRole?.map { it.resource!! } ?: emptyList()
         } catch (e: Exception) {
             logger.error("Failed to fetch members with $role, error: $e")

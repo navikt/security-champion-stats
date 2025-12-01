@@ -18,7 +18,6 @@ class TeamCatalogConfig(
             .codecs { codecs ->
                 codecs.defaultCodecs().maxInMemorySize(size)
             }
-            .defaultHeader("accept", "application/json")
-            .defaultHeader("Nav-Consumer-Id", "security-champion-slackbot")
+            .defaultHeader("accept", "*/*")
             .build()
 }

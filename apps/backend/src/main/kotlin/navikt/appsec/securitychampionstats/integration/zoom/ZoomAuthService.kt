@@ -3,7 +3,6 @@ package navikt.appsec.securitychampionstats.integration.zoom
 import navikt.appsec.securitychampionstats.integration.zoom.dto.TokenResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
@@ -31,7 +30,7 @@ class ZoomAuthService(
                     .build()
             }
             .header(HttpHeaders.AUTHORIZATION, "Basic $basiAuth")
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+            .header(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(BodyInserters.fromFormData("grant_type", "account_credentials"))
             .retrieve()
             .bodyToMono<TokenResponse>()

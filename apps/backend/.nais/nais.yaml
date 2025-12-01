@@ -28,6 +28,9 @@ spec:
           - id: "d633d27b-a470-4b9d-984e-85499f126e18"
         extra:
           - "NAVident"
+        autoLoginIgnorePaths:
+          - /oauth
+          - /webhook
     sidecar:
       enabled: true
       autoLogin: true

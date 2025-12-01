@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionstats.integration.zoom
 
 import navikt.appsec.securitychampionstats.integration.zoom.dto.TokenResponse
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
@@ -17,10 +18,12 @@ class ZoomAuthService(
     @Value("\${zoom.oauth2.clientSecret}") private val clientSecret: String,
     @Value("\${zoom.oauth2.accountId}") private val accountId: String
 ) {
+    private val logger = LoggerFactory.getLogger(ZoomAuthService::class.java)
+
     fun getAccessToken(): String {
         val basiAuth = Base64.getEncoder()
             .encodeToString("$clientId:$clientSecret".toByteArray())
-
+        logger.info("Fetching access token from Zoom for accountId: $accountId")
         val response = zoomOauthWebClient.post()
             .uri { uriBuilder ->
                 uriBuilder

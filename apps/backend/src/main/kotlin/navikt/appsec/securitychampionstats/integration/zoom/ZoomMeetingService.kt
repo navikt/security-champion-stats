@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionstats.integration.zoom
 
 import navikt.appsec.securitychampionstats.integration.zoom.dto.MeetingParticipantsResponse
+import org.slf4j.LoggerFactory
 import org.springframework.http.HttpHeaders
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -11,9 +12,10 @@ class ZoomMeetingService(
     private val zoomAuthService: ZoomAuthService,
     private val zoomApiWebClient: WebClient
 ) {
+    private val logger = LoggerFactory.getLogger(ZoomMeetingService::class.java)
     fun getLiveParticipants(meetingId: String): MeetingParticipantsResponse {
         val token = zoomAuthService.getAccessToken()
-
+        logger.info("Fetching live participants for meetingId: $meetingId")
         return zoomApiWebClient.get()
             .uri { uriBuilder ->
                 uriBuilder

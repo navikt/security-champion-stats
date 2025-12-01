@@ -26,14 +26,10 @@ class TeamCatalog(
 
     fun fetchMembersWithRole(role: String): List<ResourceResponse> {
         return try {
-            val teamsWithRole = fetchAllTeams().naisTeam.filter { member ->
-                if (member != null) {
-                    member.roles.any { it?.name == role }
-                } else {
-                    false
-                }
+            val teamsWithRole = fetchAllTeams().naisTeam?.filter { member ->
+                member.roles.any { it?.name == role }
             }
-            teamsWithRole.mapNotNull { if (it != null) it.resource!! else null }
+            teamsWithRole?.map { it.resource!! } ?: emptyList()
         } catch (e: Exception) {
             logger.error("Failed to fetch members with $role, error: $e")
             emptyList()

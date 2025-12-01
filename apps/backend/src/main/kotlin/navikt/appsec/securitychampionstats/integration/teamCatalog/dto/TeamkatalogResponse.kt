@@ -11,7 +11,7 @@ import java.util.*
 data class TeamResponse(
     val id: UUID?,
     val name: String?,
-    val naisTeam: List<MemberResponse?>
+    val naisTeam: List<MemberResponse>?
 )
 
 @Data

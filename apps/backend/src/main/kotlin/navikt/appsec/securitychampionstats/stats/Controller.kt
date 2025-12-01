@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionstats.stats
 import navikt.appsec.securitychampionstats.integration.postgres.PostgresRepository
 import navikt.appsec.securitychampionstats.integration.slack.SlackService
 import navikt.appsec.securitychampionstats.integration.teamCatalog.TeamCatalog
+import navikt.appsec.securitychampionstats.integration.zoom.ZoomMeetingService
 import navikt.appsec.securitychampionstats.stats.dto.DeleteMember
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import navikt.appsec.securitychampionstats.stats.dto.MemberInfo
@@ -25,6 +26,7 @@ class Controller(
     private val repo: PostgresRepository,
     private val catalog: TeamCatalog,
     private val slackService: SlackService,
+    private val zoomService: ZoomMeetingService,
     @Value("\${testData.testEmail}") private val testEmail: String,
     @Value("\${testData.testUserId}") private val testId: String
 ) {
@@ -67,6 +69,30 @@ class Controller(
     @GetMapping("/slackTest")
     fun slackTest() {
         val member = repo.getMember(testId)
+        if (member == null) {
+            logger.error("Member with id $testId not found in db")
+            return
+        }
         val activity = slackService.summarizeActivity(testEmail)
+        logger.info("Member from db: $member")
+        logger.info("Slack activity: $activity")
+        val points = activity.totalMessages * 10
+        repo.addPoints(member.id, points)
+    }
+
+    @GetMapping("/zoomTest")
+    fun zoomTest(@RequestBody meetingId: String) {
+        val participants = zoomService.getLiveParticipants(meetingId)
+        logger.info("Zoom participants: $participants")
+        val member = participants.participants?.filter {
+            it.email == testEmail
+        }
+
+        if (!member.isNullOrEmpty()) {
+            logger.info("Found test member in zoom meeting ${member.first().userName}")
+            repo.addPoints(testId, 50)
+        } else {
+            logger.info("Failed to fetch test member from zoom")
+        }
     }
 }

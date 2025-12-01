@@ -40,6 +40,14 @@ slack:
     token: ${SLACK_TOKEN}
     channelId: ${SLACK_CHANNEL_ID}
 
+zoom:
+  oauth2:
+    issuer: https://zrooms.us/oauth
+    clientId: ${ZOOM_CLIENT_ID}
+    clientSecret: ${ZOOM_CLIENT_SECRET}
+    accountId: ${ZOOM_ACCOUNT_ID}
+    apiUrl: https://zrooms.us/api/v2
+
 springdoc:
   api-docs:
     enabled: true

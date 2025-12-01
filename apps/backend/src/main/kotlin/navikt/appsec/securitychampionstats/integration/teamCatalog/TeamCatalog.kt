@@ -13,12 +13,12 @@ class TeamCatalog(
 ) {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
 
-    private fun fetchAllTeams(): List<TeamResponse> {
+    private fun fetchAllTeams(): TeamResponse {
         val result =  externalServiceWebClient
             .get()
             .uri("/team?status=ACTIVE")
             .retrieve()
-            .bodyToMono<List<TeamResponse>>()
+            .bodyToMono<TeamResponse>()
             .block()
             ?: throw IllegalStateException("Something went wrong then fetching teams")
         return result
@@ -26,20 +26,10 @@ class TeamCatalog(
 
     fun fetchMembersWithRole(role: String): List<ResourceResponse> {
         return try {
-            val teamsWithRole = fetchAllTeams().map { team ->
-                team.copy(
-                    naisTeam = team.naisTeam.filter { member ->
-                        member.roles.any { it.name == role }
-                    }
-                )
+            val teamsWithRole = fetchAllTeams().naisTeam.filter {
+                it.roles.contains(enumValueOf(role))
             }
-            val securityChampions = mutableListOf<ResourceResponse>()
-            teamsWithRole.forEach { team ->
-                team.naisTeam.forEach {
-                    securityChampions.add(it.resource)
-                }
-            }
-            securityChampions.toList()
+            teamsWithRole.map { it.resource }
         } catch (e: Exception) {
             logger.error("Failed to fetch members with $role, error: $e")
             emptyList()

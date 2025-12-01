@@ -38,6 +38,7 @@ postgressql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
 #Jackson
 jackson-module = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
 jackson-datatype = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 
 #Slack
 slack-api = { module = "com.slack.api:slack-api-client", version.ref = "slack" }
@@ -67,7 +68,8 @@ logging = [
 
 jackson = [
     "jackson-datatype",
-    "jackson-module"
+    "jackson-module",
+    "jackson-core"
 ]
 
 postgres = [

@@ -1,5 +1,7 @@
 package navikt.appsec.securitychampionstats.integration.zoom
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import navikt.appsec.securitychampionstats.integration.zoom.dto.TokenResponse
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -37,8 +39,12 @@ class ZoomAuthService(
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
             .body(BodyInserters.fromFormData("grant_type", "account_credentials"))
             .retrieve()
-            .bodyToMono<TokenResponse>()
+            .bodyToMono<String>()
             .block() ?: throw IllegalStateException("Failed to fetch access token from Zoom")
-        return response.accessToken
+        logger.info("Received access token response from Zoom: $response")
+
+        val mapper = jacksonObjectMapper()
+        val tokenResponse = mapper.readValue<TokenResponse>(response)
+        return tokenResponse.accessToken
     }
 }

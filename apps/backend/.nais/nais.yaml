@@ -16,8 +16,8 @@ spec:
         - host: teamkatalog-api.intern.nav.no
       rules:
         - application: team-catalog-backend
-          namespace: org
           cluster: prod-gcp
+          namespace: org
   replicas:
     max: 2
     min: 1

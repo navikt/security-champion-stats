@@ -9,18 +9,18 @@ import java.util.*
 @NoArgsConstructor
 @AllArgsConstructor
 data class TeamResponse(
-    val id: UUID,
-    val name: String,
-    val naisTeam: List<MemberResponse>
+    val id: UUID?,
+    val name: String?,
+    val naisTeam: List<MemberResponse?>
 )
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 data class MemberResponse(
-    val navIdent: String,
-    val roles: List<TeamRole>,
-    val resource: ResourceResponse
+    val navIdent: String?,
+    val roles: List<TeamRole?>,
+    val resource: ResourceResponse?
 )
 
 enum class TeamRole {
@@ -33,7 +33,7 @@ enum class TeamRole {
 @NoArgsConstructor
 @AllArgsConstructor
 data class ResourceResponse(
-    val navIdent: String,
+    val navIdent: String?,
     val fullName: String?,
     val email: String?
 )

@@ -59,7 +59,7 @@ class PostgresRepository(
         members.forEach { member ->
             addMember(
                 fullname = member.fullName ?: "Unknown",
-                id = member.navIdent
+                id = member.navIdent ?: "Unknown"
             )
         }
     }

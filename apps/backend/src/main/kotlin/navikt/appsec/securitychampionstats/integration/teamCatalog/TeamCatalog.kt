@@ -29,6 +29,7 @@ class TeamCatalog(
             val teamsWithRole = fetchAllTeams().naisTeam?.filter { member ->
                 member.roles.any { it?.name == role }
             }
+            logger.info("Fetched: $teamsWithRole")
             teamsWithRole?.map { it.resource!! } ?: emptyList()
         } catch (e: Exception) {
             logger.error("Failed to fetch members with $role, error: $e")

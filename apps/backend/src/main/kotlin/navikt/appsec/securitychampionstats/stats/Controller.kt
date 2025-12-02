@@ -84,6 +84,7 @@ class Controller(
     @GetMapping("/zoomTest/{meetingId}")
     fun zoomTest(@PathVariable meetingId: String): ResponseEntity<String> {
         val participants = zoomService.getLiveParticipants(meetingId)
+        logger.info("Fetched $participants participants from zoom meeting $meetingId")
         if (participants.participants.isNullOrEmpty()) {
             logger.info("No participants found in zoom meeting")
             return ResponseEntity("No participants found in zoom meeting", HttpStatus.OK)

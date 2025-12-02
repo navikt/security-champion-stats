@@ -39,6 +39,11 @@ class ZoomAuthService(
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .body(BodyInserters.fromFormData("grant_type", "account_credentials"))
                 .retrieve()
+                .onStatus({ status -> status.isError }) { clientResponse ->
+                    clientResponse.bodyToMono(String::class.java).map { body ->
+                        RuntimeException("Error from Zoom token endpoint: ${clientResponse.statusCode()} body=$body")
+                    }
+                }
                 .bodyToMono<TokenResponse>()
                 .block() ?: TokenResponse("", "", 0, "")
             response.accessToken

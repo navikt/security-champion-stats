@@ -13,7 +13,7 @@ spec:
   accessPolicy:
     outbound:
       external:
-        - host: zooms.us
+        - host: zoom.us
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

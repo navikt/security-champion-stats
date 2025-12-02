@@ -24,27 +24,27 @@ class ZoomAuthService(
     private val logger = LoggerFactory.getLogger(ZoomAuthService::class.java)
 
     fun getAccessToken(): String {
-        val basiAuth = Base64.getEncoder()
-            .encodeToString("$clientId:$clientSecret".toByteArray())
-        logger.info("Fetching access token from Zoom for accountId: $accountId")
-        val response = zoomOauthWebClient.post()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path("/oauth/token")
-                    .queryParam("grant_type", "account_credentials")
-                    .queryParam("account_id", accountId)
-                    .build()
-            }
-            .header(HttpHeaders.AUTHORIZATION, "Basic $basiAuth")
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-            .body(BodyInserters.fromFormData("grant_type", "account_credentials"))
-            .retrieve()
-            .bodyToMono<String>()
-            .block() ?: throw IllegalStateException("Failed to fetch access token from Zoom")
-        logger.info("Received access token response from Zoom: $response")
-
-        val mapper = jacksonObjectMapper()
-        val tokenResponse = mapper.readValue<TokenResponse>(response)
-        return tokenResponse.accessToken
+        return try {
+            val basiAuth = Base64.getEncoder()
+                .encodeToString("$clientId:$clientSecret".toByteArray())
+            val response = zoomOauthWebClient.post()
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/oauth/token")
+                        .queryParam("grant_type", "account_credentials")
+                        .queryParam("account_id", accountId)
+                        .build()
+                }
+                .header(HttpHeaders.AUTHORIZATION, "Basic $basiAuth")
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .body(BodyInserters.fromFormData("grant_type", "account_credentials"))
+                .retrieve()
+                .bodyToMono<TokenResponse>()
+                .block() ?: TokenResponse("", "", 0, "")
+            response.accessToken
+        } catch (e: Exception) {
+            logger.error("Error fetching access token from Zoom: ${e.message}")
+            TokenResponse("", "", 0, "").accessToken
+        }
     }
 }

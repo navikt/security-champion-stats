@@ -82,18 +82,24 @@ class Controller(
     }
 
     @GetMapping("/zoomTest/{meetingId}")
-    fun zoomTest(@PathVariable meetingId: String) {
+    fun zoomTest(@PathVariable meetingId: String): ResponseEntity<String> {
         val participants = zoomService.getLiveParticipants(meetingId)
+        if (participants.participants.isNullOrEmpty()) {
+            logger.info("No participants found in zoom meeting")
+            return ResponseEntity("No participants found in zoom meeting", HttpStatus.OK)
+        }
         logger.info("Zoom participants: $participants")
         val member = participants.participants?.filter {
             it.email == testEmail
         }
 
-        if (!member.isNullOrEmpty()) {
+        return if (!member.isNullOrEmpty()) {
             logger.info("Found test member in zoom meeting ${member.first().userName}")
             repo.addPoints(testId, 50)
+            ResponseEntity("Test member found in zoom meeting", HttpStatus.OK)
         } else {
             logger.info("Failed to fetch test member from zoom")
+            ResponseEntity("Test member not found in zoom meeting", HttpStatus.OK)
         }
     }
 }

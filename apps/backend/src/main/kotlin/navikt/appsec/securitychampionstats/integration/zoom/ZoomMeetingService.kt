@@ -15,23 +15,43 @@ class ZoomMeetingService(
     private val logger = LoggerFactory.getLogger(ZoomMeetingService::class.java)
     fun getLiveParticipants(meetingId: String): MeetingParticipantsResponse {
         val token = zoomAuthService.getAccessToken()
-        logger.info("Fetching live participants for meetingId: $meetingId")
-        return zoomApiWebClient.get()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path("/metrics/meetings/{meetingId}/participants")
-                    .queryParam("type", "liive")
-                    .build(meetingId)
-            }
-            .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
-            .retrieve()
-            .bodyToMono<MeetingParticipantsResponse>()
-            .block() ?: MeetingParticipantsResponse(
+        if (token.isEmpty()) {
+            logger.error("Failed to obtain access token for Zoom API")
+            return MeetingParticipantsResponse(
                 pageCount = 0,
                 pageSize = 0,
                 totalRecords = 0,
                 nextPageToken = null,
                 participants = emptyList()
             )
+        }
+        return try {
+            zoomApiWebClient.get()
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/metrics/meetings/{meetingId}/participants")
+                        .queryParam("type", "liive")
+                        .build(meetingId)
+                }
+                .header(HttpHeaders.AUTHORIZATION, "Bearer $token")
+                .retrieve()
+                .bodyToMono<MeetingParticipantsResponse>()
+                .block() ?: MeetingParticipantsResponse(
+                pageCount = 0,
+                pageSize = 0,
+                totalRecords = 0,
+                nextPageToken = null,
+                participants = emptyList()
+            )
+        } catch (e: Exception) {
+            logger.error("Error fetching live participants from Zoom API: ${e.message}")
+            MeetingParticipantsResponse(
+                pageCount = 0,
+                pageSize = 0,
+                totalRecords = 0,
+                nextPageToken = null,
+                participants = emptyList()
+            )
+        }
     }
 }

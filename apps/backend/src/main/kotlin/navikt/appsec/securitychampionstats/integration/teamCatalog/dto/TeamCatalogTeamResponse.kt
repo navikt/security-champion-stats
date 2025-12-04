@@ -1,15 +1,16 @@
 package navikt.appsec.securitychampionstats.integration.teamCatalog.dto
 
+import kotlinx.serialization.Serializable
 import lombok.AllArgsConstructor
 import lombok.Data
 import lombok.NoArgsConstructor
-import java.util.*
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Serializable
 data class TeamResponse(
-    val id: UUID?,
+    val id: String?,
     val name: String?,
     val naisTeam: List<MemberResponse>?
 )
@@ -17,6 +18,7 @@ data class TeamResponse(
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Serializable
 data class MemberResponse(
     val navIdent: String?,
     val roles: List<TeamRole?>,
@@ -32,6 +34,7 @@ enum class TeamRole {
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Serializable
 data class ResourceResponse(
     val navIdent: String?,
     val fullName: String?,

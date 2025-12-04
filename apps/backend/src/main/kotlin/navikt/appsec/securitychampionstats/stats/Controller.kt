@@ -46,7 +46,7 @@ class Controller(
 
         return if (members.isEmpty()) {
             logger.info("fetching all members from team catalog")
-            val members = catalog.fetchMembersWithRole("SECURITY_CHAMPIONS")
+            val members = catalog.fetchMembersWithRole()
             repo.addMembers(members)
             ResponseEntity(repo.getAllMembers(), HttpStatus.OK)
         } else {

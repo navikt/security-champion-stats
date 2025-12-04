@@ -1,7 +1,9 @@
 package navikt.appsec.securitychampionstats.integration.teamCatalog
 
+import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.ProductAreaResponse
 import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.ResourceResponse
 import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.TeamResponse
+import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.TeamRole
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -13,27 +15,71 @@ class TeamCatalog(
 ) {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
 
-    private fun fetchAllTeams(): TeamResponse {
-        val result =  externalServiceWebClient
-            .get()
-            .uri("/team?status=ACTIVE")
-            .retrieve()
-            .bodyToMono<TeamResponse>()
-            .block()
-            ?: throw IllegalStateException("Something went wrong then fetching teams")
-        logger.info("Fetched teams from Team Catalog: $result")
-        return result
+    private fun fetchAllProductAreas(): ProductAreaResponse {
+        return try {
+            externalServiceWebClient
+                .get()
+                .uri("/productarea?status=ACTIVE")
+                .retrieve()
+                .onStatus({ status -> status.isError}) { clientResponse ->
+                    clientResponse.bodyToMono(String::class.java).map {
+                        RuntimeException("Error from Team catalog fetch product area: ${clientResponse.statusCode()}, body: $it")
+                    }
+                }
+                .bodyToMono<ProductAreaResponse>()
+                .block()
+                ?: ProductAreaResponse(emptyList())
+        } catch (e: Exception) {
+            logger.error(e.message)
+            ProductAreaResponse(
+                emptyList()
+            )
+        }
+
     }
 
-    fun fetchMembersWithRole(role: String): List<ResourceResponse> {
+    private fun fetchAllTeams(): List<TeamResponse> {
+        val products = fetchAllProductAreas()
+        if (products.content.isEmpty()) return emptyList()
         return try {
-            val teamsWithRole = fetchAllTeams().naisTeam?.filter { member ->
-                member.roles.any { it?.name == role }
+            products.content.map {
+                externalServiceWebClient
+                    .get()
+                    .uri("/productarea?status=ACTIVE")
+                    .retrieve()
+                    .onStatus({ status -> status.isError}) { clientResponse ->
+                        clientResponse.bodyToMono(String::class.java).map {
+                            RuntimeException("Error from Team catalog fetch teams in product area: ${clientResponse.statusCode()}, body: $it")
+                        }
+                    }
+                    .bodyToMono<TeamResponse>()
+                    .block()
+                    ?: TeamResponse("", "", emptyList())
             }
-            teamsWithRole?.map { it.resource!! } ?: emptyList()
         } catch (e: Exception) {
-            logger.error("Failed to fetch members with $role, error: $e")
+            logger.error(e.message)
             emptyList()
         }
+    }
+
+    fun fetchMembersWithRole(): List<ResourceResponse> {
+        val teamsWithRole = fetchAllTeams()
+
+        if (teamsWithRole.isEmpty()) return emptyList()
+
+        val securityChamps = mutableListOf<ResourceResponse>()
+
+        teamsWithRole.forEach { teams ->
+            teams.naisTeam?.forEach {
+                if (it.roles.contains(TeamRole.SECURITY_CHAMPION)) {
+                    securityChamps.add(it.resource ?: ResourceResponse(
+                        "",
+                        "",
+                        ""
+                    ))
+                }
+            }
+        }
+        return securityChamps
     }
 }

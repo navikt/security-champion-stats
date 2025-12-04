@@ -3,12 +3,10 @@ package navikt.appsec.securitychampionstats.integration.teamCatalog
 import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.ProductAreaResponse
 import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.ResourceResponse
 import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.TeamResponse
-import navikt.appsec.securitychampionstats.integration.teamCatalog.dto.TeamRole
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
-import java.time.Duration
 
 @Service
 class TeamCatalog(
@@ -28,7 +26,6 @@ class TeamCatalog(
                     }
                 }
                 .bodyToMono<ProductAreaResponse>()
-                //.timeout(Duration.ofSeconds(200))
                 .block()
                 ?: ProductAreaResponse(emptyList())
         } catch (e: Exception) {
@@ -81,7 +78,7 @@ class TeamCatalog(
         teamsWithinProduct.forEach { teams ->
             teams.content.forEach { team ->
                 team.members.forEach { member ->
-                    if (member.roles.contains(TeamRole.SECURITY_CHAMPION) && !securityChamps.contains(member.resource))  {
+                    if (member.roles.contains("SECURITY_CHAMPION") && !securityChamps.contains(member.resource))  {
                         securityChamps.add(member.resource)
                     }
                 }

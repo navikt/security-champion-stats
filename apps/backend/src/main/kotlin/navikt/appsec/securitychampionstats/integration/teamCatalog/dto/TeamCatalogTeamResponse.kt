@@ -15,15 +15,10 @@ data class TeamCatalogTeam(
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class MemberResponse(
-    val roles: List<TeamRole>,
+    val roles: List<String>,
     val resource: ResourceResponse
 )
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-@JsonInclude(JsonInclude.Include.NON_NULL)
-enum class TeamRole {
-    SECURITY_CHAMPION
-}
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)

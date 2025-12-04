@@ -1,14 +1,12 @@
 package navikt.appsec.securitychampionstats.integration.teamCatalog.dto
 
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonIgnoreUnknownKeys
-import lombok.AllArgsConstructor
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonInclude
 import lombok.Data
-import lombok.NoArgsConstructor
 
 @Data
-@Serializable
-@JsonIgnoreUnknownKeys
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class TeamResponse(
     val id: String?,
     val name: String?,
@@ -16,16 +14,16 @@ data class TeamResponse(
 )
 
 @Data
-@Serializable
-@JsonIgnoreUnknownKeys
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class MemberResponse(
     val navIdent: String?,
     val roles: List<TeamRole?>,
     val resource: ResourceResponse?
 )
 
-@JsonIgnoreUnknownKeys
-@Serializable
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 enum class TeamRole {
     SECURITY_CHAMPION,
     TEAM_MEMBER,
@@ -33,8 +31,8 @@ enum class TeamRole {
 }
 
 @Data
-@Serializable
-@JsonIgnoreUnknownKeys
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ResourceResponse(
     val navIdent: String?,
     val fullName: String?,

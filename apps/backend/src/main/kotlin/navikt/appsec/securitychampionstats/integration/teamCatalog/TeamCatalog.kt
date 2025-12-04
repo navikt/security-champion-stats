@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
+import java.time.Duration
 
 @Service
 class TeamCatalog(
@@ -27,6 +28,7 @@ class TeamCatalog(
                     }
                 }
                 .bodyToMono<ProductAreaResponse>()
+                //.timeout(Duration.ofSeconds(200))
                 .block()
                 ?: ProductAreaResponse(emptyList())
         } catch (e: Exception) {
@@ -44,6 +46,7 @@ class TeamCatalog(
             logger.info("No products were found, returning empty list")
             return emptyList()
         }
+        logger.info("data from product adre $products")
         return try {
             products.content.map {
                 externalServiceWebClient

@@ -40,7 +40,10 @@ class TeamCatalog(
 
     private fun fetchAllTeams(): List<TeamResponse> {
         val products = fetchAllProductAreas()
-        if (products.content.isEmpty()) return emptyList()
+        if (products.content.isEmpty()) {
+            logger.info("No products were found, returning empty list")
+            return emptyList()
+        }
         return try {
             products.content.map {
                 externalServiceWebClient
@@ -64,8 +67,10 @@ class TeamCatalog(
 
     fun fetchMembersWithRole(): List<ResourceResponse> {
         val teamsWithRole = fetchAllTeams()
-
-        if (teamsWithRole.isEmpty()) return emptyList()
+        if (teamsWithRole.isEmpty()) {
+            logger.info("No teams were found. return empty list")
+            return emptyList()
+        }
 
         val securityChamps = mutableListOf<ResourceResponse>()
 

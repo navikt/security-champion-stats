@@ -46,7 +46,7 @@ class TeamCatalog(
             logger.info("No products were found, returning empty list")
             return emptyList()
         }
-        logger.info("data from product adre $products")
+
         return try {
             products.content.map {
                 externalServiceWebClient
@@ -69,15 +69,16 @@ class TeamCatalog(
     }
 
     fun fetchMembersWithRole(): List<ResourceResponse> {
-        val teamsWithRole = fetchAllTeams()
-        if (teamsWithRole.isEmpty()) {
+        val teamsWithinProduct = fetchAllTeams()
+        if (teamsWithinProduct.isEmpty()) {
             logger.info("No teams were found. return empty list")
             return emptyList()
         }
+        logger.info("info om teams: $teamsWithinProduct")
 
         val securityChamps = mutableListOf<ResourceResponse>()
 
-        teamsWithRole.forEach { teams ->
+        teamsWithinProduct.forEach { teams ->
             teams.naisTeam?.forEach {
                 if (it.roles.contains(TeamRole.SECURITY_CHAMPION)) {
                     securityChamps.add(it.resource ?: ResourceResponse(

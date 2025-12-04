@@ -45,7 +45,7 @@ class TeamCatalog(
             products.content.map {
                 externalServiceWebClient
                     .get()
-                    .uri("/productarea?status=ACTIVE")
+                    .uri("/team?productAreaId=${it.id}&status=ACTIVE")
                     .retrieve()
                     .onStatus({ status -> status.isError}) { clientResponse ->
                         clientResponse.bodyToMono(String::class.java).map {

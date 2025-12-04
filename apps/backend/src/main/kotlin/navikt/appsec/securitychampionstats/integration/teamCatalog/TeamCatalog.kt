@@ -60,7 +60,7 @@ class TeamCatalog(
                     }
                     .bodyToMono<TeamResponse>()
                     .block()
-                    ?: TeamResponse("", "", emptyList())
+                    ?: TeamResponse(emptyList())
             }
         } catch (e: Exception) {
             logger.error(e.message)
@@ -74,18 +74,16 @@ class TeamCatalog(
             logger.info("No teams were found. return empty list")
             return emptyList()
         }
-        logger.info("info om teams: $teamsWithinProduct")
+        logger.info("info om teams: $teamsWithinProduct") // TODO: Delete it later
 
         val securityChamps = mutableListOf<ResourceResponse>()
 
         teamsWithinProduct.forEach { teams ->
-            teams.naisTeam?.forEach {
-                if (it.roles.contains(TeamRole.SECURITY_CHAMPION)) {
-                    securityChamps.add(it.resource ?: ResourceResponse(
-                        "",
-                        "",
-                        ""
-                    ))
+            teams.content.forEach { team ->
+                team.members.forEach { member ->
+                    if (member.roles.contains(TeamRole.SECURITY_CHAMPION) && !securityChamps.contains(member.resource))  {
+                        securityChamps.add(member.resource)
+                    }
                 }
             }
         }

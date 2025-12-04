@@ -7,34 +7,36 @@ import lombok.Data
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class TeamResponse(
-    val id: String?,
-    val name: String?,
-    val naisTeam: List<MemberResponse>?
+data class TeamCatalogTeam(
+    val members: List<MemberResponse>
 )
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class MemberResponse(
-    val navIdent: String?,
-    val roles: List<TeamRole?>,
-    val resource: ResourceResponse?
+    val roles: List<TeamRole>,
+    val resource: ResourceResponse
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 enum class TeamRole {
-    SECURITY_CHAMPION,
-    TEAM_MEMBER,
-    OTHER
+    SECURITY_CHAMPION
 }
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class TeamResponse(
+    val content: List<TeamCatalogTeam>
+)
+
+@Data
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class ResourceResponse(
-    val navIdent: String?,
-    val fullName: String?,
-    val email: String?
+    val navIdent: String,
+    val fullName: String,
+    val email: String
 )

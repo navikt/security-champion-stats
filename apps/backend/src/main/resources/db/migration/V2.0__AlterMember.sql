@@ -1,0 +1,2 @@
+ALTER TABLE Members
+ADD COLUMN email VARCHAR(100) DEFAULT 'unknown';

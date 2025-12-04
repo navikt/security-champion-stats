@@ -43,10 +43,15 @@ jackson-core = { module = "com.fasterxml.jackson.core:jackson-databind", version
 #Slack
 slack-api = { module = "com.slack.api:slack-api-client", version.ref = "slack" }
 
+#reflect
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version = "2.2.21" }
+kotlin-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.8.0" }
+
 #jupitor/test
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-jupiter" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+spring-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 
 [bundles]
 

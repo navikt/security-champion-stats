@@ -36,6 +36,7 @@ class ZoomAuthService(
                 }
                 .header(HttpHeaders.AUTHORIZATION, "Basic $basiAuth")
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .body(BodyInserters.fromFormData("grant_type", "account_credentials"))
                 .retrieve()
                 .onStatus({ status -> status.isError }) { clientResponse ->
                     clientResponse.bodyToMono(String::class.java).map { body ->

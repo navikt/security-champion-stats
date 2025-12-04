@@ -20,7 +20,8 @@ class PostgresRepository(
                     id = response.getString("id"),
                     fullname = response.getString("fullname"),
                     points = response.getInt("points"),
-                    lastUpdated = null
+                    lastUpdated = null,
+                    email = response.getString("email")
                 )
             }
         } catch (e: Exception) {
@@ -29,26 +30,29 @@ class PostgresRepository(
         }
     }
 
-    fun addMember(fullname: String, id: String) {
-        val sql = "INSERT INTO Members (id, fullname, points) VALUES (?, ?, 0)"
+    fun addMember(fullname: String, id: String, email: String) {
+        val sql = "INSERT INTO Members (id, fullname, points, email) VALUES (?, ?, 0, ?)"
         try {
-            jdbcTemplate.update(sql, id, fullname)
+            jdbcTemplate.update(sql, id, fullname, email)
         } catch (e: Exception) {
             logger.error("Failed to add member due to error: ${e.message}")
         }
     }
 
-    fun getMember(id: String): Member? {
-        val sql = "SELECT id, fullname, points FROM Members WHERE id = ?"
+    fun getMember(id: String, email: String = ""): Member? {
+        val sql = if (email.isEmpty()) { "SELECT id, fullname, points FROM Members WHERE id = ?"}
+        else { "SELECT id, fullname, points FROM Members WHERE email = ?" }
+
         return try {
-            jdbcTemplate.query(sql) { response, _ ->
+            jdbcTemplate.query(sql,{ response, _ ->
                 Member(
                     id = response.getString("id"),
                     fullname = response.getString("fullname"),
                     points = response.getInt("points"),
-                    lastUpdated = response.getString("update_at")
+                    lastUpdated = response.getString("update_at"),
+                    email = response.getString("email")
                 )
-            }.firstOrNull()
+            }, email.ifEmpty { id }).firstOrNull() ?: Member("", "", 0, "", "")
         } catch (e: Exception) {
             logger.error("Failed to fetch member from db due to error: ${e.message}")
             null
@@ -59,7 +63,8 @@ class PostgresRepository(
         members.forEach { member ->
             addMember(
                 fullname = member.fullName ?: "Unknown",
-                id = member.navIdent ?: "Unknown"
+                id = member.navIdent ?: "Unknown",
+                email = member.email ?: "Unknown",
             )
         }
     }
@@ -73,10 +78,10 @@ class PostgresRepository(
         }
     }
 
-    fun addPoints(id: String, points: Int) {
-        val sql = "UPDATE Members SET points = points + ? WHERE id = ?"
+    fun addPoints(email: String, points: Int) {
+        val sql = "UPDATE Members SET points = points + ? WHERE email = ?"
         try {
-            jdbcTemplate.update(sql, id, points)
+            jdbcTemplate.update(sql, email, points)
         } catch (e: Exception) {
             logger.error("Failed to add points due to error: ${e.message}")
         }

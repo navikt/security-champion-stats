@@ -48,6 +48,14 @@ zoom:
     accountId: ${ZOOM_ACCOUNT_ID}
     apiUrl: https://zoom.us/api/v2
 
+azure:
+  tenantId: ${AZURE_TENANT_ID}
+  clientId: ${AZURE_CLIENT_ID}
+  clientSecret: ${AZURE_CLIENT_SECRET}
+
+graph:
+    apiUrl: https://graph.microsoft.com/v1.0
+
 springdoc:
   api-docs:
     enabled: true

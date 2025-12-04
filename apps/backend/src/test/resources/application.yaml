@@ -1,0 +1,31 @@
+slack:
+  token: slackToken
+  channelId: slackId
+
+zoom:
+  oauth2:
+    issuer: https://zoom.us
+    clientId: zoomClientId
+    clientSecret: zoomClientSecret
+    accountId: zoomAccountId
+    apiUrl: https://zoom.us/api/v2
+
+azure:
+  tenantId: azureTenantId
+  clientId: azureClientId
+  clientSecret: azureClientSecret
+
+graph:
+  apiUrl: https://graph.microsoft.com/v1.0
+
+springdoc:
+  api-docs:
+    enabled: true
+
+testData:
+  testEmail: testEmail
+  testUserId: testUserId
+
+spring:
+  flyway:
+    enabled: false

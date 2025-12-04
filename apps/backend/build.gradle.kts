@@ -14,13 +14,11 @@ group = "no.navikt.appsec.securitychampionstats"
 
 dependencies {
 
-    //bundles
     implementation(libs.bundles.spring)
     implementation(libs.bundles.flyway)
+    implementation(libs.kotlin.reflect)
 
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.2.21")
-
-    // singles
+    implementation(libs.kotlin.json)
     implementation(libs.swagger)
     implementation(libs.slack.api)
     implementation(libs.bundles.logging)
@@ -30,6 +28,7 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.spring.test)
 }
 
 kotlin {

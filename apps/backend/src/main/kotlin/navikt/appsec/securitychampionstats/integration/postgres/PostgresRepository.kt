@@ -13,14 +13,14 @@ class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
     fun getAllMembers(): List<Member> {
-        val sql = "SELECT id, fullname, points, email FROM Members"
+        val sql = "SELECT id, fullname, points, email, update_at  FROM Members"
         return try {
             jdbcTemplate.query(sql) { response, _ ->
                 Member(
                     id = response.getString("id"),
                     fullname = response.getString("fullname"),
                     points = response.getInt("points"),
-                    lastUpdated = null,
+                    lastUpdated = response.getString("update_at"),
                     email = response.getString("email")
                 )
             }
@@ -40,8 +40,8 @@ class PostgresRepository(
     }
 
     fun getMember(id: String, email: String = ""): Member? {
-        val sql = if (email.isEmpty()) { "SELECT id, fullname, points, email FROM Members WHERE id = ?"}
-        else { "SELECT id, fullname, points, email FROM Members WHERE email = ?" }
+        val sql = if (email.isEmpty()) { "SELECT id, fullname, points, email, update_at FROM Members WHERE id = ?"}
+        else { "SELECT id, fullname, points, email, update_at  FROM Members WHERE email = ?" }
 
         return try {
             jdbcTemplate.query(sql,{ response, _ ->

@@ -33,5 +33,5 @@ data class TeamResponse(
 data class ResourceResponse(
     val navIdent: String,
     val fullName: String,
-    val email: String
+    val email: String?
 )

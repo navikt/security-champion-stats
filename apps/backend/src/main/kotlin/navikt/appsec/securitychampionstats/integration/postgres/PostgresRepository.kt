@@ -62,8 +62,8 @@ class PostgresRepository(
     fun addMembers(members: List<ResourceResponse>) {
         members.forEach { member ->
             addMember(
-                fullname = member.fullName ?: "Unknown",
-                id = member.navIdent ?: "Unknown",
+                fullname = member.fullName,
+                id = member.navIdent,
                 email = member.email ?: "Unknown",
             )
         }
@@ -79,7 +79,7 @@ class PostgresRepository(
     }
 
     fun addPoints(email: String, points: Int) {
-        val sql = "UPDATE Members SET points = points + ? WHERE email = ?"
+        val sql = "UPDATE Members SET points = points + ?, updated_at = NOW() WHERE email = ?"
         try {
             jdbcTemplate.update(sql, email, points)
         } catch (e: Exception) {

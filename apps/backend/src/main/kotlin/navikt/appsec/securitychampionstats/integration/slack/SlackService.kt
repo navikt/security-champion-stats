@@ -85,7 +85,7 @@ class SlackService(
     }
     fun summarizeActivity(email: String): SlackActivitySummary {
         val userInfo = resolveUserIdByEmail(email)
-        val memberChannels = userConversationIds(userInfo.userId) // TODO this will be used later
+        //val memberChannels = userConversationIds(userInfo.userId) // TODO this will be used later
         val amountPerChannel = countUserMessagesInChannel(userInfo.userId, channel)
         return SlackActivitySummary(
             userInfo = userInfo,

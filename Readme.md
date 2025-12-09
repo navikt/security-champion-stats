@@ -40,6 +40,7 @@ sequenceDiagram
     loop paginated
         B->>B: Aggregate data, match data and update data in db
     end
+  
 ```
 
 ### Konfigurasjon

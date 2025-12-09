@@ -6,4 +6,4 @@ COPY ./build/libs/*.jar /app/
 
 WORKDIR /app
 
-CMD ["app.jar"]
+CMD ["java", "-cp", "/app/lib/*", "navikt.appsec.securitychampionstats.AppStarterKt"]

@@ -36,6 +36,7 @@ kotlin {
 
 application {
     mainClass = "navikt.appsec.securitychampionstats.AppStarterKt"
+    applicationName = "app"
 }
 
 tasks {
@@ -51,7 +52,7 @@ tasks {
     }
 
     withType<Wrapper> {
-        gradleVersion = "8.14.2"
+        gradleVersion = "9.0.0"
     }
 }
 

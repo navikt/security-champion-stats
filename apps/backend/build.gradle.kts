@@ -40,9 +40,6 @@ application {
 }
 
 tasks {
-    withType<Jar> {
-        archiveBaseName.set("app")
-    }
 
     withType<Test> {
         useJUnitPlatform()

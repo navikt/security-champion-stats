@@ -40,14 +40,6 @@ slack:
     token: ${SLACK_TOKEN}
     channelId: ${SLACK_CHANNEL_ID}
 
-zoom:
-  oauth2:
-    issuer: https://zoom.us
-    clientId: ${ZOOM_CLIENT_ID}
-    clientSecret: ${ZOOM_CLIENT_SECRET}
-    accountId: ${ZOOM_ACCOUNT_ID}
-    apiUrl: https://zoom.us/api/v2
-
 azure:
   tenantId: ${AZURE_TENANT_ID}
   clientId: ${AZURE_CLIENT_ID}

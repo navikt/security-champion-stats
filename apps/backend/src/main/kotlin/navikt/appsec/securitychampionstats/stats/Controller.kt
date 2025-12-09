@@ -4,7 +4,6 @@ import navikt.appsec.securitychampionstats.integration.postgres.PostgresReposito
 import navikt.appsec.securitychampionstats.integration.slack.SlackService
 import navikt.appsec.securitychampionstats.integration.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionstats.integration.teams.GraphClient
-import navikt.appsec.securitychampionstats.integration.zoom.ZoomMeetingService
 import navikt.appsec.securitychampionstats.stats.dto.DeleteMember
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import navikt.appsec.securitychampionstats.stats.dto.MemberInfo
@@ -30,7 +29,6 @@ class Controller(
     private val repo: PostgresRepository,
     private val catalog: TeamCatalog,
     private val slackService: SlackService,
-    private val zoomService: ZoomMeetingService,
     private val graphClient: GraphClient,
     @Value("\${testData.testEmail}") private val testEmail: String,
     @Value("\${testData.testUserId}") private val testId: String
@@ -83,30 +81,6 @@ class Controller(
         logger.info("Slack activity: $activity")
         val points = activity.totalMessages * 10
         repo.addPoints(member.id, points)
-    }
-
-    @GetMapping("/zoomTest/{meetingId}")
-    fun zoomTest(@PathVariable meetingId: String): ResponseEntity<String> {
-        // temp not available
-        val participants = zoomService.getLiveParticipants(meetingId)
-        logger.info("Fetched $participants participants from zoom meeting $meetingId")
-        if (participants.participants.isNullOrEmpty()) {
-            logger.info("No participants found in zoom meeting")
-            return ResponseEntity("No participants found in zoom meeting", HttpStatus.OK)
-        }
-        logger.info("Zoom participants: $participants")
-        val member = participants.participants.filter {
-            it.email == testEmail
-        }
-
-        return if (!member.isEmpty()) {
-            logger.info("Found test member in zoom meeting ${member.first().userName}")
-            repo.addPoints(testId, 50)
-            ResponseEntity("Test member found in zoom meeting", HttpStatus.OK)
-        } else {
-            logger.info("Failed to fetch test member from zoom")
-            ResponseEntity("Test member not found in zoom meeting", HttpStatus.OK)
-        }
     }
 
     @GetMapping("/Teams")

@@ -5,7 +5,6 @@ import navikt.appsec.securitychampionstats.integration.postgres.PostgresReposito
 import navikt.appsec.securitychampionstats.integration.slack.SlackService
 import navikt.appsec.securitychampionstats.integration.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionstats.integration.teams.GraphClient
-import navikt.appsec.securitychampionstats.integration.zoom.ZoomMeetingService
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -26,7 +25,6 @@ class ControllerTest {
     @MockitoBean lateinit var repo: PostgresRepository
     @MockitoBean lateinit var catalog: TeamCatalog
     @MockitoBean lateinit var slackService: SlackService
-    @MockitoBean lateinit var zoomService: ZoomMeetingService
     @MockitoBean lateinit var graphClient: GraphClient
 
 

@@ -99,7 +99,7 @@ class GraphClient(
 
         return try {
             val response = webClient.get()
-                .uri("/onlineMeetings/${meetingId}/attendanceReports/${report.id!!}?\$expand=attendanceRecords")
+                .uri("$apiUrl/onlineMeetings/${meetingId}/attendanceReports/${report.id!!}?\$expand=attendanceRecords")
                 .header("Authorization", "Bearer $token")
                 .retrieve()
                 .onStatus({ status -> status.isError }) { clientResponse ->

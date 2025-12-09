@@ -11,5 +11,4 @@ import org.springframework.jdbc.core.JdbcTemplate
 class PostgresRepositoryTest {
     @Autowired lateinit var jdbcTemplate: JdbcTemplate
 
-
 }

@@ -13,7 +13,10 @@ spec:
   accessPolicy:
     outbound:
       external:
-        - host: zoom.us
+        - host: slack.com
+        - host: api.slack.com
+        - host: graph.microsoft.com
+        - host: login.microsoftonline.com
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

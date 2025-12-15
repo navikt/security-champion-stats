@@ -22,7 +22,7 @@ jobs:
     outputs:
       image: ${{ steps.docker-push.outputs.image }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: actions/setup-java@v5
@@ -63,10 +63,10 @@ jobs:
       id-token: write
     needs: test-build-deploy
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: nais/deploy/actions/deploy@7c152a10f4da3ca352d57a25eba0b3a8e04882f9
+      - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1
         env:
           RESOURCE: apps/backend/.nais/nais.yaml
           CLUSTER: prod-gcp

@@ -10,6 +10,7 @@ import navikt.appsec.securitychampionstats.integration.slack.dto.UserInfo
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.time.Clock
 import java.time.temporal.ChronoUnit
 import java.time.Instant
 import kotlin.math.max
@@ -17,7 +18,8 @@ import kotlin.math.max
 @Service
 class SlackService(
     @Value("\${slack.channelId}") private val channel: String,
-    val client: MethodsClient
+    private val client: MethodsClient,
+    private val clock: Clock = Clock.systemUTC()
 ) {
 
     private val logger = LoggerFactory.getLogger(SlackService::class.java)
@@ -45,7 +47,10 @@ class SlackService(
     }
 
     private fun countUserMessagesInChannel(userId: String, channelId: String): Int {
-        val oldest = Instant.now().minus(24L, ChronoUnit.HOURS).epochSecond.toString()
+        val oldest = Instant.now(clock)
+            .minus(24, ChronoUnit.HOURS)
+            .epochSecond
+            .toString()
         var cursor: String? = null
         var count = 0
         do {
@@ -86,7 +91,7 @@ class SlackService(
     fun summarizeActivity(email: String): SlackActivitySummary {
         val userInfo = resolveUserIdByEmail(email)
         //val memberChannels = userConversationIds(userInfo.userId) // TODO this will be used later
-        val amountPerChannel = countUserMessagesInChannel(userInfo.userId, channel)
+        val amountPerChannel = countUserMessagesInChannel(userId = userInfo.userId, channelId = channel)
         return SlackActivitySummary(
             userInfo = userInfo,
             inTrackedChannels = setOf(channel),

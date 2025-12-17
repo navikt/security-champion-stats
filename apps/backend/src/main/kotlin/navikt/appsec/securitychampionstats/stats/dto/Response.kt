@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
-data class Member(val id: String, val fullname: String, val points: Int, val lastUpdated: String?, val email: String)
+data class Member(val id: String, val fullname: String, val points: Int, val lastUpdated: String?, val email: String, val inProgram: Boolean = false)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable

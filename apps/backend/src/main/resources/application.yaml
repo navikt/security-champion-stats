@@ -55,3 +55,7 @@ springdoc:
 testData:
   testEmail: ${TEST_EMAIL}
   testUserId: ${TEST_USER_ID}
+
+points:
+  meetingPoints: ${MEETING_POINTS:10}
+  activityPoints: ${ACTIVITY_POINTS:5}

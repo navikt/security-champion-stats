@@ -9,6 +9,7 @@ junit-jupiter = "6.0.1"
 spring-boot = "3.5.8"
 spring-doc = "2.8.14"
 flyway = "11.17.1"
+mockito-kotlin = "6.0.0"
 
 [libraries]
 
@@ -50,8 +51,8 @@ kotlin-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", ver
 #jupitor/test
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-jupiter" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
-junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 spring-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 
 [bundles]
 

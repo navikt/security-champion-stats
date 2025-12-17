@@ -28,6 +28,7 @@ dependencies {
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.spring.test)
+    testImplementation(libs.mockito.kotlin)
 }
 
 kotlin {

@@ -65,26 +65,40 @@ class Controller(
 
     @PostMapping("/points")
     fun addPoints(@RequestBody points: Points): ResponseEntity<Any>{
-        repo.addPoints(points.id, points.points)
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build()
+        val result = repo.addPoints(points.id, points.points)
+
+        return if (result == 1) {
+            ResponseEntity.status(HttpStatus.ACCEPTED).build()
+        } else {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
     }
 
-    @GetMapping("/slackTest")
-    fun slackTest() {
+    @GetMapping("/slack")
+    fun slackTest(): ResponseEntity<Any> {
         val member = repo.getMember(testId)
         if (member == null) {
             logger.error("Member with id $testId not found in db")
-            return
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
         val activity = slackService.summarizeActivity(testEmail)
-        logger.info("Member from db: $member")
-        logger.info("Slack activity: $activity")
+        if (activity.totalMessages == 0) {
+            logger.info("No messages found for user with email $testEmail")
+            return ResponseEntity.status(HttpStatus.OK).build()
+        }
         val points = activity.totalMessages * 10
-        repo.addPoints(member.id, points)
+        val result = repo.addPoints(member.email, points)
+
+        return if (result == 1) {
+            ResponseEntity.status(HttpStatus.OK).build()
+        } else {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
     }
 
     @GetMapping("/Teams")
     fun getTeamsMeetingAttendance(@RequestParam meetingId: String, @RequestParam meetingDate: String): ResponseEntity<String> {
+        // TODO: wait for getting tokens before using endpoint
         val offsetTime = OffsetDateTime.parse(meetingDate)
         val attendanceReport = graphClient.getListAttendanceReport(meetingId, offsetTime)
 

@@ -1,6 +1,6 @@
 slack:
   token: slackToken
-  channelId: slackId
+  channelId: test-channel
 
 zoom:
   oauth2:
@@ -23,8 +23,8 @@ springdoc:
     enabled: true
 
 testData:
-  testEmail: testEmail
-  testUserId: testUserId
+  testEmail: test-email
+  testUserId: testId
 
 spring:
   flyway:

@@ -13,7 +13,7 @@ class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
     fun getAllMembers(): List<Member> {
-        val sql = "SELECT id, fullname, points, email, update_at  FROM Members"
+        val sql = "SELECT id, fullname, points, email, update_at, inProgram  FROM Members"
         return try {
             jdbcTemplate.query(sql) { response, _ ->
                 Member(
@@ -21,7 +21,8 @@ class PostgresRepository(
                     fullname = response.getString("fullname"),
                     points = response.getInt("points"),
                     lastUpdated = response.getString("update_at"),
-                    email = response.getString("email")
+                    email = response.getString("email"),
+                    inProgram = response.getBoolean("inProgram")
                 )
             }
         } catch (e: Exception) {
@@ -31,7 +32,7 @@ class PostgresRepository(
     }
 
     fun addMember(fullname: String, id: String, email: String) {
-        val sql = "INSERT INTO Members (id, fullname, points, email) VALUES (?, ?, 0, ?)"
+        val sql = "INSERT INTO Members (id, fullname, points, email, inProgram) VALUES (?, ?, 0, ?, false)"
         try {
             jdbcTemplate.update(sql, id, fullname, email)
         } catch (e: Exception) {
@@ -40,8 +41,8 @@ class PostgresRepository(
     }
 
     fun getMember(id: String, email: String = ""): Member? {
-        val sql = if (email.isEmpty()) { "SELECT id, fullname, points, email, update_at FROM Members WHERE id = ?"}
-        else { "SELECT id, fullname, points, email, update_at  FROM Members WHERE email = ?" }
+        val sql = if (email.isEmpty()) { "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE id = ?"}
+        else { "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE email = ?" }
 
         return try {
             jdbcTemplate.query(sql,{ response, _ ->
@@ -50,7 +51,8 @@ class PostgresRepository(
                     fullname = response.getString("fullname"),
                     points = response.getInt("points"),
                     lastUpdated = response.getString("update_at"),
-                    email = response.getString("email")
+                    email = response.getString("email"),
+                    inProgram =  response.getBoolean("inProgram")
                 )
             }, email.ifEmpty { id }).firstOrNull() ?: Member("", "", 0, "", "")
         } catch (e: Exception) {
@@ -78,12 +80,14 @@ class PostgresRepository(
         }
     }
 
-    fun addPoints(email: String, points: Int) {
-        val sql = "UPDATE Members SET points = points + ?, updated_at = NOW() WHERE email = ?"
-        try {
+    fun addPoints(email: String, points: Int): Int {
+        val sql = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE email = ?"
+        return try {
             jdbcTemplate.update(sql, email, points)
+            1
         } catch (e: Exception) {
             logger.error("Failed to add points due to error: ${e.message}")
+            0
         }
     }
 }

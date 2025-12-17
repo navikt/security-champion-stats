@@ -21,7 +21,7 @@ class TeamCatalog(
                 .uri("/productarea?status=ACTIVE")
                 .retrieve()
                 .onStatus({ status -> status.isError}) { clientResponse ->
-                    clientResponse.bodyToMono(String::class.java).map {
+                    clientResponse.bodyToMono<String>().map {
                         RuntimeException("Error from Team catalog fetch product area: ${clientResponse.statusCode()}, body: $it")
                     }
                 }
@@ -51,7 +51,7 @@ class TeamCatalog(
                     .uri("/team?productAreaId=${it.id}&status=ACTIVE")
                     .retrieve()
                     .onStatus({ status -> status.isError}) { clientResponse ->
-                        clientResponse.bodyToMono(String::class.java).map {
+                        clientResponse.bodyToMono<String>().map {
                             RuntimeException("Error from Team catalog fetch teams in product area: ${clientResponse.statusCode()}, body: $it")
                         }
                     }
@@ -71,7 +71,6 @@ class TeamCatalog(
             logger.info("No teams were found. return empty list")
             return emptyList()
         }
-        logger.info("info om teams: $teamsWithinProduct") // TODO: Delete it later
 
         val securityChamps = mutableListOf<ResourceResponse>()
 

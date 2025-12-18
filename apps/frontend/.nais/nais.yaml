@@ -5,6 +5,8 @@ metadata:
   namespace: appsec
   labels:
     team: appsec
+  annotations:
+    nais.io/read-only-file-system: "false"
 spec:
   ingresses:
     - https://securitychampion.intern.nav.no

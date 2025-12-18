@@ -8,6 +8,10 @@ on:
       - 'apps/frontend/**'
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: apps/frontend
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

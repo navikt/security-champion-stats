@@ -1,4 +1,4 @@
-name: Build and deploy backend
+name: Build and deploy main
 on:
   push:
     branches:
@@ -14,8 +14,8 @@ defaults:
 jobs:
   test-build-deploy:
     permissions:
-      actions: read # for sarif
-      contents: write # for dependency graph & sarif
+      actions: read
+      contents: read && write
       security-events: write # push sarif to github security
       id-token: write # for nais docker-build-push
     runs-on: ubuntu-latest

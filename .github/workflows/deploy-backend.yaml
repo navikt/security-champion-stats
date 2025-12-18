@@ -1,4 +1,4 @@
-name: 'deploy: backend'
+name: Build and deploy backend
 on:
   push:
     branches:
@@ -6,7 +6,6 @@ on:
     paths:
       - '.github/workflows/deploy-backend.yaml'
       - 'apps/backend/**'
-  workflow_dispatch:
 
 defaults:
   run:
@@ -16,7 +15,7 @@ jobs:
   test-build-deploy:
     permissions:
       actions: read
-      contents: read && write
+      contents: write
       security-events: write # push sarif to github security
       id-token: write # for nais docker-build-push
     runs-on: ubuntu-latest
@@ -57,6 +56,13 @@ jobs:
       - uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
         with:
           sarif_file: 'trivy.sarif'
+    deploy:
+      needs: test-build-deploy
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        id-token: write
+      steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false

@@ -1,17 +1,12 @@
 name: Build and deploy frontend
 on:
-  workflow_dispatch:
-    inputs:
-      cachekey:
-        required: false
-        default: 'nope'
-        type: string
   push:
     branches:
       - 'main'
     paths:
-      - '.github/workflows/main-frontend.yaml'
+      - '.github/workflows/deploy-frontend.yaml'
       - 'apps/frontend/**'
+  workflow_dispatch:
 
 jobs:
   build-and-push:

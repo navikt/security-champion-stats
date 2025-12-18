@@ -1,0 +1,44 @@
+apiVersion: nais.io/v1alpha1
+kind: Application
+metadata:
+  name: security-champion-stats-frontend
+  namespace: appsec
+  labels:
+    team: appsec
+spec:
+  ingresses:
+    - https://securityChampion.intern.nav.no
+  azure:
+    application:
+      enabled: true
+      allowAllUsers: true
+    sidecar:
+      enabled: true
+      autoLogin: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: security-champion-stats-backend
+  image: {{image}}
+  port: 8080
+  liveness:
+    initialDelay: 20
+    path: api/health
+  readiness:
+    initialDelay: 20
+    path: api/health
+  replicas:
+    max: 1
+    min: 1
+  resources:
+    limits:
+      memory: 128Mi
+    requests:
+      cpu: 10m
+      memory: 96Mi
+  observability:
+    logging:
+      destinations:
+        - id: loki
+  envFrom:
+    - secret: security-champion-stats

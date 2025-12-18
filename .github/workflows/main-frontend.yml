@@ -1,0 +1,37 @@
+name: Build and deploy main
+
+on:
+  workflow_dispatch:
+    inputs:
+      cachekey:
+        required: false
+        default: 'nope'
+        type: string
+  push:
+    branches:
+      - 'main'
+    paths:
+      - '.github/workflows/main-frontend.yaml'
+      - 'apps/frontend/**'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: nais/docker-build-push@v0
+        id: docker-push
+        with:
+          team: appsec
+          build_secrets: NODE_AUTH_TOKEN=${{ secrets.READER_TOKEN }}
+          build_args: CACHE_BUST=${{ inputs.cachekey }}
+          dockerfile: apps/frontend/Dockerfile
+          docker_context: apps/frontend
+      - uses: nais/deploy/actions/deploy@v2
+        env:
+          CLUSTER: prod-gcp
+          RESOURCE: .nais/nais.yaml
+          IMAGE: ${{ steps.docker-push.outputs.image }}

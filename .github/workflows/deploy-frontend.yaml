@@ -18,6 +18,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      image: ${{ steps.docker-push.outputs.image }}
     steps:
       - uses: actions/checkout@v6
         with:

@@ -28,6 +28,7 @@ jobs:
           build_args: CACHE_BUST=${{ inputs.cachekey }}
           dockerfile: apps/frontend/Dockerfile
           docker_context: apps/frontend
+          image_suffix: frontend
       - uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp

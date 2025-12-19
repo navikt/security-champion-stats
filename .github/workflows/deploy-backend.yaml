@@ -37,6 +37,7 @@ jobs:
           pull: true
           dockerfile: apps/backend/Dockerfile
           docker_context: apps/backend
+          image_suffix: backend
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
         with:

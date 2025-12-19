@@ -13,7 +13,7 @@ defaults:
     working-directory: apps/frontend
 
 jobs:
-  build-and-push:
+  test-build:
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -1,3 +1,4 @@
+
 name: Build and deploy backend
 on:
   push:
@@ -8,16 +9,11 @@ on:
       - 'apps/backend/**'
   workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: apps/backend
-
 jobs:
-  test-build-deploy:
+  test-build:
     permissions:
-      actions: read
-      contents: write && read
-      security-events: write # push sarif to github security
+      actions: read # for sarif
+      contents: write # for dependency graph & sarif
       id-token: write # for nais docker-build-push
     runs-on: ubuntu-latest
     outputs:
@@ -33,30 +29,26 @@ jobs:
       - uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
       - name: Test & build
         run: ./gradlew test installDist
-      - name: Build package
-        run: ./gradlew dependencies --write-locks
       - name: Build & push docker image + SBOM
-        uses: nais/docker-build-push@v0
+        uses: nais/docker-build-push@3b44f7c419b9511ad7c8b72174b3cc078d570bed
         id: docker-push
         with:
           team: appsec
+          pull: true
           dockerfile: apps/backend/Dockerfile
           docker_context: apps/backend
-          salsa: true
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
         with:
           build-root-directory: apps/backend
-      - name: Scan docker image for secrets
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
-        with:
-          image-ref: '${{ steps.docker-push.outputs.image }}'
-          format: 'sarif'
-          scanners: 'secret'
-          output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
-        with:
-          sarif_file: 'trivy.sarif'
+
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    needs: test-build
+    steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
@@ -64,4 +56,26 @@ jobs:
         env:
           RESOURCE: apps/backend/.nais/nais.yaml
           CLUSTER: prod-gcp
-          IMAGE: ${{ needs.test-build-deploy.outputs.image }}
+          IMAGE: ${{ needs.test-build.outputs.image }}
+
+  trivy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write # for dependency graph & sarif
+      security-events: write # push sarif to github security
+    needs: test-build
+    steps:
+      - uses: nais/login@v0
+        with:
+          team: appsec
+      - name: Scan docker image for secrets
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        with:
+          image-ref: '${{ needs.test-build.outputs.image }}'
+          format: 'sarif'
+          scanners: 'secret'
+          output: 'trivy.sarif'
+      - uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
+        with:
+          sarif_file: 'trivy.sarif'

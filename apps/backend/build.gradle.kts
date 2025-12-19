@@ -60,4 +60,6 @@ compileKotlin.compilerOptions {
     freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
 
+tasks.register("prepareKotlinBuildScriptModel") {}
+
 dependencyLocking { lockAllConfigurations() }

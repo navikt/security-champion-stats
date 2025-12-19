@@ -9,6 +9,10 @@ on:
       - 'apps/backend/**'
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: apps/backend
+
 jobs:
   test-build:
     permissions:
@@ -28,7 +32,7 @@ jobs:
           distribution: temurin
       - uses: gradle/actions/setup-gradle@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
       - name: Test & build
-        run: cd apps/backend && ./gradlew test installDist
+        run: ./gradlew test installDist
       - name: Build & push docker image + SBOM
         uses: nais/docker-build-push@3b44f7c419b9511ad7c8b72174b3cc078d570bed
         id: docker-push
@@ -37,6 +41,7 @@ jobs:
           pull: true
           dockerfile: apps/backend/Dockerfile
           docker_context: apps/backend
+          image_suffix: backend
       - name: Generate and submit dependency graph
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
         with:

@@ -17,7 +17,6 @@ class SyncJob(
     private val graphClient: GraphClient,
     @Value ("\${points.activityPoints}") private val activityPoints: Int,
 ) {
-    @Scheduled(cron = "0 0 0 */3 * *")
     fun syncDatabase() {
         val members = repo.getAllMembers()
         val oneDayOld = OffsetDateTime.now().minusDays(1).toInstant()

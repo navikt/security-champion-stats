@@ -19,7 +19,7 @@ jobs:
     outputs:
       image: ${{ steps.docker-push.outputs.image }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.1
         with:
           persist-credentials: false
       - uses: actions/setup-java@v5
@@ -39,16 +39,18 @@ jobs:
           docker_context: apps/backend
           image_suffix: backend
       - name: Generate and submit dependency graph
+        if: github.ref == 'refs/heads/main'
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
 
   deploy:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: read
       id-token: write
     needs: test-build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.1
         with:
           persist-credentials: false
       - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1

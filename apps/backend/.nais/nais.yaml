@@ -41,10 +41,10 @@ spec:
         - /webhook
   resources:
     limits:
-      memory: "512Mi"
+      memory: "416Mi"
     requests:
-      cpu: "50m"
-      memory: "128Mi"
+      cpu: "10m"
+      memory: "384Mi"
   envFrom:
     - secret: security-champion-stats
   gcp:

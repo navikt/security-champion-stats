@@ -1,5 +1,4 @@
-FROM cgr.dev/chainguard/node:latest-dev AS build
-USER root
+FROM node:24 AS builder
 
 WORKDIR /app
 

@@ -9,6 +9,10 @@ on:
       - 'apps/backend/**'
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: apps/backend
+
 jobs:
   test-build:
     permissions:

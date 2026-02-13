@@ -17,7 +17,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY next.config.ts tsconfig.json ./
 COPY src/ ./src/
-COPY messages/ ./messages/
+COPY src/messages/ ./messages/
 
 RUN pnpm run build
 

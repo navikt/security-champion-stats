@@ -23,10 +23,6 @@ import java.time.OffsetDateTime
 class Controller(
     private val repo: PostgresRepository,
     private val catalog: TeamCatalog,
-    private val slackService: SlackService,
-    private val graphClient: GraphClient,
-    @Value("\${testData.testEmail}") private val testEmail: String,
-    @Value("\${testData.testUserId}") private val testId: String
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
 

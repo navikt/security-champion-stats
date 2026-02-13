@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: PostgresRepository,
-
 ) {
 
     @PostMapping("/member")

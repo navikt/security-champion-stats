@@ -9,9 +9,7 @@
     "dev:mocks": "MOCKS_ENABLED=true next dev",
     "dev:local": "LOCAL_DEV=true next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "prepare": "husky"
+    "start": "next start"
   },
   "author": "",
   "license": "ISC",

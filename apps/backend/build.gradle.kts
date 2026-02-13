@@ -60,7 +60,3 @@ val compileKotlin: KotlinCompile by tasks
 compileKotlin.compilerOptions {
     freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
-
-tasks.register("prepareKotlinBuildScriptModel") {}
-
-dependencyLocking { lockAllConfigurations() }

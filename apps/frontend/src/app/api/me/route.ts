@@ -16,7 +16,7 @@ export async function GET(
     } try {
         const token = await getBackendToken(request)
         const id = process.env.APPSEC_ID
-
+        console.log("Validation values: ", { token, id })
         if (!id) {
             throw new Error("Missing environment variable APPSEC_ID")
         }
@@ -37,7 +37,7 @@ export async function GET(
         }
         const backendUrl = getServerEnv()
         const url = `${backendUrl.backendUrl}/api/validate`
-
+        console.log("Validation URL: ", url)
         const response = await fetch(url, {
             method: 'GET',
             headers: {

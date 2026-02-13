@@ -18,7 +18,7 @@ spring:
   security:
     token-validation:
       url: ${NAIS_TOKEN_INTROSPECTION_ENDPOINT}
-      identity-provider: entra
+      identity-provider: azuread
       groups: d633d27b-a470-4b9d-984e-85499f126e18
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:prod}

@@ -11,6 +11,9 @@ spec:
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:
+    inbound:
+      rules:
+        - application: security-champion-stats-frontend
     outbound:
       external:
         - host: slack.com

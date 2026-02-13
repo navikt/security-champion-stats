@@ -21,4 +21,4 @@ data class Points(val id: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
-data class Me(val isAdmin: Boolean)
+data class Me(val username: String, val isAdmin: Boolean, val inProgram: Boolean)

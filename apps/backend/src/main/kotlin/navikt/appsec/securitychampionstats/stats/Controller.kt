@@ -46,47 +46,19 @@ class Controller(
         }
     }
 
-    fun slackTest(): ResponseEntity<Any> {
-        val member = repo.getMember(testId)
-        if (member == null) {
-            logger.error("Member with id $testId not found in db")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-        val activity = slackService.summarizeActivity(testEmail)
-        if (activity.totalMessages == 0) {
-            logger.info("No messages found for user with email $testEmail")
-            return ResponseEntity.status(HttpStatus.OK).build()
-        }
-        val points = activity.totalMessages * 10
-        val result = repo.addPoints(member.email, points)
+    @GetMapping("/me")
+    fun getMe(): ResponseEntity<Me> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val email = authentication.name
+        val isAdmin = authentication.authorities.any { it.authority == "ROLE_ADMIN" }
+        logger.info("Received request for /me from user with email: $email")
 
-        return if (result == 1) {
-            ResponseEntity.status(HttpStatus.OK).build()
+        val member = repo.getMemberEmail(email)
+        return if (member != null) {
+            ResponseEntity(Me(email, isAdmin, member.inProgram), HttpStatus.OK)
         } else {
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+            logger.warn("No member found for email: $email")
+            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         }
-    }
-
-    fun getTeamsMeetingAttendance(@RequestParam meetingId: String, @RequestParam meetingDate: String): ResponseEntity<String> {
-        // TODO: wait for getting tokens before using endpoint
-        val offsetTime = OffsetDateTime.parse(meetingDate)
-        val attendanceReport = graphClient.getListAttendanceReport(meetingId, offsetTime)
-
-        if (attendanceReport.isEmpty()) {
-            logger.info("No attendance records found for meetingId: $meetingId")
-            return ResponseEntity("No attendance records found", HttpStatus.OK)
-        }
-        attendanceReport.forEach {
-            if(!it.emailAddress.isNullOrEmpty()) {
-                val member = repo.getMember(it.emailAddress)
-                if (member != null && member.email.isEmpty()) {
-                    // TODO: add a new table for activity monitoring
-                } else if (member != null) {
-                    // TODO: add a new table for activity monitoring
-                    repo.addPoints(it.emailAddress, 10)
-                }
-            }
-        }
-        return ResponseEntity(HttpStatus.OK)
     }
 }

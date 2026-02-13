@@ -40,7 +40,7 @@ class PostgresRepository(
         }
     }
 
-    fun getMember(email: String): Member? {
+    fun getMemberByEmail(email: String): Member? {
         val sql = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE email = ?"
 
         return try {

@@ -53,12 +53,8 @@ class Controller(
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_ADMIN" }
         logger.info("Received request for /me from user with email: $email")
 
-        val member = repo.getMemberEmail(email)
-        return if (member != null) {
-            ResponseEntity(Me(email, isAdmin, member.inProgram), HttpStatus.OK)
-        } else {
-            logger.warn("No member found for email: $email")
-            ResponseEntity.status(HttpStatus.NOT_FOUND).build()
-        }
+        val inProgram = repo.getMemberByEmail(email)?.inProgram
+
+        return ResponseEntity(Me(email, isAdmin, inProgram ?: false), HttpStatus.OK)
     }
 }

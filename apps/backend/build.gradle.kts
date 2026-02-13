@@ -1,14 +1,14 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "2.2.21"
-    id("io.freefair.lombok") version "8.14.2"
+    kotlin("jvm") version "2.3.10"
+    id("io.freefair.lombok") version "9.2.0"
     application
     java
-    kotlin("plugin.serialization") version "2.2.21"
-    id("org.springframework.boot") version "3.5.8"
-    kotlin("plugin.spring") version "2.2.21"
-    id("io.spring.dependency-management") version "1.1.6"
+    kotlin("plugin.serialization") version "2.3.10"
+    id("org.springframework.boot") version "4.0.2"
+    kotlin("plugin.spring") version "2.3.10"
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "no.navikt.appsec.securitychampionstats"

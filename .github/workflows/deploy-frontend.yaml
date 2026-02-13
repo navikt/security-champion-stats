@@ -25,6 +25,7 @@ jobs:
       - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # ratchet:pnpm/action-setup@v4
         with:
           version: '10'
+          package_json_file: apps/frontend/package.json
       - uses: actions/setup-node@v6
         with:
           node-version: '24'

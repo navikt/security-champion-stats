@@ -2,6 +2,8 @@ slack:
   token: slackToken
   channelId: test-channel
 
+
+
 zoom:
   oauth2:
     issuer: https://zoom.us
@@ -27,5 +29,10 @@ testData:
   testUserId: testId
 
 spring:
+  security:
+    token-validation:
+      url: test-validation-url
+      identity-provider: entra
+      groups: test-id-4b9d-984e-85499f126e18
   flyway:
     enabled: false

@@ -1,9 +1,9 @@
 package navikt.appsec.securitychampionstats.stats
 
-import navikt.appsec.securitychampionstats.integration.postgres.PostgresRepository
-import navikt.appsec.securitychampionstats.integration.slack.SlackService
-import navikt.appsec.securitychampionstats.integration.teamCatalog.TeamCatalog
-import navikt.appsec.securitychampionstats.integration.teams.GraphClient
+import navikt.appsec.securitychampionstats.common.hikari.PostgresRepository
+import navikt.appsec.securitychampionstats.common.slack.SlackService
+import navikt.appsec.securitychampionstats.common.teamCatalog.TeamCatalog
+import navikt.appsec.securitychampionstats.common.teams.GraphClient
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.scheduling.annotation.Scheduled

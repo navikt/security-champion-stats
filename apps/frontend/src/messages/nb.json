@@ -1,0 +1,72 @@
+{
+  "common": {
+    "appTitle": "Sikkerhets mester nivåer",
+    "loading": "Laster in applikasjon",
+    "description": "Sikkerhets mestere er de som tar ansvar for å spre sikkerhetskulturen i organisasjonen. De er pådrivere for å gjøre sikkerhet til en naturlig del av hverdagen, og de inspirerer andre til å bli med på reisen mot en sikrere digital fremtid."
+  },
+  "settings": {
+    "title": "Instillinger",
+    "theme": "Tema",
+    "language": "Språk",
+    "english": "Engelsk",
+    "norwegian": "Norsk",
+    "themeOptions": {
+      "darkMode": "Mørk",
+      "lightMode": "Lyst",
+      "systemMode": "System"
+    },
+    "admin": "Admin",
+    "goToAdmin": "Åpen admin"
+  },
+  "dashboard": {
+    "adminActions": "Admin handlinger",
+    "statusLive": "Oppdrag aktivt",
+    "statusIdle": "Rekrutterer Sikkerhets mestere",
+    "subtitleLive": "Hold skjoldet ladet ved å få inn medlemmer og spre sikkerhetskulturen.",
+    "subtitleIdle": "Bli med i programmet sånn at sikkerhetskultur blir enda større.",
+    "ctaHint": "Bli med i programmet og vis deg i topplisten.",
+    "stats": {
+      "players": "Spillere med",
+      "points": "Totalt poeng",
+      "topAgent": "Toppagent",
+      "topAgentMeta": "{points} XP",
+      "topAgentFallback": "Ingen leder enda"
+    },
+    "leaderboardEyebrow": "Toppliste",
+    "leaderboardTitle": "Security champion-lag",
+    "cardAgentsLabel": "{count} agenter",
+    "cardPointsLabel": "{points} XP banket",
+    "noMembers": "Tabell er tom",
+    "buttons": {
+      "joinProgram": "Bli med i programmet",
+      "admin": {
+        "addMember": "Legg til medlem",
+        "deleteMember": "Slett",
+        "addPoints": "Legg til poeng"
+      }
+    },
+    "modals": {
+      "buttons": {
+        "close": "Lukk",
+        "submit": "Send inn"
+      },
+      "addMember": {
+        "title": "Legg til nytt medlem, backend finner dem for deg",
+        "email": "E-post",
+        "buttons": {
+          "add": "Legg til medlem",
+          "cancel": "Avbryt"
+        }
+      },
+      "addPoints": {
+        "title": "Legg til antall poeng til medlem, vet at det ikke er noen logikk for validering av verdi :D",
+        "pointsLabel": "Poeng:"
+      }
+    }
+  },
+  "member": {
+    "fullname": "full navn",
+    "points": "points",
+    "level": "nivåer"
+  }
+}

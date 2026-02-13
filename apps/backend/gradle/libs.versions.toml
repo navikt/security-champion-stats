@@ -16,6 +16,8 @@ mockito-kotlin = "6.0.0"
 #Spring backend
 spring-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
 spring-boot-data = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
+spring-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-oauth = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server" }
 
 #Spring frontend
 spring-webclient = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
@@ -59,7 +61,9 @@ mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "
 spring = [
     "spring-boot-data",
     "spring-web",
-    "spring-webclient"
+    "spring-webclient",
+    "spring-security",
+    "spring-oauth"
 ]
 
 flyway = [

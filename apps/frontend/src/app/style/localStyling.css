@@ -1,0 +1,225 @@
+.dashboardView {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.gamePanel {
+    background: linear-gradient(135deg, rgba(25,249,216,0.1), rgba(5,10,15,0.65));
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: var(--shadow-neon);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+}
+
+.gameStatus {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid;
+}
+
+.gameStatus--live {
+    color: #3cffc5;
+    border-color: rgba(60,255,197,0.5);
+    box-shadow: 0 0 10px rgba(60,255,197,0.3);
+}
+
+.gameStatus--sleep {
+    color: #ffb347;
+    border-color: rgba(255,179,71,0.4);
+    box-shadow: 0 0 10px rgba(255,179,71,0.2);
+}
+
+.gameTitle {
+    margin: 12px 0 4px;
+    font-size: 2rem;
+    color: var(--accent);
+}
+
+.gameSubtitle {
+    margin: 0;
+    color: rgba(255,255,255,0.8);
+}
+
+.statGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+}
+
+.statCard {
+    border: 1px solid rgba(25,249,216,0.35);
+    border-radius: 14px;
+    padding: 16px;
+    background: rgba(0,0,0,0.35);
+    position: relative;
+    overflow: hidden;
+}
+
+.statCard::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    padding: 1px;
+    background: linear-gradient(120deg, rgba(25,249,216,0.5), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
+.statLabel {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.65);
+}
+
+.statValue {
+    font-size: 1.8rem;
+    margin: 4px 0;
+    color: var(--accent);
+}
+
+.statMeta {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.8);
+}
+
+.actionsRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.toolbar {
+    display: flex;
+    gap: 12px;
+}
+
+.btn.neon {
+    border-color: rgba(25,249,216,0.4);
+    box-shadow: 0 0 8px rgba(25,249,216,0.35);
+}
+
+.btn.outline {
+    border-color: rgba(255,255,255,0.4);
+    color: #fff;
+}
+
+.card.membersCard {
+    padding: 0;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(25,249,216,0.35);
+}
+
+.cardEyebrow {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.6);
+    margin: 0;
+}
+
+.cardTitle {
+    margin: 6px 0 0;
+    font-size: 1.4rem;
+}
+
+.cardMeta {
+    display: flex;
+    gap: 16px;
+    font-size: 0.9rem;
+    color: rgba(255,255,255,0.7);
+}
+
+.cardBody {
+    padding: 18px 24px 24px;
+}
+
+.membersTable table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.membersTable thead {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.7);
+}
+
+.membersTable th,
+.membersTable td {
+    padding: 12px 10px;
+    border-bottom: 1px dashed rgba(255,255,255,0.2);
+    text-align: left;
+}
+
+.membersTable__col-name {
+    width: 45%;
+}
+
+.membersTable__col-points,
+.membersTable__col-level {
+    width: 20%;
+}
+
+.membersTable__col-actions {
+    width: 15%;
+}
+
+.membersTable__actionsHeader {
+    text-align: right;
+}
+
+.membersTable__actionsCell {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.membersTable__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.membersTable__col-points .td-num,
+.td-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.btn.danger {
+    color: #ff7a85;
+    border-color: rgba(255,122,133,0.5);
+}
+
+.gameCTA {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.gameCTA p {
+    margin: 0;
+    color: rgba(255,255,255,0.8);
+}

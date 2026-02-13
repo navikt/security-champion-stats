@@ -8,6 +8,7 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
     id("org.springframework.boot") version "3.5.8"
     kotlin("plugin.spring") version "2.2.21"
+    id("io.spring.dependency-management") version "1.1.6"
 }
 
 group = "no.navikt.appsec.securitychampionstats"

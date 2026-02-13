@@ -45,3 +45,8 @@ bin/
 .DS_Store
 .idea
 apps/frontend/node_modules/
+.next/
+apps/frontend/.next/
+apps/frontend/dist/
+apps/frontend/build/
+apps/frontend/.vscode/

@@ -18,3 +18,7 @@ data class DeleteMember(val id: String)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
 data class Points(val id: String, val points: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Serializable
+data class Me(val isAdmin: Boolean)

@@ -1,22 +1,17 @@
 package navikt.appsec.securitychampionstats.stats
 
-import navikt.appsec.securitychampionstats.integration.postgres.PostgresRepository
-import navikt.appsec.securitychampionstats.integration.slack.SlackService
-import navikt.appsec.securitychampionstats.integration.teamCatalog.TeamCatalog
-import navikt.appsec.securitychampionstats.integration.teams.GraphClient
-import navikt.appsec.securitychampionstats.stats.dto.DeleteMember
+import navikt.appsec.securitychampionstats.common.hikari.PostgresRepository
+import navikt.appsec.securitychampionstats.common.slack.SlackService
+import navikt.appsec.securitychampionstats.common.teamCatalog.TeamCatalog
+import navikt.appsec.securitychampionstats.common.teams.GraphClient
+import navikt.appsec.securitychampionstats.stats.dto.Me
 import navikt.appsec.securitychampionstats.stats.dto.Member
-import navikt.appsec.securitychampionstats.stats.dto.MemberInfo
-import navikt.appsec.securitychampionstats.stats.dto.Points
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -51,30 +46,6 @@ class Controller(
         }
     }
 
-    @PostMapping("/member")
-    fun addMember(@RequestBody memberInfo: MemberInfo): ResponseEntity<Any>{
-        repo.addMember(memberInfo.fullname, memberInfo.id, memberInfo.email)
-        return ResponseEntity("User was created", HttpStatus.CREATED)
-    }
-
-    @DeleteMapping("/member")
-    fun deleteMember(@RequestBody member: DeleteMember): ResponseEntity<Any>{
-        repo.deleteMember(member.id)
-        return ResponseEntity.status(HttpStatus.ACCEPTED).build()
-    }
-
-    @PostMapping("/points")
-    fun addPoints(@RequestBody points: Points): ResponseEntity<Any>{
-        val result = repo.addPoints(points.id, points.points)
-
-        return if (result == 1) {
-            ResponseEntity.status(HttpStatus.ACCEPTED).build()
-        } else {
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-    }
-
-    @GetMapping("/slack")
     fun slackTest(): ResponseEntity<Any> {
         val member = repo.getMember(testId)
         if (member == null) {
@@ -96,7 +67,6 @@ class Controller(
         }
     }
 
-    @GetMapping("/Teams")
     fun getTeamsMeetingAttendance(@RequestParam meetingId: String, @RequestParam meetingDate: String): ResponseEntity<String> {
         // TODO: wait for getting tokens before using endpoint
         val offsetTime = OffsetDateTime.parse(meetingDate)
@@ -108,7 +78,7 @@ class Controller(
         }
         attendanceReport.forEach {
             if(!it.emailAddress.isNullOrEmpty()) {
-                val member = repo.getMember("", it.emailAddress)
+                val member = repo.getMember(it.emailAddress)
                 if (member != null && member.email.isEmpty()) {
                     // TODO: add a new table for activity monitoring
                 } else if (member != null) {

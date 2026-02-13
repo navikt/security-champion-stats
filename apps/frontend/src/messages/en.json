@@ -1,0 +1,72 @@
+{
+  "common": {
+    "appTitle": "Security champion levels",
+    "loading": "Loading in application",
+    "description": "Security champions are those who take responsibility for spreading the security culture in the organization. They are drivers for making security a natural part of developing, and they inspire others to join the journey towards a safer digital future."
+  },
+  "settings": {
+    "title": "Settings",
+    "theme": "Theme",
+    "language": "Language",
+    "english": "English",
+    "themeOptions": {
+      "darkMode": "Dark mode",
+      "lightMode": "Light mode",
+      "systemMode": "System"
+    },
+    "norwegian": "Norwegian",
+    "admin": "Admin",
+    "goToAdmin": "Open admin"
+  },
+  "dashboard": {
+    "adminActions": "Admin actions",
+    "statusLive": "Mission active",
+    "statusIdle": "Recruiting Security champions",
+    "subtitleLive": "Keep the shield charged by bringing in members.",
+    "subtitleIdle": "Kick things off so that we can start growing security culture together.",
+    "ctaHint": "Join the program to apper in the leaderboard.",
+    "stats": {
+      "players": "Players joined",
+      "points": "Total points",
+      "topAgent": "Top Security champion",
+      "topAgentMeta": "{points} XP",
+      "topAgentFallback": "No leader yet"
+    },
+    "leaderboardEyebrow": "Leaderboard",
+    "leaderboardTitle": "Security champion roster",
+    "cardAgentsLabel": "{count} Security champions",
+    "cardPointsLabel": "{points} XP banked",
+    "noMembers": "Table is empty",
+    "buttons": {
+      "joinProgram": "Join program",
+      "admin": {
+        "addMember": "add member",
+        "deleteMember": "Delete",
+        "addPoints": "add points"
+      }
+    },
+    "modals": {
+      "buttons": {
+        "close": "Close",
+        "submit": "Submit"
+      },
+      "addMember": {
+        "title": "Add new member, backend will find them for you",
+        "email": "E-mail",
+        "buttons": {
+          "add": "Add member",
+          "cancel": "Cancel"
+        }
+      },
+      "addPoints": {
+        "title": "Add amount of points to add to member, do know that there is no logic for value validation :D",
+        "pointsLabel": "Points:"
+      }
+    }
+  },
+  "member": {
+    "fullname": "fullname",
+    "points": "points",
+    "level": "levels"
+  }
+}

@@ -3,15 +3,37 @@ USER root
 
 WORKDIR /app
 
-COPY package*.json ./
+ENV PNPM_HOME="/pnpm" \
+    PNPM_STORE_PATH="/pnpm/store"
+ENV PATH="${PNPM_HOME}:${PATH}"
 
-RUN npm ci
-COPY . .
-RUN npm run build
+RUN corepack enable pnpm
 
-FROM cgr.dev/chainguard/nginx AS production
+RUN --mount=type=secret,id=NODE_AUTH_TOKEN sh -c \
+    'pnpm config set //npm.pkg.github.com/:_authToken=$(cat /run/secrets/NODE_AUTH_TOKEN)'
+RUN pnpm config set @navikt:registry=https://npm.pkg.github.com
 
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
-EXPOSE 8080
+COPY next.config.ts tsconfig.json ./
+COPY src/ ./src/
+COPY messages/ ./messages/
+COPY public/ ./public/
+
+RUN pnpm run build
+
+FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/node:24-slim
+WORKDIR /app
+
+ENV NODE_ENV=production \
+    PORT=3000 \
+    NEXT_TELEMETRY_DISABLED=1
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
+EXPOSE 3000
+
+CMD ["server.js"]

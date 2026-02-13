@@ -39,6 +39,7 @@ jobs:
         with:
           team: appsec
           pull: true
+          salsa: true
           dockerfile: apps/backend/Dockerfile
           docker_context: apps/backend
           image_suffix: backend

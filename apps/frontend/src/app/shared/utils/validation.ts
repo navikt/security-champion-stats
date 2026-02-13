@@ -38,7 +38,6 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
         }
 
         const { backendScope } = getServerEnv()
-        console.log("backend scope: ", backendScope)
         const oboResult = await requestOboToken(accessToken, backendScope)
 
         if (!oboResult.ok) {

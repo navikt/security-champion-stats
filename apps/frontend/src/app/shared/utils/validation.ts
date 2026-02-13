@@ -30,12 +30,15 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
     if (isLocaDev()) {
         return createLocalDevToken()
     } else {
+
         const accessToken = getToken(request)
         if (!accessToken) {
+            console.log("failed to fetch access token from request")
             return AUTHENTICATED_FAILED
         }
 
         const { backendScope } = getServerEnv()
+        console.log("backend scope: ", backendScope)
         const oboResult = await requestOboToken(accessToken, backendScope)
 
         if (!oboResult.ok) {

@@ -42,7 +42,7 @@ class Controller(
         }
     }
 
-    @GetMapping("/me")
+    @GetMapping("/validate")
     fun getMe(): ResponseEntity<Me> {
         val authentication = SecurityContextHolder.getContext().authentication
         val email = authentication.name

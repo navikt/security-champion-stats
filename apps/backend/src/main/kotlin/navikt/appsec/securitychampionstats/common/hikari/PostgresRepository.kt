@@ -89,6 +89,4 @@ class PostgresRepository(
             0
         }
     }
-
-    fun updateMember(email: String, points: Int?, inProgram: Boolean?)
 }

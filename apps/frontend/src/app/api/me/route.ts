@@ -36,6 +36,7 @@ export async function GET(
         }
         const backendUrl = getServerEnv()
         const url = `${backendUrl.backendUrl}/api/validate`
+        console.log("Validating user with backend at: " + url)
         const response = await fetch(url, {
             method: 'GET',
             headers: {

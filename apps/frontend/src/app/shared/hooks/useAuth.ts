@@ -12,22 +12,13 @@ export function useAuth() {
         (async () => {
             try {
                 const res = await fetch("/api/me", { method: "GET" })
-                if (res.status === 401) {
-                    window.location.href = redirect_link
-                    return;
-                }
-
-                if (res.status === 403) {
-                    window.location.href = "/"
-                    return;
-                }
 
                 if (!res.ok) throw new Error("Failed /api/me");
 
                 const data = (await res.json()) as Me
                 if (!cancelled) setMe(data)
             } catch (error) {
-                console.log("Error fetching /api/me, redirecting to login fixed and edited, ", error)
+                console.log("Error, failed validation due to en error: ", error)
             } finally {
                 if (!cancelled) setLoading(false)
             }

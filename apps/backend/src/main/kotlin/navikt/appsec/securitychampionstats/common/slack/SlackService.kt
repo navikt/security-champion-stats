@@ -17,7 +17,6 @@ import kotlin.math.max
 
 @Service
 class SlackService(
-    @Value("\${slack.channelId}") private val channel: String,
     private val client: MethodsClient,
     private val clock: Clock = Clock.systemUTC()
 ) {
@@ -87,17 +86,6 @@ class SlackService(
             attempts++
             if (attempts > 10) throw RuntimeException("Too many retries exceeded")
         }
-    }
-    fun summarizeActivity(email: String): SlackActivitySummary {
-        val userInfo = resolveUserIdByEmail(email)
-        //val memberChannels = userConversationIds(userInfo.userId) // TODO this will be used later
-        val amountPerChannel = countUserMessagesInChannel(userId = userInfo.userId, channelId = channel)
-        return SlackActivitySummary(
-            userInfo = userInfo,
-            inTrackedChannels = setOf(channel),
-            messagesPerChannel = mapOf(Pair(channel, amountPerChannel)),
-            totalMessages = amountPerChannel
-        )
     }
 
 }

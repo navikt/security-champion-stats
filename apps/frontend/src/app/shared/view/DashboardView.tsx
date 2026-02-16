@@ -120,7 +120,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                                 modalRef.current?.close()
                                 setDisableMemberButton(false)
                             }}>
-                                {t("dashboard.modals.buttons.cancel")}
+                                {t("dashboard.modals.buttons.close")}
                             </Button>
                             <Button type={"button"} color={"success"} onClick={() => {
                                 addMember(memberRef.current?.value)

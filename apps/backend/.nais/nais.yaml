@@ -14,6 +14,8 @@ spec:
     inbound:
       rules:
         - application: security-champion-stats-frontend
+          cluster: prod-gcp
+          namespace: appsec
     outbound:
       external:
         - host: slack.com

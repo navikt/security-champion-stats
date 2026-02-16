@@ -1,3 +1,5 @@
+import {Me} from "../utils/variable";
+
 export const Apies = {
     getMembers: async () => {
         const res = await fetch("/api/members")
@@ -39,5 +41,16 @@ export const Apies = {
 
         if (!res.ok) throw new Error(`Failed to join program for member ${email}`)
         return res.status
+    },
+    validatePerson: async(): Me => {
+        const res = await fetch("/api/validate", {
+            method: "GET"
+        })
+
+        if (!res.ok) {
+            console.log("Failed to validate user, status: ", res.status)
+            return { username: "", isAdmin: false, inProgram: false }
+        }
+        return await res.json()
     }
 }

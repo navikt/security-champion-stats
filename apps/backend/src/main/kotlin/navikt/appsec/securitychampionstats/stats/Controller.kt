@@ -53,4 +53,16 @@ class Controller(
 
         return ResponseEntity(Me(email, isAdmin, inProgram ?: false), HttpStatus.OK)
     }
+
+    @PostMapping("/join")
+    fun applyMember(): ResponseEntity<String> {
+        val member = repo.getMemberByEmail(email)
+        if (!member) {
+            // Add member and maybe mark in db that they joined program but not SC? or send update in team catalog
+            return ResponseEntity(HttpStatus.OK)
+        } else {
+            // Update member in db that they joined program but not SC? or send update in team catalog
+            return ResponseEntity(HttpStatus.OK)
+        }
+    }
 }

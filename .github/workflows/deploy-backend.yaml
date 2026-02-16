@@ -20,8 +20,6 @@ jobs:
       contents: write # for dependency graph & sarif
       id-token: write # for nais docker-build-push
     runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.docker-push.outputs.image }}
     steps:
       - uses: actions/checkout@v6.0.1
         with:
@@ -39,7 +37,9 @@ jobs:
         with:
           team: appsec
           pull: true
-          salsa: true
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          salsa: false
           dockerfile: apps/backend/Dockerfile
           docker_context: apps/backend
           image_suffix: backend
@@ -48,6 +48,31 @@ jobs:
         uses: gradle/actions/dependency-submission@4d9f0ba0025fe599b4ebab900eb7f3a1d93ef4c2
         with:
           build-root-directory: apps/backend
+    outputs:
+      image: ${{ steps.docker-push.outputs.image }}
+      digest: ${{ steps.docker-push.outputs.digest }}
+
+
+  sbom:
+    name: Generate and submit SBOM
+    needs: [test-build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: NAIS login
+        uses: nais/login@v0
+        id: login
+        with:
+          project_id: ${{ vars.NAIS_MANAGEMENT_PROJECT_ID }}
+          identity_provider: ${{ secrets.NAIS_WORKLOAD_IDENTITY_PROVIDER }}
+          team: appsec
+      - name: Generate SBOM, attest and sign image
+        id: attest-sign
+        uses: nais/attest-sign@v1
+        with:
+          image_ref: ${{needs.test-build.outputs.image}}@${{ needs.test-build.outputs.digest }}
+
 
   deploy:
     runs-on: ubuntu-latest

@@ -19,8 +19,8 @@ function MembersTable({
 }) {
     const t = useTranslations()
     const columnCount = canEdit ? 4 : 3
-    const modalRef = useRef<HTMLDialogElement>(null)
     const [disableButtons, setDisableButtons] = useState(false)
+    const [modalOpenFor, setModalOpenFor] = useState<string | null>(null)
     const pointRef = useRef<HTMLInputElement>(null)
 
     return (
@@ -46,40 +46,17 @@ function MembersTable({
                 </thead>
                 <tbody>
                 {members.map((m) => (
-
                     <tr key={m.id}>
                         <td>{m.fullname}</td>
                         <td className={"td-num"}>{m.points.toLocaleString()}</td>
                         <td>MasterClass</td>
-                        <div className={"cardBody"}>
-                            <Modal ref={modalRef} header={{ heading: t("dashboard.modals.addPoints.title")}}>
-                                <Modal.Body>
-                                    <TextField label={ t("dashboard.modals.addPoints.pointsLabel") } size={"small"} ref={pointRef}/>
-                                </Modal.Body>
-                                <Modal.Footer>
-                                    <Button type={"button"} variant={"tertiary"} onClick={() => {
-                                        modalRef.current?.close()
-                                        setDisableButtons(false)
-                                    }}>
-                                        {t("dashboard.modals.buttons.cancel")}
-                                    </Button>
-                                    <Button type={"button"} color={"success"} onClick={() => {
-                                        onAddPoints(m.email, Number(pointRef.current?.value))
-                                        setDisableButtons(false)
-                                        modalRef.current?.close()
-                                    }}>
-                                        {t("dashboard.modals.buttons.submit")}
-                                    </Button>
-                                </Modal.Footer>
-                            </Modal>
-                        </div>
                         {canEdit && (
                             <td className={"membersTable__actionsCell"}>
                                 <button
                                     type="button"
                                     className={"btn outline"}
                                     onClick={() => {
-                                        modalRef.current?.showModal()
+                                        setModalOpenFor(m.email)
                                         setDisableButtons(true)
                                     }}
                                     disabled={disableButtons}
@@ -106,6 +83,29 @@ function MembersTable({
                 )}
                 </tbody>
             </table>
+            {/* Modal rendered outside the table for HTML validity */}
+            <Modal open={!!modalOpenFor} onClose={() => { setModalOpenFor(null); setDisableButtons(false); }} header={{ heading: t("dashboard.modals.addPoints.title")}}>
+                <Modal.Body>
+                    <TextField label={ t("dashboard.modals.addPoints.pointsLabel") } size={"small"} ref={pointRef}/>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button type={"button"} variant={"tertiary"} onClick={() => {
+                        setModalOpenFor(null)
+                        setDisableButtons(false)
+                    }}>
+                        {t("dashboard.modals.buttons.close")}
+                    </Button>
+                    <Button type={"button"} color={"success"} onClick={() => {
+                        if (modalOpenFor) {
+                            onAddPoints(modalOpenFor, Number(pointRef.current?.value))
+                        }
+                        setDisableButtons(false)
+                        setModalOpenFor(null)
+                    }}>
+                        {t("dashboard.modals.buttons.submit")}
+                    </Button>
+                </Modal.Footer>
+            </Modal>
         </div>
     )
 }

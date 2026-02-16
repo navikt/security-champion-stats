@@ -45,11 +45,6 @@ slack:
     token: ${SLACK_TOKEN}
     channelId: ${SLACK_CHANNEL_ID}
 
-azure:
-  tenantId: ${AZURE_TENANT_ID}
-  clientId: ${AZURE_CLIENT_ID}
-  clientSecret: ${AZURE_CLIENT_SECRET}
-
 graph:
     apiUrl: https://graph.microsoft.com/v1.0
 

@@ -1,12 +1,12 @@
 "use client"
 
-import {useAuth} from "../../shared/hooks/useAuth";
 import Loading from "../../loading";
 import {AdminView, UserView} from "../../shared/view/DashboardView";
+import {useMe} from "../../shared/hooks/useMe";
 
 export default function AdminPage() {
-    const { me, loading } = useAuth()
+    const { me, loading } = useMe();
     if (loading) return <Loading />
-    if (!me?.isAdmin) return <UserView info={ me ?? { username: "", isAdmin: false, inProgram: false }}/>;
-    return <AdminView info={me ?? { username: "", isAdmin: false, inProgram: false }}/>
+    if (!me?.isAdmin) return <UserView info={ me }/>;
+    return <AdminView info={ me }/>
 }

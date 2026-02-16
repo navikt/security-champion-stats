@@ -1,11 +1,11 @@
 "use client";
 
-import {useAuth} from "../shared/hooks/useAuth";
 import Loading from "../loading";
 import {UserView} from "../shared/view/DashboardView";
+import {useMe} from "../shared/hooks/useMe";
 
 export default function Page() {
-    const { me, loading } = useAuth()
+    const { me, loading } = useMe();
     if (loading) return <Loading />
-    return <UserView info={ me ?? { username: "", isAdmin: false, inProgram: false } }/>
+    return <UserView info={ me }/>
 }

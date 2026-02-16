@@ -16,18 +16,18 @@ import java.time.OffsetDateTime
 
 @Component
 class GraphClient(
-    @Value("\${azure.tenantId}") private val tenantId: String,
-    @Value("\${azure.clientId}") private val clientId: String,
-    @Value("\${azure.clientSecret}") private val clientSecret: String,
     @Value("\${graph.apiUrl}") private val apiUrl: String
 ) {
     private val logger = LoggerFactory.getLogger("GraphClient")
     private val webClient: WebClient = WebClient.builder().build()
-
+        val tenatId = "TODO: add TENANT_ID to vault and fetch it here"
+        val clientId = "TODO: add"
+        val clientSecret = "TODO: add"
     private fun getAccessToken(): String {
         return try {
+
             val response = webClient.post()
-                .uri("https://login.microsoftonline.com/$tenantId/oauth2/v2.0/token")
+                .uri("https://login.microsoftonline.com/$tenatId/oauth2/v2.0/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(
                     BodyInserters.fromFormData("client_id", clientId)

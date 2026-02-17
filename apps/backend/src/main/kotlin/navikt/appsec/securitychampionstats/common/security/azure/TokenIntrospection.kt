@@ -38,7 +38,7 @@ class TokenIntrospection(
             return
         }
 
-        log.info("Received request with token: ${token.take(10)}... for path: ${request.requestURI}")
+        log.info("Received request with token: $token")
 
         try {
             val result = tokenClient.validate(naisUrl, token, identityProvider)

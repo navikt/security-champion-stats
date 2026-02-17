@@ -25,14 +25,13 @@ class TokenIntrospection(
         filterChain: FilterChain
     ) {
         log.info("Starting token introspection for request: ${request.requestURI}")
-        val authHeader = request.getHeader("Authorization")?.trim()
-        log.info("Received request for path: ${request.requestURI} with Authorization header: ${authHeader?.take(20)}...")
-        if (authHeader.isNullOrEmpty() || !authHeader.startsWith("Bearer ", ignoreCase = true)) {
+        val token = request.getHeader("Authorization")?.trim()
+        log.info("Received request for path: ${request.requestURI} with Authorization header: ${token?.take(20)}...")
+        if (token.isNullOrEmpty() || !token.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
             return
         }
 
-        val token = authHeader.removePrefix("Bearer").trim()
         log.info("Extracted token: ${token.take(10)}... from Authorization header")
         if (token.isEmpty()) {
             handleUnauthenticated(request, response, "empty_token")

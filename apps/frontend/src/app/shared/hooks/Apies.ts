@@ -42,7 +42,7 @@ export const Apies = {
         if (!res.ok) throw new Error(`Failed to join program for member ${email}`)
         return res.status
     },
-    validatePerson: async(): Me => {
+    validatePerson: async(): Promise<Me> => {
         const res = await fetch("/api/validate", {
             method: "GET"
         })

@@ -38,11 +38,10 @@ class TokenIntrospection(
             return
         }
 
-        log.info("Received request with token: $token")
-
         try {
             val result = tokenClient.validate(naisUrl, token, identityProvider)
-            log.info("Token introspection response for request ${request.requestURI}: active=${result.active}, claims=${result.claims.keys.joinToString(",")}")
+            log.info("Result value: $result")
+            log.info("Token introspection response for request ${request.requestURI}: active=${result.active}")
             if (!result.active) {
                 log.warn("Token is inactive for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "inactive_token")

@@ -31,7 +31,6 @@ export async function GET(
         }
 
         const parse = parseAzureUserToken(token)
-        console.log("Parsed token: ", parse)
         if (!parse.ok) {
             return NextResponse.json(
                 { error: AUTHENTICATED_FAILED },

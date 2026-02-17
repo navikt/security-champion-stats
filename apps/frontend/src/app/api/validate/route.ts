@@ -14,11 +14,14 @@ export async function GET(
             inProgram: false
         })
     } try {
+        console.log("Starting user validation in API route, next frackend")
         const token = await getBackendToken(request)
         const id = process.env.APPSEC_ID
         if (!id) {
             throw new Error("Missing environment variable APPSEC_ID")
         }
+        console.log("Received token: ", token)
+        console.log("APPSEC_ID: ", id)
 
         if (token === AUTHENTICATED_FAILED) {
             return NextResponse.json(
@@ -28,6 +31,7 @@ export async function GET(
         }
 
         const parse = parseAzureUserToken(token)
+        console.log("Parsed token: ", parse)
         if (!parse.ok) {
             return NextResponse.json(
                 { error: AUTHENTICATED_FAILED },

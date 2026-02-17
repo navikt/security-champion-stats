@@ -8,7 +8,8 @@ export const Apies = {
         return data.members
     },
     addMember: async (email: string) => {
-        const res = await fetch("/api/admin/member", {
+        const res = await fetch(
+            "/api/admin/member", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email })
@@ -43,10 +44,12 @@ export const Apies = {
         return res.status
     },
     validatePerson: async(): Promise<Me> => {
+        console.log("Validating user...")
         const res = await fetch("/api/validate", {
             method: "GET"
         })
-
+        console.log("Validation response status: ", res.status)
+        console.log("Checking if response is ok: ", res.ok)
         if (!res.ok) {
             console.log("Failed to validate user, status: ", res.status)
             return { username: "", isAdmin: false, inProgram: false }

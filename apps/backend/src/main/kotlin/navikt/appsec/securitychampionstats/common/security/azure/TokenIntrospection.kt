@@ -25,9 +25,7 @@ class TokenIntrospection(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        log.info("Starting token introspection for request: ${request.requestURI}")
         val token = request.getHeader("Authorization")?.trim()
-        log.info("Received request for path: ${request.requestURI} with Authorization header: ${token?.take(20)}...")
         if (token.isNullOrEmpty() || !token.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
             return
@@ -60,7 +58,6 @@ class TokenIntrospection(
                 handleUnauthenticated(request, response, "Missing preferred Username")
                 return
             }
-            log.info("Token validated successfully for user: $preferredUsername with NAVident: $navIdent")
             val groups = result.claims["groups"]?.jsonArray?.map { it.jsonPrimitive.content }
 
             val authorities =
@@ -69,7 +66,6 @@ class TokenIntrospection(
                 } else {
                     listOf(SimpleGrantedAuthority("ROLE_User"))
                 }
-            log.info("Assigned authorities for user $preferredUsername: ${authorities.joinToString { it.authority }}")
             val authentication = UsernamePasswordAuthenticationToken(preferredUsername, null, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)

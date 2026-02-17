@@ -19,7 +19,6 @@ class TokenValidationClient(
     fun validate(url: String, token: String, identityProvider: String): TokenResponse {
 
         log.info("Validating token with identity provider: $identityProvider at URL: $url")
-        log.info("Sending token introspection request for token: ${token.take(10)}... to URL: $url with identity provider: $identityProvider")
         val jsonObject =  client.post()
             .uri(url)
             .contentType(MediaType.APPLICATION_JSON)

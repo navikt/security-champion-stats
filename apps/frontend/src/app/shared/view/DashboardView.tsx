@@ -15,15 +15,17 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     const modalRef = useRef<HTMLDialogElement>(null);
     const memberRef = useRef<HTMLInputElement>(null)
     const t = useTranslations()
+    const safeMembers = members ?? []
 
-    const totalPoints = members.reduce((sum, member) => sum + member.points, 0)
-    const topMember = members.toSorted((a, b) => b.points - a.points)[0]
+    const totalPoints = safeMembers.reduce((sum, member) => sum + member.points, 0)
+    const topMember = safeMembers.toSorted((a, b) => b.points - a.points)[0]
     const statusKey = active ? "dashboard.statusLive" : "dashboard.statusIdle"
     const subtitleKey = active ? "dashboard.subtitleLive" : "dashboard.subtitleIdle"
 
     const reload = async () => {
         const ms = await Apies.getMembers()
-        setMembers(ms)
+        console.log("Fetched members:", ms)
+        setMembers(ms ?? [])
     }
 
     useEffect(() => {
@@ -106,7 +108,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                         <h3 className={"cardTitle"}>{t("dashboard.leaderboardTitle")}</h3>
                     </div>
                     <div className={"cardMeta"}>
-                        <span>{t("dashboard.cardAgentsLabel", { count: members.length })}</span>
+                        <span>{t("dashboard.cardAgentsLabel", { count: safeMembers.length })}</span>
                         <span>{t("dashboard.cardPointsLabel", { points: totalPoints.toLocaleString() })}</span>
                     </div>
                 </header>
@@ -131,7 +133,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                             </Button>
                         </Modal.Footer>
                     </Modal>
-                    <MembersTable members={members} onDelete={deleteMember} onAddPoints={addPoints} canEdit={canEdit} />
+                    <MembersTable members={safeMembers} onDelete={deleteMember} onAddPoints={addPoints} canEdit={canEdit} />
                     {canEdit && (
                         <div className={"membersTable__footer"}>
                             <button className={"btn neon"} onClick={() => {

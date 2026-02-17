@@ -23,12 +23,12 @@ FROM europe-north1-docker.pkg.dev/cgr-nav/pull-through/nav.no/node:24-slim
 WORKDIR /app
 
 ENV NODE_ENV=production \
-    PORT=3000 \
+    PORT=8080 \
     NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-EXPOSE 3000
+EXPOSE 8080
 
 CMD ["server.js"]

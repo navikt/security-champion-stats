@@ -49,6 +49,8 @@ export async function GET(
             }
         })
 
+        console.log("Backend response status: ", response.status)
+
         if (!response.ok) {
             return NextResponse.json(
                 { error: AUTHENTICATED_FAILED },
@@ -58,7 +60,8 @@ export async function GET(
 
         const backendResponse: Me = await response.json()
         const groups = parse.groups
-
+        console.log("User groups from token: ", groups)
+        console.log("Backend response: ", backendResponse)
         if (!groups) {
             return NextResponse.json(
                 { error: MISSING_GROUP },
@@ -72,7 +75,7 @@ export async function GET(
                 { status: 401 }
             )
         }
-
+        console.log("User validated successfully, returning response")
         return NextResponse.json(
             {
                 username: parse.preferred_username,

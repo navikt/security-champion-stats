@@ -19,6 +19,8 @@ spec:
     outbound:
       rules:
         - application: security-champion-stats-backend
+          cluster: prod-gcp
+          namespace: appsec
   image: {{image}}
   port: 8080
   liveness:

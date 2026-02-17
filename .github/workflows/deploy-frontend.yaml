@@ -50,6 +50,10 @@ jobs:
           CLUSTER: prod-gcp
           RESOURCE: apps/frontend/.nais/nais.yaml
           IMAGE: ${{ steps.docker-push.outputs.image }}
+    outputs:
+      image: ${{ steps.docker-push.outputs.image }}
+
+
   trivy:
     runs-on: ubuntu-latest
     permissions:

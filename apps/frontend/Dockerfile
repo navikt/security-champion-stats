@@ -2,8 +2,7 @@ FROM node:24 AS builder
 
 WORKDIR /app
 
-ENV PNPM_HOME="/pnpm" \
-    PNPM_STORE_PATH="/pnpm/store"
+ENV PNPM_HOME="/pnpm"
 ENV PATH="${PNPM_HOME}:${PATH}"
 
 RUN corepack enable pnpm

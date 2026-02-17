@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionstats.common.security.azure
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import navikt.appsec.securitychampionstats.common.security.client.TokenValidationClient
 import org.slf4j.LoggerFactory
@@ -33,7 +34,6 @@ class TokenIntrospection(
         }
 
         val rawToken = token.substringAfter(" ").trim()
-        log.info("Extracted token: ${rawToken.take(10)}... from Authorization header")
         if (rawToken.isEmpty()) {
             handleUnauthenticated(request, response, "empty_token")
             return
@@ -41,8 +41,6 @@ class TokenIntrospection(
 
         try {
             val result = tokenClient.validate(naisUrl, rawToken, identityProvider)
-            log.info("Result value: $result")
-            log.info("Token introspection response for request ${request.requestURI}: active=${result.active}")
             if (!result.active) {
                 log.warn("Token is inactive for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "inactive_token")
@@ -63,10 +61,10 @@ class TokenIntrospection(
                 return
             }
             log.info("Token validated successfully for user: $preferredUsername with NAVident: $navIdent")
-            val group = result.claims["groups"]?.jsonPrimitive?.content
+            val groups = result.claims["groups"]?.jsonArray?.map { it.jsonPrimitive.content }
 
             val authorities =
-                if (!group.isNullOrEmpty() && group.contains(id)) {
+                if (!groups.isNullOrEmpty() && groups.contains(id)) {
                     listOf(SimpleGrantedAuthority("ROLE_Admin"))
                 } else {
                     listOf(SimpleGrantedAuthority("ROLE_User"))

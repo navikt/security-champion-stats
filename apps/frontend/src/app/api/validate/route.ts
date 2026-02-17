@@ -58,7 +58,6 @@ export async function GET(
 
         const backendResponse: Me = await response.json()
         const groups = parse.groups
-        console.log("User groups from token: ", groups)
         console.log("Backend response: ", backendResponse)
         if (!groups) {
             return NextResponse.json(

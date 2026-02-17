@@ -2,7 +2,7 @@ import {Me} from "../utils/variable";
 
 export const Apies = {
     getMembers: async () => {
-        const res = await fetch("/api/members")
+        const res = await fetch("/api/members", { credentials: "include" })
         if (!res.ok) throw new Error("Failed to fetch members due to error")
         const data = await res.json()
         return data.members
@@ -12,7 +12,8 @@ export const Apies = {
             "/api/admin/member", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            credentials: "include"
         })
         if (!res.ok) throw new Error("Failed to add member due to error")
         return res.status
@@ -20,6 +21,7 @@ export const Apies = {
     deleteMember: async (email: string) => {
         const res = await fetch(`/api/admin/member/${email}`, {
             method: "DELETE",
+            credentials: "include"
         })
         if (!res.ok) throw new Error("Failed to delete member due to error")
         return res.status
@@ -28,7 +30,8 @@ export const Apies = {
         const res = await fetch("/api/admin/points", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, amount })
+            body: JSON.stringify({ email, amount }),
+            credentials: "include"
         })
         if (!res.ok) throw new Error(`Failed to add points for member ${email}`)
         return res.status
@@ -36,8 +39,9 @@ export const Apies = {
     joinProgram: async (email: string) => {
         const res = await fetch("/api/join", {
             method: "POST",
-            headers: { "Constent-Type": "application/json" },
-            body: JSON.stringify({ email })
+            headers: { "Content-Type": "application/json" }, // fixed typo
+            body: JSON.stringify({ email }),
+            credentials: "include"
         })
 
         if (!res.ok) throw new Error(`Failed to join program for member ${email}`)
@@ -45,9 +49,7 @@ export const Apies = {
     },
     validatePerson: async(): Promise<Me> => {
         console.log("Validating user...")
-        const res = await fetch("/api/validate", {
-            method: "GET"
-        })
+        const res = await fetch("/api/validate", { credentials: "include" })
         console.log("Validation response status: ", res.status)
         console.log("Checking if response is ok: ", res.ok)
         if (!res.ok) {

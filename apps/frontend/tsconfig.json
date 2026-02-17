@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2017",
     "useDefineForClassFields": true,
     "lib": [
       "DOM",
@@ -31,9 +31,12 @@
     }
   },
   "include": [
-    "src",
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
   ],
   "exclude": [
     "node_modules"

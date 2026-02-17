@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionstats.stats
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import navikt.appsec.securitychampionstats.common.hikari.PostgresRepository
 import navikt.appsec.securitychampionstats.common.security.azure.SecurityConfig
@@ -65,7 +66,11 @@ class ControllerTest {
     private val claim = mapOf(
         "preferred_username" to JsonPrimitive("test@test.com"),
         "NAVident" to JsonPrimitive("123456"),
-        "groups" to JsonPrimitive(" [ \"1222\", \"1234\" ]"),
+        "groups" to JsonArray(listOf(
+            JsonPrimitive("1222"),
+            JsonPrimitive("1234"),
+            JsonPrimitive("test-id-4b9d-984e-85499f126e18")
+        )),
         "others" to JsonPrimitive("others")
     )
 

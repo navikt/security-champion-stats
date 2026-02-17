@@ -20,7 +20,6 @@ export async function GET(
         if (!id) {
             throw new Error("Missing environment variable APPSEC_ID")
         }
-        console.log("Received token: ", token)
         console.log("APPSEC_ID: ", id)
 
         if (token === AUTHENTICATED_FAILED) {

@@ -32,14 +32,15 @@ class TokenIntrospection(
             return
         }
 
-        log.info("Extracted token: ${token.take(10)}... from Authorization header")
-        if (token.isEmpty()) {
+        val rawToken = token.substringAfter(" ").trim()
+        log.info("Extracted token: ${rawToken.take(10)}... from Authorization header")
+        if (rawToken.isEmpty()) {
             handleUnauthenticated(request, response, "empty_token")
             return
         }
 
         try {
-            val result = tokenClient.validate(naisUrl, token, identityProvider)
+            val result = tokenClient.validate(naisUrl, rawToken, identityProvider)
             log.info("Result value: $result")
             log.info("Token introspection response for request ${request.requestURI}: active=${result.active}")
             if (!result.active) {

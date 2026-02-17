@@ -54,7 +54,7 @@ export async function GET(
 
         if (!response.ok) {
             return NextResponse.json(
-                { error: AUTHENTICATED_FAILED },
+                { error: AUTHENTICATED_FAILED, backendStatus: response.status, backendHeaders: Object.fromEntries(response.headers.entries()), backendBody: response.text() },
                 { status: response.status }
             )
         }

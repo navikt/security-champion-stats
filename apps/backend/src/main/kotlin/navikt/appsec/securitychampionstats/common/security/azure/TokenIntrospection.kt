@@ -24,39 +24,45 @@ class TokenIntrospection(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
+        logger.info("Starting token introspection for request: ${request.requestURI}")
         val authHeader = request.getHeader("Authorization")?.trim()
-
+        logger.info("Received request for path: ${request.requestURI} with Authorization header: ${authHeader?.take(20)}...")
         if (authHeader.isNullOrEmpty() || !authHeader.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
             return
         }
 
         val token = authHeader.removePrefix("Bearer").trim()
-
+        logger.info("Extracted token: ${token.take(10)}... from Authorization header")
         if (token.isEmpty()) {
             handleUnauthenticated(request, response, "empty_token")
             return
         }
 
+        logger.info("Received request with token: ${token.take(10)}... for path: ${request.requestURI}")
+
         try {
             val result = tokenClient.validate(naisUrl, token, identityProvider)
             if (!result.active) {
+                logger.warn("Token is inactive for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "inactive_token")
                 return
             }
 
             val navIdent = result.claims["NAVident"]?.jsonPrimitive?.content
             if (navIdent.isNullOrEmpty()) {
+                logger.warn("Missing NAVident claim in token for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "Missing NAVident")
                 return
             }
 
             val preferredUsername = result.claims["preferred_username"]?.jsonPrimitive?.content
             if (preferredUsername.isNullOrEmpty()) {
+                logger.warn("Missing preferred_username claim in token for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "Missing preferred Username")
                 return
             }
-
+            logger.info("Token validated successfully for user: $preferredUsername with NAVident: $navIdent")
             val group = result.claims["groups"]?.jsonPrimitive?.content
 
             val authorities =
@@ -65,9 +71,11 @@ class TokenIntrospection(
                 } else {
                     listOf(SimpleGrantedAuthority("ROLE_User"))
                 }
+            logger.info("Assigned authorities for user $preferredUsername: ${authorities.joinToString { it.authority }}")
             val authentication = UsernamePasswordAuthenticationToken(preferredUsername, null, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
+            logger.info("Completed token introspection and request processing for user: $preferredUsername with authorities: ${authorities.joinToString { it.authority }}")
         } catch (e: Exception) {
             logger.error("Token validation failed due to error: $e")
             handleUnauthenticated(request, response, "validation_error")

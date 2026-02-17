@@ -50,6 +50,7 @@ export async function GET(
         })
 
         console.log("Backend response status: ", response.status)
+        console.log("Backend response message: ", await response.text())
 
         if (!response.ok) {
             return NextResponse.json(

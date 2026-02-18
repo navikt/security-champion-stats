@@ -49,8 +49,6 @@ class Controller(
         val authentication = SecurityContextHolder.getContext().authentication
         val email = authentication.name
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_ADMIN" }
-        logger.info("Received request for /me from user with email: $email")
-
         val inProgram = repo.getMemberByEmail(email)?.inProgram
 
         return ResponseEntity(Me(email, isAdmin, inProgram ?: false), HttpStatus.OK)
@@ -58,11 +56,17 @@ class Controller(
 
     @PostMapping("/join")
     fun applyMember(@RequestBody email: String): ResponseEntity<String> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        if (authentication.name != email) {
+            logger.warn("User with email ${authentication.name} attempted to join program with email $email")
+            return ResponseEntity(HttpStatus.UNAUTHORIZED)
+        }
         val member = repo.getMemberByEmail(email)
         return if (member == null) {
             // Add member and maybe mark in db that they joined program but not SC? or send update in team catalog
             ResponseEntity(HttpStatus.OK)
         } else {
+            repo.markInProgram(email)
             // Update member in db that they joined program but not SC? or send update in team catalog
              ResponseEntity(HttpStatus.OK)
         }

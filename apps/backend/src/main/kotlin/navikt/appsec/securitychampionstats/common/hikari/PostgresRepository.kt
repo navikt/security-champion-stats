@@ -89,4 +89,13 @@ class PostgresRepository(
             0
         }
     }
+
+    fun markInProgram(email: String) {
+        val sql = "UPDATE Members SET inProgram = true, update_at = NOW() WHERE email = ?"
+        try {
+            jdbcTemplate.update(sql, email)
+        } catch (e: Exception) {
+            logger.error("Failed to add member in program due to error: ${e.message}")
+        }
+    }
 }

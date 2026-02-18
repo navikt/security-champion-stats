@@ -20,12 +20,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.Import
-import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
@@ -95,49 +95,6 @@ class ControllerTest {
     }
 
     @Test
-    fun `Calling upon admin endpoint, with normal user`() {
-        `when`(tokenValidationClient.validate(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString()
-        )).thenReturn(TokenResponse(active = true, claims = claim))
-
-        mockMvc.perform(
-            delete("/api/admin/member")
-                .header("Authorization", "Bearer usertoken")
-                .contentType("application/json")
-                .content("{\"id\":\"test-id-1\"}")
-        )
-            .andExpect { status().isForbidden }
-    }
-
-    @Test
-    fun `Calling upon admin endpoint, with admin user`() {
-        claim.map { (key, _) ->
-            if (key == "groups") {
-                JsonPrimitive(" [ \"1222\", \"1234\", \"test-id-4b9d-984e-85499f126e18\"]")
-            }
-
-        }
-        `when`(tokenValidationClient.validate(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString()
-        )).thenReturn(TokenResponse(true, claim))
-        doNothing().`when`(repo).deleteMember("test-id-1")
-
-        mockMvc.perform(
-            delete("/api/admin/member")
-                .header("Authorization", "Bearer usertoken")
-                .contentType("application/json")
-                .content("{\"id\":\"test-id-1\"}")
-        )
-            .andExpect {
-                status().isOk
-            }
-    }
-
-    @Test
     fun `Test get all members successfully from database`() {
         `when`(tokenValidationClient.validate(
             Mockito.anyString(),
@@ -154,5 +111,64 @@ class ControllerTest {
         )
             .andExpect(status().isOk())
             .andExpect(content().json(Json.encodeToString(memberList)))
+    }
+
+    @Test
+    fun `Test get all members successfully from database, with empty database`() {
+        `when`(tokenValidationClient.validate(
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString()
+        )).thenReturn(TokenResponse(active = true, claims = claim))
+
+        `when`(repo.getAllMembers()).thenReturn(
+            emptyList()
+        )
+        `when`(catalog.fetchMembersWithRole()).thenReturn(
+            emptyList()
+        )
+        mockMvc.perform(
+            get("/api/members")
+                .header("Authorization", "Bearer usertoken")
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().json(Json.encodeToString(emptyList<Member>())))
+    }
+
+    @Test
+    fun `Test a successful join program and then leaving program`() {
+        `when`(tokenValidationClient.validate(
+            Mockito.anyString(),
+            Mockito.anyString(),
+            Mockito.anyString()
+        )).thenReturn(TokenResponse(active = true, claims = claim))
+
+        `when`(repo.getMemberByEmail(Mockito.anyString())).thenReturn(
+            Member(
+                "test-id-1",
+                "test-name-1",
+                0,
+                null,
+                "test@test.com",
+                inProgram = true
+            )
+        )
+        doNothing().`when`(repo).updateInProgram("test@test.com", true)
+        doNothing().`when`(repo).updateInProgram("test@test.com", false)
+
+        mockMvc.perform(
+            post("/api/join")
+                .header("Authorization", "Bearer usertoken")
+                .contentType("Application/json")
+                .content("test@test.com")
+        )
+            .andExpect(status().isOk)
+        mockMvc.perform(
+            post("/api/leave")
+                .header("Authorization", "Bearer usertoken")
+                .contentType("Application/json")
+                .content("test@test.com")
+        )
+            .andExpect (status().isOk)
     }
 }

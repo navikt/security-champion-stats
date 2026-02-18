@@ -13,7 +13,7 @@ data class MemberInfo(val fullname: String, val id: String, val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
-data class DeleteMember(val id: String)
+data class DeleteMember(val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable

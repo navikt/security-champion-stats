@@ -26,7 +26,7 @@ class AdminController(
 
     @DeleteMapping("/member")
     fun deleteMember(@RequestBody member: DeleteMember): ResponseEntity<Any>{
-        repo.deleteMember(member.id)
+        repo.deleteMember(member.email)
         return ResponseEntity.status(HttpStatus.ACCEPTED).build()
     }
 

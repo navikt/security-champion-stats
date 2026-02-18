@@ -71,7 +71,7 @@ class PostgresRepository(
     }
 
     fun deleteMember(id: String) {
-        val sql = "DELETE FROM Members WHERE id = ?"
+        val sql = "DELETE FROM Members WHERE email = ?"
         try {
             jdbcTemplate.update(sql, id)
         } catch (e: Exception) {
@@ -90,8 +90,8 @@ class PostgresRepository(
         }
     }
 
-    fun markInProgram(email: String) {
-        val sql = "UPDATE Members SET inProgram = true, update_at = NOW() WHERE email = ?"
+    fun updateInProgram(email: String, inProgram: Boolean) {
+        val sql = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
         try {
             jdbcTemplate.update(sql, email)
         } catch (e: Exception) {

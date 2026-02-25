@@ -5,7 +5,7 @@ import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../../share
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
-    const { email } = body
+    const { email, fullname } = body
 
     if (activeMock()) {
         const updatedMembers = mockMembers.members.push(
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
                 Authorization: `Bearer ${backendUrl}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({email})
+            body: JSON.stringify({"email": email, "fullname": fullname})
         })
 
         if (!response.ok) {

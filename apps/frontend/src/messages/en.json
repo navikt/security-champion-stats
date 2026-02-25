@@ -53,6 +53,7 @@
       "addMember": {
         "title": "Add new member, backend will find them for you",
         "email": "E-mail",
+        "fullname": "Full name",
         "buttons": {
           "add": "Add member",
           "cancel": "Cancel"

@@ -31,7 +31,7 @@ export async function POST(
                 Authorization: `Bearer ${backendUrl}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({email, amount})
+            body: JSON.stringify({"email": email, "points": amount})
         })
 
         if (!response.ok) {

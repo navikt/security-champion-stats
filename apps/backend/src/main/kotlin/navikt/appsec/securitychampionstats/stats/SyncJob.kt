@@ -20,7 +20,7 @@ class SyncJob(
     private val graphClient: GraphClient,
     @Value ("\${points.activityPoints}") private val activityPoints: Int,
 ) {
-    @Scheduled(cron = "0 0 0 */3 * *")
+    @Scheduled(cron = "0 0 0 */5 * *")
     fun syncDatabase() {
         val members = repo.getAllMembers()
         val oneDayOld = OffsetDateTime.now().minusDays(1).toInstant()
@@ -31,7 +31,6 @@ class SyncJob(
                 repo.addMember(it.fullName, it.navIdent, it.email ?: "unknown")
             }
         }
-
         //TODO: Get people from teams and add them to guest if not SC, update points if they are SC
     }
 }

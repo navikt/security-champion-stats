@@ -2,7 +2,6 @@ import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/vali
 import {mockMembers} from "../../mocks/mockPayloads";
 import {NextRequest, NextResponse} from "next/server";
 import {AUTHENTICATED_FAILED, FAILED_TO_JOIN, MISSING_GROUP} from "../../shared/utils/variable";
-import {parseAzureUserToken} from "@navikt/oasis";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
@@ -20,10 +19,10 @@ export async function POST(request: NextRequest) {
         const {backendUrl} = getServerEnv()
         const backendToken = await getBackendToken(request)
 
-        if (backendToken === "Authentication failed") {
+        if (backendToken === AUTHENTICATED_FAILED) {
             return NextResponse.json(
-                {error: AUTHENTICATED_FAILED},
-                {status: 401}
+                {error: "Authentication failed, failed to fetch obo-token or token" },
+                {status: 401 },
             )
         }
 
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
                 Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({email})
+            body: JSON.stringify({"email": email})
         })
 
         if (!response.ok) {

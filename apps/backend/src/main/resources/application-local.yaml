@@ -1,0 +1,39 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: security-champion-stats-local
+  datasource:
+    url: jdbc:postgresql://localhost:5432/security_champion_stats
+    username: security
+    password: champion
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      auto-commit: true
+      minimum-idle: 2
+      maximum-pool-size: 5
+  sql:
+    init:
+      mode: never
+  jpa:
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  security:
+    token-validation:
+      url: http://localhost:8081/mock/token-introspection
+      identity-provider: entra_local
+      groups: local-admin-group
+
+
+graph:
+  apiUrl: http://localhost:8081/mock/graph
+slack:
+  token: xoxb-local-slack-token
+  channelId: local-slack-channel-id
+
+points:
+  meetingPoints: 10
+  activityPoints: 5

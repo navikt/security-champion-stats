@@ -12,8 +12,9 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     const [members, setMembers] = useState<Member[]>([])
     const [active, setActive] = useState(me.inProgram)
     const [disableMemberButton, setDisableMemberButton] = useState(false)
-    const modalRef = useRef<HTMLDialogElement>(null);
-    const memberRef = useRef<HTMLInputElement>(null)
+    const modalRef = useRef<HTMLDialogElement>(null)
+    const memberFullnameRef = useRef<HTMLInputElement>(null)
+    const memberEmailRef = useRef<HTMLInputElement>(null)
     const t = useTranslations()
     const safeMembers = members ?? []
 
@@ -32,11 +33,11 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
        void reload()
     }, [])
 
-    const addMember = async (email?: string) => {
-        if(!email) {
+    const addMember = async (email?: string, fullname?: string) => {
+        if(!email || !fullname) {
             return
         }
-        await Apies.addMember(email)
+        await Apies.addMember(email, fullname)
         await reload()
     }
 
@@ -115,7 +116,8 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                 <div className={"cardBody"}>
                     <Modal ref={modalRef} header={{ heading: t("dashboard.modals.addMember.title") }}>
                         <Modal.Body>
-                            <TextField label={ t("dashboard.modals.addMember.email") } size={"small"} ref={memberRef}/>
+                            <TextField label={ t("dashboard.modals.addMember.email") } size={"small"} ref={memberEmailRef}/>
+                            <TextField label={ t("dashboard.modals.addMember.fullname") } size={"small"} ref={memberFullnameRef}/>
                         </Modal.Body>
                         <Modal.Footer>
                             <Button type={"button"} variant={"tertiary"} onClick={() => {
@@ -125,7 +127,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                                 {t("dashboard.modals.buttons.close")}
                             </Button>
                             <Button type={"button"} color={"success"} onClick={() => {
-                                addMember(memberRef.current?.value)
+                                addMember(memberEmailRef.current?.value, memberFullnameRef.current?.value)
                                 modalRef.current?.close()
                                 setDisableMemberButton(false)
                             }}>

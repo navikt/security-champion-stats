@@ -70,10 +70,10 @@ class PostgresRepository(
         }
     }
 
-    fun deleteMember(id: String) {
+    fun deleteMember(email: String) {
         val sql = "DELETE FROM Members WHERE email = ?"
         try {
-            jdbcTemplate.update(sql, id)
+            jdbcTemplate.update(sql, email)
         } catch (e: Exception) {
             logger.error("Failed to delete member due to error: ${e.message}")
         }

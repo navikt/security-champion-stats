@@ -30,7 +30,7 @@ class SecurityConfig(
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
-                it.requestMatchers("/auth/**", "/actuator/health").permitAll()
+                it.requestMatchers("/auth/**", "/actuator/health", "/internal/local-auth/**").permitAll()
                 it.anyRequest().authenticated()
             }
             .addFilterBefore(introspectionFilter, UsernamePasswordAuthenticationFilter::class.java)

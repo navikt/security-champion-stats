@@ -83,7 +83,6 @@ function MembersTable({
                 )}
                 </tbody>
             </table>
-            {/* Modal rendered outside the table for HTML validity */}
             <Modal open={!!modalOpenFor} onClose={() => { setModalOpenFor(null); setDisableButtons(false); }} header={{ heading: t("dashboard.modals.addPoints.title")}}>
                 <Modal.Body>
                     <TextField label={ t("dashboard.modals.addPoints.pointsLabel") } size={"small"} ref={pointRef}/>

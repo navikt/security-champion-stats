@@ -9,7 +9,7 @@ data class Member(val id: String, val fullname: String, val points: Int, val las
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
-data class MemberInfo(val fullname: String, val id: String, val email: String)
+data class MemberInfo(val fullname: String, val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
@@ -17,7 +17,7 @@ data class DeleteMember(val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
-data class Points(val id: String, val points: Int)
+data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable

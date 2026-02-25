@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin")
@@ -20,7 +21,8 @@ class AdminController(
 
     @PostMapping("/member")
     fun addMember(@RequestBody memberInfo: MemberInfo): ResponseEntity<Any>{
-        repo.addMember(memberInfo.fullname, memberInfo.id, memberInfo.email)
+        val id = UUID.randomUUID().toString()
+        repo.addMember(memberInfo.fullname, id = id, memberInfo.email)
         return ResponseEntity("User was created", HttpStatus.CREATED)
     }
 
@@ -32,15 +34,12 @@ class AdminController(
 
     @PostMapping("/points")
     fun addPoints(@RequestBody points: Points): ResponseEntity<Any>{
-        val result = repo.addPoints(points.id, points.points)
-
+        val result = repo.addPoints(points.email, points.points)
         return if (result == 1) {
             ResponseEntity.status(HttpStatus.ACCEPTED).build()
         } else {
             ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
     }
-
-
 
 }

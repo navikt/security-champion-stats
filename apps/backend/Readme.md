@@ -14,7 +14,7 @@ sequenceDiagram
     participant DB as Database
     participant TK as Teamkatalogen
     participant Slack as Slack
-    participant BES as Backend scheduler (e.g. cronjob)
+    participant BES as Backend scheduler (e.g. cronjob, Runs on a schedule (e.g. once a week)) 
 
     FE->>BE: Request towards one of the endpoints (e.g. get security champions stats)
     BE->>DB: Query for data related to request (e.g. security champions stats)
@@ -32,18 +32,19 @@ sequenceDiagram
         BES->>Slack: Get all activity for team_member with role SECURITY_CHAMPION and have agreed to share it
         Slack-->>BES: [activity, activity, …]
         BES-->>BES: Map each activity to corresponding team_member and calculate points for each team_member based on activity
-    end
-    left of BES: Runs on a schedule (e.g. once a week)
-    
+    end    
 ```
 
 ## How to run
 To run the backend application, follow these steps:
 1. Make sure you have Java 17 or higher installed on your machine.
-2. Build the application using Gradle: `./gradlew build`
-3. Expose necessary environment variables for the application to run
-4. Run the application: `./gradlew bootRun`
-5. The application will start on `http://localhost:8080` and you can access the API endpoints.
+2. Start the local database: `docker compose up -d postgres`
+3. Run the application with the local profile: `./gradlew bootRun --args='--spring.profiles.active=local'`
+4. Mint a token for local calls: `curl -X POST http://localhost:8080/auth/local/token -H 'Content-Type: application/json' -d '{"navIdent":"Z12345","preferredUsername":"user@nav.no","groups":["local-admin-group"]}'`
+5. Use the returned value as `Authorization: Bearer <token>` when calling `http://localhost:8080`.
+6. To run tests, use the command: `./gradlew test`
+
+This is best ran with frontend application, so you can see the data in the UI. To run the frontend application, follow the instructions in the `apps/frontend/Readme.md` file.
 
 ## Technologies Used
 - Kotlin: A modern programming language that runs on the JVM and is fully interoperable with Java

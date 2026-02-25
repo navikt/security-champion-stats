@@ -54,7 +54,6 @@ class Controller(
     @PostMapping("/join")
     fun applyMember(@RequestBody email: String): ResponseEntity<String> {
         val authentication = SecurityContextHolder.getContext().authentication
-        logger.info("User with email ${authentication.name} is attempting to join program with email $email")
         when {
             !validate.isValidEmail(email) -> {
                 logger.warn("User with email ${authentication.name} attempted to join program with invalid email $email")

@@ -66,7 +66,7 @@ class TokenIntrospection(
                 } else {
                     listOf(SimpleGrantedAuthority("ROLE_User"))
                 }
-            val authentication = UsernamePasswordAuthenticationToken(preferredUsername, null, authorities)
+            val authentication = UsernamePasswordAuthenticationToken(preferredUsername, navIdent, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
             log.info("Completed token introspection and request processing for user: $preferredUsername with authorities: ${authorities.joinToString { it.authority }}")

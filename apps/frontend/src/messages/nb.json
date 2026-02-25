@@ -53,6 +53,7 @@
       "addMember": {
         "title": "Legg til nytt medlem, backend finner dem for deg",
         "email": "E-post",
+        "fullname": "Fullt navn",
         "buttons": {
           "add": "Legg til medlem",
           "cancel": "Avbryt"

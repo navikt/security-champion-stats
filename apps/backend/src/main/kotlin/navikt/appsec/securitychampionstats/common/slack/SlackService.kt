@@ -88,4 +88,23 @@ class SlackService(
         }
     }
 
+    fun getUserActivitySummaryByEmail(email: String): SlackActivitySummary {
+        val userInfo = resolveUserIdByEmail(email)
+        if (userInfo.userId.isBlank()) return SlackActivitySummary(
+            userInfo = UserInfo("", ""),
+            inTrackedChannels = setOf(""),
+            messagesPerChannel = emptyMap(),
+            totalMessages = 0
+        )
+        val channelId = userConversationIds(userInfo.userId)
+
+        // TODO: Change this once point system is in place...
+        return SlackActivitySummary(
+            userInfo = UserInfo("", ""),
+            inTrackedChannels = setOf(""),
+            messagesPerChannel = emptyMap(),
+            totalMessages = 0
+        )
+    }
+
 }

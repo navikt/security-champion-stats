@@ -21,7 +21,7 @@ jobs:
       id-token: write # for nais docker-build-push
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
       - uses: actions/setup-java@v5
@@ -60,7 +60,7 @@ jobs:
       id-token: write
     needs: test-build
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6.0.2
         with:
           persist-credentials: false
       - uses: nais/deploy/actions/deploy@v2
@@ -81,12 +81,12 @@ jobs:
         with:
           team: appsec
       - name: Scan docker image for secrets
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518
         with:
           image-ref: '${{ needs.test-build.outputs.image }}'
           format: 'sarif'
           scanners: 'secret'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@64d10c13136e1c5bce3e5fbde8d4906eeaafc885
+      - uses: github/codeql-action/upload-sarif@89a39a4e59826350b863aa6b6252a07ad50cf83e
         with:
           sarif_file: 'trivy.sarif'

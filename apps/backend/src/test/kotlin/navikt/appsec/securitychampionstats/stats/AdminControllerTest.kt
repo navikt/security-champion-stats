@@ -1,13 +1,11 @@
 package navikt.appsec.securitychampionstats.stats
 
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import navikt.appsec.securitychampionstats.common.hikari.PostgresRepository
 import navikt.appsec.securitychampionstats.common.security.azure.SecurityConfig
 import navikt.appsec.securitychampionstats.common.security.client.TokenValidationClient
 import navikt.appsec.securitychampionstats.common.security.dto.TokenResponse
-import navikt.appsec.securitychampionstats.stats.dto.MemberInfo
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.mockito.Mockito.`when`
@@ -17,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
@@ -96,7 +95,15 @@ class AdminControllerTest {
                 Mockito.anyString()
             )
         ).thenReturn(TokenResponse(active = true, claims = claim))
+        doNothing().`when`(repo).deleteMember("test@email.com")
 
-        doNothing().`when`(repo).deleteMember("")
+        mockMvc.perform (
+            delete("/api/admin/member")
+                .header("Authorization", "Bearer test-token")
+                .contentType("Application/json")
+                .content(
+                    """"{ "email": "test@nav.no" }"""
+                )
+        ).andExpect { status().isAccepted }
     }
 }

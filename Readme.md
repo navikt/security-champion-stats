@@ -6,4 +6,3 @@ to motivate and engage security champions by gamifying their experience and prov
 their progress and see other security champions.
 
 For more information about the application, read Readme files in the subdirectories: app/backend and app/frontend.
-

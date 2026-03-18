@@ -5,11 +5,8 @@ import navikt.appsec.securitychampionstats.common.slack.SlackService
 import navikt.appsec.securitychampionstats.common.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionstats.common.teams.GraphClient
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Component
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.web.bind.annotation.RequestParam
 import java.time.OffsetDateTime
 
 @Component
@@ -18,7 +15,7 @@ class SyncJob(
     private val catalog: TeamCatalog,
     private val slackService: SlackService,
     private val graphClient: GraphClient,
-    @Value ("\${points.activityPoints}") private val activityPoints: Int,
+    @Value ("\${points.activityPoints}") private val activityPoints: Int
 ) {
     @Scheduled(cron = "0 0 0 */5 * *")
     fun syncDatabase() {

@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
                 { status: 401 }
             )
         }
-
         const url = bypassCache
             ? `${backendUrl}/api/members?bypassCache=true`
             : `${backendUrl}/api/members`

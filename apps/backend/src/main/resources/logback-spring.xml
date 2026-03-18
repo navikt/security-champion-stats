@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProfile name="prod">
+        <appender name="STDOUT_JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder"/>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="STDOUT_JSON"/>
+        </root>
+        <root level="WARN">
+            <appender-ref ref="STDOUT_JSON"/>
+        </root>
+
+        <logger name="navikt.appsec.securitychampionstats" level="INFO" additivity="false">
+            <appender-ref ref="STDOUT_JSON"/>
+        </logger>
+
+        <logger name="org.springframework" level="INFO"/>
+    </springProfile>
+
+    <springProfile name="local">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M %line - %msg%n</Pattern>
+            </encoder>
+        </appender>
+
+        <logger name="org.springframework" level="INFO"/>
+
+        <root level="ERROR">
+            <appender-ref ref="STDOUT"/>
+        </root>
+
+        <root level="WARN">
+            <appender-ref ref="STDOUT"/>
+        </root>
+
+        <root level="INFO">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+
+    <root level="error">
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

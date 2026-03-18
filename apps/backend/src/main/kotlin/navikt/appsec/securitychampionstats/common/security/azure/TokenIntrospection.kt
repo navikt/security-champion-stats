@@ -6,17 +6,20 @@ import jakarta.servlet.http.HttpServletResponse
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import navikt.appsec.securitychampionstats.common.security.client.TokenValidationClient
+import navikt.appsec.securitychampionstats.common.security.local.TokenLocalClient
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 
 class TokenIntrospection(
-    private val tokenClient: TokenValidationClient,
-    private val naisUrl: String,
-    private val identityProvider: String,
-    private val id: String
+    val tokenClient: TokenValidationClient,
+    val naisUrl: String,
+    val identityProvider: String,
+    val id: String,
+    val activeProfiles: String
 ): OncePerRequestFilter() {
 
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
@@ -25,6 +28,7 @@ class TokenIntrospection(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
+        log.info("Starting authentication process for request: ${request.requestURI}, in backend")
         val token = request.getHeader("Authorization")?.trim()
         if (token.isNullOrEmpty() || !token.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
@@ -38,7 +42,12 @@ class TokenIntrospection(
         }
 
         try {
-            val result = tokenClient.validate(naisUrl, rawToken, identityProvider)
+            val result = if (activeProfiles == "local") {
+                log.info("Running on local, skipping client validation part")
+                TokenLocalClient().validate(token)
+            } else {
+                tokenClient.validate(naisUrl, rawToken, identityProvider)
+            }
             if (!result.active) {
                 log.warn("Token is inactive for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "inactive_token")
@@ -69,7 +78,7 @@ class TokenIntrospection(
             val authentication = UsernamePasswordAuthenticationToken(preferredUsername, navIdent, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
-            log.info("Completed token introspection and request processing for user: $preferredUsername with authorities: ${authorities.joinToString { it.authority }}")
+            log.info("Completed token introspection successfully for request: ${request.requestURI}")
         } catch (e: Exception) {
             log.error("Token validation failed due to error: $e")
             handleUnauthenticated(request, response, "validation_error")

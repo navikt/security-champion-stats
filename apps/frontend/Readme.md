@@ -9,8 +9,9 @@ The application is meant to increase engagement and motivation among security ch
 ## Getting Started
 To get started with the frontend application, follow these steps: 
 1. install dependencies: `pnpm install` (make sure you have pnpm installed globally, avoid using npm)
-2. start the development server: `pnpm run dev` and expose MOCKS_ENABLED=true or run `pnpm run dev:mock` to enable mock data
-    1. local server is not implemented yet, so all data is mocked
+2. start the mocked server: `pnpm run dev` and expose MOCKS_ENABLED=true or run `pnpm run dev:mock` to enable mock data
+3. open your browser and navigate to `http://localhost:3000` to see the application in action.
+4. Run `pnpm run dev:local` together with backend application to have a local development environment.
 
 ## Technologies Used
 - React: A JavaScript library for building user interfaces.

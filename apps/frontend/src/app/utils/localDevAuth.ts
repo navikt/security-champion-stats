@@ -13,3 +13,15 @@ export function createLocalDevToken(email: string = "local.email@nav.no"): strin
 
     return `${encodedHeader}.${encodedPayload}.local-dev-signature`;
 }
+
+export function createLocalParserResult() {
+    const username = process.env["LOCAL_DEV_EMAIL"] ?? "local.dev@email.com"
+    const groupIds = [process.env["APPSEC_ID"] ?? "1234567", "12345", "11111111" ]
+    return {
+        "oid": "SomeValue",
+        "NAVident": "D112345",
+        "name": "localTesting",
+        "preferred_username": username,
+        "groups" : groupIds
+    }
+}

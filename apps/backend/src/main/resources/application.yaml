@@ -21,7 +21,7 @@ spring:
       identity-provider: entra_id
       groups: d633d27b-a470-4b9d-984e-85499f126e18
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:prod}
+    active: prod
   jackson:
     serialization:
       fail-on-empty-beans: false

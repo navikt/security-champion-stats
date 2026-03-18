@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/validation";
 import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../shared/utils/variable";
 import {parseAzureUserToken} from "@navikt/oasis";
+import {createLocalParserResult} from "@/app/utils/localDevAuth";
 
 export async function GET(
     request: NextRequest
@@ -14,13 +15,11 @@ export async function GET(
             inProgram: false
         })
     } try {
-        console.log("Starting user validation in API route, next frackend")
         const token = await getBackendToken(request)
         const id = process.env.APPSEC_ID
         if (!id) {
             throw new Error("Missing environment variable APPSEC_ID")
         }
-        console.log("APPSEC_ID: ", id)
 
         if (token === AUTHENTICATED_FAILED) {
             return NextResponse.json(
@@ -28,17 +27,21 @@ export async function GET(
                 { status: 401 }
             )
         }
-
-        const parse = parseAzureUserToken(token)
-        if (!parse.ok) {
-            return NextResponse.json(
-                { error: AUTHENTICATED_FAILED },
-                { status: 401 }
-            )
+        const { backendUrl, backendScope }  = getServerEnv()
+        let parse
+        if (backendScope !== "LOCAL") {
+            parse = parseAzureUserToken(token)
+            if (!parse.ok) {
+                return NextResponse.json(
+                    { error: parse.error },
+                    { status: 401 }
+                )
+            }
+        } else {
+            parse = createLocalParserResult()
         }
-        const backendUrl = getServerEnv()
-        const url = `${backendUrl.backendUrl}/api/validate`
-        console.log("Validating user with backend at: " + url)
+
+        const url = `${backendUrl}/api/validate`
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -46,8 +49,6 @@ export async function GET(
                 "Content-Type": "application/json"
             }
         })
-
-        console.log("Backend response status: ", response.status)
 
         if (!response.ok) {
             return NextResponse.json(
@@ -58,7 +59,7 @@ export async function GET(
 
         const backendResponse: Me = await response.json()
         const groups = parse.groups
-        console.log("Backend response: ", backendResponse)
+
         if (!groups) {
             return NextResponse.json(
                 { error: MISSING_GROUP },
@@ -72,7 +73,7 @@ export async function GET(
                 { status: 401 }
             )
         }
-        console.log("User validated successfully, returning response")
+        console.log("InProgram: ", backendResponse.inProgram, "Groups: ", groups)
         return NextResponse.json(
             {
                 username: parse.preferred_username,

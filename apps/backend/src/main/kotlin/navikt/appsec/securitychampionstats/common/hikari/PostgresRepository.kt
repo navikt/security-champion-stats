@@ -1,9 +1,9 @@
 package navikt.appsec.securitychampionstats.common.hikari
 
-import navikt.appsec.securitychampionstats.common.teamCatalog.dto.ResourceResponse
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 
 private val logger = LoggerFactory.getLogger(PostgresRepository::class.java)
@@ -12,90 +12,69 @@ private val logger = LoggerFactory.getLogger(PostgresRepository::class.java)
 class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
-    fun getAllMembers(): List<Member> {
-        val sql = "SELECT id, fullname, points, email, update_at, inProgram  FROM Members"
+    private fun fetchMembers(query: String, vararg args: Any): List<Member> {
         return try {
-            jdbcTemplate.query(sql) { response, _ ->
+            val rowMapper = RowMapper { rs, _ ->
                 Member(
-                    id = response.getString("id"),
-                    fullname = response.getString("fullname"),
-                    points = response.getInt("points"),
-                    lastUpdated = response.getString("update_at"),
-                    email = response.getString("email"),
-                    inProgram = response.getBoolean("inProgram")
+                    id = rs.getString("id"),
+                    fullname = rs.getString("fullname"),
+                    points = rs.getInt("points"),
+                    lastUpdated = rs.getString("update_at"),
+                    email = rs.getString("email"),
+                    inProgram = rs.getBoolean("inProgram")
                 )
             }
+            if (args.isEmpty()) {
+                jdbcTemplate.query(query, rowMapper)
+            } else {
+                jdbcTemplate.query(query, rowMapper, *args)
+            }
         } catch (e: Exception) {
-            logger.error("Failed to fetch all members due to error: ${e.message}")
+            logger.error("Failed to fetch members: ${e.message}")
             emptyList()
         }
     }
 
-    fun addMember(fullname: String, id: String, email: String) {
-        val sql = "INSERT INTO Members (id, fullname, points, email, inProgram) VALUES (?, ?, 0, ?, false)"
+    private fun updateMember(query: String, vararg args: Any) {
         try {
-            jdbcTemplate.update(sql, id, fullname, email)
+            jdbcTemplate.update(query, *args)
         } catch (e: Exception) {
-            logger.error("Failed to add member due to error: ${e.message}")
+            logger.error("Failed to update member due to error: ${e.message}")
         }
+    }
+
+    fun getAllMembersInProgram(): List<Member> {
+        val query = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE inProgram = true"
+        return fetchMembers(query)
+    }
+
+    fun getAllMembers(): List<Member> {
+        val query = "SELECT id, fullname, points, email, update_at, inProgram  FROM Members"
+        return fetchMembers(query)
+    }
+
+    fun addMember(fullname: String, id: String, email: String) {
+        val query = "INSERT INTO Members (id, fullname, points, email, inProgram) VALUES (?, ?, 0, ?, false)"
+        updateMember(query, id, fullname, email)
     }
 
     fun getMemberByEmail(email: String): Member? {
-        val sql = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE email = ?"
-
-        return try {
-            jdbcTemplate.query(sql,{ response, _ ->
-                Member(
-                    id = response.getString("id"),
-                    fullname = response.getString("fullname"),
-                    points = response.getInt("points"),
-                    lastUpdated = response.getString("update_at"),
-                    email = response.getString("email"),
-                    inProgram =  response.getBoolean("inProgram")
-                )
-            }, email).firstOrNull() ?: Member("", "", 0, "", "")
-        } catch (e: Exception) {
-            logger.error("Failed to fetch member from db due to error: ${e.message}")
-            null
-        }
-    }
-
-    fun addMembers(members: List<ResourceResponse>) {
-        members.forEach { member ->
-            addMember(
-                fullname = member.fullName,
-                id = member.navIdent,
-                email = member.email ?: "Unknown",
-            )
-        }
+        val query = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE email = ?"
+        return fetchMembers(query, email).firstOrNull()
     }
 
     fun deleteMember(email: String) {
-        val sql = "DELETE FROM Members WHERE email = ?"
-        try {
-            jdbcTemplate.update(sql, email)
-        } catch (e: Exception) {
-            logger.error("Failed to delete member due to error: ${e.message}")
-        }
+        val query = "DELETE FROM Members WHERE email = ?"
+        updateMember(query, email)
     }
 
-    fun addPoints(email: String, points: Int): Int {
-        val sql = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE email = ?"
-        return try {
-            jdbcTemplate.update(sql, email, points)
-            1
-        } catch (e: Exception) {
-            logger.error("Failed to add points due to error: ${e.message}")
-            0
-        }
+    fun addPoints(email: String, points: Int){
+        val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE email = ?"
+        updateMember(query, points, email)
     }
 
     fun updateInProgram(email: String, inProgram: Boolean) {
-        val sql = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
-        try {
-            jdbcTemplate.update(sql, email)
-        } catch (e: Exception) {
-            logger.error("Failed to add member in program due to error: ${e.message}")
-        }
+        val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
+        updateMember(query, email)
     }
 }

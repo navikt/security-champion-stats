@@ -9,9 +9,9 @@ import "../../style/localStyling.css"
 import {Button, Modal, TextField} from "@navikt/ds-react";
 
 function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
+    const [userData, setMe] = useState(me)
     const [members, setMembers] = useState<Member[]>([])
-    const [active, setActive] = useState(me.inProgram)
-    const [disableMemberButton, setDisableMemberButton] = useState(false)
+    const [active, setActive] = useState(userData.inProgram)
     const modalRef = useRef<HTMLDialogElement>(null)
     const memberFullnameRef = useRef<HTMLInputElement>(null)
     const memberEmailRef = useRef<HTMLInputElement>(null)
@@ -22,11 +22,12 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     const topMember = safeMembers.toSorted((a, b) => b.points - a.points)[0]
     const statusKey = active ? "dashboard.statusLive" : "dashboard.statusIdle"
     const subtitleKey = active ? "dashboard.subtitleLive" : "dashboard.subtitleIdle"
-
     const reload = async () => {
         const ms = await Apies.getMembers()
-        console.log("Fetched members:", ms)
-        setMembers(ms ?? [])
+        setMembers(ms)
+    }
+    const reloadMe = async () => {
+        setMe(await Apies.validatePerson())
     }
 
     useEffect(() => {
@@ -37,7 +38,9 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         if(!email || !fullname) {
             return
         }
-        await Apies.addMember(email, fullname)
+        const status = await Apies.addMember(email, fullname)
+        memberEmailRef.current = null
+        memberFullnameRef.current = null
         await reload()
     }
 
@@ -45,19 +48,31 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         if (!email || !points) {
             return
         }
-        await Apies.addPoints(email, points)
+        const status = await Apies.addPoints(email, points)
+        console.log("Response status: ", status)
         await reload()
     }
 
     const joinProgram = async () => {
-        await Apies.joinProgram(me.username)
+        const status = await Apies.joinProgram(userData.username)
+        console.log("Response status: ", status)
         await reload()
+        await reloadMe()
         setActive(true)
     }
 
     const deleteMember = async (email: string) => {
-        await Apies.deleteMember(email)
+        const status = await Apies.deleteMember(email)
+        console.log("Response status: ", status)
         await reload()
+    }
+
+    const leaveProgram = async() => {
+        const status = await Apies.leaveProgram(userData.username)
+        console.log("Response status: ", status)
+        await reload()
+        await reloadMe()
+        setActive(false)
     }
 
     return (
@@ -74,8 +89,16 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                     {!active && (
                         <div className={"gameCTA"}>
                             <p>{t("dashboard.ctaHint")}</p>
-                            <button className={"btn outline"} onClick={joinProgram} disabled={!active}>
+                            <button className={"btn outline"} onClick={joinProgram} disabled={active}>
                                 {t("dashboard.buttons.joinProgram")}
+                            </button>
+                        </div>
+                    )}
+                    {active && (
+                        <div className={"gameCTA"}>
+                            <p>{t("dashboard.ctaHintLeave")}</p>
+                            <button className={"btn outline"} onClick={leaveProgram} disabled={!active}>
+                                {t("dashboard.buttons.leaveProgram")}
                             </button>
                         </div>
                     )}
@@ -122,14 +145,12 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                         <Modal.Footer>
                             <Button type={"button"} variant={"tertiary"} onClick={() => {
                                 modalRef.current?.close()
-                                setDisableMemberButton(false)
                             }}>
                                 {t("dashboard.modals.buttons.close")}
                             </Button>
                             <Button type={"button"} color={"success"} onClick={() => {
                                 addMember(memberEmailRef.current?.value, memberFullnameRef.current?.value)
                                 modalRef.current?.close()
-                                setDisableMemberButton(false)
                             }}>
                                 {t("dashboard.modals.buttons.submit")}
                             </Button>
@@ -140,8 +161,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                         <div className={"membersTable__footer"}>
                             <button className={"btn neon"} onClick={() => {
                                 modalRef.current?.showModal()
-                                setDisableMemberButton(true)
-                            }} disabled={disableMemberButton}>
+                            }} disabled={modalRef.current == null}>
                                 {t("dashboard.buttons.admin.addMember")}
                             </button>
                         </div>

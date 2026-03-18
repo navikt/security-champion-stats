@@ -25,6 +25,7 @@
     "subtitleLive": "Hold skjoldet ladet ved å få inn medlemmer og spre sikkerhetskulturen.",
     "subtitleIdle": "Bli med i programmet sånn at sikkerhetskultur blir enda større.",
     "ctaHint": "Bli med i programmet og vis deg i topplisten.",
+    "ctaHintLeave": "Du kan forlate spillet når som helst.",
     "stats": {
       "players": "Spillere med",
       "points": "Totalt poeng",
@@ -38,7 +39,8 @@
     "cardPointsLabel": "{points} XP banket",
     "noMembers": "Tabell er tom",
     "buttons": {
-      "joinProgram": "Bli med i programmet",
+      "joinProgram": "Bli med i spillet",
+      "leaveProgram": "Forlat spillet",
       "admin": {
         "addMember": "Legg til medlem",
         "deleteMember": "Slett",

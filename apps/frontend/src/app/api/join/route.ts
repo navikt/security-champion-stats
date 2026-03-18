@@ -1,7 +1,7 @@
 import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/validation";
 import {mockMembers} from "../../mocks/mockPayloads";
 import {NextRequest, NextResponse} from "next/server";
-import {AUTHENTICATED_FAILED, FAILED_TO_JOIN, MISSING_GROUP} from "../../shared/utils/variable";
+import {AUTHENTICATED_FAILED, FAILED_TO_JOIN} from "../../shared/utils/variable";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
                 Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({"email": email})
+            body: email
         })
 
         if (!response.ok) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
                 {status: response.status}
             )
         }
-        return NextResponse.json( {status: "success"} )
+        return NextResponse.json( { status: response.status } )
     } catch (error) {
         console.error("Error in /api/join:", error)
         return NextResponse.json(

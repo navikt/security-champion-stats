@@ -1,11 +1,13 @@
 package navikt.appsec.securitychampionstats.stats
 
+import kotlinx.serialization.json.JsonPrimitive
 import navikt.appsec.securitychampionstats.common.hikari.PostgresRepository
 import navikt.appsec.securitychampionstats.common.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionstats.stats.dto.Me
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import navikt.appsec.securitychampionstats.utils.Validate
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController
 class Controller(
     private val repo: PostgresRepository,
     private val catalog: TeamCatalog,
+    @Value($$"${spring.profiles.active}") val activeProfiles: String
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
     private val validate = Validate()
@@ -30,12 +33,18 @@ class Controller(
 
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
-        val members = repo.getAllMembers()
+        logger.info("Request to fetch all members was made")
+        val members = repo.getAllMembersInProgram()
+        return if (members.isEmpty() && activeProfiles != "local") {
+            catalog.fetchMembersWithRole().forEach {
+                if (it.email != null) repo.addMember(
+                    fullname = it.fullName,
+                    id = it.navIdent,
+                    email = it.email
+                )
+            }
 
-        return if (members.isEmpty()) {
-            val members = catalog.fetchMembersWithRole()
-            repo.addMembers(members)
-            ResponseEntity(repo.getAllMembers(), HttpStatus.OK)
+            ResponseEntity(repo.getAllMembersInProgram(), HttpStatus.OK)
         } else {
             ResponseEntity(members, HttpStatus.OK)
         }
@@ -47,12 +56,12 @@ class Controller(
         val email = authentication.name
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_ADMIN" }
         val inProgram = repo.getMemberByEmail(email)?.inProgram
-
         return ResponseEntity(Me(email, isAdmin, inProgram ?: false), HttpStatus.OK)
     }
 
     @PostMapping("/join")
     fun applyMember(@RequestBody email: String): ResponseEntity<String> {
+        logger.info("Request to join program was made")
         val authentication = SecurityContextHolder.getContext().authentication
         when {
             !validate.isValidEmail(email) -> {
@@ -71,12 +80,13 @@ class Controller(
             ResponseEntity(HttpStatus.OK)
         } else {
             repo.updateInProgram(email, true)
-             ResponseEntity(HttpStatus.OK)
+            ResponseEntity(HttpStatus.OK)
         }
     }
 
     @PostMapping("/leave")
     fun leaveProgram(@RequestBody email: String): ResponseEntity<String> {
+        logger.info("Request to leave program was made")
         val authentication = SecurityContextHolder.getContext().authentication
         when {
             !validate.isValidEmail(email) -> {

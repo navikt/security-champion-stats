@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionstats.common.security.client.TokenValidatio
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
@@ -15,6 +16,7 @@ class SecurityConfig(
     @Value($$"${spring.security.token-validation.identity-provider}") private val identityProvider: String,
     @Value($$"${spring.security.token-validation.url}") private val url: String,
     @Value($$"${spring.security.token-validation.groups}") private val groupId: String,
+    @Value($$"${spring.profiles.active}") val activeProfiles: String
 ) {
 
     @Bean
@@ -24,6 +26,7 @@ class SecurityConfig(
             url,
             identityProvider,
             groupId,
+            activeProfiles
         )
 
         return http

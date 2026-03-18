@@ -23,7 +23,7 @@ spring:
     locations: classpath:db/migration
   security:
     token-validation:
-      url: http://localhost:8081/mock/token-introspection
+      url: http://localhost:8080/internal/local-auth/introspect
       identity-provider: entra_local
       groups: local-admin-group
 

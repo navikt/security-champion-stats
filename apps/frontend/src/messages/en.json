@@ -25,6 +25,7 @@
     "subtitleLive": "Keep the shield charged by bringing in members.",
     "subtitleIdle": "Kick things off so that we can start growing security culture together.",
     "ctaHint": "Join the program to apper in the leaderboard.",
+    "ctaHintLeave": "You can leave the game at any time.",
     "stats": {
       "players": "Players joined",
       "points": "Total points",
@@ -38,7 +39,8 @@
     "cardPointsLabel": "{points} XP banked",
     "noMembers": "Table is empty",
     "buttons": {
-      "joinProgram": "Join program",
+      "joinProgram": "Join game",
+      "leaveProgram": "Leave game",
       "admin": {
         "addMember": "add member",
         "deleteMember": "Delete",

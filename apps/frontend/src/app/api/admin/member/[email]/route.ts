@@ -2,7 +2,6 @@ import {NextRequest, NextResponse} from "next/server";
 import {activeMock, getBackendToken, getServerEnv} from "../../../../shared/utils/validation";
 import {
     AUTHENTICATED_FAILED,
-    DeleteParam,
     FAILED_FETCH,
     INTERNAL_ERROR,
     MISSING_VALUE

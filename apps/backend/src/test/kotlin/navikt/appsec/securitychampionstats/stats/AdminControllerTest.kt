@@ -81,7 +81,7 @@ class AdminControllerTest {
                 .header("Authorization", "Bearer test-token")
                 .contentType("Application/json")
                 .content(
-                    """{ "email": "test@email.com", "fullname": "Test User" }"""
+                    """{ "email": "test@nav.no", "fullname": "Test User" }"""
                 )
         ).andExpect(status().isCreated)
     }

@@ -45,7 +45,7 @@ class ControllerTest {
     @MockitoBean lateinit var slackService: SlackService
     @MockitoBean lateinit var graphClient: GraphClient
 
-    private val memberList = listOf<Member>(
+    private val memberList = listOf(
         Member(
             "test-id-1",
             "test-name-1",
@@ -63,7 +63,7 @@ class ControllerTest {
     )
 
     private val claim = mapOf(
-        "preferred_username" to JsonPrimitive("test@test.com"),
+        "preferred_username" to JsonPrimitive("test@nav.no"),
         "NAVident" to JsonPrimitive("123456"),
         "groups" to JsonArray(listOf(
             JsonPrimitive("1222"),
@@ -101,7 +101,7 @@ class ControllerTest {
             Mockito.anyString()
         )).thenReturn(TokenResponse(active = true, claims = claim))
 
-        `when`(repo.getAllMembers()).thenReturn(
+        `when`(repo.getAllMembersInProgram()).thenReturn(
             memberList
         )
         mockMvc.perform(
@@ -145,28 +145,28 @@ class ControllerTest {
         `when`(repo.getMemberByEmail(Mockito.anyString())).thenReturn(
             Member(
                 "test-id-1",
-                "test-name-1",
+                "test name",
                 0,
                 null,
-                "test@test.com",
+                "test@nav.no",
                 inProgram = true
             )
         )
-        doNothing().`when`(repo).updateInProgram("test@test.com", true)
-        doNothing().`when`(repo).updateInProgram("test@test.com", false)
+        doNothing().`when`(repo).updateInProgram("test@nav.no", true)
+        doNothing().`when`(repo).updateInProgram("test@nav.no", false)
 
         mockMvc.perform(
             post("/api/join")
                 .header("Authorization", "Bearer usertoken")
                 .contentType("Application/json")
-                .content("test@test.com")
+                .content("test@nav.no")
         )
             .andExpect(status().isOk)
         mockMvc.perform(
             post("/api/leave")
                 .header("Authorization", "Bearer usertoken")
                 .contentType("Application/json")
-                .content("test@test.com")
+                .content("test@nav.no")
         )
             .andExpect (status().isOk)
     }

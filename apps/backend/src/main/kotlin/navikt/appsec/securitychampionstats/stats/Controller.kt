@@ -43,7 +43,6 @@ class Controller(
                     email = it.email
                 )
             }
-
             ResponseEntity(repo.getAllMembersInProgram(), HttpStatus.OK)
         } else {
             ResponseEntity(members, HttpStatus.OK)

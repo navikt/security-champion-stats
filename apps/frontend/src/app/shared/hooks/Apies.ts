@@ -46,7 +46,7 @@ export const Apies = {
     validatePerson: async(): Promise<Me> => {
         const res = await fetch("/api/validate")
         if (!res.ok) {
-            console.log("Failed to validate user, status: ", res.status)
+            console.error("Failed to validate user, status: ", res.status)
             return { username: "", isAdmin: false, inProgram: false }
         }
         return await res.json()

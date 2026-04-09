@@ -33,7 +33,7 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
 
         const accessToken = getToken(request)
         if (!accessToken) {
-            console.log("failed to fetch access token from request")
+        console.error("failed to fetch access token from request")
             return AUTHENTICATED_FAILED
         }
 

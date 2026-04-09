@@ -13,8 +13,6 @@ export default function LocaleLayout(
     const locale = useLocale()
     if (loading) return null;
 
-    console.log("LocaleLayout rendered with locale:", locale, "and me:", me)
-    console.log("Loading state:", loading)
     return (
         <Page >
             <div style={{ minHeight: "10rem" }}>

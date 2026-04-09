@@ -73,7 +73,6 @@ export async function GET(
                 { status: 401 }
             )
         }
-        console.log("InProgram: ", backendResponse.inProgram, "Groups: ", groups)
         return NextResponse.json(
             {
                 username: parse.preferred_username,

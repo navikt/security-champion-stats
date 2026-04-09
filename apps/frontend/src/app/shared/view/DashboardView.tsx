@@ -49,13 +49,11 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
             return
         }
         const status = await Apies.addPoints(email, points)
-        console.log("Response status: ", status)
         await reload()
     }
 
     const joinProgram = async () => {
         const status = await Apies.joinProgram(userData.username)
-        console.log("Response status: ", status)
         await reload()
         await reloadMe()
         setActive(true)
@@ -63,13 +61,11 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
 
     const deleteMember = async (email: string) => {
         const status = await Apies.deleteMember(email)
-        console.log("Response status: ", status)
         await reload()
     }
 
     const leaveProgram = async() => {
         const status = await Apies.leaveProgram(userData.username)
-        console.log("Response status: ", status)
         await reload()
         await reloadMe()
         setActive(false)

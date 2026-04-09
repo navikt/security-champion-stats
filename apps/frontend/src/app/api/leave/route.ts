@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
         return new Response(JSON.stringify(updatedMembers))
     }
     try {
-        console.log("Received leave request for email: ", email)
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)
 

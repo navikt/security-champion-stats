@@ -8,7 +8,6 @@ export function useMe() {
 
     useEffect(() => {
         const validate = async () => {
-            console.log("Fetching user data with useMe hook...");
             const meData = await Apies.validatePerson();
             setMe(meData);
             setLoading(false);

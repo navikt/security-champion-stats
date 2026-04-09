@@ -31,20 +31,6 @@ class SlackService(
         return UserInfo(result.user.id, result.user.name)
     }
 
-    private fun userConversationIds(userId: String): Set<String> {
-        val userIDs = mutableSetOf<String>()
-        var cursor: String? = null
-        do {
-            val result = client.usersConversations { conversation: UsersConversationsRequest.UsersConversationsRequestBuilder ->
-                conversation.user(userId).limit(200).cursor(cursor)
-            }
-            if (!result.isOk) break
-            result.channels.forEach { userIDs += it.id }
-            cursor = result.responseMetadata.nextCursor.takeIf { it.isNotBlank() }
-        } while (cursor != null)
-        return userIDs
-    }
-
     private fun countUserMessagesInChannel(userId: String, channelId: String): Int {
         val oldest = Instant.now(clock)
             .minus(24, ChronoUnit.HOURS)
@@ -88,22 +74,33 @@ class SlackService(
         }
     }
 
-    fun getUserActivitySummaryByEmail(email: String): SlackActivitySummary {
+    fun getUserActivitySummaryByEmail(email: String, channelIds: List<String>): SlackActivitySummary {
         val userInfo = resolveUserIdByEmail(email)
-        if (userInfo.userId.isBlank()) return SlackActivitySummary(
-            userInfo = UserInfo("", ""),
-            inTrackedChannels = setOf(""),
-            messagesPerChannel = emptyMap(),
-            totalMessages = 0
-        )
-        val channelId = userConversationIds(userInfo.userId)
+        if (userInfo.userId.isBlank()) {
+            logger.warn("User ID was blank then fetch data for user $email")
+            return SlackActivitySummary(
+                userInfo = UserInfo("", ""),
+                inTrackedChannels = listOf(""),
+                messagesPerChannel = emptyMap(),
+                totalMessages = 0
+            )
+        }
 
-        // TODO: Change this once point system is in place...
+        var totalMessages = 0
+        val messagesPerChannel = mutableMapOf<String, Int>()
+        for (channelId in channelIds) {
+            val messageCount = countUserMessagesInChannel(userInfo.userId, channelId)
+            if (messageCount > 0) {
+                totalMessages += messageCount
+                messagesPerChannel[channelId] = messageCount
+            }
+        }
+
         return SlackActivitySummary(
-            userInfo = UserInfo("", ""),
-            inTrackedChannels = setOf(""),
-            messagesPerChannel = emptyMap(),
-            totalMessages = 0
+            userInfo = userInfo,
+            inTrackedChannels = channelIds.filter { messagesPerChannel.containsKey(it) },
+            messagesPerChannel = messagesPerChannel,
+            totalMessages = totalMessages
         )
     }
 

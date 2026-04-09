@@ -6,7 +6,7 @@ plugins {
     application
     java
     kotlin("plugin.serialization") version "2.2.21"
-    id("org.springframework.boot") version "3.5.8"
+    id("org.springframework.boot") version "3.5.13"
     kotlin("plugin.spring") version "2.2.21"
     id("io.spring.dependency-management") version "1.1.6"
 }

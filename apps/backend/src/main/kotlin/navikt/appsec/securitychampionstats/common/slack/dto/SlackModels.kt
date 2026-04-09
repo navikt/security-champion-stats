@@ -2,7 +2,7 @@ package navikt.appsec.securitychampionstats.common.slack.dto
 
 data class SlackActivitySummary(
     val userInfo: UserInfo,
-    val inTrackedChannels: Set<String>,
+    val inTrackedChannels: List<String>,
     val messagesPerChannel: Map<String, Int>,
     val totalMessages: Int,
 )

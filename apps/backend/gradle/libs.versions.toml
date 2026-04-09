@@ -1,26 +1,26 @@
 [versions]
-logback = "1.5.21"
-logstash = "8.1"
+logback = "1.5.31"
+logstash = "9.0"
 hikari = "7.0.2"
-slack = "1.46.0"
-postgres = "42.7.8"
-jackson = "2.20.1"
-junit-jupiter = "6.0.1"
-spring-boot = "3.5.8"
+slack = "1.48.0"
+postgres = "42.7.10"
+jackson-datatype = "3.0.0-rc2"
+jackson = "3.1.0"
+junit-jupiter = "6.0.3"
 spring-doc = "2.8.14"
-flyway = "11.17.1"
-mockito-kotlin = "6.0.0"
+flyway = "12.2.0"
+mockito-kotlin = "6.3.0"
 
 [libraries]
 
 #Spring backend
-spring-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
-spring-boot-data = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
-spring-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-data = { module = "org.springframework.boot:spring-boot-starter-data-jpa"}
+spring-security = { module = "org.springframework.boot:spring-boot-starter-security"}
 spring-oauth = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server" }
 
 #Spring frontend
-spring-webclient = { module = "org.springframework.boot:spring-boot-starter-webflux", version.ref = "spring-boot" }
+spring-webclient = { module = "org.springframework.boot:spring-boot-starter-webflux"}
 
 #Swagger
 swagger = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "spring-doc" }
@@ -33,15 +33,14 @@ flyway-db = { module = "org.flywaydb:flyway-database-postgresql", version.ref = 
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 ogstash = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash" }
 
-
 #Postgres
 hikariCP = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
 postgressql = { module = "org.postgresql:postgresql", version.ref = "postgres" }
 
 #Jackson
-jackson-module = { module = "com.fasterxml.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
-jackson-datatype = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
-jackson-core = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-module = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson" }
+jackson-datatype = { module = "tools.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson-datatype" }
+jackson-core = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
 
 #Slack
 slack-api = { module = "com.slack.api:slack-api-client", version.ref = "slack" }
@@ -53,7 +52,7 @@ kotlin-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", ver
 #jupitor/test
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-jupiter" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
-spring-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
+spring-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
 
 [bundles]

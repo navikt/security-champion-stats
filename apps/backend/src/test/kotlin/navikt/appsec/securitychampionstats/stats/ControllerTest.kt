@@ -10,7 +10,6 @@ import navikt.appsec.securitychampionstats.common.security.client.TokenValidatio
 import navikt.appsec.securitychampionstats.common.security.dto.TokenResponse
 import navikt.appsec.securitychampionstats.common.slack.SlackService
 import navikt.appsec.securitychampionstats.common.teamCatalog.TeamCatalog
-import navikt.appsec.securitychampionstats.common.teams.GraphClient
 import navikt.appsec.securitychampionstats.stats.dto.Member
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
@@ -43,7 +42,6 @@ class ControllerTest {
     @MockitoBean lateinit var tokenValidationClient: TokenValidationClient
     @MockitoBean lateinit var catalog: TeamCatalog
     @MockitoBean lateinit var slackService: SlackService
-    @MockitoBean lateinit var graphClient: GraphClient
 
     private val memberList = listOf(
         Member(

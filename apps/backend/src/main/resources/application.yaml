@@ -48,7 +48,8 @@ spring:
 
 slack:
     token: ${SLACK_TOKEN}
-    channelId: ${SLACK_CHANNEL_ID}
+    sc-channel-id: ${SLACK_SC_CHANNEL_ID}
+    appsec-channel-id: ${SLACK_APPSEC_CHANNEL_ID}
 
 graph:
     apiUrl: https://graph.microsoft.com/v1.0
@@ -58,5 +59,6 @@ springdoc:
     enabled: true
 
 points:
-  meetingPoints: ${MEETING_POINTS:10}
-  activityPoints: ${ACTIVITY_POINTS:5}
+  meeting-points: 10
+  message: 4
+  response-message: 4

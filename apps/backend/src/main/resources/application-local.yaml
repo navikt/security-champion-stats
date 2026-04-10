@@ -32,7 +32,8 @@ graph:
   apiUrl: http://localhost:8081/mock/graph
 slack:
   token: xoxb-local-slack-token
-  channelId: local-slack-channel-id
+  sc-channel-id: local-slack-sc-channel-id
+  appsec-channel-id: local-slack-appsec-channel-id
 
 points:
   meetingPoints: 10

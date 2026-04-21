@@ -41,6 +41,7 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
         const oboResult = await requestOboToken(accessToken, backendScope)
 
         if (!oboResult.ok) {
+            console.error("Error from obo: " + oboResult.error)
             return AUTHENTICATED_FAILED
         }
         return oboResult.token

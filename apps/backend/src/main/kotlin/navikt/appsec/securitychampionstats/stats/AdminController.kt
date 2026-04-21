@@ -2,14 +2,17 @@ package navikt.appsec.securitychampionstats.stats
 
 import navikt.appsec.securitychampionstats.common.hikari.PostgresRepository
 import navikt.appsec.securitychampionstats.stats.dto.DeleteMember
+import navikt.appsec.securitychampionstats.stats.dto.Member
 import navikt.appsec.securitychampionstats.stats.dto.MemberInfo
 import navikt.appsec.securitychampionstats.stats.dto.Points
+import navikt.appsec.securitychampionstats.stats.dto.SCdata
 import navikt.appsec.securitychampionstats.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -63,4 +66,9 @@ class AdminController(
         return ResponseEntity.status(HttpStatus.ACCEPTED).build()
     }
 
+    @GetMapping("/dashboard/members")
+    fun getAllMembers(): ResponseEntity<List<SCdata>> {
+        // TODO: Add support for specific dates.
+        return ResponseEntity.ok(repo.getSCAmountOverTime())
+    }
 }

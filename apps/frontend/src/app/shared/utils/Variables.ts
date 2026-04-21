@@ -6,6 +6,7 @@ export const MISSING_GROUP = "Missing group id value, failed to validate admin"
 export const FAILED_TO_JOIN = "Failed to join member to program, backend error"
 export const FAILED_TO_LEAVE = "Failed to leave program, backend error"
 
-export type DeleteParam = { email: string }
 export type Me = { username: string; isAdmin: boolean, inProgram: boolean };
 export type Member = { id: string, email: string; points: number, fullname: string }
+export type SCData = { timestamp: string, amount: number }
+export type Row = { year: number, count: number }

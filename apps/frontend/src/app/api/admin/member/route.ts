@@ -1,14 +1,14 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../../shared/utils/validation";
-import {mockMembers} from "../../../mocks/mockPayloads";
-import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../../shared/utils/variable";
+import {activeMock, getBackendToken, getServerEnv} from "../../../shared/utils/Validation";
+import {mockMembers} from "../../../mocks/MockPayloads";
+import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../../shared/utils/Variables";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
     const { email, fullname } = body
 
     if (activeMock()) {
-        const updatedMembers = mockMembers.members.push(
+        const updatedMembers = mockMembers.push(
             {
                 id: "String-3",
                 fullname: "mock-3",

@@ -1,12 +1,12 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../../../shared/utils/validation";
+import {activeMock, getBackendToken, getServerEnv} from "../../../../shared/utils/Validation";
 import {
     AUTHENTICATED_FAILED,
     FAILED_FETCH,
     INTERNAL_ERROR,
     MISSING_VALUE
-} from "../../../../shared/utils/variable";
-import {mockMembers} from "../../../../mocks/mockPayloads";
+} from "../../../../shared/utils/Variables";
+import {mockMembers} from "../../../../mocks/MockPayloads";
 
 
 export async function DELETE(
@@ -16,18 +16,7 @@ export async function DELETE(
     const { email } = await ctx.params
 
     if (activeMock()) {
-        const members = mockMembers
-
-        if (!email) {
-            return NextResponse.json(
-                { error: MISSING_VALUE },
-                { status: 400 }
-            )
-        }
-        members.members.filter(
-            members => members.email !== email
-        )
-        return NextResponse.json(members)
+        return NextResponse.json(mockMembers)
     }
     try {
         const { backendUrl } = getServerEnv()

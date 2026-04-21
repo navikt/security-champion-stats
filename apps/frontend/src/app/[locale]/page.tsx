@@ -1,11 +1,11 @@
 "use client";
 
-import Loading from "../loading";
-import {UserView} from "../shared/view/DashboardView";
-import {useMe} from "../shared/hooks/useMe";
+import Loading from "../shared/components/Loading";
+import {MainView} from "../shared/view/HomeView";
+import {useMe} from "../shared/hooks/UseMe";
 
 export default function Page() {
     const { me, loading } = useMe();
     if (loading) return <Loading />
-    return <UserView info={ me }/>
+    return <MainView info={ me }/>
 }

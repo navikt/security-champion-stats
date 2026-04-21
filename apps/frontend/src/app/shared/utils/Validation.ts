@@ -1,7 +1,7 @@
 import {NextRequest} from "next/server";
-import {createLocalDevToken} from "../../utils/localDevAuth";
+import {createLocalDevToken} from "../../utils/LocalDevAuth";
 import {getToken, requestOboToken} from "@navikt/oasis";
-import {AUTHENTICATED_FAILED} from "./variable";
+import {AUTHENTICATED_FAILED} from "./Variables";
 
 export function getServerEnv() {
     const backendUrl = process.env.BACKEND_URL

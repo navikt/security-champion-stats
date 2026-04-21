@@ -1,11 +1,11 @@
 "use client"
 
 import {useEffect, useRef, useState} from "react";
-import {Me, Member} from "../utils/variable";
+import {Me, Member} from "../utils/Variables";
 import {Apies} from "../hooks/Apies";
 import {useTranslations} from "next-intl";
 import MembersTable from "../components/MembersTable";
-import "../../style/localStyling.css"
+import "../../style/home.page.css"
 import {Button, Modal, TextField} from "@navikt/ds-react";
 
 function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
@@ -17,11 +17,10 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     const memberEmailRef = useRef<HTMLInputElement>(null)
     const t = useTranslations()
     const safeMembers = members ?? []
-
     const totalPoints = safeMembers.reduce((sum, member) => sum + member.points, 0)
     const topMember = safeMembers.toSorted((a, b) => b.points - a.points)[0]
-    const statusKey = active ? "dashboard.statusLive" : "dashboard.statusIdle"
-    const subtitleKey = active ? "dashboard.subtitleLive" : "dashboard.subtitleIdle"
+    const statusKey = active ? "main.statuses.active" : "main.statuses.idle"
+    const subtitleKey = active ? "main.subtitles.active" : "main.subtitles.idle"
     const reload = async () => {
         const ms = await Apies.getMembers()
         setMembers(ms)
@@ -38,7 +37,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         if(!email || !fullname) {
             return
         }
-        const status = await Apies.addMember(email, fullname)
+        await Apies.addMember(email, fullname)
         memberEmailRef.current = null
         memberFullnameRef.current = null
         await reload()
@@ -48,24 +47,24 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         if (!email || !points) {
             return
         }
-        const status = await Apies.addPoints(email, points)
+        await Apies.addPoints(email, points)
         await reload()
     }
 
     const joinProgram = async () => {
-        const status = await Apies.joinProgram(userData.username)
+        await Apies.joinProgram(userData.username)
         await reload()
         await reloadMe()
         setActive(true)
     }
 
     const deleteMember = async (email: string) => {
-        const status = await Apies.deleteMember(email)
+        await Apies.deleteMember(email)
         await reload()
     }
 
     const leaveProgram = async() => {
-        const status = await Apies.leaveProgram(userData.username)
+        await Apies.leaveProgram(userData.username)
         await reload()
         await reloadMe()
         setActive(false)
@@ -84,36 +83,36 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                     </p>
                     {!active && (
                         <div className={"gameCTA"}>
-                            <p>{t("dashboard.ctaHint")}</p>
+                            <p>{t("main.cta.hintJoin")}</p>
                             <button className={"btn outline"} onClick={joinProgram} disabled={active}>
-                                {t("dashboard.buttons.joinProgram")}
+                                {t("main.table.buttons.joinProgram")}
                             </button>
                         </div>
                     )}
                     {active && (
                         <div className={"gameCTA"}>
-                            <p>{t("dashboard.ctaHintLeave")}</p>
+                            <p>{t("main.cta.hintLeave")}</p>
                             <button className={"btn outline"} onClick={leaveProgram} disabled={!active}>
-                                {t("dashboard.buttons.leaveProgram")}
+                                {t("main.table.buttons.leaveProgram")}
                             </button>
                         </div>
                     )}
                 </div>
                 <div className={"statGrid"}>
                     <div className={"statCard"}>
-                        <p className={"statLabel"}>{t("dashboard.stats.players")}</p>
+                        <p className={"statLabel"}>{t("main.gameStats.players")}</p>
                         <p className={"statValue"}>{members.length || "--"}</p>
                     </div>
                     <div className={"statCard"}>
-                        <p className={"statLabel"}>{t("dashboard.stats.points")}</p>
+                        <p className={"statLabel"}>{t("main.gameStats.points")}</p>
                         <p className={"statValue"}>{totalPoints.toLocaleString()}</p>
                     </div>
                     <div className={"statCard"}>
-                        <p className={"statLabel"}>{t("dashboard.stats.topAgent")}</p>
-                        <p className={"statValue"}>{topMember?.fullname ?? t("dashboard.stats.topAgentFallback")}</p>
+                        <p className={"statLabel"}>{t("main.gameStats.topAgent")}</p>
+                        <p className={"statValue"}>{topMember?.fullname ?? t("main.gameStats.topAgentFallback")}</p>
                         {topMember && (
                             <span className={"statMeta"}>
-                                {t("dashboard.stats.topAgentMeta", { points: topMember.points.toLocaleString() })}
+                                {t("main.gameStats.topAgentMeta", { points: topMember.points.toLocaleString() })}
                             </span>
                         )}
                     </div>
@@ -124,31 +123,31 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
             <section className={"card membersCard"}>
                 <header className={"cardHeader"}>
                     <div>
-                        <p className={"cardEyebrow"}>{t("dashboard.leaderboardEyebrow")}</p>
-                        <h3 className={"cardTitle"}>{t("dashboard.leaderboardTitle")}</h3>
+                        <p className={"cardEyebrow"}>{t("main.table.leaderboardEyebrow")}</p>
+                        <h3 className={"cardTitle"}>{t("main.table.leaderboardTitle")}</h3>
                     </div>
                     <div className={"cardMeta"}>
-                        <span>{t("dashboard.cardAgentsLabel", { count: safeMembers.length })}</span>
-                        <span>{t("dashboard.cardPointsLabel", { points: totalPoints.toLocaleString() })}</span>
+                        <span>{t("main.table.cardAgentsLabel", { count: safeMembers.length })}</span>
+                        <span>{t("main.table.cardPointsLabel", { points: totalPoints.toLocaleString() })}</span>
                     </div>
                 </header>
                 <div className={"cardBody"}>
-                    <Modal ref={modalRef} header={{ heading: t("dashboard.modals.addMember.title") }}>
+                    <Modal ref={modalRef} header={{ heading: t("main.table.modals.addMember.title") }}>
                         <Modal.Body>
-                            <TextField label={ t("dashboard.modals.addMember.email") } size={"small"} ref={memberEmailRef}/>
-                            <TextField label={ t("dashboard.modals.addMember.fullname") } size={"small"} ref={memberFullnameRef}/>
+                            <TextField label={ t("main.table.modals.addMember.email") } size={"small"} ref={memberEmailRef}/>
+                            <TextField label={ t("main.table.modals.addMember.fullname") } size={"small"} ref={memberFullnameRef}/>
                         </Modal.Body>
                         <Modal.Footer>
                             <Button type={"button"} variant={"tertiary"} onClick={() => {
                                 modalRef.current?.close()
                             }}>
-                                {t("dashboard.modals.buttons.close")}
+                                {t("main.table.modals.buttons.close")}
                             </Button>
                             <Button type={"button"} color={"success"} onClick={() => {
                                 addMember(memberEmailRef.current?.value, memberFullnameRef.current?.value)
                                 modalRef.current?.close()
                             }}>
-                                {t("dashboard.modals.buttons.submit")}
+                                {t("main.table.modals.buttons.submit")}
                             </Button>
                         </Modal.Footer>
                     </Modal>
@@ -158,7 +157,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                             <button className={"btn neon"} onClick={() => {
                                 modalRef.current?.showModal()
                             }} disabled={modalRef.current == null}>
-                                {t("dashboard.buttons.admin.addMember")}
+                                {t("main.table.buttons.admin.addMember")}
                             </button>
                         </div>
                     )}
@@ -168,10 +167,6 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     )
 }
 
-export function UserView({ info }: { info: Me }) {
-    return <View canEdit={ false } me={ info } />
-}
-
-export function AdminView({ info } : { info: Me }) {
-    return <View canEdit={true} me={ info }/>
+export function MainView({ info }: { info: Me }) {
+    return <View canEdit={ info.isAdmin } me={ info } />
 }

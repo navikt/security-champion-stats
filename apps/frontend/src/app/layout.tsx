@@ -1,4 +1,4 @@
-import "./style/globals.css";
+import "./style/global.css";
 import {getLocale, getMessages} from "next-intl/server";
 import {NextIntlClientProvider} from "next-intl";
 import {FaroInitializer} from "./shared/components/FaroInitializer";

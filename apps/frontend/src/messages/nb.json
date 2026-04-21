@@ -4,6 +4,11 @@
     "loading": "Laster in applikasjon",
     "description": "Sikkerhets mestere er de som tar ansvar for å spre sikkerhetskulturen i organisasjonen. De er pådrivere for å gjøre sikkerhet til en naturlig del av hverdagen, og de inspirerer andre til å bli med på reisen mot en sikrere digital fremtid."
   },
+  "menu": {
+    "menuGroup": "Menu",
+    "home": "Hjem",
+    "dashboard": "Dashboard"
+  },
   "settings": {
     "title": "Instillinger",
     "theme": "Tema",
@@ -18,58 +23,85 @@
     "admin": "Admin",
     "goToAdmin": "Åpen admin"
   },
-  "dashboard": {
-    "adminActions": "Admin handlinger",
-    "statusLive": "Oppdrag aktivt",
-    "statusIdle": "Rekrutterer Sikkerhets mestere",
-    "subtitleLive": "Hold skjoldet ladet ved å få inn medlemmer og spre sikkerhetskulturen.",
-    "subtitleIdle": "Bli med i programmet sånn at sikkerhetskultur blir enda større.",
-    "ctaHint": "Bli med i programmet og vis deg i topplisten.",
-    "ctaHintLeave": "Du kan forlate spillet når som helst.",
-    "stats": {
+  "main": {
+    "title": "Velkommen til sikkerhets mester programmet",
+    "subtitle": "Bli med i programmet og start å tjene poeng ved å gjøre sikkerhetsrelaterte aktiviteter, og klatre på topplisten for å bli den ultimate sikkerhets mesteren.",
+    "cta": {
+      "hintJoin": "Bli med i programmet og vis deg i topplisten.",
+      "hintLeave": "Du kan forlate spillet når som helst."
+    },
+    "statuses": {
+      "active": "Oppdrag aktivt",
+      "idle": "Rekrutterer Sikkerhets mestere"
+    },
+    "subtitles": {
+      "active": "Hold skjoldet ladet ved å få inn medlemmer og spre sikkerhetskulturen.",
+      "idle": "Bli med i programmet sånn at sikkerhetskultur blir enda større."
+    },
+    "gameStats": {
       "players": "Spillere med",
       "points": "Totalt poeng",
-      "topAgent": "Toppagent",
+      "topAgent": "Top Sikkerhets mester",
       "topAgentMeta": "{points} XP",
       "topAgentFallback": "Ingen leder enda"
     },
-    "leaderboardEyebrow": "Toppliste",
-    "leaderboardTitle": "Security champion-lag",
-    "cardAgentsLabel": "{count} agenter",
-    "cardPointsLabel": "{points} XP banket",
-    "noMembers": "Tabell er tom",
-    "buttons": {
-      "joinProgram": "Bli med i spillet",
-      "leaveProgram": "Forlat spillet",
-      "admin": {
-        "addMember": "Legg til medlem",
-        "deleteMember": "Slett",
-        "addPoints": "Legg til poeng"
-      }
-    },
-    "modals": {
+    "table": {
+      "adminActions": "Admin handlinger",
+      "leaderboardEyebrow": "Toppliste",
+      "leaderboardTitle": "Sikkerhets mester lag",
+      "cardAgentsLabel": "{count} Sikkerhets mestere",
+      "cardPointsLabel": "{points} XP banket",
+      "noMembers": "Tabell er tom",
       "buttons": {
-        "close": "Lukk",
-        "submit": "Send inn"
-      },
-      "addMember": {
-        "title": "Legg til nytt medlem, backend finner dem for deg",
-        "email": "E-post",
-        "fullname": "Fullt navn",
-        "buttons": {
-          "add": "Legg til medlem",
-          "cancel": "Avbryt"
+        "joinProgram": "Bli med i spillet",
+        "leaveProgram": "Forlat spillet",
+        "admin": {
+          "addMember": "Legg til medlem",
+          "deleteMember": "Slett",
+          "addPoints": "Legg til poeng"
         }
       },
-      "addPoints": {
-        "title": "Legg til antall poeng til medlem, vet at det ikke er noen logikk for validering av verdi :D",
-        "pointsLabel": "Poeng:"
+      "modals": {
+        "buttons": {
+          "close": "Steng",
+          "submit": "Send inn"
+        },
+        "addMember": {
+          "title": "Legg til nytt medlem, backend finner dem for deg",
+          "email": "E-post",
+          "fullname": "Fullt navn",
+          "buttons": {
+            "add": "Legg til medlem",
+            "cancel": "Avbryt"
+          }
+        },
+        "addPoints": {
+          "title": "Legg til antall poeng til medlem, vet at det ikke er noen logikk for validering av verdi :D",
+          "pointsLabel": "Point:"
+        }
+      },
+      "member": {
+        "fullname": "Fullt navn",
+        "points": "poeng",
+        "level": "nivåer"
       }
     }
   },
-  "member": {
-    "fullname": "full navn",
-    "points": "points",
-    "level": "nivåer"
+  "admin": {
+    "SCData": {
+      "title": "Security champion data",
+      "subtitle": "Her kan du se data om sikkerhets mestere i en grafisk fremstilling.",
+      "dashboards": {
+        "SCDashboard": {
+          "title": "Security champions amount by time"
+        }
+      }
+    },
+    "errors": {
+      "AllDataFailedToLoad": "Noe gikk galt, prøv igjen senere."
+    }
+  },
+  "errors": {
+    "generic": "Noe gikk galt, prøv igjen senere."
   }
 }

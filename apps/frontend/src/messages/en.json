@@ -4,6 +4,11 @@
     "loading": "Loading in application",
     "description": "Security champions are those who take responsibility for spreading the security culture in the organization. They are drivers for making security a natural part of developing, and they inspire others to join the journey towards a safer digital future."
   },
+  "menu": {
+    "menuGroup": "Menu",
+    "home": "Home",
+    "dashboard": "Dashboard"
+  },
   "settings": {
     "title": "Settings",
     "theme": "Theme",
@@ -18,58 +23,82 @@
     "admin": "Admin",
     "goToAdmin": "Open admin"
   },
-  "dashboard": {
-    "adminActions": "Admin actions",
-    "statusLive": "Mission active",
-    "statusIdle": "Recruiting Security champions",
-    "subtitleLive": "Keep the shield charged by bringing in members.",
-    "subtitleIdle": "Kick things off so that we can start growing security culture together.",
-    "ctaHint": "Join the program to apper in the leaderboard.",
-    "ctaHintLeave": "You can leave the game at any time.",
-    "stats": {
+  "main": {
+    "title": "Welcome to the security champion program",
+    "subtitle": "Join the program and start earning points by doing security related activities, and climb the leaderboard to become the ultimate security champion.",
+    "cta": {
+      "hintJoin": "Join the program and show up in the leaderboard.",
+      "hintLeave": "You can leave the game at any time."
+    },
+    "statuses": {
+      "active": "Mission active",
+      "idle": "Recruiting Security champions"
+    },
+    "subtitles": {
+      "active": "Keep the shield charged by bringing in members.",
+      "idle": "Kick things off so that we can start growing security culture together."
+    },
+    "gameStats": {
       "players": "Players joined",
       "points": "Total points",
       "topAgent": "Top Security champion",
       "topAgentMeta": "{points} XP",
       "topAgentFallback": "No leader yet"
     },
-    "leaderboardEyebrow": "Leaderboard",
-    "leaderboardTitle": "Security champion roster",
-    "cardAgentsLabel": "{count} Security champions",
-    "cardPointsLabel": "{points} XP banked",
-    "noMembers": "Table is empty",
-    "buttons": {
-      "joinProgram": "Join game",
-      "leaveProgram": "Leave game",
-      "admin": {
-        "addMember": "add member",
-        "deleteMember": "Delete",
-        "addPoints": "add points"
-      }
-    },
-    "modals": {
+    "table": {
+      "adminActions": "Admin actions",
+      "leaderboardEyebrow": "Leaderboard",
+      "leaderboardTitle": "Security champion roster",
+      "cardAgentsLabel": "{count} Security champions",
+      "cardPointsLabel": "{points} XP banked",
+      "noMembers": "Table is empty",
       "buttons": {
-        "close": "Close",
-        "submit": "Submit"
-      },
-      "addMember": {
-        "title": "Add new member, backend will find them for you",
-        "email": "E-mail",
-        "fullname": "Full name",
-        "buttons": {
-          "add": "Add member",
-          "cancel": "Cancel"
+        "joinProgram": "Join game",
+        "leaveProgram": "Leave game",
+        "admin": {
+          "addMember": "add member",
+          "deleteMember": "Delete",
+          "addPoints": "add points"
         }
       },
-      "addPoints": {
-        "title": "Add amount of points to add to member, do know that there is no logic for value validation :D",
-        "pointsLabel": "Points:"
+      "modals": {
+        "buttons": {
+          "close": "Close",
+          "submit": "Submit"
+        },
+        "addMember": {
+          "title": "Add new member, backend will find them for you",
+          "email": "E-mail",
+          "fullname": "Full name",
+          "buttons": {
+            "add": "Add member",
+            "cancel": "Cancel"
+          }
+        },
+        "addPoints": {
+          "title": "Add amount of points to add to member, do know that there is no logic for value validation :D",
+          "pointsLabel": "Points:"
+        }
+      },
+      "member": {
+        "fullname": "fullname",
+        "points": "points",
+        "level": "levels"
       }
     }
   },
-  "member": {
-    "fullname": "fullname",
-    "points": "points",
-    "level": "levels"
+  "admin": {
+    "SCData": {
+      "title": "Security champion data",
+      "subtitle": "Here you can see data inform of a dashboards, in order to track how security champion program is doing.",
+      "dashboards": {
+        "SCDashboard": {
+          "title": "Security champions amount by time"
+        }
+      }
+    }
+  },
+  "error": {
+    "generic": "Something went wrong, try again later"
   }
 }

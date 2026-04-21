@@ -21,4 +21,8 @@ data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Serializable
+data class SCdata(val timestamp: String, val amount: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Serializable
 data class Me(val username: String, val isAdmin: Boolean, val inProgram: Boolean)

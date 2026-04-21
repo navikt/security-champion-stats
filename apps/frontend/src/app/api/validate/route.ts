@@ -1,8 +1,8 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/validation";
-import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../shared/utils/variable";
+import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/Validation";
+import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../shared/utils/Variables";
 import {parseAzureUserToken} from "@navikt/oasis";
-import {createLocalParserResult} from "@/app/utils/localDevAuth";
+import {createLocalParserResult} from "@/app/utils/LocalDevAuth";
 
 export async function GET(
     request: NextRequest

@@ -1,0 +1,87 @@
+.adminLayout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+}
+
+.adminSidebar {
+    border-right: 1px solid rgb(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+    padding: 18px;
+}
+
+.adminMain {
+    padding: 24px;
+}
+.adminHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.adminTitle {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.adminGrid {
+    display: grid;
+    gap: 16px;
+}
+.adminGrid--kpis {
+    grid-template-columns: repeat(4, minmax(200px, 1fr));
+}
+
+@media (max-width: 1100px) {
+    .adminLayout { grid-template-columns: 1fr }
+    .adminGrid--kpis { grid-template-columns: repeat(2, minmax(200px, 1fr)) }
+}
+
+.panel {
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 14px;
+    background: rgba(10, 14, 18, 0.55)
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.panelHeader {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.panelTitle {
+    margin: 0;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.9)
+}
+
+.panelBody {
+    padding: 16px 18px 18px
+}
+
+.panel--accent {
+    border-color: rgba(25, 249, 216, 0.22);
+    box-shadow: 0 0 0 1px rgba(25, 249, 216, 0.10), var(--shadow-neon);
+}
+
+.kpiValue {
+    font-size: 1.7rem;
+    margin: 6px 0 0;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+}
+
+.kpiLabel {
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6)
+}

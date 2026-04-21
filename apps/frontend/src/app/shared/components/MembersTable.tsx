@@ -1,8 +1,8 @@
 "use client"
 
-import {Member} from "../utils/variable";
+import {Member} from "../utils/Variables";
 import {useTranslations} from "next-intl";
-import "../../style/localStyling.css"
+import "../../style/home.page.css"
 import {useRef, useState} from "react";
 import {Button, Modal, TextField} from "@navikt/ds-react";
 
@@ -34,12 +34,12 @@ function MembersTable({
                 </colgroup>
                 <thead>
                     <tr>
-                        <th> {t("member.fullname")} </th>
-                        <th> {t("member.points")} </th>
-                        <th> {t("member.level")} </th>
+                        <th> {t("main.table.member.fullname")} </th>
+                        <th> {t("main.table.member.points")} </th>
+                        <th> {t("main.table.member.level")} </th>
                         {canEdit && (
                             <th className={"membersTable__actionsHeader"}>
-                                {t("dashboard.adminActions")}
+                                {t("main.table.adminActions")}
                             </th>
                         )}
                     </tr>
@@ -61,14 +61,14 @@ function MembersTable({
                                     }}
                                     disabled={disableButtons}
                                 >
-                                    {t("dashboard.buttons.admin.addPoints")}
+                                    {t("main.table.buttons.admin.addPoints")}
                                 </button>
                                 <button
                                     type="button"
                                     className={"btn danger"}
                                     onClick={() => onDelete(m.email)}
                                 >
-                                    {t("dashboard.buttons.admin.deleteMember")}
+                                    {t("main.table.buttons.admin.deleteMember")}
                                 </button>
                             </td>
                         )}
@@ -77,22 +77,26 @@ function MembersTable({
                 {members.length === 0 && (
                     <tr>
                         <td colSpan={columnCount}>
-                            {t("dashboard.noMembers")}
+                            {t("main.table.noMembers")}
                         </td>
                     </tr>
                 )}
                 </tbody>
             </table>
-            <Modal open={!!modalOpenFor} onClose={() => { setModalOpenFor(null); setDisableButtons(false); }} header={{ heading: t("dashboard.modals.addPoints.title")}}>
+            <Modal open={!!modalOpenFor} onClose={
+                () => {
+                    setModalOpenFor(null); setDisableButtons(false);
+                }
+            } header={{ heading: t("main.table.modals.addPoints.title")}}>
                 <Modal.Body>
-                    <TextField label={ t("dashboard.modals.addPoints.pointsLabel") } size={"small"} ref={pointRef}/>
+                    <TextField label={ t("main.table.modals.addPoints.pointsLabel") } size={"small"} ref={pointRef}/>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button type={"button"} variant={"tertiary"} onClick={() => {
                         setModalOpenFor(null)
                         setDisableButtons(false)
                     }}>
-                        {t("dashboard.modals.buttons.close")}
+                        {t("main.table.modals.buttons.close")}
                     </Button>
                     <Button type={"button"} color={"success"} onClick={() => {
                         if (modalOpenFor) {
@@ -101,7 +105,7 @@ function MembersTable({
                         setDisableButtons(false)
                         setModalOpenFor(null)
                     }}>
-                        {t("dashboard.modals.buttons.submit")}
+                        {t("main.table.modals.buttons.submit")}
                     </Button>
                 </Modal.Footer>
             </Modal>

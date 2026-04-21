@@ -1,18 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/Validation";
-import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../shared/utils/Variables";
-import {mockMembers} from "../../mocks/MockPayloads";
-
+import {NextRequest, NextResponse} from "next/server";
+import {activeMock, getBackendToken, getServerEnv} from "@/app/shared/utils/Validation";
+import {mockSCData} from "@/app/mocks/MockPayloads";
+import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "@/app/shared/utils/Variables";
 
 export async function GET(request: NextRequest) {
     if (activeMock()) {
-        return NextResponse.json(mockMembers)
-    }
-    try {
+       return NextResponse.json(mockSCData)
+    } try {
         const { backendUrl } = getServerEnv()
-        const { searchParams } = new URL(request.url)
-        const bypassCache = searchParams.get("bypassCache") === "true"
-
         const backendToken = await getBackendToken(request)
 
         if (backendToken === AUTHENTICATED_FAILED) {
@@ -21,14 +16,13 @@ export async function GET(request: NextRequest) {
                 { status: 401 }
             )
         }
-        const url = bypassCache
-            ? `${backendUrl}/api/members?bypassCache=true`
-            : `${backendUrl}/api/members`
+
+        const url = `${backendUrl}/api/admin/dashboard/members`
 
         const response = await fetch(url, {
             method: 'GET',
             headers: {
-                Authorization: `Bearer ${backendToken}`,
+                Authorization: `Bearer ${backendUrl}`,
                 "Content-Type": "application/json"
             }
         })
@@ -40,8 +34,7 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        const data = await response.json()
-        return NextResponse.json(data)
+        return NextResponse.json(await response.json())
     } catch (error) {
         console.error("Internal server error: ", error)
         return NextResponse.json(

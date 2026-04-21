@@ -1,9 +1,10 @@
 "use client"
 import {useLocale, useTranslations} from "next-intl";
-import {InternalHeader, Page, Spacer} from "@navikt/ds-react";
+import {ActionMenu, InternalHeader, Page, Spacer} from "@navikt/ds-react";
 
 import SettingsMenu from "../shared/components/SettingsMenu";
-import {useMe} from "../shared/hooks/useMe";
+import {useMe} from "../shared/hooks/UseMe";
+import {MenuGridIcon} from "@navikt/aksel-icons";
 
 export default function LocaleLayout(
     { children }: { children: React.ReactNode }
@@ -20,6 +21,22 @@ export default function LocaleLayout(
                     <InternalHeader.Title as={"h2"} href={`/${locale}`}>
                         {t("common.appTitle")}
                     </InternalHeader.Title>
+                    <ActionMenu>
+                        <ActionMenu.Trigger>
+                            <InternalHeader.Button>
+                                <MenuGridIcon style={{ fontSize: "1.5rem" }} />
+                            </InternalHeader.Button>
+                        </ActionMenu.Trigger>
+                        <ActionMenu.Content align={"end"}>
+                            <ActionMenu.Group label={"Menu"}>
+                                { me.isAdmin &&
+                                    <ActionMenu.Item as={"a"} href={`/${locale}/dashboard`}>
+                                        {t("menu.dashboard")}
+                                    </ActionMenu.Item>
+                                }
+                            </ActionMenu.Group>
+                        </ActionMenu.Content>
+                    </ActionMenu>
                     <Spacer />
                     <SettingsMenu locale={locale}/>
                     {(

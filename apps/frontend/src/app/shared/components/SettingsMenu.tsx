@@ -7,7 +7,7 @@ import {useRouter} from "next/navigation";
 import {ThemeToggle} from "../theme/ThemeProvider";
 import {useRef, useState, useId} from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
-import {useMe} from "../hooks/useMe";
+import {useMe} from "../hooks/UseMe";
 
 export default function SettingsMenu({ locale }: {locale: string}) {
     const anchorRef= useRef<HTMLButtonElement>(null);
@@ -40,20 +40,6 @@ export default function SettingsMenu({ locale }: {locale: string}) {
                     <VStack gap={"space-4"}>
                         <ThemeToggle />
                         <LanguageSwitcher />
-                        {me?.isAdmin && (
-                            <div className={"settingsSection"}>
-                                <div className={"settingsLabel"}>{t("settings.admin")}</div>
-                                <Button
-                                    size={"small"}
-                                    variant={"secondary"}
-                                    onClick={() => {
-                                        setOpen(false)
-                                        router.push(`/${locale}/admin`)
-                                    }}>
-                                    {t("settings.goToAdmin")}
-                                </Button>
-                            </div>
-                        )}
                     </VStack>
                 </Popover.Content>
             </Popover>

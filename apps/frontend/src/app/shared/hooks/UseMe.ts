@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Me } from "../utils/variable";
+import { Me } from "../utils/Variables";
 import { Apies } from "./Apies";
 
 export function useMe() {

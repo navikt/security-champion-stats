@@ -1,5 +1,5 @@
-import {Faro, getWebInstrumentations, initializeFaro} from '@grafana/faro-web-sdk'
-import {TracingInstrumentation} from "@grafana/faro-web-tracing";
+import { Faro, getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk'
+import { TracingInstrumentation } from "@grafana/faro-web-tracing";
 
 let faro: Faro | null = null
 

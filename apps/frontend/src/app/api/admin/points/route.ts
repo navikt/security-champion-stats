@@ -1,7 +1,7 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../../shared/utils/validation";
-import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../../shared/utils/variable";
-import {mockMembers} from "../../../mocks/mockPayloads";
+import {activeMock, getBackendToken, getServerEnv} from "../../../shared/utils/Validation";
+import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../../shared/utils/Variables";
+import {mockMembers} from "../../../mocks/MockPayloads";
 
 export async function POST(
     request: NextRequest
@@ -9,10 +9,7 @@ export async function POST(
     const body = await request.json()
     const { email, amount } = body
     if (activeMock()) {
-        const updatedMember = mockMembers.members.map(m => {
-            if (m.email === email) { m.points += amount }
-        })
-        return NextResponse.json(updatedMember)
+        return NextResponse.json(mockMembers)
     } try {
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)

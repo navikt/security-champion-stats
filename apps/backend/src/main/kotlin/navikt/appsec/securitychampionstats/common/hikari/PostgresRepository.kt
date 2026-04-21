@@ -1,10 +1,12 @@
 package navikt.appsec.securitychampionstats.common.hikari
 
 import navikt.appsec.securitychampionstats.stats.dto.Member
+import navikt.appsec.securitychampionstats.stats.dto.SCdata
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
+import java.time.Instant
 
 private val logger = LoggerFactory.getLogger(PostgresRepository::class.java)
 
@@ -12,7 +14,7 @@ private val logger = LoggerFactory.getLogger(PostgresRepository::class.java)
 class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
-    private fun fetchMembers(query: String, vararg args: Any): List<Member> {
+    private fun queryMembersData(query: String, vararg args: Any): List<Member> {
         return try {
             val rowMapper = RowMapper { rs, _ ->
                 Member(
@@ -35,6 +37,25 @@ class PostgresRepository(
         }
     }
 
+    private fun querySCData(query: String, vararg args: Any): List<SCdata> {
+        return try {
+            val rowMapper = RowMapper { rs, _ ->
+                SCdata(
+                    timestamp = rs.getString("id"),
+                    amount = rs.getInt("amount")
+                )
+            }
+            if (args.isEmpty()) {
+                jdbcTemplate.query(query, rowMapper)
+            } else {
+                jdbcTemplate.query(query, rowMapper, *args)
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to fetch SC data: ${e.message}")
+            emptyList()
+        }
+    }
+
     private fun updateMember(query: String, vararg args: Any) {
         try {
             jdbcTemplate.update(query, *args)
@@ -45,12 +66,12 @@ class PostgresRepository(
 
     fun getAllMembersInProgram(): List<Member> {
         val query = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE inProgram = true"
-        return fetchMembers(query)
+        return queryMembersData(query)
     }
 
     fun getAllMembers(): List<Member> {
         val query = "SELECT id, fullname, points, email, update_at, inProgram  FROM Members"
-        return fetchMembers(query)
+        return queryMembersData(query)
     }
 
     fun addMember(fullname: String, id: String, email: String) {
@@ -60,7 +81,7 @@ class PostgresRepository(
 
     fun getMemberByEmail(email: String): Member? {
         val query = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE email = ?"
-        return fetchMembers(query, email).firstOrNull()
+        return queryMembersData(query, email).firstOrNull()
     }
 
     fun deleteMember(email: String) {
@@ -76,5 +97,15 @@ class PostgresRepository(
     fun updateInProgram(email: String, inProgram: Boolean) {
         val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
         updateMember(query, email)
+    }
+
+    fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {
+        return if (startDate == null || endDate == null) {
+            val query = "SELECT id, amount FROM SCData"
+            querySCData(query)
+        } else {
+            val query = "SELECT id, amount FROM SCData where id BETWEEN ? AND ?"
+            querySCData(query, startDate.toString(), endDate.toString())
+        }
     }
 }

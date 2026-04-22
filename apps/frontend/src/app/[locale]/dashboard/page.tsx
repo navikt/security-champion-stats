@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, Line } from "react-chartjs-2"
+import { Line } from "react-chartjs-2"
 import {
     Chart as ChartJsm,
     CategoryScale,
@@ -11,6 +11,7 @@ import {
     Legend,
     PointElement,
     type ChartData,
+    Filler,
     LineElement
 } from "chart.js";
 import {useEffect, useState} from "react";
@@ -19,8 +20,10 @@ import {Apies} from "@/app/shared/hooks/Apies";
 import Loading from "@/app/shared/components/Loading";
 import {useTranslations} from "next-intl";
 import {lineOptions} from "@/app/style/char.js.stylling";
+import {Box, Heading} from "@navikt/ds-react";
+import "../../style/admin.css";
 
-ChartJsm.register(CategoryScale, LinearScale, BarElement, BarElement, Title, Tooltip, Legend, PointElement, LineElement)
+ChartJsm.register(CategoryScale, LinearScale, BarElement, BarElement, Title, Tooltip, Legend, PointElement, LineElement, Filler)
 
 export default function Page() {
     const [scData, setSCData] = useState<SCData[] | null>([])
@@ -59,18 +62,28 @@ export default function Page() {
             {
                 label: t("SCData.title"),
                 data: scData.map((r) => r.amount),
-                backgroundColor: "rgba(25, 249, 216, 0.35)",
-                borderColor: "rgba(25, 249, 216, 0.9)",
-                borderWidth: 1
+                backgroundColor: "color-mix(in oklab, var(--accent) 22%, transparent)",
+                borderColor: "var(--accent)",
+                fill: true,
+                tension: 0.35,
+
+                pointRadius: 0,
+                pointHitRadius: 12,
+                pointHoverRadius: 4,
+
+                borderWidth: 2
             }
         ]
     }
 
     return (
-        <div className={"dashboardView"}>
-            <div style={{ width: "800px", height: "400px" }}>
+        <Box>
+            <Heading size={"small"} spacing level={"2"}>
+                {t("SCData.dashboards.SCDashboard.title")}
+            </Heading>
+            <div className={"adminChart"}>
                 <Line data={lineData} options={lineOptions} />
             </div>
-        </div>
+        </Box>
     )
 }

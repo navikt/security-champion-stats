@@ -2,7 +2,6 @@
 
 import {Member} from "../utils/Variables";
 import {useTranslations} from "next-intl";
-import "../../style/home.page.css"
 import {useRef, useState} from "react";
 import {Button, Modal, TextField} from "@navikt/ds-react";
 

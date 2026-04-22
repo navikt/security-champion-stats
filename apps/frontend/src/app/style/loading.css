@@ -1,0 +1,19 @@
+.loadingScreen {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+}
+
+.loadingScreen__content {
+    width: 100%;
+    max-width: 720px;
+}
+
+.loadingScreen__spinner {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    min-height: 240px;
+    align-items: center;
+}

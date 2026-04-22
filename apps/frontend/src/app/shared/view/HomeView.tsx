@@ -55,7 +55,8 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         await Apies.joinProgram(userData.username)
         await reload()
         await reloadMe()
-        setActive(true)
+        if (me.inProgram) setActive(true)
+        else setActive(false)
     }
 
     const deleteMember = async (email: string) => {
@@ -67,7 +68,8 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         await Apies.leaveProgram(userData.username)
         await reload()
         await reloadMe()
-        setActive(false)
+        if (me.inProgram) setActive(true)
+        else setActive(false)
     }
 
     return (

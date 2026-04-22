@@ -1,24 +1,27 @@
 import {useTranslations} from "next-intl";
-import {BodyShort, Box, Loader} from "@navikt/ds-react";
+import "../../style/loading.css"
+import {BodyShort, Box, Heading, Loader} from "@navikt/ds-react";
 
 export default function Loading() {
     const t = useTranslations()
     return (
-        <div style={{marginTop: "2rem"}} className="flex items-center justify-center min-h-screen">
-            <main>
-                <div>
-                    <h1 dangerouslySetInnerHTML={{__html: t.raw("common.appTitle")}}/>
-                    <BodyShort spacing>
-                        {t("common.description")}
-                    </BodyShort>
-                </div>
+        <Box
+            as={"main"}
+            padding={"space-6"}
+            style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}
+            aria-busy={true}
+            aria-live={"polite"}
+        >
+            <Box style={{ width: "100%", maxWidth: 720 }}>
+                <Heading size={"large"} level={"1"}>
+                    {t("common.appTitle")}
+                </Heading>
+                <BodyShort spacing>{t("common.description")}</BodyShort>
                 <Box
-                    style={{ display: "flex", justifyContent: "center", minHeight: "50vh", alignItems: "center" }}
-                    paddingBlock="space-24"
-                >
-                    <Loader size="large" title={t("common.loading")}/>
+                    paddingBlock={"space-12"} style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 240}}>
+                    <Loader size={"large"} title={t("common.loading")} />
                 </Box>
-            </main>
-        </div>
+            </Box>
+        </Box>
     );
 }

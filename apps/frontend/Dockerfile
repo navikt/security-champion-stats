@@ -11,7 +11,7 @@ RUN --mount=type=secret,id=NODE_AUTH_TOKEN sh -c \
     'pnpm config set //npm.pkg.github.com/:_authToken=$(cat /run/secrets/NODE_AUTH_TOKEN)'
 RUN pnpm config set @navikt:registry=https://npm.pkg.github.com
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY next.config.ts tsconfig.json ./

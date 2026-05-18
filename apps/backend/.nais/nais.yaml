@@ -28,7 +28,7 @@ spec:
           namespace: org
   replicas:
     max: 2
-    min: 1
+    min: 2
   azure:
     application:
       enabled: true

@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/apps/frontend/"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -10,8 +10,11 @@ updates:
       npm:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: "gradle"
-    directory: "/"
+    directory: "/apps/backend/"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -20,6 +23,9 @@ updates:
       gradle:
         patterns:
           - "*"
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

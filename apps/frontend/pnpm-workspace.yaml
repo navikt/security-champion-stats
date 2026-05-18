@@ -1,0 +1,5 @@
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  protobufjs: false
+  sharp: false

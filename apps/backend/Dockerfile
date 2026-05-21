@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY build/install/app/ /app/
 
-ENTRYPOINT ["java", "-cp", "/app/lib/*", "navikt.appsec.securitychampionapp.AppStarterKt"]
+ENTRYPOINT ["java", "-cp", "/app/lib/*", "navikt.appsec.securitychampionapp.ApplicationKt"]

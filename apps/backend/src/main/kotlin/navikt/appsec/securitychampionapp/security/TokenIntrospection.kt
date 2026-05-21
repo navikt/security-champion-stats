@@ -41,10 +41,11 @@ class TokenIntrospection(
 
             if (!result.active || result.error != null || result.claims == null) {
                 log.warn("Token is inactive for request: ${request.requestURI}")
+                log.warn("Result is: active: ${result.active}, error: ${result.error}, claims: ${result.claims}")
                 handleUnauthenticated(request, response, "inactive_token")
                 return
             }
-            logger.info("Token is active for request: ${request.requestURI}, proceeding with authentication")
+            log.info("Token is active for request: ${request.requestURI}, proceeding with authentication")
 
             val navIdent = result.claims.ident
             if (navIdent.isNullOrEmpty()) {

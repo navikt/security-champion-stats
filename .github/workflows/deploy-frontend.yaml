@@ -26,7 +26,7 @@ jobs:
         with:
           version: '10'
           package_json_file: apps/frontend/package.json
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # ratchet:actions/setup-node@v6
         with:
           node-version: '24'
           registry-url: 'https://npm.pkg.github.com/'
@@ -36,7 +36,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.READER_TOKEN }}
       - run: pnpm run build
-      - uses: nais/docker-build-push@v0
+      - uses: nais/docker-build-push@751a312f0803eb96a05a41fadf51be19b7be362c # ratchet:nais/docker-build-push@v0
         id: docker-push
         with:
           team: appsec
@@ -45,7 +45,7 @@ jobs:
           dockerfile: apps/frontend/Dockerfile
           docker_context: apps/frontend
           image_suffix: frontend
-      - uses: nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@a7f8690f9b367fcbf5348a0a1e21d44f1aae50eb # ratchet:nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
           RESOURCE: apps/frontend/.nais/nais.yaml
@@ -62,7 +62,7 @@ jobs:
       security-events: write # push sarif to github security
     needs: test-build
     steps:
-      - uses: nais/login@v0
+      - uses: nais/login@d6ab5d83f735e9f155eb9d7d29cd20ae46820ea9 # ratchet:nais/login@v0
         with:
           team: appsec
       - name: Scan docker image for secrets

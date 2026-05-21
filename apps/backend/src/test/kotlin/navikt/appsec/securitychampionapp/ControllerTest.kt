@@ -7,7 +7,6 @@ import navikt.appsec.securitychampionapp.integrations.postgress.PostgresReposito
 import navikt.appsec.securitychampionapp.integrations.slack.SlackService
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.TokenValidationClient
-import navikt.appsec.securitychampionapp.security.dto.Claims
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -43,11 +42,9 @@ class ControllerTest {
 
     val tokenResponse = TokenResponse(
         active = true,
-        claims = Claims(
-            preferredUsername = "admin@nav.no",
-            ident = "test123",
-            groups = listOf("test-group", "test-group-2", "test-group-3")
-        ),
+        preferredUsername = "admin@nav.no",
+        ident = "test123",
+        groups = listOf("test-group", "test-group-2", "test-group-3"),
         error = null
     )
     private val memberList = listOf(
@@ -82,7 +79,7 @@ class ControllerTest {
             "test-validation-url",
             "badtoken",
             "entra"
-        )).thenReturn(TokenResponse(active = false, claims = null, error = "Invalid token"))
+        )).thenReturn(TokenResponse(active = false, error = "Invalid token", ident = null, preferredUsername = null))
 
         mockMvc.get("/api/members") { header("Authorization", "Bearer badtoken")}
             .andExpect { status { isUnauthorized() } }

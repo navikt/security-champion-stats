@@ -4,7 +4,6 @@ import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.security.TokenValidationClient
-import navikt.appsec.securitychampionapp.security.dto.Claims
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -37,11 +36,9 @@ class AdminControllerTest {
 
     val tokenResponse = TokenResponse(
         active = true,
-        claims = Claims(
-            preferredUsername = "admin@nav.no",
-            ident = "test123",
-            groups = listOf("test123", "test-group-2", "test-group-3")
-        ),
+        preferredUsername = "admin@nav.no",
+        ident = "test123",
+        groups = listOf("test123", "test-group-2", "test-group-3"),
         error = null
     )
 
@@ -53,12 +50,11 @@ class AdminControllerTest {
             Mockito.anyString()
         )).thenReturn(TokenResponse(
             true,
-            Claims(
             preferredUsername = "user@nav.no",
             ident = "test1234",
-            groups = emptyList()
-            ),
-            error = null))
+            groups = emptyList(),
+            error = null
+        ))
 
         doNothing().`when`(repo).addMember(
             Mockito.anyString(),

@@ -6,17 +6,12 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class TokenResponse(
     val active: Boolean,
-    val claims: Claims?,
-    val error: String?
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class Claims(
     @JsonProperty("preferred_username")
     val preferredUsername: String?,
     @JsonProperty("NAVident")
     val ident: String?,
-    val groups: List<String> = emptyList()
+    val groups: List<String> = emptyList(),
+    val error: String?
 )
 
 

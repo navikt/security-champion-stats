@@ -39,28 +39,28 @@ class TokenIntrospection(
         try {
             val result = tokenClient.validate(naisUrl, rawToken, identityProvider)
 
-            if (!result.active || result.error != null || result.claims == null) {
+            if (!result.active || result.error != null) {
                 log.warn("Token is inactive for request: ${request.requestURI}")
-                log.warn("Result is: active: ${result.active}, error: ${result.error}, claims: ${result.claims}")
+                log.warn("Result is: active: ${result.active}, error: ${result.error}")
                 handleUnauthenticated(request, response, "inactive_token")
                 return
             }
             log.info("Token is active for request: ${request.requestURI}, proceeding with authentication")
 
-            val navIdent = result.claims.ident
+            val navIdent = result.ident
             if (navIdent.isNullOrEmpty()) {
                 log.warn("Missing NAVident claim in token for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "Missing NAVident")
                 return
             }
 
-            val preferredUsername = result.claims.preferredUsername
+            val preferredUsername = result.preferredUsername
             if (preferredUsername.isNullOrEmpty()) {
                 log.warn("Missing preferred_username claim in token for request: ${request.requestURI}")
                 handleUnauthenticated(request, response, "Missing preferred Username")
                 return
             }
-            val groups = result.claims.groups
+            val groups = result.groups
 
             val authorities =
                 if (groups.contains(id)) {

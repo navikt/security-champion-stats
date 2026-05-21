@@ -5,10 +5,9 @@ plugins {
     id("io.freefair.lombok") version "9.5.0"
     application
     java
-    kotlin("plugin.serialization") version "2.3.21"
-    id("org.springframework.boot") version "3.5.14"
-    kotlin("plugin.spring") version "2.3.21"
-    id("io.spring.dependency-management") version "1.1.7"
+    kotlin("plugin.serialization") version "2.2.21"
+    id("org.springframework.boot") version "4.0.6"
+    kotlin("plugin.spring") version "2.2.21"
 }
 
 group = "no.navikt.appsec.securitychampionstats"
@@ -17,19 +16,18 @@ dependencies {
 
     implementation(libs.bundles.spring)
     implementation(libs.bundles.flyway)
-    implementation(libs.kotlin.reflect)
 
-    implementation(libs.kotlin.json)
     implementation(libs.swagger)
     implementation(libs.slack.api)
     implementation(libs.bundles.logging)
     implementation(libs.bundles.postgres)
-    implementation(libs.bundles.jackson)
 
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.spring.test)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.junit.jupiter.api)
+    testImplementation(libs.spring.webmc)
 }
 
 kotlin {
@@ -37,7 +35,7 @@ kotlin {
 }
 
 application {
-    mainClass = "navikt.appsec.securitychampionstats.AppStarterKt"
+    mainClass = "navikt.appsec.securitychampionapp.ApplicationKt"
     applicationName = "app"
 }
 

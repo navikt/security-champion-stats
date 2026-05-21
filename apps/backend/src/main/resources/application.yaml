@@ -14,6 +14,10 @@ management:
       health:
         show-details: always
 
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
+
 spring:
   security:
     token-validation:

@@ -1,0 +1,105 @@
+package navikt.appsec.securitychampionapp.integrations.slack
+
+import com.slack.api.methods.MethodsClient
+import com.slack.api.methods.SlackApiException
+import com.slack.api.methods.request.conversations.ConversationsHistoryRequest
+import com.slack.api.methods.request.users.UsersLookupByEmailRequest
+import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummary
+import navikt.appsec.securitychampionapp.integrations.slack.dto.UserInfo
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
+import java.time.Clock
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import kotlin.math.max
+
+@Service
+class SlackService(
+    private val client: MethodsClient,
+) {
+
+    private val clock = Clock.systemUTC()
+    private val logger = LoggerFactory.getLogger(SlackService::class.java)
+
+    private fun resolveUserIdByEmail(email: String): UserInfo {
+        val result = client.usersLookupByEmail { user: UsersLookupByEmailRequest.UsersLookupByEmailRequestBuilder ->
+            user.email(email)
+        }
+        if (!result.isOk) return UserInfo("", "")
+        return UserInfo(result.user.id, result.user.name)
+    }
+
+    private fun countUserMessagesInChannel(userId: String, channelId: String): Int {
+        val oldest = Instant.now(clock)
+            .minus(24, ChronoUnit.HOURS)
+            .epochSecond
+            .toString()
+        var cursor: String? = null
+        var count = 0
+        do {
+            val request = ConversationsHistoryRequest.builder()
+                .channel(channelId)
+                .oldest(oldest)
+                .limit(200)
+                .cursor(cursor)
+                .build()
+            val result = withRateLimitRetry { client.conversationsHistory(request) }
+            if (!result.isOk) break
+            result.messages.forEach { message ->
+                if (message.user == userId && message.subtype == null) count++
+            }
+            cursor = result.responseMetadata.nextCursor.takeIf { it.isNotBlank() }
+        } while (cursor != null)
+        return count
+    }
+
+    private fun <T> withRateLimitRetry(block: () -> T): T {
+        var attempts = 0
+        while (true) {
+            try {
+                return block()
+            } catch (e: SlackApiException) {
+                if (e.response.code == 429) {
+                    val waitSec = max(e.response.headers["Retry-After"]?.firstOrNull()?.code?.toLong() ?: 1L, 1L)
+                    Thread.sleep(waitSec * 1000)
+                } else {
+                    logger.error(e.message, e)
+                    throw e
+                }
+            }
+            attempts++
+            if (attempts > 10) throw RuntimeException("Too many retries exceeded")
+        }
+    }
+
+    fun getUserActivitySummaryByEmail(email: String, channelIds: List<String>): SlackActivitySummary {
+        val userInfo = resolveUserIdByEmail(email)
+        if (userInfo.userId.isBlank()) {
+            logger.warn("User ID was blank then fetch data for user $email")
+            return SlackActivitySummary(
+                userInfo = UserInfo("", ""),
+                inTrackedChannels = listOf(""),
+                messagesPerChannel = emptyMap(),
+                totalMessages = 0
+            )
+        }
+
+        var totalMessages = 0
+        val messagesPerChannel = mutableMapOf<String, Int>()
+        for (channelId in channelIds) {
+            val messageCount = countUserMessagesInChannel(userInfo.userId, channelId)
+            if (messageCount > 0) {
+                totalMessages += messageCount
+                messagesPerChannel[channelId] = messageCount
+            }
+        }
+
+        return SlackActivitySummary(
+            userInfo = userInfo,
+            inTrackedChannels = channelIds.filter { messagesPerChannel.containsKey(it) },
+            messagesPerChannel = messagesPerChannel,
+            totalMessages = totalMessages
+        )
+    }
+
+}

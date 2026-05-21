@@ -12,7 +12,7 @@
             <appender-ref ref="STDOUT_JSON"/>
         </root>
 
-        <logger name="navikt.appsec.securitychampionstats" level="INFO" additivity="false">
+        <logger name="navikt.appsec.securitychampionapp" level="INFO" additivity="false">
             <appender-ref ref="STDOUT_JSON"/>
         </logger>
 

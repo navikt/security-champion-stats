@@ -9,6 +9,7 @@ spring-doc = "3.0.3"
 flyway = "12.6.0"
 mockito-kotlin = "6.3.0"
 spring-boot = "4.0.6"
+jackson-module = "3.0.4"
 
 [libraries]
 
@@ -23,6 +24,9 @@ spring-webclient = { module = "org.springframework.boot:spring-boot-starter-webf
 
 #Swagger
 swagger = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "spring-doc" }
+
+# Jackson
+jackson-module = { module = "tools.jackson.module:jackson-module-kotlin", version.ref = "jackson-module" }
 
 #flyway
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }

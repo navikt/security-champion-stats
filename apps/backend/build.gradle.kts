@@ -5,7 +5,6 @@ plugins {
     id("io.freefair.lombok") version "9.5.0"
     application
     java
-    kotlin("plugin.serialization") version "2.2.21"
     id("org.springframework.boot") version "4.0.6"
     kotlin("plugin.spring") version "2.2.21"
 }
@@ -17,6 +16,9 @@ dependencies {
     implementation(libs.bundles.spring)
     implementation(libs.bundles.flyway)
 
+    implementation(kotlin("reflect"))
+
+    implementation(libs.jackson.module)
     implementation(libs.swagger)
     implementation(libs.slack.api)
     implementation(libs.bundles.logging)

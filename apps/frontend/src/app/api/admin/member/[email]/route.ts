@@ -34,7 +34,7 @@ export async function DELETE(
         const response = await fetch(url, {
             method: 'DELETE',
             headers: {
-                Authorization: `Bearer ${backendUrl}`,
+                Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             }
         })

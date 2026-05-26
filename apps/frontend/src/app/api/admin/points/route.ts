@@ -25,7 +25,7 @@ export async function POST(
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${backendUrl}`,
+                Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({"email": email, "points": amount})

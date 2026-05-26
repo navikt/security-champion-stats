@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${backendUrl}`,
+                Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({"email": email, "fullname": fullname})

@@ -4,3 +4,7 @@ allowBuilds:
   esbuild: false
   protobufjs: false
   sharp: false
+minimumReleaseAgeExclude:
+  - postcss@8.5.10
+  - protobufjs@8.0.2
+  - protobufjs@8.2.0

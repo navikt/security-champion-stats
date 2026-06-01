@@ -1,6 +1,8 @@
-name: Build and deploy frontend
+name: Run frontend tests
 on:
   push:
+    branches-ignore:
+      - 'main'
     paths:
       - 'apps/frontend/**'
   workflow_dispatch:
@@ -30,6 +32,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.READER_TOKEN }}
+      - run: pnpm run test
       - run: pnpm run build
       - uses: nais/docker-build-push@751a312f0803eb96a05a41fadf51be19b7be362c # v0
         id: docker-push

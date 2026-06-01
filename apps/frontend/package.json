@@ -4,7 +4,7 @@
   "description": "frontend for security champion stats",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "dev": "next dev",
     "dev:mocks": "MOCKS_ENABLED=true next dev",
     "dev:local": "LOCAL_DEV=true next dev",
@@ -30,9 +30,15 @@
     "react-router-dom": "7.15.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^4.5.2",
     "babel-plugin-react-compiler": "1.0.0",
-    "typescript": "^6.0.3"
+    "jsdom": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.3"
   }
 }

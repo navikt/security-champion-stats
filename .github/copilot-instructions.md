@@ -316,13 +316,6 @@ interface NvdRepository {
 - **Execution**: Flyway runs migrations automatically on application startup
 - **Reversibility**: Avoid destructive changes; use new migrations to modify schema
 
-### NVD Sync Strategy
-- **Initial Sync**: Year-by-year from 2002 to present (~12-15 hours, leader-only)
-- **Incremental Sync**: Every 2 hours using `lastModifiedDate` tracking (leader-only)
-- **Leader Election**: Kubernetes native leader election prevents duplicate syncs
-- **Date Format**: ISO 8601 with UTC timezone (`2024-01-01T00:00:00.000Z`)
-- **Error Handling**: HTTP status checking before response deserialization
-
 ## Security Considerations
 
 - **Input Validation**: All inputs validated before processing
@@ -354,7 +347,6 @@ interface NvdRepository {
 - **README.md**: Project overview, setup, and API usage.
 - **copilot-instructions.md**: Coding, commit, and workflow standards.
 - **.github/workflows/**: CI/CD automation.
-- **scripts/**: Automation scripts for testing.
 
 ## Documentation Update Workflow
 - Update copilot-instructions.md and other docs for any new conventions or major changes.

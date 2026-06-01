@@ -1,0 +1,38 @@
+
+name: Run backend tests
+on:
+  push:
+    paths:
+      - 'apps/backend/**'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: apps/backend
+
+jobs:
+  test-build:
+    permissions:
+      actions: read # for sarif
+      contents: write # for dependency graph & sarif
+      id-token: write # for nais docker-build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: 25
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+      - name: Test & build
+        run: ./gradlew test installDist
+      - name: Build & push docker image + SBOM
+        uses: nais/docker-build-push@751a312f0803eb96a05a41fadf51be19b7be362c # v0
+        id: docker-push
+        with:
+          team: appsec
+          push_image: false
+          dockerfile: apps/backend/Dockerfile
+          docker_context: apps/backend

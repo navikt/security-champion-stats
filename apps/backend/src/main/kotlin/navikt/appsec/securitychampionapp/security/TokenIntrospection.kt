@@ -24,7 +24,7 @@ class TokenIntrospection(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        log.info("Starting authentication process for request: ${request.requestURI}, in backend")
+        log.debug("Starting authentication process for request: ${request.requestURI}, in backend")
         val token = request.getHeader("Authorization")?.trim()
         if (token.isNullOrEmpty() || !token.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
@@ -71,7 +71,7 @@ class TokenIntrospection(
             val authentication = UsernamePasswordAuthenticationToken(preferredUsername, navIdent, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
-            log.info("Completed token introspection successfully for request: ${request.requestURI}")
+            log.debug("Completed token introspection successfully for request: ${request.requestURI}")
         } catch (e: Exception) {
             log.error("Token validation failed due to error: $e")
             handleUnauthenticated(request, response, "validation_error")

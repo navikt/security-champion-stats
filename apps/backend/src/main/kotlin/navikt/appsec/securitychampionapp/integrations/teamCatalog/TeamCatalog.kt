@@ -1,7 +1,9 @@
 package navikt.appsec.securitychampionapp.integrations.teamCatalog
 
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ProductAreaResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ResourceResponse
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamCatalogTeam
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -65,24 +67,39 @@ class TeamCatalog(
         }
     }
 
-    fun fetchMembersWithRole(): List<ResourceResponse> {
+    fun fetchMembersWithRole(): List<MemberWithTeamData> {
         val teamsWithinProduct = fetchAllTeams()
         if (teamsWithinProduct.isEmpty()) {
             logger.info("No teams were found. return empty list")
             return emptyList()
         }
 
-        val securityChamps = mutableListOf<ResourceResponse>()
+        val securityChamps = mutableListOf<MemberWithTeamData>()
 
         teamsWithinProduct.forEach { teams ->
             teams.content.forEach { team ->
                 team.members.forEach { member ->
-                    if (member.roles.contains("SECURITY_CHAMPION") && !securityChamps.contains(member.resource))  {
-                        securityChamps.add(member.resource)
+                    if (member.roles.contains("SECURITY_CHAMPION")) {
+                        if(securityChamps.any { champ -> champ.email == member.resource.email}) {
+                            securityChamps.forEach { champ ->
+                                if(champ.email == member.resource.email) {
+                                    champ.teamName.add(team.name)
+                                    champ.teamId.add(team.id)
+                                }
+                            }
+                        }
+                    } else {
+                            securityChamps.add(MemberWithTeamData(
+                                navIdent = member.resource.navIdent,
+                                fullName = member.resource.fullName,
+                                email = member.resource.email ?: "unknown",
+                                teamName = mutableListOf(team.name),
+                                teamId = mutableListOf(team.id)
+                            ))
+                        }
                     }
                 }
             }
-        }
         return securityChamps
     }
 }

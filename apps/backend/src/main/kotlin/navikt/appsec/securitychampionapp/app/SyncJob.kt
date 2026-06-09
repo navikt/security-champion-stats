@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.app
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.integrations.slack.SlackService
+import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
+import navikt.appsec.securitychampionapp.integrations.slack.dto.RemovedSecurityChampion
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
@@ -20,18 +22,40 @@ class SyncJob(
     @Value($$"${slack.sc-channel-id}") private val scChannelId: String,
     @Value($$"${slack.appsec-channel-id}") private val appSecId: String,
 ) {
-    @Scheduled(cron = "0 0 0 */5 * *")
+    private val teamUrl = "https://teamkatalog.nav.no/team/"
+
+    @Scheduled(cron = "0 0 0 */2 * *")
     fun syncDatabase() {
-        val members = repo.getAllMembers()
+        val members = repo.getAllMembers().toMutableList()
         val catalogMembers = catalog.fetchMembersWithRole()
+        val slackListToAdd = mutableListOf<NewSecurityChampion>()
 
         catalogMembers.forEach {
-            if (!members.any { member -> member.email == it.email}) {
+            if (members.any { member -> member.email == it.email}) {
+                members.remove(members.first { member -> member.email == it.email })
+            } else {
                 repo.addMember(it.fullName, it.navIdent, it.email ?: "unknown")
+                slackListToAdd.add(NewSecurityChampion(
+                    it.email,
+                    it.teamName,
+                    it.fullName
+                ))
             }
+        }
+        slackService.addSecurityChampionsToSlack(champions = slackListToAdd)
+        if (members.isNotEmpty()) {
+            members.forEach { repo.deleteMember(it.email) }
+            slackService.announceSecurityChampionsRemovedFromSlack(champions = members.map {
+                RemovedSecurityChampion(
+                    it.email,
+                    "",
+                    it.fullname
+                )
+            })
         }
 
         val membersInProgram = repo.getAllMembersInProgram()
+
         membersInProgram.forEach {
             if (isOlderThanTwoDays(it.lastUpdated)) {
                 slackService.getUserActivitySummaryByEmail(it.email, listOf(scChannelId, appSecId))
@@ -42,7 +66,6 @@ class SyncJob(
                     }
             }
         }
-
     }
 
     private fun isOlderThanTwoDays(lastUpdated: String?, clock: Clock = Clock.systemUTC()): Boolean {

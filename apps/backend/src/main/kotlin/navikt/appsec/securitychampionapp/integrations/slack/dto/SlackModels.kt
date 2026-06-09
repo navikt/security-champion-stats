@@ -10,4 +10,5 @@ data class SlackActivitySummary(
 data class UserInfo(
     val userId: String,
     val fullname: String,
+    val imageUrl: String? = null,
 )

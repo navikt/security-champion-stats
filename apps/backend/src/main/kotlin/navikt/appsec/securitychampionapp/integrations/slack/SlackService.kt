@@ -257,7 +257,6 @@ class SlackService(
         return "💀 Security Champion fjernet fra ${champion.teamName}\n$mention"
     }
 
-    @Suppress("unused")
     fun announceSecurityChampionsRemovedFromSlack(channelId: String = appSecActivityChannelId, champions: List<RemovedSecurityChampion>) {
         champions
             .distinctBy { it.email.lowercase() }

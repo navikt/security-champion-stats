@@ -52,6 +52,12 @@
       "cardAgentsLabel": "{count} Sikkerhets mestere",
       "cardPointsLabel": "{points} XP banket",
       "noMembers": "Tabell er tom",
+      "levels": {
+        "1": "Nybegynner mester",
+        "2": "Lærling mester",
+        "3": "Mester",
+        "4": "Master mester"
+      },
       "buttons": {
         "joinProgram": "Bli med i spillet",
         "leaveProgram": "Forlat spillet",

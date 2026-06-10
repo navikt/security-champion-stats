@@ -52,6 +52,12 @@
       "cardAgentsLabel": "{count} Security champions",
       "cardPointsLabel": "{points} XP banked",
       "noMembers": "Table is empty",
+      "levels": {
+        "1": "Novice Champion",
+        "2": "Apprentice Champion",
+        "3": "Champion",
+        "4": "Master Champion"
+      },
       "buttons": {
         "joinProgram": "Join game",
         "leaveProgram": "Leave game",

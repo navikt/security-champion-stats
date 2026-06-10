@@ -24,7 +24,7 @@ class SyncJob(
 ) {
     private val teamUrl = "https://teamkatalog.nav.no/team/"
 
-    @Scheduled(cron = "0 0 0 */2 * *")
+    @Scheduled(cron = "0 0 0 */1 * *")
     fun syncDatabase() {
         val members = repo.getAllMembers().toMutableList()
         val catalogMembers = catalog.fetchMembersWithRole()

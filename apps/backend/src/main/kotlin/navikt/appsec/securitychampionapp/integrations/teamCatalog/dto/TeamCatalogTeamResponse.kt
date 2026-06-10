@@ -8,7 +8,9 @@ import lombok.Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class TeamCatalogTeam(
-    val members: List<MemberResponse>
+    val members: List<MemberResponse>,
+    val name: String,
+    val id: String,
 )
 
 @Data
@@ -34,4 +36,13 @@ data class ResourceResponse(
     val navIdent: String,
     val fullName: String,
     val email: String?
+)
+
+@Data
+data class MemberWithTeamData(
+    val navIdent: String,
+    val fullName: String,
+    val email: String,
+    val teamName: MutableList<String>,
+    val teamId: MutableList<String>
 )

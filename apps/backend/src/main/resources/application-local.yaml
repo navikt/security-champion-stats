@@ -34,6 +34,8 @@ slack:
   token: xoxb-local-slack-token
   sc-channel-id: local-slack-sc-channel-id
   appsec-channel-id: local-slack-appsec-channel-id
+  appsec-activity-channel-id: local-slack-appsec-activity-channel-id
+  playbook_url: https://sikkerhet.nav.no/docs/ny-security-champion/
 
 points:
   meetingPoints: 10

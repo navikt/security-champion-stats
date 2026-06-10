@@ -31,13 +31,14 @@ class Controller(
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
 
+    // TODO: Might need to alter the Member sql
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
         logger.info("Request to fetch all members was made")
         val members = repo.getAllMembersInProgram()
         return if (members.isEmpty() && activeProfiles != "local") {
             catalog.fetchMembersWithRole().forEach {
-                if (it.email != null) repo.addMember(
+                repo.addMember(
                     fullname = it.fullName,
                     id = it.navIdent,
                     email = it.email

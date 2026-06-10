@@ -1,12 +1,15 @@
-# Security champions stats backend application.
+# Security Champion Stats backend application
 
 ## Overview
 The backend application is built using Kotlin and Spring Boot, and it serves as the API for the frontend application.
-It provides endpoints for fetching security champions statistics, managing security champions and much more with time.
-The backend application is responsible for handling business logic, data storage and retrival, and authentication and 
-authorization for the frontend application.
+It provides endpoints for fetching security champion statistics, managing security champions, and supporting the
+Security Champion program over time. The backend application is responsible for handling business logic, data storage
+and retrieval, and authentication and authorization for the frontend application.
 
-### DataFlow ([mermaid] (https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) -syntax)
+The backend also includes a scheduled job that runs every two days. It syncs security champions, adds new security
+champions to the Slack channel, and greets them with a welcome message.
+
+### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
 sequenceDiagram
     participant FE as Frontend
@@ -14,24 +17,25 @@ sequenceDiagram
     participant DB as Database
     participant TK as Teamkatalogen
     participant Slack as Slack
-    participant BES as Backend scheduler (e.g. cronjob, Runs on a schedule (e.g. once a week)) 
+    participant BES as Backend scheduler (runs on a schedule, e.g. every two days)
 
-    FE->>BE: Request towards one of the endpoints (e.g. get security champions stats)
-    BE->>DB: Query for data related to request (e.g. security champions stats)
-    DB-->>BE: Return/change data (e.g. security champions stats)
+    FE->>BE: Request one of the endpoints (e.g. get security champion stats)
+    BE->>DB: Query for data related to the request (e.g. security champion stats)
+    DB-->>BE: Return or update data (e.g. security champion stats)
     BE-->>FE: Return response (e.g. security champions stats)
     
     BES->>TK: Get all teams
     TK-->>BES: [team, team, …]
-    BES-->>BES: Map to list of member with role SECURITY_CHAMPION: [team_member, team_member, …]
-    BES->>DB: Fetch current list of team members with role SECURITY_CHAMPION
+    BES-->>BES: Map to a list of members with the role SECURITY_CHAMPION: [team_member, team_member, …]
+    BES->>DB: Fetch the current list of team members with the role SECURITY_CHAMPION
     DB-->>BES: [team_member, team_member, …]
     BES-->>BES: Calculate diff between current and previous list
     BES->>DB: Store current list of champions for next time [team_member, team_member, …]
+    BES->>Slack: Add new security champions to the configured channel and post a welcome message
     loop paginated
-        BES->>Slack: Get all activity for team_member with role SECURITY_CHAMPION and have agreed to share it
+        BES->>Slack: Get all activity for team_member with role SECURITY_CHAMPION who has agreed to share it
         Slack-->>BES: [activity, activity, …]
-        BES-->>BES: Map each activity to corresponding team_member and calculate points for each team_member based on activity
+        BES-->>BES: Map each activity to the corresponding team_member and calculate points based on activity
     end    
 ```
 
@@ -44,7 +48,8 @@ To run the backend application, follow these steps:
 5. Use the returned value as `Authorization: Bearer <token>` when calling `http://localhost:8080`.
 6. To run tests, use the command: `./gradlew test`
 
-This is best ran with frontend application, so you can see the data in the UI. To run the frontend application, follow the instructions in the `apps/frontend/Readme.md` file.
+This is best run together with the frontend application so you can see the data in the UI. To run the frontend
+application, follow the instructions in `apps/frontend/Readme.md`.
 
 ## Technologies Used
 - Kotlin: A modern programming language that runs on the JVM and is fully interoperable with Java

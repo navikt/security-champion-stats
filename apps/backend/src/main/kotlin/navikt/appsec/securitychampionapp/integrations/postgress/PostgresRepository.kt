@@ -23,7 +23,8 @@ class PostgresRepository(
                     points = rs.getInt("points"),
                     lastUpdated = rs.getString("update_at"),
                     email = rs.getString("email"),
-                    inProgram = rs.getBoolean("inProgram")
+                    inProgram = rs.getBoolean("inProgram"),
+                    level = rs.getString("level") ?: "1"
                 )
             }
             if (args.isEmpty()) {
@@ -75,7 +76,7 @@ class PostgresRepository(
     }
 
     fun addMember(fullname: String, id: String, email: String) {
-        val query = "INSERT INTO Members (id, fullname, points, email, inProgram) VALUES (?, ?, 0, ?, false)"
+        val query = "INSERT INTO Members (id, fullname, points, email, inProgram) VALUES (?, ?, 0, ?, false, 1)"
         updateMember(query, id, fullname, email)
     }
 

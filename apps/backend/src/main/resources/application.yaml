@@ -64,7 +64,13 @@ springdoc:
   api-docs:
     enabled: true
 
-points:
-  meeting-points: 10
-  message: 4
-  response-message: 4
+pointsSystem:
+  amount:
+    meeting: 2
+    message: 3
+    response-message: 2
+  levels:
+    novice: 0
+    apprentice: 100
+    adept: 250
+    expert: 500

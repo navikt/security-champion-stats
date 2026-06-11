@@ -27,7 +27,7 @@ class SlackService(
     private val client: MethodsClient,
     @Value($$"${slack.playbook_url}") private val playbookUrl: String,
     @Value($$"${slack.sc-channel-id}") private val scChannelId: String,
-    @Value($$"${slack.appsec-activity-channel-id") private  val appSecActivityChannelId: String,
+    @Value($$"${slack.appsec-activity-channel-id}") private  val appSecActivityChannelId: String,
 ) {
 
     private val clock = Clock.systemUTC()

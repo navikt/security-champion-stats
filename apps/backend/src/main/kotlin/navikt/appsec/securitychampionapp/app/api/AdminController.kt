@@ -1,7 +1,6 @@
 package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.app.api.dto.DeleteMember
 import navikt.appsec.securitychampionapp.app.api.dto.MemberInfo
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata

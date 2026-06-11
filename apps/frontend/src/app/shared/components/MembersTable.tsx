@@ -22,6 +22,16 @@ function MembersTable({
     const [modalOpenFor, setModalOpenFor] = useState<string | null>(null)
     const pointRef = useRef<HTMLInputElement>(null)
 
+    const handleLevelNames = async (member: Member): Promise<string> => {
+        switch (member.level) {
+            case "1": return t("main.table.member.level.1")
+            case "2": return t("main.table.member.level.2")
+            case "3": return t("main.table.member.level.3")
+            case "4": return t("main.table.member.level.4")
+            default: return t("main.table.member.level.1")
+        }
+    }
+
     return (
         <div className="membersTable">
             <table role={"table"} aria-label={"Members"}>
@@ -48,7 +58,7 @@ function MembersTable({
                     <tr key={m.id}>
                         <td>{m.fullname}</td>
                         <td className={"td-num"}>{m.points.toLocaleString()}</td>
-                        <td>MasterClass</td>
+                        <td>{handleLevelNames(m)}</td>
                         {canEdit && (
                             <td className={"membersTable__actionsCell"}>
                                 <button

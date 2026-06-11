@@ -18,7 +18,7 @@ class SyncJob(
     private val repo: PostgresRepository,
     private val catalog: TeamCatalog,
     private val slackService: SlackService,
-    @Value($$"${points.message}") private val activityPoints: String,
+    @Value($$"${pointsSystem.amount.message}") private val activityPoints: String,
     @Value($$"${slack.sc-channel-id}") private val scChannelId: String,
     @Value($$"${slack.appsec-channel-id}") private val appSecId: String,
 ) {

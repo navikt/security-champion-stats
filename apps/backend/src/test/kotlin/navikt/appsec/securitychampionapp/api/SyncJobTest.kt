@@ -68,7 +68,7 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        verify(repo).addMember("New Member", "new-id", "new@nav.no", emptyList())
+        verify(repo).addMember("New Member", "new-id", "new@nav.no", listOf("New Team"))
         verify(slackService).addSecurityChampionsToSlack(
             champions = listOf(
                 NewSecurityChampion(

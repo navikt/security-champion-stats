@@ -11,6 +11,9 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+
 
 @SpringBootTest
 @Testcontainers
@@ -43,7 +46,57 @@ class PostgresRepositoryTest {
     }
 
     @Test
-    fun `Check that query of getAllMembersInProgram query is correct`() {
+    fun `Check that query of getAllMembersInProgram is correct`() {
         repository.getAllMembersInProgram()
+    }
+
+    @Test
+    fun `Check that query of getAllMembers is correct`() {
+        repository.getAllMembers()
+    }
+
+    @Test
+    fun `Check that query of addMember is correct`() {
+        repository.addMember(
+            fullname = "test tester",
+            id = "test-id",
+            email = "test@nav.no",
+            teams = listOf("test-team")
+        )
+    }
+
+    @Test
+    fun `Check that query of getMemberByEmail is correct`() {
+        repository.getMemberByEmail("test@nav.no")
+    }
+
+    @Test
+    fun `Check that query of deleteMember is correct`() {
+        repository.deleteMember("test@nav.no")
+    }
+
+    @Test
+    fun `Check that query of addPoints is correct`() {
+        repository.addPoints(
+            email = "test@nav.no",
+            points = 10
+        )
+    }
+
+    @Test
+    fun `Check that query of updateInProgram is correct`() {
+        repository.updateInProgram(
+            email = "test@nav.no",
+            inProgram = true
+        )
+    }
+
+    @Test
+    fun `Check that queries of getSCAmountOverTime is correct`() {
+        repository.getSCAmountOverTime()
+        repository.getSCAmountOverTime(
+            startDate = Instant.now(),
+            endDate = Instant.now().plus(1, ChronoUnit.DAYS)
+        )
     }
 }

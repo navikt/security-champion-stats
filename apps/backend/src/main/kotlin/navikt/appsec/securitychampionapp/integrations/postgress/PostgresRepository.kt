@@ -75,9 +75,9 @@ class PostgresRepository(
         return queryMembersData(query)
     }
 
-    fun addMember(fullname: String, id: String, email: String) {
-        val query = "INSERT INTO Members (id, fullname, points, email, inProgram) VALUES (?, ?, 0, ?, false, 1)"
-        updateMember(query, id, fullname, email)
+    fun addMember(fullname: String, id: String, email: String, teams: List<String>) {
+        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, 1, ?)"
+        updateMember(query, id, fullname, email, teams)
     }
 
     fun getMemberByEmail(email: String): Member? {

@@ -59,7 +59,8 @@ class AdminControllerTest {
         doNothing().`when`(repo).addMember(
             Mockito.anyString(),
             Mockito.anyString(),
-            Mockito.anyString()
+            Mockito.anyString(),
+            Mockito.anyList<String>()
         )
 
         val request = """
@@ -92,7 +93,8 @@ class AdminControllerTest {
         doNothing().`when`(repo).addMember(
             Mockito.anyString(),
             Mockito.anyString(),
-            Mockito.anyString()
+            Mockito.anyString(),
+            Mockito.anyList<String>()
         )
         val request = """
             {

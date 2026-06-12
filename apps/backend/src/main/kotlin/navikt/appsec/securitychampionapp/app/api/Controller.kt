@@ -41,7 +41,8 @@ class Controller(
                 repo.addMember(
                     fullname = it.fullName,
                     id = it.navIdent,
-                    email = it.email
+                    email = it.email,
+                    teams = it.teamName
                 )
             }
             ResponseEntity(repo.getAllMembersInProgram(), HttpStatus.OK)

@@ -1,7 +1,7 @@
 package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.app.api.dto.MemberInfo
+import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
 import navikt.appsec.securitychampionapp.utils.Validate
@@ -28,14 +28,14 @@ class AdminController(
     private val validate = Validate()
 
     @PostMapping("/member", consumes = [MediaType.APPLICATION_JSON_VALUE])
-    fun addMember(@RequestBody memberInfo: MemberInfo): ResponseEntity<Any>{
+    fun addMember(@RequestBody memberInfo: AddMember): ResponseEntity<Any>{
         if (!validate.isValidEmail(memberInfo.email) or !validate.isValidName(memberInfo.fullname)) {
             logger.warn("Attempt to add member failed due to invalid email format, " +
                     "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
             return ResponseEntity.status(HttpStatus.ACCEPTED).build()
         }
         val id = UUID.randomUUID().toString()
-        repo.addMember(memberInfo.fullname, id = id, memberInfo.email)
+        repo.addMember(memberInfo.fullname, id = id, memberInfo.email, emptyList())
         return ResponseEntity("User was created", HttpStatus.CREATED)
     }
 

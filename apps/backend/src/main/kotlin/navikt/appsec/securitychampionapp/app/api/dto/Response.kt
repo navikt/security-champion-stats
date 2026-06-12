@@ -14,7 +14,7 @@ data class Member(
 )
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class MemberInfo(val fullname: String, val email: String)
+data class AddMember(val fullname: String, val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Points(val email: String, val points: Int)

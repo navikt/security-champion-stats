@@ -47,7 +47,6 @@ For testing we will avoid mocking as much as possible and use test containers or
 ### Backend Core:
 - **Framework**: Spring Boot
 - **Language**: Kotlin
-- **Serialization** kotlinx.serialization
 - **Testing**: JUnit 5, MockK, Testcontainers
 - **Build Tool**: Gradle
 

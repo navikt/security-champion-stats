@@ -1,4 +1,4 @@
-package navikt.appsec.securitychampionapp
+package navikt.appsec.securitychampionapp.api
 
 import navikt.appsec.securitychampionapp.app.api.Controller
 import navikt.appsec.securitychampionapp.app.api.dto.Member
@@ -8,20 +8,17 @@ import navikt.appsec.securitychampionapp.integrations.slack.SlackService
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.TokenValidationClient
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import org.mockito.Mockito.doNothing
-import org.mockito.Mockito.`when`
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
-
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 
 @WebMvcTest(
     Controller::class,
@@ -34,11 +31,16 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 @Import(SecurityConfig::class)
 class ControllerTest {
 
-    @Autowired lateinit var mockMvc: MockMvc
-    @MockitoBean lateinit var repo: PostgresRepository
-    @MockitoBean lateinit var tokenValidationClient: TokenValidationClient
-    @MockitoBean lateinit var catalog: TeamCatalog
-    @MockitoBean lateinit var slackService: SlackService
+    @Autowired
+    lateinit var mockMvc: MockMvc
+    @MockitoBean
+    lateinit var repo: PostgresRepository
+    @MockitoBean
+    lateinit var tokenValidationClient: TokenValidationClient
+    @MockitoBean
+    lateinit var catalog: TeamCatalog
+    @MockitoBean
+    lateinit var slackService: SlackService
 
     val tokenResponse = TokenResponse(
         active = true,
@@ -75,11 +77,13 @@ class ControllerTest {
 
     @Test
     fun `Calling upon endpoint with inactive token`() {
-        `when`(tokenValidationClient.validate(
-            "test-validation-url",
-            "badtoken",
-            "entra"
-        )).thenReturn(TokenResponse(active = false, error = "Invalid token", ident = null, preferredUsername = null))
+        Mockito.`when`(
+            tokenValidationClient.validate(
+                "test-validation-url",
+                "badtoken",
+                "entra"
+            )
+        ).thenReturn(TokenResponse(active = false, error = "Invalid token", ident = null, preferredUsername = null))
 
         mockMvc.get("/api/members") { header("Authorization", "Bearer badtoken")}
             .andExpect { status { isUnauthorized() } }
@@ -87,13 +91,15 @@ class ControllerTest {
 
     @Test
     fun `Test get all members successfully from database`() {
-        `when`(tokenValidationClient.validate(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString()
-        )).thenReturn(tokenResponse)
+        Mockito.`when`(
+            tokenValidationClient.validate(
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyString()
+            )
+        ).thenReturn(tokenResponse)
 
-        `when`(repo.getAllMembersInProgram()).thenReturn(
+        Mockito.`when`(repo.getAllMembersInProgram()).thenReturn(
             memberList
         )
         mockMvc.get("/api/members") { header("Authorization", "Bearer usertoken")}
@@ -102,33 +108,37 @@ class ControllerTest {
 
     @Test
     fun `Test get all members successfully from database, with empty database`() {
-        `when`(tokenValidationClient.validate(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString()
-        )).thenReturn(tokenResponse)
+        Mockito.`when`(
+            tokenValidationClient.validate(
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyString()
+            )
+        ).thenReturn(tokenResponse)
 
-        `when`(repo.getAllMembers()).thenReturn(
+        Mockito.`when`(repo.getAllMembers()).thenReturn(
             emptyList()
         )
-        `when`(catalog.fetchMembersWithRole()).thenReturn(
+        Mockito.`when`(catalog.fetchMembersWithRole()).thenReturn(
             emptyList()
         )
         mockMvc.
             get("/api/members") { header("Authorization", "Bearer usertoken")}
             .andExpect { status { isOk() } }
-            .andExpect { content().json("{}") }
+            .andExpect { MockMvcResultMatchers.content().json("{}") }
     }
 
     @Test
     fun `Test a successful join program and then leaving program`() {
-        `when`(tokenValidationClient.validate(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString()
-        )).thenReturn(tokenResponse)
+        Mockito.`when`(
+            tokenValidationClient.validate(
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyString()
+            )
+        ).thenReturn(tokenResponse)
 
-        `when`(repo.getMemberByEmail(Mockito.anyString())).thenReturn(
+        Mockito.`when`(repo.getMemberByEmail(Mockito.anyString())).thenReturn(
             Member(
                 "test-id-1",
                 "test name",
@@ -138,24 +148,24 @@ class ControllerTest {
                 inProgram = true
             )
         )
-        doNothing().`when`(repo).updateInProgram("test@nav.no", true)
-        doNothing().`when`(repo).updateInProgram("test@nav.no", false)
+        Mockito.doNothing().`when`(repo).updateInProgram("test@nav.no", true)
+        Mockito.doNothing().`when`(repo).updateInProgram("test@nav.no", false)
 
         val joinResult = mockMvc.perform(
-            post("/api/join")
+            MockMvcRequestBuilders.post("/api/join")
                 .header("Authorization", "Bearer usertoken")
                 .contentType("Application/json")
                 .content("test@nav.no")
         ).andReturn()
 
         val leaveResult = mockMvc.perform(
-            post("/api/leave")
+            MockMvcRequestBuilders.post("/api/leave")
                 .header("Authorization", "Bearer usertoken")
                 .contentType("Application/json")
                 .content("test@nav.no")
         ).andReturn()
 
-        assertThat(joinResult.response.status == 200)
-        assertThat { leaveResult.response.status == 200 }
+        Assertions.assertThat(joinResult.response.status == 200)
+        Assertions.assertThat { leaveResult.response.status == 200 }
     }
 }

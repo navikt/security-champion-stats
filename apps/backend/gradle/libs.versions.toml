@@ -5,6 +5,7 @@ hikari = "7.0.2"
 slack = "1.49.0"
 postgres = "42.7.11"
 junit-jupiter = "6.1.0"
+junit-container = "1.21.4"
 spring-doc = "3.0.3"
 flyway = "12.6.2"
 mockito-kotlin = "6.3.0"
@@ -47,6 +48,8 @@ slack-api = { module = "com.slack.api:slack-api-client", version.ref = "slack" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-jupiter" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit-jupiter" }
+junit-container = { module = "org.testcontainers:junit-jupiter", version.ref = "junit-container" }
+test-containers = { module = "org.testcontainers:postgresql", version.ref = "junit-container" }
 spring-test = { module = "org.springframework.boot:spring-boot-starter-test", version.ref = "spring-boot" }
 spring-webmc = { module = "org.springframework.boot:spring-boot-starter-webmvc-test", version.ref = "spring-boot" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockito-kotlin" }
@@ -74,4 +77,15 @@ logging = [
 postgres = [
     "postgressql",
     "hikariCP"
+]
+
+test = [
+    "junit-container",
+    "junit-jupiter",
+    "junit-jupiter-api",
+    "spring-test",
+    "spring-webmc",
+    "mockito-kotlin",
+    "test-containers",
+    "flyway-core"
 ]

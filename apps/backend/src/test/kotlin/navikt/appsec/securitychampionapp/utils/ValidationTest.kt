@@ -1,8 +1,6 @@
-package navikt.appsec.securitychampionapp
+package navikt.appsec.securitychampionapp.utils
 
-import navikt.appsec.securitychampionapp.utils.Validate
 import org.junit.jupiter.api.Test
-
 
 class ValidationTest {
 

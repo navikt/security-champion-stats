@@ -1,0 +1,26 @@
+slack:
+  token: ""
+  playbook_url: ""
+  sc-channel-id: ""
+  appsec-channel-id: ""
+  appsec-activity-channel-id: ""
+
+spring:
+  profiles:
+    active: test
+  security:
+    token-validation:
+      url: ""
+      identity-provider: ""
+      groups: ""
+
+pointsSystem:
+  amount:
+    meeting: 10
+    message: 5
+    response-message: 2
+  levels:
+    novice: 0
+    apprentice: 100
+    adept: 250
+    expert: 500

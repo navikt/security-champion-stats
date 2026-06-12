@@ -1,4 +1,4 @@
-package navikt.appsec.securitychampionapp
+package navikt.appsec.securitychampionapp.api
 
 import navikt.appsec.securitychampionapp.app.SyncJob
 import navikt.appsec.securitychampionapp.app.api.dto.Member
@@ -11,7 +11,7 @@ import navikt.appsec.securitychampionapp.integrations.slack.dto.UserInfo
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
+import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -21,9 +21,9 @@ import java.time.temporal.ChronoUnit
 
 class SyncJobTest {
 
-    private val repo = mock(PostgresRepository::class.java)
-    private val catalog = mock(TeamCatalog::class.java)
-    private val slackService = mock(SlackService::class.java)
+    private val repo = Mockito.mock(PostgresRepository::class.java)
+    private val catalog = Mockito.mock(TeamCatalog::class.java)
+    private val slackService = Mockito.mock(SlackService::class.java)
 
     private fun syncJob(activityPoints: String = "10") = SyncJob(
         repo = repo,

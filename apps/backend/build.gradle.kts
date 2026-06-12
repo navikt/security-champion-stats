@@ -25,11 +25,7 @@ dependencies {
     implementation(libs.bundles.postgres)
 
     testImplementation(platform(libs.junit.bom))
-    testImplementation(libs.junit.jupiter)
-    testImplementation(libs.spring.test)
-    testImplementation(libs.mockito.kotlin)
-    testImplementation(libs.junit.jupiter.api)
-    testImplementation(libs.spring.webmc)
+    testImplementation(libs.bundles.test)
 }
 
 kotlin {

@@ -1,24 +1,22 @@
-package navikt.appsec.securitychampionapp
+package navikt.appsec.securitychampionapp.api
 
 import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.security.TokenValidationClient
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import org.mockito.Mockito.`when`
 import org.mockito.kotlin.doNothing
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 
 @WebMvcTest(
     AdminController::class,
@@ -30,9 +28,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 )
 @Import(SecurityConfig::class)
 class AdminControllerTest {
-    @Autowired lateinit var mockMvc: MockMvc
-    @MockitoBean lateinit var repo: PostgresRepository
-    @MockitoBean lateinit var tokenValidationClient: TokenValidationClient
+    @Autowired
+    lateinit var mockMvc: MockMvc
+    @MockitoBean
+    lateinit var repo: PostgresRepository
+    @MockitoBean
+    lateinit var tokenValidationClient: TokenValidationClient
 
     val tokenResponse = TokenResponse(
         active = true,
@@ -44,17 +45,21 @@ class AdminControllerTest {
 
     @Test
     fun `Trying access admin endpoint without admin role should return forbidden`() {
-        `when`(tokenValidationClient.validate(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString()
-        )).thenReturn(TokenResponse(
-            true,
-            preferredUsername = "user@nav.no",
-            ident = "test1234",
-            groups = emptyList(),
-            error = null
-        ))
+        Mockito.`when`(
+            tokenValidationClient.validate(
+                Mockito.anyString(),
+                Mockito.anyString(),
+                Mockito.anyString()
+            )
+        ).thenReturn(
+            TokenResponse(
+                true,
+                preferredUsername = "user@nav.no",
+                ident = "test1234",
+                groups = emptyList(),
+                error = null
+            )
+        )
 
         doNothing().`when`(repo).addMember(
             Mockito.anyString(),
@@ -71,18 +76,18 @@ class AdminControllerTest {
         """.trimIndent()
 
         val result = mockMvc.perform (
-            post("/api/admin/member")
+            MockMvcRequestBuilders.post("/api/admin/member")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(request)
         ).andReturn()
 
-        assertThat(result.response.status).isEqualTo(403)
+        Assertions.assertThat(result.response.status).isEqualTo(403)
     }
 
     @Test
     fun `Trying access admin endpoint with admin role should return ok`() {
-        `when`(
+        Mockito.`when`(
             tokenValidationClient.validate(
                 Mockito.anyString(),
                 Mockito.anyString(),
@@ -103,11 +108,11 @@ class AdminControllerTest {
             }
         """.trimIndent()
         val result = mockMvc.perform(
-            post("/api/admin/member")
+            MockMvcRequestBuilders.post("/api/admin/member")
                 .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(request)
-        ).andExpect { status().isCreated() }
+        ).andExpect { MockMvcResultMatchers.status().isCreated() }
             .andReturn()
         val error = result.resolvedException
         assert(error == null)
@@ -117,7 +122,7 @@ class AdminControllerTest {
 
     @Test
     fun `Trying to delete member with admin role should return accepted`() {
-        `when`(
+        Mockito.`when`(
             tokenValidationClient.validate(
                 Mockito.anyString(),
                 Mockito.anyString(),
@@ -127,7 +132,7 @@ class AdminControllerTest {
         doNothing().`when`(repo).deleteMember("test@nav.no")
 
         val result = mockMvc.perform (
-            delete("/api/admin/member/test@nav.no")
+            MockMvcRequestBuilders.delete("/api/admin/member/test@nav.no")
                 .header("Authorization", "Bearer test-token")
         ).andReturn()
 

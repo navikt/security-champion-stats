@@ -34,7 +34,7 @@ class SyncJob(
             if (members.any { member -> member.email == it.email}) {
                 members.remove(members.first { member -> member.email == it.email })
             } else {
-                repo.addMember(it.fullName, it.navIdent, it.email ?: "unknown", teams = it.teamName)
+                repo.addMember(it.fullName, it.navIdent, it.email, teams = it.teamName)
                 slackListToAdd.add(NewSecurityChampion(
                     it.email,
                     it.teamName,

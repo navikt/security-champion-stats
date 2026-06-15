@@ -9,7 +9,7 @@ const members: Member[] = [
 ]
 
 describe("MembersTable", () => {
-    it("should render member rows", () => {
+    it("should render member rows", async () => {
         render(
             <MembersTable
                 members={members}
@@ -18,11 +18,11 @@ describe("MembersTable", () => {
                 canEdit={false}
             />
         )
-        expect(screen.getByText("Alice")).toBeInTheDocument()
-        expect(screen.getByText("Bob")).toBeInTheDocument()
+        expect(await screen.findByText("Alice")).toBeInTheDocument()
+        expect(await screen.findByText("Bob")).toBeInTheDocument()
     })
 
-    it("should show empty state when no members", () => {
+    it("should show empty state when no members", async () => {
         render(
             <MembersTable
                 members={[]}
@@ -31,10 +31,10 @@ describe("MembersTable", () => {
                 canEdit={false}
             />
         )
-        expect(screen.getByText("main.table.noMembers")).toBeInTheDocument()
+        expect(await screen.findByText("main.table.noMembers")).toBeInTheDocument()
     })
 
-    it("should render admin action buttons when canEdit is true", () => {
+    it("should render admin action buttons when canEdit is true", async () => {
         render(
             <MembersTable
                 members={members}
@@ -43,11 +43,11 @@ describe("MembersTable", () => {
                 canEdit={true}
             />
         )
-        const addPointsButtons = screen.getAllByText("main.table.buttons.admin.addPoints")
+        const addPointsButtons = await screen.findAllByText("main.table.buttons.admin.addPoints")
         expect(addPointsButtons).toHaveLength(members.length)
     })
 
-    it("should not render admin action buttons when canEdit is false", () => {
+    it("should not render admin action buttons when canEdit is false", async () => {
         render(
             <MembersTable
                 members={members}
@@ -56,6 +56,7 @@ describe("MembersTable", () => {
                 canEdit={false}
             />
         )
+        expect(await screen.findByText("Alice")).toBeInTheDocument()
         expect(screen.queryByText("main.table.buttons.admin.addPoints")).not.toBeInTheDocument()
     })
 })

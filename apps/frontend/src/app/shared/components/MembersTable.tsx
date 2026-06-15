@@ -22,7 +22,7 @@ function MembersTable({
     const [modalOpenFor, setModalOpenFor] = useState<string | null>(null)
     const pointRef = useRef<HTMLInputElement>(null)
 
-    const handleLevelNames = async (member: Member): Promise<string> => {
+    const handleLevelNames = (member: Member): string => {
         switch (member.level) {
             case "1": return t("main.table.member.level.1")
             case "2": return t("main.table.member.level.2")

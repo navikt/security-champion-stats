@@ -4,8 +4,8 @@ import MembersTable from "./MembersTable"
 import { Member } from "../utils/Variables"
 
 const members: Member[] = [
-    { id: "1", email: "alice@example.com", fullname: "Alice", points: 100 },
-    { id: "2", email: "bob@example.com", fullname: "Bob", points: 50 },
+    { id: "1", email: "alice@example.com", fullname: "Alice", points: 100, level: "1"},
+    { id: "2", email: "bob@example.com", fullname: "Bob", points: 50, level: "2" },
 ]
 
 describe("MembersTable", () => {

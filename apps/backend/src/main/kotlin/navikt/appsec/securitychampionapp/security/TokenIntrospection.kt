@@ -6,25 +6,29 @@ import jakarta.servlet.http.HttpServletResponse
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.USER_ROLE
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Profile
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.web.filter.OncePerRequestFilter
+import org.springframework.stereotype.Component
 
+@Component
+@Profile("!local")
 class TokenIntrospection(
-    val tokenClient: TokenValidationClient,
-    val naisUrl: String,
-    val identityProvider: String,
-    val id: String,
-): OncePerRequestFilter() {
+    @Value($$"${spring.security.token-validation.identity-provider}") private val identityProvider: String,
+    @Value($$"${spring.security.token-validation.url}") private val url: String,
+    @Value($$"${spring.security.token-validation.groups}") private val id: String,
+): AppAuthenticationFilter() {
 
+    private val tokenClient = TokenValidationClient()
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
+
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        log.debug("Starting authentication process for request: ${request.requestURI}, in backend")
         val token = request.getHeader("Authorization")?.trim()
         if (token.isNullOrEmpty() || !token.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
@@ -37,15 +41,13 @@ class TokenIntrospection(
         }
 
         try {
-            val result = tokenClient.validate(naisUrl, rawToken, identityProvider)
+            val result = tokenClient.validate(url, rawToken, identityProvider)
 
             if (!result.active || result.error != null) {
                 log.warn("Token is inactive for request: ${request.requestURI}")
-                log.warn("Result is: active: ${result.active}, error: ${result.error}")
                 handleUnauthenticated(request, response, "inactive_token")
                 return
             }
-            log.info("Token is active for request: ${request.requestURI}, proceeding with authentication")
 
             val navIdent = result.ident
             if (navIdent.isNullOrEmpty()) {

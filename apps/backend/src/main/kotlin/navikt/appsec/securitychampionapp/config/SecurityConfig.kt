@@ -1,8 +1,6 @@
 package navikt.appsec.securitychampionapp.config
 
-import navikt.appsec.securitychampionapp.security.TokenIntrospection
-import navikt.appsec.securitychampionapp.security.TokenValidationClient
-import org.springframework.beans.factory.annotation.Value
+import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -18,21 +16,11 @@ const val USER_ROLE = "USER"
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
-    private val tokenClient: TokenValidationClient,
-    @Value($$"${spring.security.token-validation.identity-provider}") private val identityProvider: String,
-    @Value($$"${spring.security.token-validation.url}") private val url: String,
-    @Value($$"${spring.security.token-validation.groups}") private val groupId: String,
+    private val introspectionFilter: AppAuthenticationFilter,
 ) {
 
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        val introspectionFilter = TokenIntrospection(
-            tokenClient,
-            url,
-            identityProvider,
-            groupId,
-        )
-        print("Security FilterChain: is fired up")
         return http
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }

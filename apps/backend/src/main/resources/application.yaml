@@ -19,6 +19,9 @@ logging:
     org.hibernate.orm.connections.pooling: WARN
 
 spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   security:
     token-validation:
       url: ${NAIS_TOKEN_INTROSPECTION_ENDPOINT}
@@ -46,9 +49,7 @@ spring:
   sql:
     init:
       mode: never
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
+
 
 slack:
     token: ${SLACK_TOKEN}

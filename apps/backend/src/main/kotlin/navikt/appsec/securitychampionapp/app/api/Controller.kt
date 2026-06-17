@@ -92,8 +92,8 @@ class Controller(
                 logger.warn("User with email ${authentication?.name} attempted to leave program with invalid email $email")
                 return ResponseEntity(HttpStatus.BAD_REQUEST)
             }
-            authentication?.name != email && authentication?.authorities?.any { it.authority == "ROLE_$ADMIN_ROLE" } ?: false -> {
-                logger.warn("User with email ${authentication.name} attempted to leave program with email $email")
+            authentication?.name != email -> {
+                logger.warn("User with email ${authentication?.name} attempted to leave program with email $email")
                 return ResponseEntity(HttpStatus.UNAUTHORIZED)
             }
         }

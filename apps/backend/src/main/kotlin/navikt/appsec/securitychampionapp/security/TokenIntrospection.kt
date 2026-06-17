@@ -16,12 +16,12 @@ import org.springframework.stereotype.Component
 @Component
 @Profile("!local")
 class TokenIntrospection(
+    private val tokenClient: TokenValidationClient,
     @Value($$"${spring.security.token-validation.identity-provider}") private val identityProvider: String,
     @Value($$"${spring.security.token-validation.url}") private val url: String,
     @Value($$"${spring.security.token-validation.groups}") private val id: String,
 ): AppAuthenticationFilter() {
 
-    private val tokenClient = TokenValidationClient()
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
 
     override fun doFilterInternal(
@@ -70,7 +70,7 @@ class TokenIntrospection(
                 } else {
                     listOf(SimpleGrantedAuthority("ROLE_$USER_ROLE"))
                 }
-            val authentication = UsernamePasswordAuthenticationToken(preferredUsername, navIdent, authorities)
+            val authentication = UsernamePasswordAuthenticationToken(preferredUsername, null, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
             log.debug("Completed token introspection successfully for request: ${request.requestURI}")

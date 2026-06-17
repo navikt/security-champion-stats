@@ -1,4 +1,4 @@
 CREATE TABLE IF NOT EXISTS SCData(
     id TIMESTAMPTZ PRIMARY KEY,
-    amount INT NOT NULL,
-)
+    amount INT NOT NULL
+);

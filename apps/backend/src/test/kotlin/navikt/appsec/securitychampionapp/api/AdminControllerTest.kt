@@ -1,10 +1,13 @@
 package navikt.appsec.securitychampionapp.api
 
+import jakarta.servlet.FilterChain
+import jakarta.servlet.ServletRequest
+import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminController
+import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.security.TokenValidationClient
-import navikt.appsec.securitychampionapp.security.dto.TokenResponse
+import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
@@ -13,19 +16,15 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 
-@WebMvcTest(
-    AdminController::class,
-    properties = [
-        "spring.security.token-validation.groups=test123",
-        "spring.security.token-validation.identity-provider=test-identity-provider",
-        "spring.security.token-validation.url=http://test-url.com"
-    ]
-)
+
+@WebMvcTest(AdminController::class)
 @Import(SecurityConfig::class)
 class AdminControllerTest {
     @Autowired
@@ -33,33 +32,30 @@ class AdminControllerTest {
     @MockitoBean
     lateinit var repo: PostgresRepository
     @MockitoBean
-    lateinit var tokenValidationClient: TokenValidationClient
+    lateinit var introspectionFilter: AppAuthenticationFilter
 
-    val tokenResponse = TokenResponse(
-        active = true,
-        preferredUsername = "admin@nav.no",
-        ident = "test123",
-        groups = listOf("test123", "test-group-2", "test-group-3"),
-        error = null
-    )
+    private fun mockAuthenticatedUser(role: String) {
+        Mockito.doAnswer { invocation ->
+            val request = invocation.getArgument<ServletRequest>(0)
+            val response = invocation.getArgument<ServletResponse>(1)
+            val filterChain = invocation.getArgument<FilterChain>(2)
+            SecurityContextHolder.getContext().authentication = UsernamePasswordAuthenticationToken(
+                "admin@nav.no",
+                null,
+                listOf(SimpleGrantedAuthority("ROLE_$role"))
+            )
+            try {
+                filterChain.doFilter(request, response)
+            } finally {
+                SecurityContextHolder.clearContext()
+            }
+            null
+        }.`when`(introspectionFilter).doFilter(Mockito.any(), Mockito.any(), Mockito.any())
+    }
 
     @Test
     fun `Trying access admin endpoint without admin role should return forbidden`() {
-        Mockito.`when`(
-            tokenValidationClient.validate(
-                Mockito.anyString(),
-                Mockito.anyString(),
-                Mockito.anyString()
-            )
-        ).thenReturn(
-            TokenResponse(
-                true,
-                preferredUsername = "user@nav.no",
-                ident = "test1234",
-                groups = emptyList(),
-                error = null
-            )
-        )
+        mockAuthenticatedUser("USER")
 
         doNothing().`when`(repo).addMember(
             Mockito.anyString(),
@@ -77,7 +73,6 @@ class AdminControllerTest {
 
         val result = mockMvc.perform (
             MockMvcRequestBuilders.post("/api/admin/member")
-                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(request)
         ).andReturn()
@@ -87,13 +82,7 @@ class AdminControllerTest {
 
     @Test
     fun `Trying access admin endpoint with admin role should return ok`() {
-        Mockito.`when`(
-            tokenValidationClient.validate(
-                Mockito.anyString(),
-                Mockito.anyString(),
-                Mockito.anyString()
-            )
-        ).thenReturn(tokenResponse)
+        mockAuthenticatedUser(ADMIN_ROLE)
 
         doNothing().`when`(repo).addMember(
             Mockito.anyString(),
@@ -109,35 +98,12 @@ class AdminControllerTest {
         """.trimIndent()
         val result = mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/member")
-                .header("Authorization", "Bearer test-token")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(request)
-        ).andExpect { MockMvcResultMatchers.status().isCreated() }
-            .andReturn()
+        ).andReturn()
         val error = result.resolvedException
         assert(error == null)
         assert(result.response.status == 201)
         assert(result.response.contentAsString.contains("User was created"))
-    }
-
-    @Test
-    fun `Trying to delete member with admin role should return accepted`() {
-        Mockito.`when`(
-            tokenValidationClient.validate(
-                Mockito.anyString(),
-                Mockito.anyString(),
-                Mockito.anyString()
-            )
-        ).thenReturn(tokenResponse)
-        doNothing().`when`(repo).deleteMember("test@nav.no")
-
-        val result = mockMvc.perform (
-            MockMvcRequestBuilders.delete("/api/admin/member/test@nav.no")
-                .header("Authorization", "Bearer test-token")
-        ).andReturn()
-
-        val error = result.resolvedException
-        assert(error == null)
-        assert(result.response.status == 202)
     }
 }

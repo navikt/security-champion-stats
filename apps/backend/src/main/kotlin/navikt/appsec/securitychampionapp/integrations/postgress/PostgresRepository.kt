@@ -24,7 +24,7 @@ class PostgresRepository(
                     lastUpdated = rs.getString("update_at"),
                     email = rs.getString("email"),
                     inProgram = rs.getBoolean("inProgram"),
-                    level = rs.getString("level") ?: "1"
+                    level = rs.getString("level") ?: "1",
                 )
             }
             if (args.isEmpty()) {
@@ -66,12 +66,12 @@ class PostgresRepository(
     }
 
     fun getAllMembersInProgram(): List<Member> {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE inProgram = true"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level FROM Members WHERE inProgram = true"
         return queryMembersData(query)
     }
 
     fun getAllMembers(): List<Member> {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram  FROM Members"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level FROM Members"
         return queryMembersData(query)
     }
 
@@ -81,7 +81,7 @@ class PostgresRepository(
     }
 
     fun getMemberByEmail(email: String): Member? {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram FROM Members WHERE email = ?"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level FROM Members WHERE email = ?"
         return queryMembersData(query, email).firstOrNull()
     }
 

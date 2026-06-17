@@ -1,0 +1,3 @@
+ALTER TABLE Members
+    ADD COLUMN level VARCHAR(10),
+    ADD COLUMN teams[ VARCHAR(10) ] DEFAULT '{}',

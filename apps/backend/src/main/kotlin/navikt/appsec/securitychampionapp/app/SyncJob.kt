@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.integrations.slack.SlackService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.RemovedSecurityChampion
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -23,6 +24,7 @@ class SyncJob(
     @Value($$"${slack.appsec-channel-id}") private val appSecId: String,
 ) {
     private val teamUrl = "https://teamkatalog.nav.no/team/"
+    private val log = LoggerFactory.getLogger(SyncJob::class.java)
 
     @Scheduled(cron = "0 0 13 */1 * *")
     fun syncDatabase() {
@@ -61,8 +63,10 @@ class SyncJob(
                 slackService.getUserActivitySummaryByEmail(it.email, listOf(scChannelId, appSecId))
                     .takeIf { summary -> summary.totalMessages > 0 }
                     ?.let { summary ->
+                        log.info("Updating points for ${it.email} with ${summary.totalMessages} messages")
                         val newPoints = it.points + (summary.totalMessages * activityPoints.toInt())
                         repo.addPoints(it.email, newPoints)
+                        log.info("Updated points for ${it.email} to $newPoints")
                     }
             }
         }

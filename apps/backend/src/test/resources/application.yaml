@@ -24,3 +24,7 @@ pointsSystem:
     apprentice: 100
     adept: 250
     expert: 500
+
+jobs:
+  reset-points:
+    cron: 0 0 0 1 1 *

@@ -187,7 +187,7 @@ class SlackService(
                 messagesPerChannel[channelId] = messageCount
             }
         }
-
+        logger.info("SlackActivitySummary for user $email: $totalMessages messages across ${messagesPerChannel.size} channels")
         return SlackActivitySummary(
             userInfo = userInfo,
             inTrackedChannels = channelIds.filter { messagesPerChannel.containsKey(it) },
@@ -216,7 +216,6 @@ class SlackService(
         val request = ChatPostMessageRequest.builder()
             .channel(channelId)
             .text(buildRemovalText(champion, userInfo))
-            .blocks(buildRemovalBlocks(champion, userInfo))
             .build()
 
         val result = withRateLimitRetry { client.chatPostMessage(request) }
@@ -227,34 +226,12 @@ class SlackService(
         }
     }
 
-    private fun buildRemovalBlocks(champion: RemovedSecurityChampion, userInfo: UserInfo): List<LayoutBlock> {
-        val mention = userInfo.userId.takeIf { it.isNotBlank() }
-            ?.let { "<@$it>" }
-            ?: champion.fullName
-
-        val removal = SectionBlock.builder()
-            .text(markdownText("💀 Security Champion fjernet fra ${champion.teamName}\n$mention"))
-
-        userInfo.imageUrl
-            ?.takeIf { it.isNotBlank() }
-            ?.let { imageUrl ->
-                removal.accessory(
-                    ImageElement.builder()
-                        .imageUrl(imageUrl)
-                        .altText(champion.fullName)
-                        .build()
-                )
-            }
-
-        return listOf(removal.build())
-    }
-
     private fun buildRemovalText(champion: RemovedSecurityChampion, userInfo: UserInfo): String {
         val mention = userInfo.userId.takeIf { it.isNotBlank() }
             ?.let { "<@$it>" }
             ?: champion.fullName
 
-        return "💀 Security Champion fjernet fra ${champion.teamName}\n$mention"
+        return "💀 Security Champion fjernet fra ${champion.teamName} team. \n Security Champion: $mention"
     }
 
     fun announceSecurityChampionsRemovedFromSlack(channelId: String = appSecActivityChannelId, champions: List<RemovedSecurityChampion>) {

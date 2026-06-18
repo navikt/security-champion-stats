@@ -95,6 +95,16 @@ class PostgresRepository(
         updateMember(query, points, email)
     }
 
+    fun resetAllPointsAndLevels(): Int {
+        val query = "UPDATE Members SET points = 0, level = '1', update_at = NOW()"
+        return try {
+            jdbcTemplate.update(query)
+        } catch (e: Exception) {
+            logger.error("Failed to reset members due to error: ${e.message}")
+            0
+        }
+    }
+
     fun updateInProgram(email: String, inProgram: Boolean) {
         val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
         updateMember(query, email)

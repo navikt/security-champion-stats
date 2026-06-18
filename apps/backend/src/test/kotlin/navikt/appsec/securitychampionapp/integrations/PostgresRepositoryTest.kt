@@ -123,6 +123,23 @@ class PostgresRepositoryTest {
     }
 
     @Test
+    fun `should reset all member points and levels`() {
+        val originalUpdatedAt = Instant.parse("2026-01-01T00:00:00Z")
+        insertMember(email = "first@nav.no", points = 40, level = "4", updatedAt = originalUpdatedAt)
+        insertMember(email = "second@nav.no", points = 10, level = "2", updatedAt = originalUpdatedAt)
+
+        val updatedRows = repository.resetAllPointsAndLevels()
+
+        assertThat(updatedRows).isEqualTo(2)
+        assertThat(repository.getMemberByEmail("first@nav.no")?.points).isEqualTo(0)
+        assertThat(repository.getMemberByEmail("first@nav.no")?.level).isEqualTo("1")
+        assertThat(repository.getMemberByEmail("second@nav.no")?.points).isEqualTo(0)
+        assertThat(repository.getMemberByEmail("second@nav.no")?.level).isEqualTo("1")
+        assertThat(fetchUpdatedAt("first@nav.no")).isAfter(originalUpdatedAt)
+        assertThat(fetchUpdatedAt("second@nav.no")).isAfter(originalUpdatedAt)
+    }
+
+    @Test
     fun `should not change existing members when adding points to member that does not exist`() {
         insertMember(email = "existing@nav.no", points = 4)
 

@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.api
 
 import navikt.appsec.securitychampionapp.app.SyncJob
 import navikt.appsec.securitychampionapp.app.api.dto.Member
+import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.integrations.slack.SlackService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
@@ -13,6 +14,7 @@ import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWith
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -20,12 +22,14 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class SyncJobTest {
-
+ // TODO: Improve test coverage, as it is now this is basically useless.
+    private val jobLock = Mockito.mock(PostgresJobLock::class.java)
     private val repo = Mockito.mock(PostgresRepository::class.java)
     private val catalog = Mockito.mock(TeamCatalog::class.java)
     private val slackService = Mockito.mock(SlackService::class.java)
 
     private fun syncJob(activityPoints: String = "10") = SyncJob(
+        jobLock = jobLock,
         repo = repo,
         catalog = catalog,
         slackService = slackService,
@@ -34,8 +38,17 @@ class SyncJobTest {
         appSecId = "appsec-channel-id",
     )
 
+    private fun runJobInsideLock() {
+        doAnswer { invocation ->
+            invocation.getArgument<() -> Unit>(2).invoke()
+            null
+        }.whenever(jobLock).runWithLock(any(), any(), any())
+    }
+
     @Test
     fun `should add new members and remove members no longer in team catalog`() {
+        runJobInsideLock()
+
         val existingMember = member(
             id = "existing-id",
             fullname = "Existing Member",
@@ -91,7 +104,9 @@ class SyncJobTest {
     }
 
     @Test
-    fun `should add points when an in-program member has no lastUpdated value and slack activity`() {
+    fun `should add only earned points when an in-program member has no lastUpdated value and slack activity`() {
+        runJobInsideLock()
+
         val member = member(
             id = "member-id",
             fullname = "Security Champion",
@@ -113,11 +128,13 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        verify(repo).addPoints("champion@nav.no", 50)
+        verify(repo).addPoints("champion@nav.no", 30)
     }
 
     @Test
     fun `should skip point updates for recently updated members and members without slack activity`() {
+        runJobInsideLock()
+
         val recentlyUpdatedMember = member(
             id = "recent-id",
             fullname = "Recent Member",
@@ -150,6 +167,16 @@ class SyncJobTest {
             listOf("sc-channel-id", "appsec-channel-id"),
         )
         verify(repo, never()).addPoints(any(), any())
+    }
+
+    @Test
+    fun `should skip sync when another instance already holds the lock`() {
+        syncJob().syncDatabase()
+
+        verify(jobLock).runWithLock(any(), any(), any())
+        verify(repo, never()).getAllMembers()
+        verify(catalog, never()).fetchMembersWithRole()
+        verify(slackService, never()).addSecurityChampionsToSlack(any(), any())
     }
 
     private fun member(

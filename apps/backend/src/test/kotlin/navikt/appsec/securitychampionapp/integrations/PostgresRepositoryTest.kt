@@ -16,6 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 
 
 @Testcontainers
@@ -150,7 +151,7 @@ class PostgresRepositoryTest {
     }
 
     private fun insertMember(
-        id: String = "test-id",
+        id: String = UUID.randomUUID().toString(),
         fullname: String = "Test User",
         email: String,
         points: Int = 0,

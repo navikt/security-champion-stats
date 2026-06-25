@@ -20,7 +20,7 @@ export const Apies = {
         return res.status
     },
     deleteMember: async (email: string) => {
-        const res = await fetch(`/api/admin/member/${email}`)
+        const res = await fetch(`/api/admin/member/${encodeURIComponent(email)}`)
         if (!res.ok) console.error("Failed to delete member, with email: ", email)
         return res.status
     },

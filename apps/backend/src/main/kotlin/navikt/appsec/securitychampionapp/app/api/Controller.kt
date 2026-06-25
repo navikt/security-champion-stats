@@ -57,6 +57,7 @@ class Controller(
         val email = authentication?.name.orEmpty()
         val isAdmin = authentication?.authorities?.any { it.authority == "ROLE_$ADMIN_ROLE" } ?: false
         val inProgram = repo.getMemberByEmail(email)?.inProgram ?: false
+        logger.info("Request to fetch user $email was made")
         return ResponseEntity(Me(email, isAdmin, inProgram), HttpStatus.OK)
     }
 

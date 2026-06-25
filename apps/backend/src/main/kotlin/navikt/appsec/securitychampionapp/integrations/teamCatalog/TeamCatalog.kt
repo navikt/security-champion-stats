@@ -2,20 +2,18 @@ package navikt.appsec.securitychampionapp.integrations.teamCatalog
 
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ProductAreaResponse
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ResourceResponse
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamCatalogTeam
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamResponse
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 
+private const val SECURITY_CHAMPION = "SECURITY_CHAMPION"
 @Service
 class TeamCatalog(
     private val externalServiceWebClient: WebClient,
 ) {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
-
     private fun fetchAllProductAreas(): ProductAreaResponse {
         return try {
             externalServiceWebClient
@@ -79,7 +77,7 @@ class TeamCatalog(
         teamsWithinProduct.forEach { teams ->
             teams.content.forEach { team ->
                 team.members.forEach { member ->
-                    if (member.roles.contains("SECURITY_CHAMPION")) {
+                    if (member.roles.contains(SECURITY_CHAMPION)) {
                         if(securityChamps.any { champ -> champ.email == member.resource.email}) {
                             securityChamps.forEach { champ ->
                                 if(champ.email == member.resource.email) {

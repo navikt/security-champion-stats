@@ -1,5 +1,5 @@
 
-export function createLocalDevToken(email: string = "local.email@nav.no"): string {
+export function createLocalDevToken(email: string = "local.user@nav.no"): string {
     const header = { alg: "none", type: "JWT" }
     const payload = {
         preferred_username: email,
@@ -15,7 +15,7 @@ export function createLocalDevToken(email: string = "local.email@nav.no"): strin
 }
 
 export function createLocalParserResult() {
-    const username = process.env["LOCAL_DEV_EMAIL"] ?? "local.dev@email.com"
+    const username = process.env["LOCAL_DEV_EMAIL"] ?? "local.user@nav.no"
     const groupIds = [process.env["APPSEC_ID"] ?? "1234567", "12345", "11111111" ]
     return {
         "oid": "SomeValue",

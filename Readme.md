@@ -9,5 +9,8 @@ The backend includes a scheduled job that runs every two days, adds new security
 and greets them with a welcome message. Slack welcome posts use the backend config value
 `slack.new-security-champion-url`.
 
+For internal Swagger testing set `SWAGGER_ACCESS_ENABLED=true` and
+`SWAGGER_ACCESS_KEY` in backend environment, then use `X-Swagger-Auth` in Swagger Authorize.
+
 For more information about the application, read the README files in the `apps/backend` and `apps/frontend`
 subdirectories.

@@ -25,7 +25,14 @@ class SecurityConfig(
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests {
-                it.requestMatchers("/auth/**", "/actuator/health", "/internal/local-auth/**").permitAll()
+                it.requestMatchers(
+                    "/auth/**",
+                    "/actuator/health",
+                    "/internal/local-auth/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**"
+                ).permitAll()
                 it.requestMatchers("/api/admin/**").hasRole(ADMIN_ROLE)
                 it.anyRequest().authenticated()
             }

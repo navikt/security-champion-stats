@@ -1,9 +1,12 @@
 package navikt.appsec.securitychampionapp.config
 
+import io.swagger.v3.oas.models.Components
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.info.Contact
 import io.swagger.v3.oas.models.info.Info
 import io.swagger.v3.oas.models.info.License
+import io.swagger.v3.oas.models.security.SecurityRequirement
+import io.swagger.v3.oas.models.security.SecurityScheme
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -20,5 +23,17 @@ open class SwaggerConfig {
                     .description("API for managing Security Champion statistics")
                     .contact(Contact().name("AppSec Team"))
                     .license(License().name("MIT License").url("https://opensource.org/licenses/MIT"))
+            )
+            .addSecurityItem(SecurityRequirement().addList("Swagger Access Key"))
+            .components(
+                Components()
+                    .addSecuritySchemes(
+                        "Swagger Access Key",
+                        SecurityScheme()
+                            .type(SecurityScheme.Type.APIKEY)
+                            .`in`(SecurityScheme.In.HEADER)
+                            .name("X-Swagger-Auth")
+                            .description("Internal testing key to access API without Bearer token")
+                    )
             )
 }

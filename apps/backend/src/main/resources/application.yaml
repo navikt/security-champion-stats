@@ -27,6 +27,9 @@ spring:
       url: ${NAIS_TOKEN_INTROSPECTION_ENDPOINT}
       identity-provider: entra_id
       groups: d633d27b-a470-4b9d-984e-85499f126e18
+    swagger-access:
+      enabled: ${SWAGGER_ACCESS_ENABLED:false}
+      key: ${SWAGGER_ACCESS_KEY}
   profiles:
     active: prod
   jackson:
@@ -57,7 +60,6 @@ slack:
     appsec-channel-id: ${SLACK_APPSEC_CHANNEL_ID}
     appsec-activity-channel-id: ${SLACK_APPSEC_ACTIVITY_CHANNEL_ID}
     playbook_url: https://sikkerhet.nav.no/docs/ny-security-champion/
-
 graph:
     apiUrl: https://graph.microsoft.com/v1.0
 

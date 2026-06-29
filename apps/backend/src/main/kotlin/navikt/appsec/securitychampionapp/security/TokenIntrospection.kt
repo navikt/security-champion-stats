@@ -20,8 +20,6 @@ class TokenIntrospection(
     @Value($$"${spring.security.token-validation.identity-provider}") private val identityProvider: String,
     @Value($$"${spring.security.token-validation.url}") private val url: String,
     @Value($$"${spring.security.token-validation.groups}") private val id: String,
-    @Value($$"${spring.security.swagger-access.enabled:false}") private val swaggerAccessEnabled: Boolean,
-    @Value($$"${spring.security.swagger-access.key:}") private val swaggerAccessKey: String,
 ): AppAuthenticationFilter() {
 
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
@@ -31,22 +29,6 @@ class TokenIntrospection(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        if (isValidSwaggerAccess(request)) {
-            val authentication = UsernamePasswordAuthenticationToken(
-                "swagger-user@nav.no",
-                null,
-                listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
-            )
-            SecurityContextHolder.getContext().authentication = authentication
-            filterChain.doFilter(request, response)
-            return
-        }
-
-        if (swaggerAccessEnabled && request.getHeader("X-Swagger-Auth") != null) {
-            handleUnauthenticated(request, response, "invalid_swagger_access_key")
-            return
-        }
-
         val token = request.getHeader("Authorization")?.trim()
         if (token.isNullOrEmpty() || !token.startsWith("Bearer ", ignoreCase = true)) {
             handleUnauthenticated(request, response, "missing_or_invalid_authorization_header")
@@ -113,13 +95,5 @@ class TokenIntrospection(
             response.contentType = "application/json"
             response.writer.write("""{"error":"unauthorized", "reason":"$reason"}""")
         }
-    }
-
-    private fun isValidSwaggerAccess(request: HttpServletRequest): Boolean {
-        if (!swaggerAccessEnabled || swaggerAccessKey.isBlank()) {
-            return false
-        }
-        val providedKey = request.getHeader("X-Swagger-Auth")?.trim()
-        return providedKey == swaggerAccessKey
     }
 }

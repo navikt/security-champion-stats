@@ -24,16 +24,15 @@ open class SwaggerConfig {
                     .contact(Contact().name("AppSec Team"))
                     .license(License().name("MIT License").url("https://opensource.org/licenses/MIT"))
             )
-            .addSecurityItem(SecurityRequirement().addList("Swagger Access Key"))
+            .addSecurityItem(SecurityRequirement().addList("Bearer Token"))
             .components(
                 Components()
-                    .addSecuritySchemes(
-                        "Swagger Access Key",
+                    .addSecuritySchemes("Bearer Token",
                         SecurityScheme()
-                            .type(SecurityScheme.Type.APIKEY)
-                            .`in`(SecurityScheme.In.HEADER)
-                            .name("X-Swagger-Auth")
-                            .description("Internal testing key to access API without Bearer token")
+                            .type(SecurityScheme.Type.HTTP)
+                            .scheme("bearer")
+                            .bearerFormat("JWT")
+                            .description("Enter your Bearer token here")
                     )
             )
 }

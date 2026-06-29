@@ -14,8 +14,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@grafana/faro-web-sdk": "^2.6.3",
-    "@grafana/faro-web-tracing": "^2.6.3",
+    "@grafana/faro-web-sdk": "^2.8.1",
+    "@grafana/faro-web-tracing": "^2.8.1",
     "@navikt/aksel-icons": "^8.10.6",
     "@navikt/ds-css": "^8.10.6",
     "@navikt/ds-react": "^8.10.6",
@@ -35,10 +35,9 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.7.0",
-    "babel-plugin-react-compiler": "1.0.0",
+    "@vitejs/plugin-react-swc": "^3.10.0",
     "jsdom": "^26.1.0",
     "typescript": "^6.0.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.6"
   }
 }

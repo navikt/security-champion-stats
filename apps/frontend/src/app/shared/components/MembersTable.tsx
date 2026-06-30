@@ -24,11 +24,11 @@ function MembersTable({
 
     const handleLevelNames = (member: Member): string => {
         switch (member.level) {
-            case "1": return t("main.table.member.level.1")
-            case "2": return t("main.table.member.level.2")
-            case "3": return t("main.table.member.level.3")
-            case "4": return t("main.table.member.level.4")
-            default: return t("main.table.member.level.1")
+            case "1": return t("main.table.levels.1")
+            case "2": return t("main.table.levels.2")
+            case "3": return t("main.table.levels.3")
+            case "4": return t("main.table.levels.4")
+            default: return t("main.table.levels.1")
         }
     }
 

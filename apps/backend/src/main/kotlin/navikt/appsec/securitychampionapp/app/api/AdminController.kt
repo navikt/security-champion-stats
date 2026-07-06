@@ -4,6 +4,8 @@ import navikt.appsec.securitychampionapp.integrations.postgress.PostgresReposito
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -23,6 +25,7 @@ import java.util.UUID
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: PostgresRepository,
+    private val catalog: TeamCatalog,
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
     private val validate = Validate()
@@ -65,5 +68,11 @@ class AdminController(
     fun getAllMembers(): ResponseEntity<List<SCdata>> {
         // TODO: Add support for specific dates.
         return ResponseEntity.ok(repo.getSCAmountOverTime())
+    }
+
+    @GetMapping("/test/team/members")
+    fun getAllMembersFromTeamCatalog(): ResponseEntity<List<MemberWithTeamData>> {
+        val teamCatalogMembers = catalog.fetchMembersWithRole()
+        return ResponseEntity.ok(teamCatalogMembers)
     }
 }

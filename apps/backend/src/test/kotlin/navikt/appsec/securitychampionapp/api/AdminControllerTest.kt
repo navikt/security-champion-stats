@@ -7,6 +7,7 @@ import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
@@ -33,6 +34,8 @@ class AdminControllerTest {
     lateinit var repo: PostgresRepository
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+    @MockitoBean
+    lateinit var catalog: TeamCatalog
 
     private fun mockAuthenticatedUser(role: String) {
         Mockito.doAnswer { invocation ->

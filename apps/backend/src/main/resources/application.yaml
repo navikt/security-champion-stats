@@ -65,6 +65,10 @@ springdoc:
   api-docs:
     enabled: true
 
+swagger:
+  username: admin
+  password: ${SWAGGER_PASSWORD:swagger123}
+
 pointsSystem:
   amount:
     meeting: 2

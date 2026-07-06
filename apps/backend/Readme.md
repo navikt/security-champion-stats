@@ -47,6 +47,15 @@ To run the backend application, follow these steps:
 4. Mint a token for local calls: `curl -X POST http://localhost:8080/auth/local/token -H 'Content-Type: application/json' -d '{"navIdent":"Z12345","preferredUsername":"user@nav.no","groups":["local-admin-group"]}'`
 5. Use the returned value as `Authorization: Bearer <token>` when calling `http://localhost:8080`.
 6. To run tests, use the command: `./gradlew test`
+7. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
+
+In production, Swagger endpoints are protected with Basic Authentication. Configure credentials in `application.yaml`:
+```yaml
+swagger:
+  username: admin
+  password: your-secure-password
+```
+Access Swagger UI via browser at `http://localhost:8080/swagger-ui.html` and use the configured credentials when prompted.
 
 This is best run together with the frontend application so you can see the data in the UI. To run the frontend
 application, follow the instructions in `apps/frontend/Readme.md`.

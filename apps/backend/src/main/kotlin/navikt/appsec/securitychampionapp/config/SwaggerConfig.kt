@@ -24,15 +24,14 @@ open class SwaggerConfig {
                     .contact(Contact().name("AppSec Team"))
                     .license(License().name("MIT License").url("https://opensource.org/licenses/MIT"))
             )
-            .addSecurityItem(SecurityRequirement().addList("Bearer Token"))
+            .addSecurityItem(SecurityRequirement().addList("Basic Auth"))
             .components(
                 Components()
-                    .addSecuritySchemes("Bearer Token",
+                    .addSecuritySchemes("Basic Auth",
                         SecurityScheme()
                             .type(SecurityScheme.Type.HTTP)
-                            .scheme("bearer")
-                            .bearerFormat("JWT")
-                            .description("Enter your Bearer token here")
+                            .scheme("basic")
+                            .description("Basic authentication for Swagger endpoints")
                     )
             )
 }

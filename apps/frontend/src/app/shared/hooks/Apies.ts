@@ -16,12 +16,14 @@ export const Apies = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ "email": email, "fullname": fullname }),
         })
-        if (!res.ok) console.error("Failed to add member, with email: ", email)
+        if (!res.ok) console.error("Failed to add member, with status code ", res.status)
         return res.status
     },
     deleteMember: async (email: string) => {
-        const res = await fetch(`/api/admin/member/${encodeURIComponent(email)}`)
-        if (!res.ok) console.error("Failed to delete member, with email: ", email)
+        const res = await fetch(`/api/admin/member/${encodeURIComponent(email)}`, {
+            method: "DELETE",
+        })
+        if (!res.ok) console.error("Failed to delete member, with status code ", res.status)
         return res.status
     },
     addPoints: async (email: string, amount: number) => {
@@ -30,7 +32,7 @@ export const Apies = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ "email": email, "amount": amount }),
         })
-        if (!res.ok) console.error("Failed to add points, for user: ", email)
+        if (!res.ok) console.error("Failed to add points, with status code: ", res.status)
         return res.status
     },
     joinProgram: async (email: string) => {
@@ -40,7 +42,7 @@ export const Apies = {
             body: JSON.stringify({ "email" : email }),
         })
 
-        if (!res.ok) console.error("Failed to join program, for user: ", email)
+        if (!res.ok) console.error("Failed to join a member to the program, with status code: ", res.status)
         return res.status
     },
     validatePerson: async(): Promise<Me> => {
@@ -57,7 +59,7 @@ export const Apies = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ "email": email })
         })
-        if (!res.ok) console.error("Failed to leave program, for user: ", email)
+        if (!res.ok) console.error("Failed to leave the program, with status code: ", res.status)
 
         return res.status
     },

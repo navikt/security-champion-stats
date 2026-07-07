@@ -26,20 +26,14 @@ class TokenIntrospection(
 ): AppAuthenticationFilter() {
 
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
-    private val SWAGGER_PATHS = listOf(
-        "/swagger-ui",
-        "/v3/api-docs",
-        "/swagger-resources"
-    )
+
 
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        val requestPath = request.requestURI
-
-        if (isSwaggerPath(requestPath) && validateSwaggerBasicAuth(request)) {
+        if (validateSwaggerBasicAuth(request)) {
             val authentication = UsernamePasswordAuthenticationToken(
                 "swagger-user", null, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
             )
@@ -97,12 +91,6 @@ class TokenIntrospection(
             log.error("Token validation failed due to error: $e")
             handleUnauthenticated(request, response, "validation_error")
         }
-    }
-
-    private fun isSwaggerPath(requestPath: String): Boolean {
-        logger.info("Checking if request path is swagger path: $requestPath")
-        logger.info("Checking if this returns true: ${SWAGGER_PATHS.any { it in requestPath }}")
-        return SWAGGER_PATHS.any { it in requestPath }
     }
 
     private fun validateSwaggerBasicAuth(request: HttpServletRequest): Boolean {

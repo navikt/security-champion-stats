@@ -27,6 +27,16 @@ class TokenIntrospection(
 
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
 
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        val path = request.servletPath
+
+        return path.startsWith("/auth/") ||
+                path.startsWith("/actuator/health") ||
+                path.startsWith("/internal/local-auth/") ||
+                path.startsWith("/swagger-ui/") ||
+                path.startsWith("/swagger-ui.html") ||
+                path.startsWith("/v3/api-docs/")
+    }
 
     override fun doFilterInternal(
         request: HttpServletRequest,

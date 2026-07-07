@@ -41,7 +41,7 @@ class TokenIntrospection(
 
         if (isSwaggerPath(requestPath) && validateSwaggerBasicAuth(request)) {
             val authentication = UsernamePasswordAuthenticationToken(
-                "swagger-user", null, listOf(SimpleGrantedAuthority("ROLE_$USER_ROLE"))
+                "swagger-user", null, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
             )
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
@@ -101,14 +101,16 @@ class TokenIntrospection(
 
     private fun isSwaggerPath(requestPath: String): Boolean {
         logger.info("Checking if request path is swagger path: $requestPath")
+        logger.info("Checking if this returns true: ${SWAGGER_PATHS.any { it in requestPath }}")
         return SWAGGER_PATHS.any { it in requestPath }
     }
 
     private fun validateSwaggerBasicAuth(request: HttpServletRequest): Boolean {
-        val authHeader = request.getHeader("Authorization") ?: return true // Allow without auth
+        logger.info("Validating swagger basic auth for request: ${request.requestURI} with auth header: ${request.getHeader("Authorization")}")
+        val authHeader = request.getHeader("Authorization") ?: return false
 
         if (!authHeader.startsWith("Basic ", ignoreCase = true)) {
-            return true
+            return false
         }
 
         return try {

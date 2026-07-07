@@ -26,7 +26,7 @@ class TokenIntrospection(
 ): AppAuthenticationFilter() {
 
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
-    private val SWAGGER_PATHS = setOf(
+    private val SWAGGER_PATHS = listOf(
         "/swagger-ui",
         "/v3/api-docs",
         "/swagger-resources"
@@ -101,7 +101,7 @@ class TokenIntrospection(
 
     private fun isSwaggerPath(requestPath: String): Boolean {
         logger.info("Checking if request path is swagger path: $requestPath")
-        return SWAGGER_PATHS.any { requestPath.contains(it) }
+        return SWAGGER_PATHS.any { it in requestPath }
     }
 
     private fun validateSwaggerBasicAuth(request: HttpServletRequest): Boolean {

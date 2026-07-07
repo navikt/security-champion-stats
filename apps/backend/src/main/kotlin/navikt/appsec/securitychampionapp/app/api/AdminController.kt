@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
+private const val POINTS_FOR_MEETING = 4
+
 @RestController
 @RequestMapping("/api/admin")
 class AdminController(
@@ -74,5 +76,13 @@ class AdminController(
     fun getAllMembersFromTeamCatalog(): ResponseEntity<List<MemberWithTeamData>> {
         val teamCatalogMembers = catalog.fetchMembersWithRole()
         return ResponseEntity.ok(teamCatalogMembers)
+    }
+
+    @PostMapping("/meetig/member/{email}")
+    fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
+        val member = repo.getMemberByEmail(email)
+        val updatedPoints = (member?.points ?: 0) + POINTS_FOR_MEETING
+        repo.addPoints(email, updatedPoints)
+        return ResponseEntity.ok().build()
     }
 }

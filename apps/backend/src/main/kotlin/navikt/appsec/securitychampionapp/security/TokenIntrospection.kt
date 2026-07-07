@@ -100,6 +100,7 @@ class TokenIntrospection(
     }
 
     private fun isSwaggerPath(requestPath: String): Boolean {
+        logger.info("Checking if request path is swagger path: $requestPath")
         return SWAGGER_PATHS.any { requestPath.contains(it) }
     }
 
@@ -111,6 +112,7 @@ class TokenIntrospection(
         }
 
         return try {
+            logger.info("Validating swagger basic auth credentials for request: $authHeader")
             val encodedCredentials = authHeader.substringAfter(" ").trim()
             val decodedCredentials = String(Base64.getDecoder().decode(encodedCredentials))
             val (username, password) = decodedCredentials.split(":", limit = 2)

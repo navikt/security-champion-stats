@@ -31,7 +31,7 @@ class SecurityConfig(
                     "/internal/local-auth/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
-                    "/v3/api-docs/"
+                    "/v3/api-docs/**"
                 ).permitAll()
                 it.requestMatchers("/api/admin/**").hasRole(ADMIN_ROLE)
                 it.anyRequest().authenticated()

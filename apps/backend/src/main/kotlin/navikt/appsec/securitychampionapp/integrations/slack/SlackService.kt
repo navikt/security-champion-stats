@@ -39,7 +39,10 @@ class SlackService(
                 user.email(email)
             }
         }
-        if (!result.isOk) return UserInfo("", "")
+        if (!result.isOk) {
+            logger.warn("Failed to resolve user ID for email $email, error: ${result.error}")
+            return UserInfo("", "")
+        }
         return UserInfo(
             userId = result.user.id,
             fullname = result.user.realName ?: result.user.name,

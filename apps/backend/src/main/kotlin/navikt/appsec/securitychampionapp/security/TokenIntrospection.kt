@@ -26,16 +26,18 @@ class TokenIntrospection(
 ): AppAuthenticationFilter() {
 
     private val log = LoggerFactory.getLogger(TokenIntrospection::class.java)
-
+    private val publicPaths = listOf(
+        "/auth",
+        "/actuator/health",
+        "/internal/local-auth",
+        "/swagger-ui",
+        "/swagger-ui.html",
+        "/v3/api-docs"
+    )
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
         val path = request.servletPath
 
-        return path.startsWith("/auth/") ||
-                path.startsWith("/actuator/health") ||
-                path.startsWith("/internal/local-auth/") ||
-                path.startsWith("/swagger-ui/") ||
-                path.startsWith("/swagger-ui.html") ||
-                path.startsWith("/v3/api-docs/")
+        return publicPaths.any { path.startsWith(it) }
     }
 
     override fun doFilterInternal(

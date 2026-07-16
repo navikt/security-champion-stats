@@ -4,8 +4,8 @@ import navikt.appsec.securitychampionapp.integrations.postgress.PostgresReposito
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
+import navikt.appsec.securitychampionapp.integrations.slack.SlackService
+import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -27,7 +27,7 @@ private const val POINTS_FOR_MEETING = 4
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: PostgresRepository,
-    private val catalog: TeamCatalog,
+    private val slackService: SlackService
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
     private val validate = Validate()
@@ -72,10 +72,25 @@ class AdminController(
         return ResponseEntity.ok(repo.getSCAmountOverTime())
     }
 
-    @GetMapping("/test/team/members")
-    fun getAllMembersFromTeamCatalog(): ResponseEntity<List<MemberWithTeamData>> {
-        val teamCatalogMembers = catalog.fetchMembersWithRole()
-        return ResponseEntity.ok(teamCatalogMembers)
+    @PostMapping("/test/member/add/slack/{email}")
+    fun addMemberToSlack(@PathVariable email: String): ResponseEntity<Any> {
+        var member = repo.getMemberByEmail(email)
+        if (member == null) {
+            repo.addMember("Paulius Deveika", id = UUID.randomUUID().toString(), email, listOf("appsec"))
+            member = repo.getMemberByEmail(email)
+        }
+        slackService.addSecurityChampionsToSlack(
+            "C0314EZ719S",
+            listOf(
+                NewSecurityChampion(
+                    email = member!!.email,
+                    teamNames = member.teams,
+                    fullName = member.fullname
+                )
+            )
+        )
+
+        return ResponseEntity.ok().build()
     }
 
     @PostMapping("/meetig/member/{email}")

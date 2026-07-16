@@ -35,7 +35,15 @@ class Controller(
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
         logger.info("Request to fetch all members was made")
-        val members = repo.getAllMembersInProgram()
+        var members = repo.getAllMembersInProgram().map {
+            Member(
+                it.id,
+                it.fullname,
+                it.points,
+                it.email,
+                it.level
+            )
+        }
         return if (members.isEmpty() && activeProfiles != "local") {
             catalog.fetchMembersWithRole().forEach {
                 repo.addMember(
@@ -45,7 +53,16 @@ class Controller(
                     teams = it.teamName
                 )
             }
-            ResponseEntity(repo.getAllMembersInProgram(), HttpStatus.OK)
+            members = repo.getAllMembersInProgram().map {
+                Member(
+                    it.id,
+                    it.fullname,
+                    it.points,
+                    it.email,
+                    it.level
+                )
+            }
+            ResponseEntity(members, HttpStatus.OK)
         } else {
             ResponseEntity(members, HttpStatus.OK)
         }

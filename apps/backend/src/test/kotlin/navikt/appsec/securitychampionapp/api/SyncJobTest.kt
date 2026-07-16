@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionapp.app.SyncJob
 import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.slack.SlackService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.RemovedSecurityChampion
@@ -53,11 +54,13 @@ class SyncJobTest {
             id = "existing-id",
             fullname = "Existing Member",
             email = "existing@nav.no",
+            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString()
         )
         val removedMember = member(
             id = "removed-id",
             fullname = "Removed Member",
             email = "removed@nav.no",
+            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString()
         )
 
         whenever(repo.getAllMembers()).thenReturn(listOf(existingMember, removedMember))
@@ -111,7 +114,7 @@ class SyncJobTest {
             id = "member-id",
             fullname = "Security Champion",
             points = 20,
-            lastUpdated = null,
+            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString(),
             email = "champion@nav.no",
             inProgram = true,
         )
@@ -183,16 +186,18 @@ class SyncJobTest {
         id: String,
         fullname: String,
         points: Int = 0,
-        lastUpdated: String? = null,
+        lastUpdated: String,
         email: String,
         inProgram: Boolean = false,
-    ) = Member(
+    ) = SqlMember(
         id = id,
         fullname = fullname,
         points = points,
         lastUpdated = lastUpdated,
         email = email,
         inProgram = inProgram,
+        level = "1",
+        teams = emptyList()
     )
 
     private fun catalogMember(

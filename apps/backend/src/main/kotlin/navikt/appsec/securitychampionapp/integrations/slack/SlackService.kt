@@ -40,8 +40,7 @@ class SlackService(
             }
         }
         if (!result.isOk) {
-            logger.warn("Failed to resolve user ID for email $email, error: ${result.error}")
-            return UserInfo("", "")
+            return UserInfo("", "", error = result.error)
         }
         return UserInfo(
             userId = result.user.id,
@@ -177,7 +176,8 @@ class SlackService(
                 userInfo = UserInfo("", ""),
                 inTrackedChannels = listOf(""),
                 messagesPerChannel = emptyMap(),
-                totalMessages = 0
+                totalMessages = 0,
+                error = userInfo.error
             )
         }
 
@@ -190,7 +190,6 @@ class SlackService(
                 messagesPerChannel[channelId] = messageCount
             }
         }
-        logger.info("SlackActivitySummary for user $email: $totalMessages messages across ${messagesPerChannel.size} channels")
         return SlackActivitySummary(
             userInfo = userInfo,
             inTrackedChannels = channelIds.filter { messagesPerChannel.containsKey(it) },
@@ -205,7 +204,7 @@ class SlackService(
             .forEach { champion ->
                 val userInfo = resolveUserIdByEmail(champion.email)
                 if (userInfo.userId.isBlank()) {
-                    logger.warn("Unable to find Slack user for ${champion.email}")
+                    logger.error("Failed to resolve user ID for ${champion.email} with error: ${userInfo.error}")
                     return@forEach
                 }
 

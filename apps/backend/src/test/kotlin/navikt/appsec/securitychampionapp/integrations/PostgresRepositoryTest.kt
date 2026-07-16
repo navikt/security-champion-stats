@@ -70,12 +70,13 @@ class PostgresRepositoryTest {
 
     @Test
     fun `should read member including level from flyway migrated schema`() {
-        insertMember(email = "test@nav.no", level = "2")
+        insertMember(email = "test@nav.no", level = "2", teams = listOf("team-a", "team-b"))
 
         val member = repository.getMemberByEmail("test@nav.no")
 
         assertThat(member).isNotNull()
         assertThat(member?.level).isEqualTo("2")
+        assertThat(member?.teams).isEqualTo(listOf("team-a", "team-b"))
     }
 
     @Test

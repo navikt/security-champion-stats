@@ -1,7 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
-import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -14,17 +14,21 @@ private val logger = LoggerFactory.getLogger(PostgresRepository::class.java)
 class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
-    private fun queryMembersData(query: String, vararg args: Any): List<Member> {
+    private fun queryMembersData(query: String, vararg args: Any): List<SqlMember> {
         return try {
             val rowMapper = RowMapper { rs, _ ->
-                Member(
+                val teams = (rs.getArray("teams")?.array as? Array<*>)
+                    ?.mapNotNull { team -> team?.toString() }
+                    ?: emptyList()
+                SqlMember(
                     id = rs.getString("id"),
                     fullname = rs.getString("fullname"),
                     points = rs.getInt("points"),
                     lastUpdated = rs.getString("update_at"),
                     email = rs.getString("email"),
                     inProgram = rs.getBoolean("inProgram"),
-                    level = rs.getString("level") ?: "1",
+                    level = rs.getString("level"),
+                    teams = teams
                 )
             }
             if (args.isEmpty()) {
@@ -65,13 +69,13 @@ class PostgresRepository(
         }
     }
 
-    fun getAllMembersInProgram(): List<Member> {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level FROM Members WHERE inProgram = true"
+    fun getAllMembersInProgram(): List<SqlMember> {
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE inProgram = true"
         return queryMembersData(query)
     }
 
-    fun getAllMembers(): List<Member> {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level FROM Members"
+    fun getAllMembers(): List<SqlMember> {
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members"
         return queryMembersData(query)
     }
 
@@ -80,8 +84,8 @@ class PostgresRepository(
         updateMember(query, id, fullname, email, teams)
     }
 
-    fun getMemberByEmail(email: String): Member? {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level FROM Members WHERE email = ?"
+    fun getMemberByEmail(email: String): SqlMember? {
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE email = ?"
         return queryMembersData(query, email).firstOrNull()
     }
 

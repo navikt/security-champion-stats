@@ -7,9 +7,7 @@ data class Member(
     val id: String,
     val fullname: String,
     val points: Int,
-    val lastUpdated: String?,
     val email: String,
-    val inProgram: Boolean = false,
     val level: String = "1"
 )
 

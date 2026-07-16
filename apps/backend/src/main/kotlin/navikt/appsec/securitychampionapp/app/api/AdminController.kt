@@ -93,7 +93,7 @@ class AdminController(
         return ResponseEntity.ok().build()
     }
 
-    @PostMapping("/meetig/member/{email}")
+    @PostMapping("/member/attended/{email}")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
         val member = repo.getMemberByEmail(email)
         val updatedPoints = (member?.points ?: 0) + POINTS_FOR_MEETING

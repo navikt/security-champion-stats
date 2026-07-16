@@ -52,9 +52,9 @@ class LocalTokenIntrospection : AppAuthenticationFilter() {
         val authentication = UsernamePasswordAuthenticationToken(
             result.preferredUsername!!, result.ident, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
         )
+        logger.info("Completed token introspection successfully for local request: ${request.requestURI}")
         SecurityContextHolder.getContext().authentication = authentication
         filterChain.doFilter(request, response)
-        logger.debug("Completed token introspection successfully for local request: ${request.requestURI}")
     }
 
     private fun isSwaggerPath(requestPath: String): Boolean {

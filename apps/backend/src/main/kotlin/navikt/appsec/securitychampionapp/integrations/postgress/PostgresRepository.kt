@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlTextArray
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -27,7 +28,7 @@ class PostgresRepository(
                     lastUpdated = rs.getString("update_at"),
                     email = rs.getString("email"),
                     inProgram = rs.getBoolean("inProgram"),
-                    level = rs.getString("level"),
+                    level = rs.getString("level") ?: "1",
                     teams = teams
                 )
             }
@@ -61,16 +62,39 @@ class PostgresRepository(
         }
     }
 
-    private fun updateMember(query: String, vararg args: Any) {
+    private fun executeUpdate(query: String, vararg args: Any) {
         try {
-            jdbcTemplate.update(query, *args)
+            jdbcTemplate.update { connection ->
+                connection.prepareStatement(query).apply {
+                    args.forEachIndexed { index, value ->
+                        val paramIndex = index + 1
+
+                        when (value) {
+                            null -> setObject(paramIndex, null)
+                            is SqlTextArray -> setArray(
+                                paramIndex,
+                                connection.createArrayOf(
+                                    "text",
+                                    value.value.toTypedArray()
+                                )
+                            )
+                            else -> setObject(paramIndex, value)
+                        }
+                    }
+                }
+            }
         } catch (e: Exception) {
-            logger.error("Failed to update member due to error: ${e.message}")
+            logger.error(
+                "Failed SQL: {}, arguments: {}",
+                query,
+                args.contentToString(),
+                e
+            )
         }
     }
 
     fun getAllMembersInProgram(): List<SqlMember> {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE inProgram = true"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE inProgram = false"
         return queryMembersData(query)
     }
 
@@ -80,8 +104,8 @@ class PostgresRepository(
     }
 
     fun addMember(fullname: String, id: String, email: String, teams: List<String>) {
-        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, '1', ?)"
-        updateMember(query, id, fullname, email, teams)
+        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, '1', '?')"
+        executeUpdate(query, id, fullname, email, SqlTextArray(teams))
     }
 
     fun getMemberByEmail(email: String): SqlMember? {
@@ -91,12 +115,12 @@ class PostgresRepository(
 
     fun deleteMember(email: String) {
         val query = "DELETE FROM Members WHERE email = ?"
-        updateMember(query, email)
+        executeUpdate(query, email)
     }
 
     fun addPoints(email: String, points: Int){
         val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE email = ?"
-        updateMember(query, points, email)
+        executeUpdate(query, points, email)
     }
 
     fun resetAllPointsAndLevels(): Int {
@@ -111,7 +135,7 @@ class PostgresRepository(
 
     fun updateInProgram(email: String, inProgram: Boolean) {
         val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
-        updateMember(query, email)
+        executeUpdate(query, email)
     }
 
     fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {

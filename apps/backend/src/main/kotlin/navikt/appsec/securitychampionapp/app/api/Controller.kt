@@ -31,7 +31,6 @@ class Controller(
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
 
-    // TODO: Might need to alter the Member sql
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
         logger.info("Request to fetch all members was made")

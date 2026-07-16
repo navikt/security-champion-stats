@@ -5,6 +5,18 @@ services:
     container_name: postgres
     ports:
       - "5432:5432"
+    command:
+      - postgres
+      - -c
+      - log_statement=all
+      - -c
+      - log_min_error_statement=error
+      - -c
+      - log_error_verbosity=verbose
+      - -c
+      - log_destination=stderr
+      - -c
+      - logging_collector=off
     environment:
       POSTGRES_USER: security
       POSTGRES_PASSWORD: champion

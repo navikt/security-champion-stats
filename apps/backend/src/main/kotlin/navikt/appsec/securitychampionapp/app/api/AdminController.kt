@@ -34,6 +34,7 @@ class AdminController(
 
     @PostMapping("/member", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun addMember(@RequestBody memberInfo: AddMember): ResponseEntity<Any>{
+        // TODO: Fix adding member by finding them first in teamcatalog and then adding them, by doing checks like if they are SC and so on
         if (!validate.isValidEmail(memberInfo.email) or !validate.isValidName(memberInfo.fullname)) {
             logger.warn("Attempt to add member failed due to invalid email format, " +
                     "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
@@ -44,14 +45,9 @@ class AdminController(
         return ResponseEntity("User was created", HttpStatus.CREATED)
     }
 
-    @DeleteMapping("/member/{email}")
-    fun deleteMember(@PathVariable email: String): ResponseEntity<Any>{
-        if (!validate.isValidEmail(email)) {
-            logger.warn("Attempt to delete member failed due to invalid email format, " +
-                    "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
-            return ResponseEntity.status(HttpStatus.ACCEPTED).build()
-        }
-        repo.deleteMember(email)
+    @DeleteMapping("/member/{id}")
+    fun deleteMember(@PathVariable id: String): ResponseEntity<Any>{
+        repo.deleteMember(id)
         return ResponseEntity.status(HttpStatus.ACCEPTED).build()
     }
 

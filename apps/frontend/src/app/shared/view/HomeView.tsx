@@ -13,7 +13,6 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     const [members, setMembers] = useState<Member[]>([])
     const [active, setActive] = useState(userData.inProgram)
     const modalRef = useRef<HTMLDialogElement>(null)
-    const memberFullnameRef = useRef<HTMLInputElement>(null)
     const memberEmailRef = useRef<HTMLInputElement>(null)
     const t = useTranslations()
     const safeMembers = members ?? []
@@ -33,13 +32,12 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
        void reload()
     }, [])
 
-    const addMember = async (email?: string, fullname?: string) => {
-        if(!email || !fullname) {
+    const addMember = async (email?: string) => {
+        if(!email) {
             return
         }
-        await Apies.addMember(email, fullname)
+        await Apies.addMember(email)
         memberEmailRef.current = null
-        memberFullnameRef.current = null
         await reload()
     }
 
@@ -59,8 +57,8 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         else setActive(false)
     }
 
-    const deleteMember = async (email: string) => {
-        await Apies.deleteMember(email)
+    const deleteMember = async (id: string) => {
+        await Apies.deleteMember(id)
         await reload()
     }
 
@@ -137,7 +135,6 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                     <Modal ref={modalRef} header={{ heading: t("main.table.modals.addMember.title") }}>
                         <Modal.Body>
                             <TextField label={ t("main.table.modals.addMember.email") } size={"small"} ref={memberEmailRef}/>
-                            <TextField label={ t("main.table.modals.addMember.fullname") } size={"small"} ref={memberFullnameRef}/>
                         </Modal.Body>
                         <Modal.Footer>
                             <Button type={"button"} variant={"tertiary"} onClick={() => {
@@ -146,7 +143,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
                                 {t("main.table.modals.buttons.close")}
                             </Button>
                             <Button type={"button"} color={"success"} onClick={() => {
-                                addMember(memberEmailRef.current?.value, memberFullnameRef.current?.value)
+                                addMember(memberEmailRef.current?.value)
                                 modalRef.current?.close()
                             }}>
                                 {t("main.table.modals.buttons.submit")}

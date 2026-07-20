@@ -6,7 +6,6 @@
   "scripts": {
     "test": "vitest run",
     "dev": "next dev",
-    "dev:mocks": "MOCKS_ENABLED=true next dev",
     "dev:local": "LOCAL_DEV=true next dev",
     "build": "next build",
     "start": "next start"

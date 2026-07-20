@@ -1,12 +1,9 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "@/app/shared/utils/Validation";
-import {mockSCData} from "@/app/mocks/MockPayloads";
+import {getBackendToken, getServerEnv} from "@/app/shared/utils/Validation";
 import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "@/app/shared/utils/Variables";
 
 export async function GET(request: NextRequest) {
-    if (activeMock()) {
-       return NextResponse.json(mockSCData)
-    } try {
+    try {
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)
 

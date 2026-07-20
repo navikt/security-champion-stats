@@ -22,10 +22,6 @@ export function isLocaDev(): boolean {
     return process.env.LOCAL_DEV === "true"
 }
 
-export function activeMock(): boolean {
-    return process.env.MOCKS_ENABLED === "true"
-}
-
 export async function getBackendToken(request: NextRequest): Promise<string> {
     if (isLocaDev()) {
         return createLocalDevToken()

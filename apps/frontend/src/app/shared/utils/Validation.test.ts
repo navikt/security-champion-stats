@@ -9,7 +9,7 @@ vi.mock("../../utils/LocalDevAuth", () => ({
     createLocalDevToken: vi.fn(() => "local-dev-token"),
 }))
 
-import { isLocaDev, activeMock, getServerEnv } from "./Validation"
+import { isLocaDev, getServerEnv } from "./Validation"
 
 beforeEach(() => {
     vi.unstubAllEnvs()
@@ -23,17 +23,6 @@ describe("isLocaDev", () => {
 
     it("should return false when LOCAL_DEV is not set", () => {
         expect(isLocaDev()).toBe(false)
-    })
-})
-
-describe("activeMock", () => {
-    it("should return true when MOCKS_ENABLED is set to true", () => {
-        vi.stubEnv("MOCKS_ENABLED", "true")
-        expect(activeMock()).toBe(true)
-    })
-
-    it("should return false when MOCKS_ENABLED is not set", () => {
-        expect(activeMock()).toBe(false)
     })
 })
 

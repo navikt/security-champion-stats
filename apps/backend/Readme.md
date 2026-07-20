@@ -70,9 +70,12 @@ application, follow the instructions in `apps/frontend/Readme.md`.
 - Docker: A platform for developing, shipping, and running applications in containers
 
 ## Folder Structure
-- `stats/`: Contains the main application code for the backend, including controllers, services, repositories, and models.
+- `app/`: Contains the main application code, including the sync job and API controllers.
+- `integrations/`: Contains integrations with external services (PostgreSQL, Slack, Teamkatalogen).
+- `security/`: Contains authentication and authorization logic.
+- `config/`: Contains application configuration classes.
+- `utils/`: Contains shared utility functions.
 - `src/test/`: Contains unit and integration tests for the application.
-- `common/`: Contains shared code and utilities that can be used across different modules of the application. Also contains configuration classes
 - `gradle/libs.versions.toml`: Contains version numbers for all dependencies used in the application, making it easier to manage and update them.
 
 ## Contributing

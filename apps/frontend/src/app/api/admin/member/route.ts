@@ -1,24 +1,11 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../../shared/utils/Validation";
-import {mockMembers} from "../../../mocks/MockPayloads";
+import {getBackendToken, getServerEnv} from "../../../shared/utils/Validation";
 import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../../shared/utils/Variables";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
-    const { email, fullname } = body
-
-    if (activeMock()) {
-        const updatedMembers = mockMembers.push(
-            {
-                id: "String-3",
-                fullname: "mock-3",
-                points: 0,
-                email: email,
-                inProgram: true
-            }
-        )
-        return NextResponse.json(updatedMembers)
-    } try {
+    const { email } = body
+    try {
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)
 
@@ -36,7 +23,7 @@ export async function POST(request: NextRequest) {
                 Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({"email": email, "fullname": fullname})
+            body: JSON.stringify({"email": email})
         })
 
         if (!response.ok) {

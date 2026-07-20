@@ -1,34 +1,30 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../../../shared/utils/Validation";
+import {getBackendToken, getServerEnv} from "../../../../shared/utils/Validation";
 import {
     AUTHENTICATED_FAILED,
     FAILED_FETCH,
     INTERNAL_ERROR,
 } from "../../../../shared/utils/Variables";
-import {mockMembers} from "../../../../mocks/MockPayloads";
 
 
 export async function DELETE(
     request: NextRequest,
-    ctx: RouteContext<"/api/admin/member/[email]">
+    ctx: RouteContext<"/api/admin/member/[id]">
 ) {
-    const { email } = await ctx.params
-    if (activeMock()) {
-        return NextResponse.json(mockMembers)
-    }
+    const { id } = await ctx.params
     try {
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)
 
         if (backendToken === AUTHENTICATED_FAILED) {
-            console.log("Authentication failed when trying to delete member with email: ", email)
+            console.log("Authentication failed when trying to delete member with email: ", id)
             return NextResponse.json(
                 { error: AUTHENTICATED_FAILED },
                 { status: 401 }
             )
         }
 
-        const url = `${backendUrl}/api/admin/member/${email}`
+        const url = `${backendUrl}/api/admin/member/${id}`
         const response = await fetch(url, {
             method: 'DELETE',
             headers: {

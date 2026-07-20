@@ -8,24 +8,32 @@ The application is meant to increase engagement and motivation among security ch
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 
-1. install dependencies: `pnpm install` (make sure you have pnpm installed globally, avoid using npm)
-2. start the mocked server: `pnpm run dev` and expose MOCKS_ENABLED=true or run `pnpm run dev:mock` to enable mock data
-3. open your browser and navigate to `http://localhost:3000` to see the application in action.
-4. Run `pnpm run dev:local` together with backend application to have a local development environment.
+1. Install dependencies: `pnpm install` (make sure you have pnpm installed globally, avoid using npm)
+2. Run `pnpm run dev:local` together with the backend for a full local environment.
+3. Open your browser and navigate to `http://localhost:3000` to see the application in action.
+4. Run tests with `pnpm run test`.
 
 ## Technologies Used
 - React: A JavaScript library for building user interfaces.
 - TypeScript: A typed superset of JavaScript that compiles to plain JavaScript.
-- Next.js: A React framework for server-side rendering and static site generation.
+- Next.js: A React framework using the App Router for server-side rendering and routing.
 - Tailwind CSS: A utility-first CSS framework for styling the application.
+- next-intl: Internationalization (i18n) support for Next.js.
+- NAV Aksel (`@navikt/ds-react`): NAV's design system component library.
+- chart.js / react-chartjs-2: For rendering statistics charts.
+- Vitest: A fast unit test runner.
+- Grafana Faro: Web observability and tracing.
 
 ## Folder Structure
-- `components/`: Contains reusable React components used throughout the application.
-- `pages/`: Contains the main pages of the application, following Next.js conventions.
-- `styles/`: Contains global styles and Tailwind CSS configuration.
-- `utils/`: Contains utility functions and helpers for the application.
-- `api/`: Contains API service functions for fetching data from the backend, (responses is mocked if MOCKS_ENABLED).
-- `hooks/`: Contains custom React hooks for managing state and side effects.
+- `app/`: Main Next.js App Router directory.
+  - `[locale]/`: Locale-based routing (supports i18n).
+  - `api/`: Next.js API routes (proxied calls to the backend).
+  - `shared/`: Shared components, hooks, utilities, and theme.
+  - `style/`: Global styles.
+  - `utils/`: App-level utility functions.
+- `i18n/`: i18n configuration and routing setup.
+- `messages/`: Translation message files.
+- `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
 
 ## Contributing
 Contributions to the frontend application are welcome! If you would like to contribute, please follow these steps:

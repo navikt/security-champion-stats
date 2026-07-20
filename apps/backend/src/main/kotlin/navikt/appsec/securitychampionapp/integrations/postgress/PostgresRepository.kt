@@ -113,9 +113,9 @@ class PostgresRepository(
         return queryMembersData(query, email).firstOrNull()
     }
 
-    fun deleteMember(email: String) {
-        val query = "DELETE FROM Members WHERE email = ?"
-        executeUpdate(query, email)
+    fun deleteMember(id: String) {
+        val query = "DELETE FROM Members WHERE id = ?"
+        executeUpdate(query, id)
     }
 
     fun addPoints(email: String, points: Int){

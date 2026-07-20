@@ -84,7 +84,7 @@ class PostgresRepositoryTest {
         insertMember(id = "member-1", email = "test@nav.no")
         insertMember(id = "member-2", email = "keep@nav.no")
 
-        repository.deleteMember("test@nav.no")
+        repository.deleteMember("member-1")
 
         assertThat(repository.getMemberByEmail("test@nav.no")).isNull()
         assertThat(repository.getMemberByEmail("keep@nav.no")).isNotNull()

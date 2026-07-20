@@ -1,5 +1,5 @@
 import {NextRequest, NextResponse} from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/Validation";
+import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
 import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../shared/utils/Variables";
 import {parseAzureUserToken} from "@navikt/oasis";
 import {createLocalParserResult} from "@/app/utils/LocalDevAuth";
@@ -7,14 +7,7 @@ import {createLocalParserResult} from "@/app/utils/LocalDevAuth";
 export async function GET(
     request: NextRequest
 ) {
-    if (activeMock()) {
-        const email = process.env.LOCAL_DEV_EMAIL ?? "lokal.utvikler@nav.no"
-        return NextResponse.json({
-            username: email,
-            isAdmin: true,
-            inProgram: false
-        })
-    } try {
+    try {
         const token = await getBackendToken(request)
         const id = process.env.APPSEC_ID
         if (!id) {

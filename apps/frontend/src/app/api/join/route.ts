@@ -1,15 +1,10 @@
-import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/Validation";
-import {mockMembers} from "../../mocks/MockPayloads";
+import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
 import {NextRequest, NextResponse} from "next/server";
 import {AUTHENTICATED_FAILED, FAILED_TO_JOIN} from "../../shared/utils/Variables";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
     const {email} = body
-
-    if (activeMock()) {
-        return NextResponse.json(mockMembers)
-    }
     try {
         const {backendUrl} = getServerEnv()
         const backendToken = await getBackendToken(request)

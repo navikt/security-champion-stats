@@ -9,18 +9,18 @@ export const Apies = {
         }
         return await res.json()
     },
-    addMember: async (email: string, fullname: string) => {
+    addMember: async (email: string) => {
         const res = await fetch(
             "/api/admin/member", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "email": email, "fullname": fullname }),
+            body: JSON.stringify({ "email": email }),
         })
         if (!res.ok) console.error("Failed to add member, with status code ", res.status)
         return res.status
     },
-    deleteMember: async (email: string) => {
-        const res = await fetch(`/api/admin/member/${encodeURIComponent(email)}`, {
+    deleteMember: async (id: string) => {
+        const res = await fetch(`/api/admin/member/${encodeURIComponent(id)}`, {
             method: "DELETE",
         })
         if (!res.ok) console.error("Failed to delete member, with status code ", res.status)

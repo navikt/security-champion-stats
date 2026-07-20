@@ -75,7 +75,7 @@ function MembersTable({
                                 <button
                                     type="button"
                                     className={"btn danger"}
-                                    onClick={() => onDelete(m.email)}
+                                    onClick={() => onDelete(m.id)}
                                 >
                                     {t("main.table.buttons.admin.deleteMember")}
                                 </button>

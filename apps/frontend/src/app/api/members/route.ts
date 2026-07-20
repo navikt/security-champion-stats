@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import {activeMock, getBackendToken, getServerEnv} from "../../shared/utils/Validation";
+import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
 import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../shared/utils/Variables";
-import {mockMembers} from "../../mocks/MockPayloads";
 
 
 export async function GET(request: NextRequest) {
-    if (activeMock()) {
-        return NextResponse.json(mockMembers)
-    }
     try {
         const { backendUrl } = getServerEnv()
         const { searchParams } = new URL(request.url)

@@ -98,7 +98,6 @@ class TokenIntrospection(
             val authentication = UsernamePasswordAuthenticationToken(preferredUsername, null, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
-            log.debug("Completed token introspection successfully for request: ${request.requestURI}")
         } catch (e: Exception) {
             log.error("Token validation failed due to error: $e")
             handleUnauthenticated(request, response, "validation_error")
@@ -106,7 +105,6 @@ class TokenIntrospection(
     }
 
     private fun validateSwaggerBasicAuth(request: HttpServletRequest): Boolean {
-        logger.info("Validating swagger basic auth for request: ${request.requestURI} with auth header: ${request.getHeader("Authorization")}")
         val authHeader = request.getHeader("Authorization") ?: return false
 
         if (!authHeader.startsWith("Basic ", ignoreCase = true)) {
@@ -114,7 +112,6 @@ class TokenIntrospection(
         }
 
         return try {
-            logger.info("Validating swagger basic auth credentials for request: $authHeader")
             val encodedCredentials = authHeader.substringAfter(" ").trim()
             val decodedCredentials = String(Base64.getDecoder().decode(encodedCredentials))
             val (username, password) = decodedCredentials.split(":", limit = 2)

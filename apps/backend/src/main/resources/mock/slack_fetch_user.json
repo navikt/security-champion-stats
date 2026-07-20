@@ -1,0 +1,63 @@
+{
+  "responses": {
+    "success": {
+      "ok": true,
+      "user": {
+        "id": "U08FGDKU83D",
+        "name": "d1723425",
+        "is_bot": false,
+        "updated": 1784201952,
+        "is_app_user": false,
+        "team_id": "T5LNAAMAMD",
+        "deleted": false,
+        "color": "99a949",
+        "is_email_confirmed": true,
+        "real_name": "Slack Tester",
+        "tz": "Europe\/Amsterdam",
+        "tz_label": "Central European Summer Time",
+        "tz_offset": 7200,
+        "is_admin": false,
+        "is_owner": false,
+        "is_primary_owner": false,
+        "is_restricted": false,
+        "is_ultra_restricted": false,
+        "is_scim_provisioned": true,
+        "who_can_share_contact_card": "EVERYONE",
+        "profile": {
+          "real_name": "Slack Tester",
+          "display_name": "slack.tester",
+          "avatar_hash": "1d9a4329121e",
+          "real_name_normalized": "Slack Tester",
+          "display_name_normalized": "slack.tester",
+          "image_24": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_24.jpg",
+          "image_32": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_32.jpg",
+          "image_48": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_48.jpg",
+          "image_72": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_72.jpg",
+          "image_192": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_192.jpg",
+          "image_512": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_512.jpg",
+          "image_1024": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_1024.jpg",
+          "image_original": "https:\/\/avatars.slack-edge.com\/2025-08-05\/9304799968213_1d9a23423jdfsdo423_original.jpg",
+          "is_custom_image": true,
+          "first_name": "Slack",
+          "last_name": "Tester",
+          "team": "T5LNAAMAMD",
+          "email": "Slack.Tester@nav.no",
+          "title": "tester",
+          "phone": "417 62 427",
+          "skype": "SlackSkype",
+          "status_text": "",
+          "status_text_canonical": "",
+          "status_emoji": "",
+          "status_emoji_display_info": [],
+          "status_expiration": 0,
+          "huddle_state": "default_unset",
+          "huddle_state_expiration_ts": 0
+        }
+      }
+    }
+  },
+  "failure": {
+    "ok": false,
+    "error": "users_not_found"
+  }
+}

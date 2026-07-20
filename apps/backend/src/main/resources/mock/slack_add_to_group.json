@@ -1,0 +1,51 @@
+{
+  "responses": {
+    "success": {
+      "ok": true,
+      "usergroup": {
+        "id": "S0616NG6M",
+        "team_id": "T060R4BHN",
+        "is_usergroup": true,
+        "name": "Engineering",
+        "description": "Engineering team members",
+        "handle": "engineering",
+        "is_external": false,
+        "date_create": 1720010000,
+        "date_update": 1784502000,
+        "date_delete": 0,
+        "auto_type": null,
+        "created_by": "U060R4BJ4",
+        "updated_by": "U060R4BJ4",
+        "deleted_by": null,
+        "prefs": {
+          "channels": [],
+          "groups": []
+        },
+        "users": [
+          "U0123456789",
+          "U0987654321",
+          "U08FGDKU83D"
+        ],
+        "user_count": 2
+      }
+    }
+  },
+  "failure": {
+    "invalid_user": {
+      "ok": false,
+      "error": "invalid_user"
+    },
+    "no_user": {
+      "ok": false,
+      "error": "no_users_provided"
+    },
+    "no_permission": {
+      "ok": false,
+      "error": "permission_denied"
+    },
+    "no_auth": {
+      "ok": false,
+      "error": "invalid_auth"
+    }
+  }
+}

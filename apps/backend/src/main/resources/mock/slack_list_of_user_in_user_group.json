@@ -1,0 +1,35 @@
+{
+  "responses": {
+    "success": {
+      "with_users": {
+        "ok": true,
+        "users": [
+          "U0123456789",
+          "U0987654321",
+          "U0111222333",
+          "U08FGDKU83D"
+        ]
+      },
+      "no_users": {
+        "ok": true,
+        "users": []
+      }
+    },
+    "failure": {
+      "no_subteam": {
+        "ok": false,
+        "error": "no_such_subteam"
+      },
+      "no_scope": {
+        "ok": false,
+        "error": "missing_scope",
+        "needed": "usergroups:read",
+        "provided": "users:read,usergroups:write"
+      },
+      "rate_limit": {
+        "ok": false,
+        "error": "ratelimited"
+      }
+    }
+  }
+}

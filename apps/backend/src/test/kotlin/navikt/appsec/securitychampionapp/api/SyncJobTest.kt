@@ -95,6 +95,7 @@ class SyncJobTest {
 
     @BeforeEach
     fun setup() {
+        Mockito.reset(jobLock)
         flyway.clean()
         flyway.migrate()
     }

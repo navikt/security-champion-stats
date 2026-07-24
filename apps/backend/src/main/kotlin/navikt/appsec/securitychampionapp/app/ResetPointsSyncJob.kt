@@ -19,7 +19,6 @@ class ResetPointsSyncJob(
     fun resetAllPointsAndLevels() {
         jobLock.runWithLock(RESET_POINTS_JOB_LOCK_KEY, "resetAllPointsAndLevels") {
             val resetMembers = repo.resetAllPointsAndLevels()
-            log.info("Reset points and levels for $resetMembers members")
         }
     }
 }

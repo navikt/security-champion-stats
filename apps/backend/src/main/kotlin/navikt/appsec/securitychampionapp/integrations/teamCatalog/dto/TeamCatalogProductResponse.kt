@@ -10,4 +10,7 @@ data class ProductAreaResponse(val content: List<ProductArea>)
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class ProductArea(val id: String, val name: String)
+data class ProductArea(
+    val id: String,
+    val name: String,
+)

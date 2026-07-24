@@ -1,0 +1,149 @@
+{
+  "pageNumber": 0,
+  "pageSize": 0,
+  "pages": 0,
+  "numberOfElements": 0,
+  "totalElements": 0,
+  "paged": true,
+  "content": [
+    {
+      "id": "12967b8c-90a4-4c84-89a9-ab21d26dcbfd",
+      "name": "Team Oppfølgingsplan",
+      "description": "Forvalter løsninger for aktivitetsplaner, dialog og arbeidsrettet oppfølging.",
+      "slackChannel": "#team-oppfolgingsplan",
+      "contactPersonIdent": "R223344",
+      "productAreaId": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "avdelingNomId": "AVD-ARBEID",
+      "avdelingNavn": "Arbeids- og tjenesteavdelingen",
+      "teamOwnerIdent": "R223344",
+      "clusterIds": ["6be6cd53-9c95-45c7-9593-cea150d69851"],
+      "teamType": "STREAM_ALIGNED",
+      "qaTime": "2026-07-08T12:22:08.114Z",
+      "naisTeams"
+      :
+      [
+        "oppfolgingsplan",
+        "oppfolgingsplan-api"
+      ],
+      "members": [
+        {
+          "navIdent": "R223344",
+          "description": "Teamleder med ansvar for leveranser og tverrfaglig samarbeid.",
+          "roles": [
+            "TEAM_LEAD"
+          ],
+          "teamPercent": 100,
+          "startDate": "2023-11-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "R223344",
+            "givenName": "Ruben",
+            "familyName": "Strand",
+            "fullName": "Ruben Strand",
+            "email": "ruben.strand@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2023-11-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/R223344",
+              "slackChannels": [
+                {
+                  "name": "#team-oppfolgingsplan",
+                  "url": "https://nav-it.slack.com/archives/C05OPPFOLG1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "I334455",
+          "description": "Backendutvikler og sikkerhetskontakt for teamets tjenester.",
+          "roles": [
+            "DEVELOPER",
+            "SECURITY_CHAMPION"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-06-03",
+          "endDate": null,
+          "resource": {
+            "navIdent": "I334455",
+            "givenName": "Ingrid",
+            "familyName": "Moen",
+            "fullName": "Ingrid Moen",
+            "email": "ingrid.moen@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-06-03",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/I334455",
+              "slackChannels": [
+                {
+                  "name": "#team-oppfolgingsplan",
+                  "url": "https://nav-it.slack.com/archives/C05OPPFOLG1"
+                },
+                {
+                  "name": "#security-champions",
+                  "url": "https://nav-it.slack.com/archives/C00SECURITY"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "tags"
+      :
+      [
+        "oppfolging",
+        "aktivitetsplan",
+        "veileder"
+      ],
+      "officeHours"
+      :
+      {
+        "location": {
+          "code": "OSL-FYR-4",
+          "type": "BUILDING",
+          "description": "Fyrstikkalléen 1, fjerde etasje",
+          "displayName": "Fyrstikkalléen 1",
+          "parent": "OSLO"
+        },
+        "days": [
+          "WEDNESDAY"
+        ],
+        "information": "Teamet møtes fysisk hver onsdag."
+      },
+      "status"
+      :
+      "ACTIVE",
+      "changeStamp"
+      :
+      {
+        "lastModifiedBy": "R223344",
+        "lastModifiedDate": "2026-07-08T12:22:08.114Z"
+      },
+      "links"
+      :
+      {
+        "ui": "https://teamkatalog.nav.no/team/12967b8c-90a4-4c84-89a9-ab21d26dcbfd",
+        "slackChannels": [
+          {
+            "name": "#team-oppfolgingsplan",
+            "url": "https://nav-it.slack.com/archives/C05OPPFOLG1"
+          }
+        ]
+      },
+      "contactAddresses"
+      :
+      [
+        {
+          "address": "oppfolgingsplan@nav.no",
+          "type": "EPOST"
+        }
+      ]
+    }
+  ]
+}

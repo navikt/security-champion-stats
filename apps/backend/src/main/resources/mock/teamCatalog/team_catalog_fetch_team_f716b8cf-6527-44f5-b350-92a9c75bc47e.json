@@ -1,0 +1,210 @@
+{
+  "pageNumber": 0,
+  "pageSize": 20,
+  "pages": 1,
+  "numberOfElements": 2,
+  "totalElements": 2,
+  "paged": true,
+  "content": [
+    {
+      "id": "58aad466-96c4-42dc-b17a-615c36be7784",
+      "name": "Team Jobbmuligheter",
+      "description": "Utvikler digitale tjenester som hjelper arbeidssøkere med å finne og vurdere relevante jobbmuligheter.",
+      "slackChannel": "#team-jobbmuligheter",
+      "contactPersonIdent": "M234567",
+      "productAreaId": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "avdelingNomId": "AVD-ARBEID",
+      "avdelingNavn": "Arbeids- og tjenesteavdelingen",
+      "teamOwnerIdent": "M234567",
+      "clusterIds": [
+        "09f2cd44-a467-4fb8-b005-05a76ac76837"
+      ],
+      "teamType": "STREAM_ALIGNED",
+      "qaTime": "2026-07-14T09:15:42.301Z",
+      "naisTeams": [
+        "jobbmuligheter-api",
+        "jobbmuligheter-frontend"
+      ],
+      "members": [
+        {
+          "navIdent": "A123456",
+          "description": "Seniorutvikler med ansvar for teknisk arkitektur og sikkerhetsarbeid.",
+          "roles": [
+            "DEVELOPER",
+            "SECURITY_CHAMPION"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-01-15",
+          "endDate": null,
+          "resource": {
+            "navIdent": "A123456",
+            "givenName": "Ada",
+            "familyName": "Lovelace",
+            "fullName": "Ada Lovelace",
+            "email": "ada.lovelace@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-01-15",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/A123456",
+              "slackChannels": [
+                {
+                  "name": "#team-jobbmuligheter",
+                  "url": "https://nav-it.slack.com/archives/C05JOBBMUL1"
+                },
+                {
+                  "name": "#security-champions",
+                  "url": "https://nav-it.slack.com/archives/C00SECURITY"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "A1234544426",
+          "description": "Seniorutvikler med ansvar for teknisk arkitektur og sikkerhetsarbeid.",
+          "roles": [
+            "DEVELOPER",
+            "SECURITY_CHAMPION"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-01-15",
+          "endDate": null,
+          "resource": {
+            "navIdent": "A1234544426",
+            "givenName": "Local",
+            "familyName": "User",
+            "fullName": "Local User",
+            "email": "local.user@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-01-15",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/A1234544426",
+              "slackChannels": [
+                {
+                  "name": "#team-jobbmuligheter",
+                  "url": "https://nav-it.slack.com/archives/C05JOBBMUL1"
+                },
+                {
+                  "name": "#security-champions",
+                  "url": "https://nav-it.slack.com/archives/C00SECURITY"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "M234567",
+          "description": "Produktleder med ansvar for mål, prioriteringer og interessenthåndtering.",
+          "roles": [
+            "PRODUCT_LEAD"
+          ],
+          "teamPercent": 80,
+          "startDate": "2023-08-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "M234567",
+            "givenName": "Mina",
+            "familyName": "Haugen",
+            "fullName": "Mina Haugen",
+            "email": "mina.haugen@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2023-08-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/M234567",
+              "slackChannels": [
+                {
+                  "name": "#team-jobbmuligheter",
+                  "url": "https://nav-it.slack.com/archives/C05JOBBMUL1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "K112233",
+          "description": "Tjenestedesigner med ansvar for brukerinnsikt og prototyping.",
+          "roles": [
+            "DESIGNER"
+          ],
+          "teamPercent": 100,
+          "startDate": "2025-03-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "K112233",
+            "givenName": "Kari",
+            "familyName": "Lund",
+            "fullName": "Kari Lund",
+            "email": "kari.lund@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2025-03-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/K112233",
+              "slackChannels": [
+                {
+                  "name": "#team-jobbmuligheter",
+                  "url": "https://nav-it.slack.com/archives/C05JOBBMUL1"
+                },
+                {
+                  "name": "#design-arbeid",
+                  "url": "https://nav-it.slack.com/archives/C05DESIGN01"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "tags": [
+        "arbeidssoker",
+        "jobb",
+        "frontend",
+        "api"
+      ],
+      "officeHours": {
+        "location": {
+          "code": "OSL-SANN-3",
+          "type": "BUILDING",
+          "description": "Sannergata 2, tredje etasje",
+          "displayName": "Sannergata 2",
+          "parent": "OSLO"
+        },
+        "days": [
+          "TUESDAY",
+          "THURSDAY"
+        ],
+        "information": "Teamet har felles kontordager tirsdag og torsdag."
+      },
+      "status": "ACTIVE",
+      "changeStamp": {
+        "lastModifiedBy": "M234567",
+        "lastModifiedDate": "2026-07-14T09:15:42.301Z"
+      },
+      "links": {
+        "ui": "https://teamkatalog.nav.no/team/58aad466-96c4-42dc-b17a-615c36be7784",
+        "slackChannels": [
+          {
+            "name": "#team-jobbmuligheter",
+            "url": "https://nav-it.slack.com/archives/C05JOBBMUL1"
+          }
+        ]
+      },
+      "contactAddresses": [
+        {
+          "address": "team-jobbmuligheter@nav.no",
+          "type": "EPOST"
+        }
+      ]
+    }
+  ]
+}

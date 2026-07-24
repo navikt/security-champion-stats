@@ -38,6 +38,7 @@ class SyncJob(
 
             catalogMembers.forEach {
                 if (members.any { member -> member.email == it.email}) {
+                    println("Shouldnt trigger")
                     members.remove(members.first { member -> member.email == it.email })
                 } else {
                     repo.addMember(it.fullName, it.navIdent, it.email, teams = it.teamName)
@@ -51,7 +52,7 @@ class SyncJob(
 
             slackService.addSecurityChampionsToSlack(champions = slackListToAdd)
             if (members.isNotEmpty()) {
-                members.forEach { repo.deleteMember(it.email) }
+                members.forEach { repo.deleteMember(it.id) }
                 slackService.announceSecurityChampionsRemovedFromSlack(champions = members.map {
                     RemovedSecurityChampion(
                         it.email,
@@ -68,10 +69,8 @@ class SyncJob(
                     slackService.getUserActivitySummaryByEmail(it.email, listOf(scChannelId, appSecId))
                         .takeIf { summary -> summary.totalMessages > 0 }
                         ?.let { summary ->
-                            log.info("Updating points for ${it.email} with ${summary.totalMessages} messages")
                             val earnedPoints = summary.totalMessages * activityPoints.toInt()
                             repo.addPoints(it.email, earnedPoints)
-                            log.info("Added $earnedPoints points for ${it.email}")
                         }
                 }
             }

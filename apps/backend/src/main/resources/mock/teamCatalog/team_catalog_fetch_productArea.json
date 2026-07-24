@@ -1,0 +1,277 @@
+{
+  "pageNumber": 0,
+  "pageSize": 10,
+  "pages": 1,
+  "numberOfElements": 4,
+  "totalElements": 4,
+  "paged": true,
+  "content": [
+    {
+      "id": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "name": "Arbeid og oppfølging",
+      "avdelingNomId": "AVD-ARBEID",
+      "avdelingNavn": "Arbeids- og tjenesteavdelingen",
+      "nomId": "PA-ARBEID-001",
+      "areaType": "PRODUCT_AREA",
+      "description": "Produktområde for digitale tjenester knyttet til arbeid, oppfølging og overgang til jobb.",
+      "slackChannel": "#po-arbeid-og-oppfolging",
+      "tags": [
+        "arbeid",
+        "oppfolging",
+        "innbygger"
+      ],
+      "members": [
+        {
+          "navIdent": "A123456",
+          "description": "Teknisk ansvarlig for produktområdet.",
+          "roles": [
+            "DEVELOPER"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-01-15",
+          "endDate": null,
+          "resource": {
+            "navIdent": "A123456",
+            "givenName": "Ada",
+            "familyName": "Lovelace",
+            "fullName": "Ada Lovelace",
+            "email": "ada.lovelace@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-01-15",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/A123456",
+              "slackChannels": [
+                {
+                  "name": "#po-arbeid-og-oppfolging",
+                  "url": "https://nav-it.slack.com/archives/C01ARBEID01"
+                },
+                {
+                  "name": "#fag-arbeidsrettet-oppfolging",
+                  "url": "https://nav-it.slack.com/archives/C01OPPFOLG01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "M234567",
+          "description": "Produktleder med ansvar for prioritering og måloppnåelse.",
+          "roles": [
+            "PRODUCT_LEAD"
+          ],
+          "teamPercent": 80,
+          "startDate": "2023-08-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "M234567",
+            "givenName": "Mina",
+            "familyName": "Haugen",
+            "fullName": "Mina Haugen",
+            "email": "mina.haugen@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2023-08-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/M234567",
+              "slackChannels": [
+                {
+                  "name": "#po-arbeid-og-oppfolging",
+                  "url": "https://nav-it.slack.com/archives/C01ARBEID01"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "status": "ACTIVE",
+      "changeStamp": {
+        "lastModifiedBy": "K765432",
+        "lastModifiedDate": "2026-07-18T09:42:17.483Z"
+      },
+      "links": {
+        "ui": "https://teamkatalog.nav.no/product-area/PA-ARBEID-001",
+        "slackChannels": [
+          {
+            "name": "#po-arbeid-og-oppfolging",
+            "url": "https://nav-it.slack.com/archives/C01ARBEID01"
+          }
+        ]
+      },
+      "ownerGroupNavidentList": [
+        "M234567",
+        "K765432"
+      ],
+      "defaultArea": true
+    },
+    {
+      "id": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "name": "Sykefravær",
+      "avdelingNomId": "AVD-YTELSER",
+      "avdelingNavn": "Ytelsesavdelingen",
+      "nomId": "PA-SYKEFRAVAER-002",
+      "areaType": "PRODUCT_AREA",
+      "description": "Produktområde for digitale løsninger som støtter sykmeldte, arbeidsgivere og veiledere.",
+      "slackChannel": "#po-sykefravaer",
+      "tags": [
+        "sykepenger",
+        "sykmelding",
+        "arbeidsgiver"
+      ],
+      "members": [
+        {
+          "navIdent": "E345678",
+          "description": "Teamcoach som bistår teamene med arbeidsform og kontinuerlig forbedring.",
+          "roles": [
+            "AGILE_COACH"
+          ],
+          "teamPercent": 50,
+          "startDate": "2025-02-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "E345678",
+            "givenName": "Elias",
+            "familyName": "Nilsen",
+            "fullName": "Elias Nilsen",
+            "email": "elias.nilsen@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2025-02-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/E345678",
+              "slackChannels": [
+                {
+                  "name": "#po-sykefravaer",
+                  "url": "https://nav-it.slack.com/archives/C02SYKEFR01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "S456789",
+          "description": "Tjenestedesigner med ansvar for brukerinnsikt og helhetlige brukerreiser.",
+          "roles": [
+            "DESIGNER"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-09-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "S456789",
+            "givenName": "Sara",
+            "familyName": "Berg",
+            "fullName": "Sara Berg",
+            "email": "sara.berg@nav.no",
+            "onLeave": true,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-09-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/S456789",
+              "slackChannels": [
+                {
+                  "name": "#po-sykefravaer",
+                  "url": "https://nav-it.slack.com/archives/C02SYKEFR01"
+                },
+                {
+                  "name": "#design-sykefravaer",
+                  "url": "https://nav-it.slack.com/archives/C02DESIGN01"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "status": "ACTIVE",
+      "changeStamp": {
+        "lastModifiedBy": "E345678",
+        "lastModifiedDate": "2026-07-10T14:11:52.004Z"
+      },
+      "links": {
+        "ui": "https://teamkatalog.nav.no/product-area/PA-SYKEFRAVAER-002",
+        "slackChannels": [
+          {
+            "name": "#po-sykefravaer",
+            "url": "https://nav-it.slack.com/archives/C02SYKEFR01"
+          }
+        ]
+      },
+      "ownerGroupNavidentList": [
+        "E345678"
+      ],
+      "defaultArea": false
+    },
+    {
+      "id": "12967b8c-90a4-4c84-89a9-ab21d26dcbfd",
+      "name": "Historisk medlemskap",
+      "avdelingNomId": "AVD-MEDLEMSKAP",
+      "avdelingNavn": "Medlemskapsavdelingen",
+      "nomId": "PA-MEDLEMSKAP-004",
+      "areaType": "PRODUCT_AREA",
+      "description": "Tidligere produktområde for modernisering av tjenester knyttet til medlemskap i folketrygden.",
+      "slackChannel": "#po-historisk-medlemskap",
+      "tags": [
+        "medlemskap",
+        "arkivert",
+        "historisk"
+      ],
+      "members": [
+        {
+          "navIdent": "O890123",
+          "description": "Tidligere produkteier for produktområdet.",
+          "roles": [
+            "PRODUCT_LEAD"
+          ],
+          "teamPercent": 0,
+          "startDate": "2021-05-01",
+          "endDate": "2025-12-31",
+          "resource": {
+            "navIdent": "O890123",
+            "givenName": "Oskar",
+            "familyName": "Dahl",
+            "fullName": "Oskar Dahl",
+            "email": "oskar.dahl@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2021-05-01",
+            "endDate": "2025-12-31",
+            "stale": true,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/O890123",
+              "slackChannels": [
+                {
+                  "name": "#po-historisk-medlemskap",
+                  "url": "https://nav-it.slack.com/archives/C04MEDLEM01"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "status": "INACTIVE",
+      "changeStamp": {
+        "lastModifiedBy": "O890123",
+        "lastModifiedDate": "2026-01-07T11:02:13.921Z"
+      },
+      "links": {
+        "ui": "https://teamkatalog.nav.no/product-area/PA-MEDLEMSKAP-004",
+        "slackChannels": [
+          {
+            "name": "#po-historisk-medlemskap",
+            "url": "https://nav-it.slack.com/archives/C04MEDLEM01"
+          }
+        ]
+      },
+      "ownerGroupNavidentList": [],
+      "defaultArea": false
+    }
+  ]
+}

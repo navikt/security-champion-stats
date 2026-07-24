@@ -12,7 +12,7 @@
 - **DO NOT ADD EXTRA DOCUMENTATION OR EXPLANATIONS UNLESS SPECIFICALLY ASKED.**
 - Do not use timeout when running terminal commands, we are running zsh on macos.
 - Do not run or ask to run terminal commands.
-- When adding or removing functionality we update the root README.md with relevant information. Keep the information here VERY concise and to the point. For example when adding or removing a package or refactoring existing folder structure.
+- When adding or removing functionality we update the README.md within frontend or backend folder with relevant information. Keep the information here VERY concise and to the point. For example when adding or removing a package or refactoring existing folder structure.
 
 ## Project Overview:
 

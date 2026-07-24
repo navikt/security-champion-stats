@@ -13,10 +13,15 @@ import com.slack.api.model.block.element.ImageElement
 import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.RemovedSecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummary
+import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackFetchUserResponse
 import navikt.appsec.securitychampionapp.integrations.slack.dto.UserInfo
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
+import org.springframework.core.io.ResourceLoader
 import org.springframework.stereotype.Service
+import tools.jackson.databind.ObjectMapper
 import java.time.Clock
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -25,6 +30,9 @@ import kotlin.math.max
 @Service
 class SlackService(
     private val client: MethodsClient,
+    private val objectMapper: ObjectMapper,
+    private val resourceLoader: ResourceLoader,
+    private val environment: Environment,
     @Value($$"${slack.playbook_url}") private val playbookUrl: String,
     @Value($$"${slack.sc-channel-id}") private val scChannelId: String,
     @Value($$"${slack.appsec-activity-channel-id}") private  val appSecActivityChannelId: String,
@@ -33,7 +41,40 @@ class SlackService(
     private val clock = Clock.systemUTC()
     private val logger = LoggerFactory.getLogger(SlackService::class.java)
 
+    private fun useMockResponses(): Boolean = environment.acceptsProfiles(Profiles.of("local", "test"))
+
+    private fun loadSlackFetchUserMock(): SlackFetchUserResponse? {
+        return try {
+            resourceLoader.getResource("classpath:mock/slack/slack_fetch_user.json").inputStream.use { input ->
+                objectMapper.readValue(input, SlackFetchUserResponse::class.java)
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to load Slack mock response", e)
+            null
+        }
+    }
+
+    private fun resolveUserIdByEmailFromMock(email: String): UserInfo {
+        val mockResponse = loadSlackFetchUserMock()
+            ?: return UserInfo("", "", error = "mock_response_unavailable")
+
+        val mockedUser = mockResponse.responses.success.user
+        val mockedEmail = mockedUser.profile?.email.orEmpty()
+        if (!mockedEmail.equals(email, ignoreCase = true)) {
+            return UserInfo("", "", error = mockResponse.failure.error)
+        }
+
+        return UserInfo(
+            userId = mockedUser.id,
+            fullname = mockedUser.realName ?: mockedUser.name,
+            imageUrl = mockedUser.profile?.imageOriginal ?: mockedUser.profile?.image192
+        )
+    }
+
     private fun resolveUserIdByEmail(email: String): UserInfo {
+        if (useMockResponses()) {
+            return resolveUserIdByEmailFromMock(email)
+        }
         val result = withRateLimitRetry {
             client.usersLookupByEmail { user: UsersLookupByEmailRequest.UsersLookupByEmailRequestBuilder ->
                 user.email(email)
@@ -50,6 +91,9 @@ class SlackService(
     }
 
     private fun countUserMessagesInChannel(userId: String, channelId: String): Int {
+        if (useMockResponses()) {
+            return if (userId.isBlank()) 0 else 1
+        }
         val oldest = Instant.now(clock)
             .minus(24, ChronoUnit.HOURS)
             .epochSecond
@@ -93,6 +137,10 @@ class SlackService(
     }
 
     private fun inviteUserToChannel(channelId: String, userId: String, email: String): Boolean {
+        if (useMockResponses()) {
+            logger.info("Using mock Slack invite for user $email in channel $channelId")
+            return true
+        }
         val result = withRateLimitRetry {
             client.conversationsInvite { request: ConversationsInviteRequest.ConversationsInviteRequestBuilder ->
                 request.channel(channelId)
@@ -109,6 +157,10 @@ class SlackService(
     }
 
     private fun postWelcomeMessage(channelId: String, champion: NewSecurityChampion, userInfo: UserInfo) {
+        if (useMockResponses()) {
+            logger.info("Using mock Slack welcome message for ${champion.email} in channel $channelId")
+            return
+        }
         val fallbackText = buildWelcomeText(champion, userInfo.userId)
         val request = ChatPostMessageRequest.builder()
             .channel(channelId)
@@ -215,6 +267,10 @@ class SlackService(
     }
 
     private fun postRemovalMessage(channelId: String, champion: RemovedSecurityChampion, userInfo: UserInfo) {
+        if (useMockResponses()) {
+            logger.info("Using mock Slack removal message for ${champion.email} in channel $channelId")
+            return
+        }
         val request = ChatPostMessageRequest.builder()
             .channel(channelId)
             .text(buildRemovalText(champion, userInfo))

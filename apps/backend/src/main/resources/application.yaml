@@ -82,4 +82,4 @@ pointsSystem:
 
 jobs:
   reset-points:
-    cron: 0 0 10 */4 * *
+    cron: 0 0 10 */7 * *

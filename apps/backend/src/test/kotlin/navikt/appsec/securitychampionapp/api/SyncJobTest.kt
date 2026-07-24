@@ -1,37 +1,107 @@
 package navikt.appsec.securitychampionapp.api
 
+import com.slack.api.methods.MethodsClient
 import navikt.appsec.securitychampionapp.app.SyncJob
-import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.slack.SlackService
-import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
-import navikt.appsec.securitychampionapp.integrations.slack.dto.RemovedSecurityChampion
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummary
-import navikt.appsec.securitychampionapp.integrations.slack.dto.UserInfo
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalogMock
+import org.assertj.core.api.Assertions.assertThat
+import org.flywaydb.core.Flyway
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.core.env.StandardEnvironment
+import org.springframework.core.io.DefaultResourceLoader
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.web.reactive.function.client.WebClient
+import tools.jackson.databind.ObjectMapper
+import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
+import java.sql.Timestamp
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
+@Testcontainers
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SyncJobTest {
- // TODO: Improve test coverage, as it is now this is basically useless.
     private val jobLock = Mockito.mock(PostgresJobLock::class.java)
-    private val repo = Mockito.mock(PostgresRepository::class.java)
-    private val catalog = Mockito.mock(TeamCatalog::class.java)
-    private val slackService = Mockito.mock(SlackService::class.java)
+    private val environment = StandardEnvironment().apply { setActiveProfiles("test") }
+    private val resourceLoader = DefaultResourceLoader()
+    private val objectMapper = ObjectMapper()
+    private val teamCatalogMock = TeamCatalogMock(objectMapper, resourceLoader)
+    private val catalog = TeamCatalog(
+        externalServiceWebClient = WebClient.builder().build(),
+        teamCatalogMock = teamCatalogMock,
+        environment = environment,
+    )
+    private val slackService = SlackService(
+        client = Mockito.mock(MethodsClient::class.java),
+        objectMapper = objectMapper,
+        resourceLoader = resourceLoader,
+        environment = environment,
+        playbookUrl = "https://sikkerhet.nav.no/docs/ny-security-champion/",
+        scChannelId = "sc-channel-id",
+        appSecActivityChannelId = "appsec-channel-id",
+    )
+
+    companion object {
+        @JvmStatic
+        @Container
+        val postgres = org.testcontainers.containers.PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
+            withDatabaseName("testdb")
+            withUsername("test")
+            withPassword("test")
+        }
+    }
+
+    private lateinit var dataSource: HikariDataSource
+    private lateinit var jdbcTemplate: JdbcTemplate
+    private lateinit var repository: PostgresRepository
+    private lateinit var flyway: Flyway
+
+    @BeforeAll
+    fun setupRepository() {
+        dataSource = HikariDataSource().apply {
+            jdbcUrl = postgres.jdbcUrl
+            username = postgres.username
+            password = postgres.password
+            driverClassName = "org.postgresql.Driver"
+            maximumPoolSize = 2
+        }
+        jdbcTemplate = JdbcTemplate(dataSource)
+        repository = PostgresRepository(jdbcTemplate)
+        flyway = Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .cleanDisabled(false)
+            .load()
+    }
+
+    @AfterAll
+    fun closeDataSource() {
+        dataSource.close()
+    }
+
+    @BeforeEach
+    fun setup() {
+        flyway.clean()
+        flyway.migrate()
+    }
 
     private fun syncJob(activityPoints: String = "10") = SyncJob(
         jobLock = jobLock,
-        repo = repo,
+        repo = repository,
         catalog = catalog,
         slackService = slackService,
         activityPoints = activityPoints,
@@ -49,127 +119,64 @@ class SyncJobTest {
     @Test
     fun `should add new members and remove members no longer in team catalog`() {
         runJobInsideLock()
-
-        val existingMember = member(
-            id = "existing-id",
-            fullname = "Existing Member",
-            email = "existing@nav.no",
-            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString()
+        seedMember(
+            id = "test-id",
+            fullname = "Test User",
+            email = "test@nav.no",
         )
-        val removedMember = member(
-            id = "removed-id",
-            fullname = "Removed Member",
-            email = "removed@nav.no",
-            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString()
-        )
-
-        whenever(repo.getAllMembers()).thenReturn(listOf(existingMember, removedMember))
-        whenever(catalog.fetchMembersWithRole()).thenReturn(
-            listOf(
-                catalogMember(
-                    navIdent = "existing-id",
-                    fullName = "Existing Member",
-                    email = "existing@nav.no",
-                    teamNames = mutableListOf("Existing Team"),
-                ),
-                catalogMember(
-                    navIdent = "new-id",
-                    fullName = "New Member",
-                    email = "new@nav.no",
-                    teamNames = mutableListOf("New Team"),
-                ),
-            )
-        )
-        whenever(repo.getAllMembersInProgram()).thenReturn(emptyList())
 
         syncJob().syncDatabase()
 
-        verify(repo).addMember("New Member", "new-id", "new@nav.no", listOf("New Team"))
-        verify(slackService).addSecurityChampionsToSlack(
-            champions = listOf(
-                NewSecurityChampion(
-                    email = "new@nav.no",
-                    teamNames = listOf("New Team"),
-                    fullName = "New Member",
-                )
-            )
+        val members = repository.getAllMembers()
+        assertThat(members).hasSize(5)
+        assertThat(members.map(SqlMember::email)).containsExactlyInAnyOrder(
+            "ada.lovelace@nav.no",
+            "local.user@nav.no",
+            "thomas.aasen@nav.no",
+            "ingrid.moen@nav.no",
+            "sara.berg@nav.no"
         )
-        verify(repo).deleteMember("removed@nav.no")
-        verify(slackService).announceSecurityChampionsRemovedFromSlack(
-            champions = listOf(
-                RemovedSecurityChampion(
-                    email = "removed@nav.no",
-                    teamName = "",
-                    fullName = "Removed Member",
-                )
-            )
-        )
+        assertThat(members.map(SqlMember::email)).doesNotContain("test@nav.no")
     }
 
     @Test
-    fun `should add only earned points when an in-program member has no lastUpdated value and slack activity`() {
+    fun `should add points for members with slack activity older than two days`() {
         runJobInsideLock()
-
-        val member = member(
-            id = "member-id",
-            fullname = "Security Champion",
-            points = 20,
-            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString(),
-            email = "champion@nav.no",
+        seedMember(
+            id = "A123456",
+            fullname = "Ada Lovelace",
+            email = "ada.lovelace@nav.no",
             inProgram = true,
+            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS),
         )
-
-        whenever(repo.getAllMembers()).thenReturn(emptyList())
-        whenever(catalog.fetchMembersWithRole()).thenReturn(emptyList())
-        whenever(repo.getAllMembersInProgram()).thenReturn(listOf(member))
-        whenever(
-            slackService.getUserActivitySummaryByEmail(
-                "champion@nav.no",
-                listOf("sc-channel-id", "appsec-channel-id"),
-            )
-        ).thenReturn(activitySummary(totalMessages = 3))
 
         syncJob().syncDatabase()
 
-        verify(repo).addPoints("champion@nav.no", 30)
+        assertThat(repository.getMemberByEmail("ada.lovelace@nav.no")?.points).isEqualTo(20)
     }
 
     @Test
     fun `should skip point updates for recently updated members and members without slack activity`() {
         runJobInsideLock()
-
-        val recentlyUpdatedMember = member(
-            id = "recent-id",
-            fullname = "Recent Member",
-            lastUpdated = Instant.now().minus(1, ChronoUnit.DAYS).toString(),
-            email = "recent@nav.no",
+        seedMember(
+            id = "A123456",
+            fullname = "Ada Lovelace",
+            email = "ada.lovelace@nav.no",
             inProgram = true,
+            lastUpdated = Instant.now().minus(1, ChronoUnit.DAYS),
         )
-        val inactiveMember = member(
-            id = "inactive-id",
-            fullname = "Inactive Member",
-            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS).toString(),
-            email = "inactive@nav.no",
+        seedMember(
+            id = "A1234544426",
+            fullname = "Local User",
+            email = "local.user@nav.no",
             inProgram = true,
+            lastUpdated = Instant.now().minus(3, ChronoUnit.DAYS),
         )
-
-        whenever(repo.getAllMembers()).thenReturn(emptyList())
-        whenever(catalog.fetchMembersWithRole()).thenReturn(emptyList())
-        whenever(repo.getAllMembersInProgram()).thenReturn(listOf(recentlyUpdatedMember, inactiveMember))
-        whenever(
-            slackService.getUserActivitySummaryByEmail(
-                "inactive@nav.no",
-                listOf("sc-channel-id", "appsec-channel-id"),
-            )
-        ).thenReturn(activitySummary(totalMessages = 0))
 
         syncJob().syncDatabase()
 
-        verify(slackService, never()).getUserActivitySummaryByEmail(
-            "recent@nav.no",
-            listOf("sc-channel-id", "appsec-channel-id"),
-        )
-        verify(repo, never()).addPoints(any(), any())
+        assertThat(repository.getMemberByEmail("ada.lovelace@nav.no")?.points).isEqualTo(0)
+        assertThat(repository.getMemberByEmail("local.user@nav.no")?.points).isEqualTo(0)
     }
 
     @Test
@@ -177,46 +184,29 @@ class SyncJobTest {
         syncJob().syncDatabase()
 
         verify(jobLock).runWithLock(any(), any(), any())
-        verify(repo, never()).getAllMembers()
-        verify(catalog, never()).fetchMembersWithRole()
-        verify(slackService, never()).addSecurityChampionsToSlack(any(), any())
+        assertThat(repository.getAllMembers()).isEmpty()
     }
 
-    private fun member(
+    private fun seedMember(
         id: String,
         fullname: String,
-        points: Int = 0,
-        lastUpdated: String,
         email: String,
         inProgram: Boolean = false,
-    ) = SqlMember(
-        id = id,
-        fullname = fullname,
-        points = points,
-        lastUpdated = lastUpdated,
-        email = email,
-        inProgram = inProgram,
-        level = "1",
-        teams = emptyList()
-    )
-
-    private fun catalogMember(
-        navIdent: String,
-        fullName: String,
-        email: String,
-        teamNames: MutableList<String>,
-    ) = MemberWithTeamData(
-        navIdent = navIdent,
-        fullName = fullName,
-        email = email,
-        teamName = teamNames,
-        teamId = mutableListOf("team-id"),
-    )
-
-    private fun activitySummary(totalMessages: Int) = SlackActivitySummary(
-        userInfo = UserInfo(userId = "user-id", fullname = "Security Champion"),
-        inTrackedChannels = listOf("sc-channel-id", "appsec-channel-id"),
-        messagesPerChannel = mapOf("sc-channel-id" to totalMessages),
-        totalMessages = totalMessages,
-    )
+        lastUpdated: Instant? = null,
+    ) {
+        val member = repository.getMemberByEmail(email)
+        if (member == null) {
+            repository.addMember(fullname, id, email, emptyList())
+        }
+        if (inProgram) {
+            repository.updateInProgram(email, true)
+        }
+        lastUpdated?.let {
+            jdbcTemplate.update(
+                "UPDATE Members SET update_at = ? WHERE email = ?",
+                Timestamp.from(it),
+                email,
+            )
+        }
+    }
 }

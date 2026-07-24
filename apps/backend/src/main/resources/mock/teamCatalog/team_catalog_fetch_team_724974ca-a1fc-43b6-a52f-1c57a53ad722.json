@@ -1,0 +1,262 @@
+{
+  "pageNumber": 0,
+  "pageSize": 20,
+  "pages": 1,
+  "numberOfElements": 2,
+  "totalElements": 2,
+  "paged": true,
+  "content": [
+    {
+      "id": "de66e50b-367d-41a1-92dd-af467f3e2688",
+      "name": "Team Digital sykmelding",
+      "description": "Utvikler og forvalter digitale løsninger for innsending og behandling av sykmeldinger.",
+      "slackChannel": "#team-digital-sykmelding",
+      "contactPersonIdent": "E345678",
+      "productAreaId": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "avdelingNomId": "AVD-YTELSER",
+      "avdelingNavn": "Ytelsesavdelingen",
+      "teamOwnerIdent": "E345678",
+      "clusterIds": [
+        "cd3a2d38-9f18-47c4-ac11-fd1643d6b279"
+      ],
+      "teamType": "STREAM_ALIGNED",
+      "qaTime": "2026-07-16T07:55:19.922Z",
+      "naisTeams": [
+        "sykmelding-api",
+        "sykmelding-frontend",
+        "sykmelding-dokarkiv"
+      ],
+      "members": [
+        {
+          "navIdent": "E345678",
+          "description": "Teamcoach med ansvar for arbeidsform og kontinuerlig forbedring.",
+          "roles": [
+            "AGILE_COACH"
+          ],
+          "teamPercent": 50,
+          "startDate": "2025-02-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "E345678",
+            "givenName": "Elias",
+            "familyName": "Nilsen",
+            "fullName": "Elias Nilsen",
+            "email": "elias.nilsen@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2025-02-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/E345678",
+              "slackChannels": [
+                {
+                  "name": "#team-digital-sykmelding",
+                  "url": "https://nav-it.slack.com/archives/C06SYKMELD1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "T445566",
+          "description": "Fullstackutvikler og sikkerhetsansvarlig i teamet.",
+          "roles": [
+            "DEVELOPER",
+            "SECURITY_CHAMPION"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-10-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "T445566",
+            "givenName": "Thomas",
+            "familyName": "Aasen",
+            "fullName": "Thomas Aasen",
+            "email": "thomas.aasen@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-10-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/T445566",
+              "slackChannels": [
+                {
+                  "name": "#team-digital-sykmelding",
+                  "url": "https://nav-it.slack.com/archives/C06SYKMELD1"
+                },
+                {
+                  "name": "#security-champions",
+                  "url": "https://nav-it.slack.com/archives/C00SECURITY"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "tags": [
+        "sykmelding",
+        "helse",
+        "dokument"
+      ],
+      "officeHours": {
+        "location": {
+          "code": "OSL-FYR-6",
+          "type": "BUILDING",
+          "description": "Fyrstikkalléen 1, sjette etasje",
+          "displayName": "Fyrstikkalléen 1",
+          "parent": "OSLO"
+        },
+        "days": [
+          "TUESDAY",
+          "WEDNESDAY"
+        ],
+        "information": "Felles teamdager tirsdag og onsdag."
+      },
+      "status": "ACTIVE",
+      "changeStamp": {
+        "lastModifiedBy": "E345678",
+        "lastModifiedDate": "2026-07-16T07:55:19.922Z"
+      },
+      "links": {
+        "ui": "https://teamkatalog.nav.no/team/de66e50b-367d-41a1-92dd-af467f3e2688",
+        "slackChannels": [
+          {
+            "name": "#team-digital-sykmelding",
+            "url": "https://nav-it.slack.com/archives/C06SYKMELD1"
+          }
+        ]
+      },
+      "contactAddresses": [
+        {
+          "address": "digital-sykmelding@nav.no",
+          "type": "EPOST"
+        }
+      ]
+    },
+    {
+      "id": "a182f064-dfe4-4633-a724-d8b4b21cd81d",
+      "name": "Team Arbeidsgiverdialog",
+      "description": "Forenkler dialogen mellom arbeidsgivere, sykmeldte og NAV under sykefraværsoppfølging.",
+      "slackChannel": "#team-arbeidsgiverdialog",
+      "contactPersonIdent": "S456789",
+      "productAreaId": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "avdelingNomId": "AVD-YTELSER",
+      "avdelingNavn": "Ytelsesavdelingen",
+      "teamOwnerIdent": "P556677",
+      "clusterIds": [
+        "10c88496-9313-41cb-a82c-2bf7535f3af8"
+      ],
+      "teamType": "STREAM_ALIGNED",
+      "qaTime": "2026-07-11T13:42:01.540Z",
+      "naisTeams": [
+        "arbeidsgiverdialog",
+        "dialogmote-api"
+      ],
+      "members": [
+        {
+          "navIdent": "S456789",
+          "description": "Tjenestedesigner med ansvar for arbeidsgiverreisen.",
+          "roles": [
+            "DESIGNER",
+            "SECURITY_CHAMPION"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-09-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "S456789",
+            "givenName": "Sara",
+            "familyName": "Berg",
+            "fullName": "Sara Berg",
+            "email": "sara.berg@nav.no",
+            "onLeave": true,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-09-01",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/S456789",
+              "slackChannels": [
+                {
+                  "name": "#team-arbeidsgiverdialog",
+                  "url": "https://nav-it.slack.com/archives/C06ARBDIAL1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "navIdent": "P556677",
+          "description": "Produktleder for digitale arbeidsgivertjenester.",
+          "roles": [
+            "PRODUCT_LEAD"
+          ],
+          "teamPercent": 100,
+          "startDate": "2024-04-15",
+          "endDate": null,
+          "resource": {
+            "navIdent": "P556677",
+            "givenName": "Petter",
+            "familyName": "Vik",
+            "fullName": "Petter Vik",
+            "email": "petter.vik@nav.no",
+            "onLeave": false,
+            "resourceType": "INTERNAL",
+            "startDate": "2024-04-15",
+            "endDate": null,
+            "stale": false,
+            "links": {
+              "ui": "https://teamkatalog.nav.no/resource/P556677",
+              "slackChannels": [
+                {
+                  "name": "#team-arbeidsgiverdialog",
+                  "url": "https://nav-it.slack.com/archives/C06ARBDIAL1"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "tags": [
+        "arbeidsgiver",
+        "sykefravaer",
+        "dialog"
+      ],
+      "officeHours": {
+        "location": {
+          "code": "OSL-SANN-5",
+          "type": "BUILDING",
+          "description": "Sannergata 2, femte etasje",
+          "displayName": "Sannergata 2",
+          "parent": "OSLO"
+        },
+        "days": [
+          "THURSDAY"
+        ],
+        "information": "Teamets primære kontordag er torsdag."
+      },
+      "status": "ACTIVE",
+      "changeStamp": {
+        "lastModifiedBy": "P556677",
+        "lastModifiedDate": "2026-07-11T13:42:01.540Z"
+      },
+      "links": {
+        "ui": "https://teamkatalog.nav.no/team/a182f064-dfe4-4633-a724-d8b4b21cd81d",
+        "slackChannels": [
+          {
+            "name": "#team-arbeidsgiverdialog",
+            "url": "https://nav-it.slack.com/archives/C06ARBDIAL1"
+          }
+        ]
+      },
+      "contactAddresses": [
+        {
+          "address": "arbeidsgiverdialog@nav.no",
+          "type": "EPOST"
+        }
+      ]
+    }
+  ]
+}

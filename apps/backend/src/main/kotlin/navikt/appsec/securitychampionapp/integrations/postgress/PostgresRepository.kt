@@ -104,7 +104,7 @@ class PostgresRepository(
     }
 
     fun addMember(fullname: String, id: String, email: String, teams: List<String>) {
-        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, '1', '?')"
+        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, '1', ?)"
         executeUpdate(query, id, fullname, email, SqlTextArray(teams))
     }
 

@@ -4,6 +4,8 @@ import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWith
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ProductAreaResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamResponse
 import org.slf4j.LoggerFactory
+import org.springframework.core.env.Environment
+import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
@@ -12,8 +14,13 @@ private const val SECURITY_CHAMPION = "SECURITY_CHAMPION"
 @Service
 class TeamCatalog(
     private val externalServiceWebClient: WebClient,
+    private val teamCatalogMock: TeamCatalogMock,
+    private val environment: Environment,
 ) {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
+
+    private fun useMockResponses(): Boolean = environment.acceptsProfiles(Profiles.of("local", "test"))
+
     private fun fetchAllProductAreas(): ProductAreaResponse {
         return try {
             externalServiceWebClient
@@ -37,15 +44,13 @@ class TeamCatalog(
 
     }
 
-    private fun fetchAllTeams(): List<TeamResponse> {
-        val products = fetchAllProductAreas()
-        if (products.content.isEmpty()) {
-            logger.info("No products were found, returning empty list")
+    private fun fetchAllTeams(productArea: ProductAreaResponse): List<TeamResponse> {
+        if (productArea.content.isEmpty()) {
             return emptyList()
         }
 
         return try {
-            products.content.map {
+            productArea.content.map {
                 externalServiceWebClient
                     .get()
                     .uri("/team?productAreaId=${it.id}&status=ACTIVE")
@@ -66,7 +71,18 @@ class TeamCatalog(
     }
 
     fun fetchMembersWithRole(): List<MemberWithTeamData> {
-        val teamsWithinProduct = fetchAllTeams()
+        val productAreas = if (useMockResponses()) {
+            teamCatalogMock.loadMockProductAreas()
+        } else {
+            fetchAllProductAreas()
+        }
+
+        val teamsWithinProduct= if (useMockResponses()) {
+            teamCatalogMock.loadMockMembersWithRole(productAreas)
+        } else {
+            fetchAllTeams(productAreas)
+        }
+
         if (teamsWithinProduct.isEmpty()) {
             logger.info("No teams were found. return empty list")
             return emptyList()
@@ -78,26 +94,28 @@ class TeamCatalog(
             teams.content.forEach { team ->
                 team.members.forEach { member ->
                     if (member.roles.contains(SECURITY_CHAMPION)) {
-                        if(securityChamps.any { champ -> champ.email == member.resource.email}) {
+                        if (securityChamps.any { champ -> champ.email == member.resource.email }) {
                             securityChamps.forEach { champ ->
-                                if(champ.email == member.resource.email) {
+                                if (champ.email == member.resource.email) {
                                     champ.teamName.add(team.name)
                                     champ.teamId.add(team.id)
                                 }
                             }
-                        }
-                    } else {
-                            securityChamps.add(MemberWithTeamData(
-                                navIdent = member.resource.navIdent,
-                                fullName = member.resource.fullName,
-                                email = member.resource.email ?: "unknown",
-                                teamName = mutableListOf(team.name),
-                                teamId = mutableListOf(team.id)
-                            ))
+                        } else {
+                            securityChamps.add(
+                                MemberWithTeamData(
+                                    navIdent = member.resource.navIdent,
+                                    fullName = member.resource.fullName,
+                                    email = member.resource.email ?: "unknown",
+                                    teamName = mutableListOf(team.name),
+                                    teamId = mutableListOf(team.id)
+                                )
+                            )
                         }
                     }
                 }
             }
+        }
         return securityChamps
     }
 }

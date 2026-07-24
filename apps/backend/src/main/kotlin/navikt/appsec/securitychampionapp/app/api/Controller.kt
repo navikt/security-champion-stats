@@ -34,37 +34,18 @@ class Controller(
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
         logger.info("Request to fetch all members was made")
-        var members = repo.getAllMembersInProgram().map {
-            Member(
-                it.id,
-                it.fullname,
-                it.points,
-                it.email,
-                it.level
-            )
-        }
-        return if (members.isEmpty() && activeProfiles != "local") {
-            catalog.fetchMembersWithRole().forEach {
-                repo.addMember(
-                    fullname = it.fullName,
-                    id = it.navIdent,
-                    email = it.email,
-                    teams = it.teamName
-                )
-            }
-            members = repo.getAllMembersInProgram().map {
+        val members = repo.getAllMembers()
+            .filter { it.inProgram }.map {
                 Member(
-                    it.id,
-                    it.fullname,
-                    it.points,
-                    it.email,
-                    it.level
+                    id = it.id,
+                    fullname = it.fullname,
+                    points = it.points,
+                    email = it.email,
+                    level = it.level
                 )
             }
-            ResponseEntity(members, HttpStatus.OK)
-        } else {
-            ResponseEntity(members, HttpStatus.OK)
-        }
+
+        return ResponseEntity(members, HttpStatus.OK)
     }
 
     @GetMapping("/validate")
@@ -73,7 +54,6 @@ class Controller(
         val email = authentication?.name.orEmpty()
         val isAdmin = authentication?.authorities?.any { it.authority == "ROLE_$ADMIN_ROLE" } ?: false
         val inProgram = repo.getMemberByEmail(email)?.inProgram ?: false
-        logger.info("Request to fetch user $email was made")
         return ResponseEntity(Me(email, isAdmin, inProgram), HttpStatus.OK)
     }
 

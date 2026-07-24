@@ -39,6 +39,8 @@ data class ResourceResponse(
 )
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class MemberWithTeamData(
     val navIdent: String,
     val fullName: String,

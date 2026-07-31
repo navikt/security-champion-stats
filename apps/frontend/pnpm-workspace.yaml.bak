@@ -1,0 +1,9 @@
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  esbuild: false
+  protobufjs: false
+  sharp: false
+trust-policy: no-downgrade
+trustPolicyExclude:
+    - 'ua-parser-js@1.0.41'

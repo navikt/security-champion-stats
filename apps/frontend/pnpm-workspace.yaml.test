@@ -1,0 +1,15 @@
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  esbuild: false
+  protobufjs: false
+  sharp: false
+trust-policy: no-downgrade
+trustPolicyExclude:
+    - '@navikt/aksel-icons'
+    - '@navikt/ds-css'
+    - '@navikt/ds-react'
+    - '@navikt/ds-tokens'
+    - '@navikt/oasis'
+    - '@navikt/texas'
+    - 'ua-parser-js@1.0.41'

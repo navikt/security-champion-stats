@@ -3,8 +3,6 @@ import {NextRequest, NextResponse} from "next/server";
 import {AUTHENTICATED_FAILED, FAILED_TO_JOIN} from "../../shared/utils/Variables";
 
 export async function POST(request: NextRequest) {
-    const body = await request.json()
-    const {email} = body
     try {
         const {backendUrl} = getServerEnv()
         const backendToken = await getBackendToken(request)
@@ -23,7 +21,6 @@ export async function POST(request: NextRequest) {
                 Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
             },
-            body: email
         })
 
         if (!response.ok) {

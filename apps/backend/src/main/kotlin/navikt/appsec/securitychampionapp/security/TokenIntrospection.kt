@@ -73,7 +73,7 @@ class TokenIntrospection(
                 handleUnauthenticated(request, response, "inactive_token")
                 return
             }
-
+            
             val navIdent = result.ident
             if (navIdent.isNullOrEmpty()) {
                 log.warn("Missing NAVident claim in token for request: ${request.requestURI}")

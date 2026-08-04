@@ -106,7 +106,7 @@ class TeamCatalog(
                                 MemberWithTeamData(
                                     navIdent = member.resource.navIdent,
                                     fullName = member.resource.fullName,
-                                    email = member.resource.email ?: "unknown",
+                                    email = member.resource.email,
                                     teamName = mutableListOf(team.name),
                                     teamId = mutableListOf(team.id)
                                 )

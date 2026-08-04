@@ -32,23 +32,28 @@ class SyncJob(
                 logger.error("Failed to fetch members from database then sync data, with error: ${queryResponse.error}")
                 return@runWithLock
             }
+
+            if (catalogMembers.isEmpty()) {
+                logger.warn("No members were found in Teamkatalogen, skipping sync")
+                return@runWithLock
+            }
             val members = queryResponse.queryResult!!.toMutableList()
 
             catalogMembers.forEach { catalogMember ->
                 if (members.none { it.email == catalogMember.email }) {
-                    membersToAdd.add(
-                        SecurityChampion(
-                            email = catalogMember.email,
-                            link = "",
-                            teams = catalogMember.teamName,
-                            imageUrl = "",
-                            fullname = catalogMember.fullName
-                        )
-                    )
-
-                    val response = repo.addMember(catalogMember.fullName, catalogMember.navIdent, catalogMember.email, catalogMember.teamName)
+                    val response = repo.addMember(catalogMember.fullName, catalogMember.navIdent, catalogMember.email ?: "", catalogMember.teamName)
                     if (!response.isOk) {
                         logger.error("Failed to add member to database, with error: ${response.error}")
+                    } else {
+                        membersToAdd.add(
+                            SecurityChampion(
+                                email = catalogMember.email ?: "",
+                                link = "",
+                                teams = catalogMember.teamName,
+                                imageUrl = "",
+                                fullname = catalogMember.fullName
+                            )
+                        )
                     }
                 }
                 if (members.any {it.email == catalogMember.email && it.teams != catalogMember.teamName}) {
@@ -70,12 +75,17 @@ class SyncJob(
             if (membersToAdd.isNotEmpty()) {
                 val response = slackChannelMembershipService.sendWelcomeMessage(membersToAdd)
                 if (!response.isOk) {
-                    logger.error("Failed to update slack user group with new members, with error: ${response.error}")
+                    logger.error("Failed to send out welcome message, with error: ${response.error}")
+                    return@runWithLock
                 }
             }
 
             if (membersToAdd.isNotEmpty() || membersToRemove.isNotEmpty()) {
-                slackChannelMembershipService.updateUserGroupWithNewMembers()
+                val response = slackChannelMembershipService.updateUserGroupWithNewMembers()
+                if (!response.isOk) {
+                    logger.error("Failed to update slack user group with new members, with error: ${response.error}")
+                    return@runWithLock
+                }
             }
         }
     }

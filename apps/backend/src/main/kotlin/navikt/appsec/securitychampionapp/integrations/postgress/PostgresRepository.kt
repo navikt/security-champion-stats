@@ -125,9 +125,9 @@ class PostgresRepository(
         return executeUpdate(query, id)
     }
 
-    fun addPoints(email: String, points: Int): DatabaseUpdateResponse{
-        val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE email = ?"
-        return executeUpdate(query, points, email)
+    fun addPoints(id: String, points: Int): DatabaseUpdateResponse{
+        val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, points, id)
     }
 
     fun resetAllPointsAndLevels(): DatabaseUpdateResponse {
@@ -140,9 +140,9 @@ class PostgresRepository(
         return executeUpdate(query, SqlTextArray(teams), id)
     }
 
-    fun updateInProgram(email: String, inProgram: Boolean): DatabaseUpdateResponse {
-        val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
-        return executeUpdate(query, email)
+    fun updateInProgram(id: String, inProgram: Boolean): DatabaseUpdateResponse {
+        val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, id)
     }
 
     fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {

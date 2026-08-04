@@ -104,10 +104,11 @@ class PostgresRepositoryTest {
 
     @Test
     fun `should add points and update timestamp when member exists`() {
+        val memberId = "member-1"
         val originalUpdatedAt = Instant.parse("2026-01-01T00:00:00Z")
-        insertMember(email = "test@nav.no", points = 5, updatedAt = originalUpdatedAt)
+        insertMember(id = memberId, email = "test@nav.no", points = 5, updatedAt = originalUpdatedAt)
 
-        repository.addPoints("test@nav.no", 10)
+        repository.addPoints(memberId, 10)
 
         val updatedMember = repository.getMemberByEmail("test@nav.no")
         Assertions.assertThat(updatedMember.isOk).isTrue()
@@ -117,10 +118,11 @@ class PostgresRepositoryTest {
 
     @Test
     fun `should accumulate points across multiple updates`() {
-        insertMember(email = "test@nav.no", points = 3)
+        val memberId = "member-1"
+        insertMember(id = memberId, email = "test@nav.no", points = 3)
 
-        repository.addPoints("test@nav.no", 10)
-        repository.addPoints("test@nav.no", 7)
+        repository.addPoints(memberId, 10)
+        repository.addPoints(memberId, 7)
 
         Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult!!.first().points).isEqualTo(20)
     }
@@ -146,7 +148,7 @@ class PostgresRepositoryTest {
     fun `should not change existing members when adding points to member that does not exist`() {
         insertMember(email = "existing@nav.no", points = 4)
 
-        repository.addPoints("missing@nav.no", 10)
+        repository.addPoints("missing-id", 10)
 
         Assertions.assertThat(repository.getMemberByEmail("existing@nav.no").queryResult!!.first().points).isEqualTo(4)
         Assertions.assertThat(memberCount()).isEqualTo(1)

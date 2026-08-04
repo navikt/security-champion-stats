@@ -35,11 +35,10 @@ export const Apies = {
         if (!res.ok) console.error("Failed to add points, with status code: ", res.status)
         return res.status
     },
-    joinProgram: async (email: string) => {
+    joinProgram: async() => {
         const res = await fetch("/api/join", {
             method: "POST",
             headers: { "Content-Type": "application/json" }, // fixed typo
-            body: JSON.stringify({ "email" : email }),
         })
 
         if (!res.ok) console.error("Failed to join a member to the program, with status code: ", res.status)
@@ -53,11 +52,10 @@ export const Apies = {
         }
         return await res.json()
     },
-    leaveProgram: async( email: string): Promise<Number> => {
+    leaveProgram: async(): Promise<Number> => {
         const res = await fetch("/api/leave", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "email": email })
         })
         if (!res.ok) console.error("Failed to leave the program, with status code: ", res.status)
 

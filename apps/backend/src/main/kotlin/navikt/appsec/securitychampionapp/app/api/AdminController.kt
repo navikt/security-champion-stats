@@ -5,7 +5,6 @@ import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
 import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
-import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -64,7 +63,6 @@ class AdminController(
 
     @GetMapping("/dashboard/members")
     fun getAllMembers(): ResponseEntity<List<SCdata>> {
-        // TODO: Add support for specific dates.
         return ResponseEntity.ok(repo.getSCAmountOverTime())
     }
 

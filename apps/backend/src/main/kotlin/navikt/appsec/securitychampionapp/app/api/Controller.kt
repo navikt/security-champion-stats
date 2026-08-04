@@ -1,5 +1,6 @@
 package navikt.appsec.securitychampionapp.app.api
 
+import jakarta.transaction.Status
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.app.api.dto.Me
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import kotlin.math.log
 
 
 @RestController
@@ -34,14 +34,14 @@ class Controller(
 
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
-        val members = repo.getAllMembers()
+        val queryResponse = repo.getAllMembers()
 
-        if (!members.isOk) {
-            logger.warn("Failed to fetch all member from database due to error: ${members.error}")
+        if (!queryResponse.isOk) {
+            logger.warn("Failed to fetch all member from database due to error: ${queryResponse.error}")
             return ResponseEntity(emptyList(), HttpStatus.INTERNAL_SERVER_ERROR)
         }
 
-        val response = members.queryResult!!
+        val response = queryResponse.queryResult!!
             .filter { it.inProgram }
             .map { members ->
                 Member(
@@ -66,55 +66,41 @@ class Controller(
             logger.warn("Failed to fetch member from database due to error: ${queryResponse.error}")
             return ResponseEntity(Me(email, isAdmin, false), HttpStatus.INTERNAL_SERVER_ERROR)
         }
+
         val inProgram = queryResponse.queryResult!!.firstOrNull()?.inProgram ?: false
         return ResponseEntity(Me(email, isAdmin, inProgram), HttpStatus.OK)
     }
 
     @PostMapping("/join")
-    fun applyMember(@RequestBody email: String): ResponseEntity<String> {
-        val authentication = SecurityContextHolder.getContext().authentication
-        when {
-            !validate.isValidEmail(email) -> {
-                logger.warn("User with email ${authentication?.name} attempted to join program with invalid email $email")
-                return ResponseEntity(HttpStatus.BAD_REQUEST)
-            }
-            authentication?.name != email -> {
-                logger.warn("User with email ${authentication?.name} attempted to join program with email $email")
-                return ResponseEntity(HttpStatus.UNAUTHORIZED)
-            }
-        }
-
-        val member = repo.getMemberByEmail(email)
-        return if (member == null) {
-            logger.warn("User with email $email attempted to join program but is not a member")
-            ResponseEntity(HttpStatus.BAD_REQUEST)
-        } else {
-            repo.updateInProgram(email, true)
-            ResponseEntity(HttpStatus.OK)
-        }
+    fun applyMember(): ResponseEntity<String> {
+        return updateUserInProgramStatus(true)
     }
 
     @PostMapping("/leave")
-    fun leaveProgram(@RequestBody email: String): ResponseEntity<String> {
+    fun leaveProgram(): ResponseEntity<String> {
+        return updateUserInProgramStatus(false)
+    }
+
+    private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {
         val authentication = SecurityContextHolder.getContext().authentication
-        when {
-            !validate.isValidEmail(email) -> {
-                logger.warn("User with email ${authentication?.name} attempted to leave program with invalid email $email")
-                return ResponseEntity(HttpStatus.BAD_REQUEST)
-            }
-            authentication?.name != email -> {
-                logger.warn("User with email ${authentication?.name} attempted to leave program with email $email")
-                return ResponseEntity(HttpStatus.UNAUTHORIZED)
-            }
+        val email = authentication?.name.orEmpty()
+        val queryResponse = repo.getMemberByEmail(email)
+        if (!queryResponse.isOk) {
+            return returnInternalError("Failed to find/fetch member due to error: ${queryResponse.error}")
+        }
+        val id = queryResponse.queryResult!!.firstOrNull()?.id ?: ""
+        val updateResponse = repo.updateInProgram(id, status)
+
+        if (!updateResponse.isOk) {
+            return returnInternalError("Failed to update member inProgram status due to error: ${updateResponse.error}")
         }
 
-        val member = repo.getMemberByEmail(email)
-        return if (member == null) {
-            logger.warn("User with email $email attempted to leave program but is not a member")
-            ResponseEntity(HttpStatus.BAD_REQUEST)
-        } else {
-            repo.updateInProgram(email, false)
-            ResponseEntity(HttpStatus.OK)
-        }
+        return ResponseEntity(HttpStatus.OK)
+    }
+
+
+    private fun returnInternalError(error: String): ResponseEntity<String> {
+        logger.error("Internal error: $error")
+        return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
     }
 }

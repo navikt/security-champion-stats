@@ -10,6 +10,7 @@ import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalogMock
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import org.assertj.core.api.Assertions.assertThat
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
@@ -22,6 +23,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.core.env.StandardEnvironment
@@ -94,10 +96,10 @@ class SyncJobTest {
         whenever(slackChannelMembershipService.updateUserGroupWithNewMembers()).thenReturn(SlackResponse(isOk = true))
     }
 
-    private fun syncJob() = SyncJob(
+    private fun syncJob(catalogOverride: TeamCatalog = catalog) = SyncJob(
         jobLock = jobLock,
         repo = repository,
-        catalog = catalog,
+        catalog = catalogOverride,
         slackChannelMembershipService = slackChannelMembershipService,
     )
 
@@ -150,6 +152,64 @@ class SyncJobTest {
     }
 
     @Test
+    fun `should skip sync when team catalog returns no members`() {
+        runJobInsideLock()
+        seedMember(
+            id = "test-id",
+            fullname = "Test User",
+            email = "test@nav.no",
+        )
+        val emptyCatalog = mock<TeamCatalog>()
+        whenever(emptyCatalog.fetchMembersWithRole()).thenReturn(emptyList())
+
+        syncJob(emptyCatalog).syncDatabase()
+
+        assertThat(repository.getMemberByEmail("test@nav.no").queryResult).hasSize(1)
+        verify(slackChannelMembershipService, never()).sendWelcomeMessage(any())
+        verify(slackChannelMembershipService, never()).updateUserGroupWithNewMembers()
+    }
+
+    @Test
+    fun `should not update user group when welcome message fails`() {
+        runJobInsideLock()
+        whenever(slackChannelMembershipService.sendWelcomeMessage(any()))
+            .thenReturn(SlackResponse(isOk = false, error = "slack failed"))
+
+        syncJob().syncDatabase()
+
+        verify(slackChannelMembershipService).sendWelcomeMessage(any())
+        verify(slackChannelMembershipService, never()).updateUserGroupWithNewMembers()
+    }
+
+    @Test
+    fun `should update teams for existing members`() {
+        runJobInsideLock()
+        seedMember(
+            id = "A123456",
+            fullname = "Ada Lovelace",
+            email = "ada.lovelace@nav.no",
+            teams = listOf("Old team"),
+        )
+        val catalogWithUpdatedTeam = mock<TeamCatalog>()
+        whenever(catalogWithUpdatedTeam.fetchMembersWithRole()).thenReturn(
+            listOf(
+                MemberWithTeamData(
+                    navIdent = "A123456",
+                    fullName = "Ada Lovelace",
+                    email = "ada.lovelace@nav.no",
+                    teamName = mutableListOf("New team"),
+                    teamId = mutableListOf("new-team-id"),
+                )
+            )
+        )
+
+        syncJob(catalogWithUpdatedTeam).syncDatabase()
+
+        assertThat(repository.getMemberByEmail("ada.lovelace@nav.no").queryResult!!.first().teams)
+            .containsExactly("New team")
+    }
+
+    @Test
     fun `should skip sync when another instance already holds the lock`() {
         syncJob().syncDatabase()
 
@@ -161,10 +221,11 @@ class SyncJobTest {
         id: String,
         fullname: String,
         email: String,
+        teams: List<String> = emptyList(),
     ) {
         val member = repository.getMemberByEmail(email).queryResult!!.firstOrNull()
         if (member == null) {
-            repository.addMember(fullname, id, email, emptyList())
+            repository.addMember(fullname, id, email, teams)
         }
     }
 }

@@ -50,7 +50,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     }
 
     const joinProgram = async () => {
-        await Apies.joinProgram(userData.username)
+        await Apies.joinProgram()
         await reload()
         await reloadMe()
         if (me.inProgram) setActive(true)
@@ -63,7 +63,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
     }
 
     const leaveProgram = async() => {
-        await Apies.leaveProgram(userData.username)
+        await Apies.leaveProgram()
         await reload()
         await reloadMe()
         if (me.inProgram) setActive(true)

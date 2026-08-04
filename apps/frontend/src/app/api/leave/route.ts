@@ -4,8 +4,6 @@ import {AUTHENTICATED_FAILED, FAILED_TO_LEAVE} from "@/app/shared/utils/Variable
 
 export async function POST(request: NextRequest) {
     const body = await request.json()
-    const { email } = body
-
     try {
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)
@@ -23,8 +21,7 @@ export async function POST(request: NextRequest) {
             headers: {
                 Authorization: `Bearer ${backendToken}`,
                 "Content-Type": "application/json"
-            },
-            body: email
+            }
         })
 
         if (!response.ok) {

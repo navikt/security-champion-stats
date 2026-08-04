@@ -55,6 +55,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         await reloadMe()
         if (me.inProgram) setActive(true)
         else setActive(false)
+        window.location.reload()
     }
 
     const deleteMember = async (id: string) => {
@@ -68,6 +69,7 @@ function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {
         await reloadMe()
         if (me.inProgram) setActive(true)
         else setActive(false)
+        window.location.reload()
     }
 
     return (

@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U08FGDKU83D",
+      "text": "Good morning! Has anyone reviewed the latest deployment notes?",
+      "ts": "1722153600.000101"
+    },
+    {
+      "type": "message",
+      "user": "U0123456789",
+      "text": "I reviewed them. The authentication changes look good, but we should test the token refresh flow.",
+      "ts": "1722153665.000202"
+    },
+    {
+      "type": "message",
+      "user": "U0987654321",
+      "text": "Here is the related ticket: <https://example.com/tickets/AUTH-123>",
+      "attachments": [
+        {
+          "service_name": "Issue Tracker",
+          "title": "AUTH-123: Test token refresh flow",
+          "title_link": "https://example.com/tickets/AUTH-123",
+          "text": "Verify that expired access tokens are refreshed without interrupting active sessions.",
+          "fallback": "AUTH-123: Test token refresh flow",
+          "thumb_url": "https://example.com/images/auth-ticket.png",
+          "thumb_width": 800,
+          "thumb_height": 450,
+          "id": 1
+        }
+      ],
+      "ts": "1722153720.000303"
+    },
+    {
+      "type": "message",
+      "user": "U0111222333",
+      "text": "I can handle that test today and post the results in this channel.",
+      "ts": "1722153788.000404"
+    },
+    {
+      "type": "message",
+      "user": "U08FGDKU83D",
+      "text": "Thanks! Please also check whether the refresh request is retried after a temporary network error.",
+      "ts": "1722153842.000505"
+    },
+    {
+      "type": "message",
+      "user": "U0123456789",
+      "text": "The staging deployment is complete. Version 2.4.0 is now available for testing.",
+      "attachments": [
+        {
+          "service_name": "Deployment Service",
+          "title": "Staging deployment succeeded",
+          "title_link": "https://example.com/deployments/98765",
+          "text": "Application version 2.4.0 was deployed successfully to the staging environment.",
+          "fallback": "Staging deployment of version 2.4.0 succeeded",
+          "thumb_url": "https://example.com/images/deployment-success.png",
+          "thumb_width": 1200,
+          "thumb_height": 630,
+          "id": 2
+        }
+      ],
+      "ts": "1722153900.000606"
+    }
+  ],
+  "has_more": true,
+  "pin_count": 0,
+  "response_metadata": {
+    "next_cursor": "bmV4dF90czoxNzIyMTUzOTAwMDAwNjA2"
+  }
+}

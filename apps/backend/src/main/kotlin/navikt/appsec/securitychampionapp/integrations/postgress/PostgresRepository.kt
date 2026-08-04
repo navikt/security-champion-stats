@@ -1,21 +1,21 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseQueryResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseUpdateResponse
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlTextArray
-import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import java.time.Instant
 
-private val logger = LoggerFactory.getLogger(PostgresRepository::class.java)
 
 @Repository
 class PostgresRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
-    private fun queryMembersData(query: String, vararg args: Any): List<SqlMember> {
+    private fun queryMembersData(query: String, vararg args: Any): DatabaseQueryResponse {
         return try {
             val rowMapper = RowMapper { rs, _ ->
                 val teams = (rs.getArray("teams")?.array as? Array<*>)
@@ -33,13 +33,23 @@ class PostgresRepository(
                 )
             }
             if (args.isEmpty()) {
-                jdbcTemplate.query(query, rowMapper)
+                DatabaseQueryResponse(
+                    isOk = true,
+                    jdbcTemplate.query(query, rowMapper)
+                )
             } else {
-                jdbcTemplate.query(query, rowMapper, *args)
+                DatabaseQueryResponse(
+                    isOk = true,
+                    jdbcTemplate.query(query, rowMapper, *args)
+
+                )
             }
         } catch (e: Exception) {
-            logger.error("Failed to fetch members: ${e.message}")
-            emptyList()
+            DatabaseQueryResponse(
+                isOk = false,
+                emptyList(),
+                error = "Failed to fetch members: ${e.message}"
+            )
         }
     }
 
@@ -57,12 +67,11 @@ class PostgresRepository(
                 jdbcTemplate.query(query, rowMapper, *args)
             }
         } catch (e: Exception) {
-            logger.error("Failed to fetch SC data: ${e.message}")
             emptyList()
         }
     }
 
-    private fun executeUpdate(query: String, vararg args: Any) {
+    private fun executeUpdate(query: String, vararg args: Any): DatabaseUpdateResponse {
         try {
             jdbcTemplate.update { connection ->
                 connection.prepareStatement(query).apply {
@@ -70,7 +79,6 @@ class PostgresRepository(
                         val paramIndex = index + 1
 
                         when (value) {
-                            null -> setObject(paramIndex, null)
                             is SqlTextArray -> setArray(
                                 paramIndex,
                                 connection.createArrayOf(
@@ -83,59 +91,58 @@ class PostgresRepository(
                     }
                 }
             }
+            return DatabaseUpdateResponse(isOk = true)
         } catch (e: Exception) {
-            logger.error(
-                "Failed SQL: {}, arguments: {}",
-                query,
-                args.contentToString(),
-                e
+            return DatabaseUpdateResponse(
+                isOk = false,
+                error = "Failed to execute update: ${e.message}"
             )
         }
     }
 
-    fun getAllMembersInProgram(): List<SqlMember> {
+    fun getAllMembersInProgram(): DatabaseQueryResponse {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE inProgram = true"
         return queryMembersData(query)
     }
 
-    fun getAllMembers(): List<SqlMember> {
+    fun getAllMembers(): DatabaseQueryResponse {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members"
         return queryMembersData(query)
     }
 
-    fun addMember(fullname: String, id: String, email: String, teams: List<String>) {
+    fun addMember(fullname: String, id: String, email: String, teams: List<String>): DatabaseUpdateResponse {
         val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, '1', ?)"
-        executeUpdate(query, id, fullname, email, SqlTextArray(teams))
+        return executeUpdate(query, id, fullname, email, SqlTextArray(teams))
     }
 
-    fun getMemberByEmail(email: String): SqlMember? {
+    fun getMemberByEmail(email: String): DatabaseQueryResponse {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE email = ?"
-        return queryMembersData(query, email).firstOrNull()
+        return queryMembersData(query, email)
     }
 
-    fun deleteMember(id: String) {
+    fun deleteMember(id: String): DatabaseUpdateResponse {
         val query = "DELETE FROM Members WHERE id = ?"
-        executeUpdate(query, id)
+        return executeUpdate(query, id)
     }
 
-    fun addPoints(email: String, points: Int){
+    fun addPoints(email: String, points: Int): DatabaseUpdateResponse{
         val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE email = ?"
-        executeUpdate(query, points, email)
+        return executeUpdate(query, points, email)
     }
 
-    fun resetAllPointsAndLevels(): Int {
+    fun resetAllPointsAndLevels(): DatabaseUpdateResponse {
         val query = "UPDATE Members SET points = 0, level = '1', update_at = NOW()"
-        return try {
-            jdbcTemplate.update(query)
-        } catch (e: Exception) {
-            logger.error("Failed to reset members due to error: ${e.message}")
-            0
-        }
+        return executeUpdate(query)
     }
 
-    fun updateInProgram(email: String, inProgram: Boolean) {
+    fun updateTeam(id: String, teams: List<String>): DatabaseUpdateResponse{
+        val query = "UPDATE Members SET teams = ? WHERE id = ?"
+        return executeUpdate(query, SqlTextArray(teams), id)
+    }
+
+    fun updateInProgram(email: String, inProgram: Boolean): DatabaseUpdateResponse {
         val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE email = ?"
-        executeUpdate(query, email)
+        return executeUpdate(query, email)
     }
 
     fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {

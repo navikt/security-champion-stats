@@ -1,57 +1,32 @@
 package navikt.appsec.securitychampionapp.integrations.slack.dto
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.slack.api.model.block.LayoutBlock
 
 data class SlackActivitySummary(
-    val userInfo: UserInfo,
-    val inTrackedChannels: List<String>,
-    val messagesPerChannel: Map<String, Int>,
-    val totalMessages: Int,
+    val email: String,
+    val totalPoints: Int,
     val error: String? = null
 )
 
-data class UserInfo(
-    val userId: String,
-    val fullname: String,
-    val imageUrl: String? = null,
+data class SlackActivitySummaryResponse(
+    val slackActivitySummaries: List<SlackActivitySummary>,
     val error: String? = null
 )
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class SlackFetchUserResponse(
-    val responses: SlackFetchUserVariants,
-    val failure: SlackFetchUserFailure
+data class SecurityChampion(
+    val email: String,
+    val link: String,
+    val teams: List<String>,
+    val imageUrl: String,
+    val fullname: String
 )
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class SlackFetchUserVariants(
-    val success: SlackFetchUserSuccess
+data class SecurityChampionMessage(
+    val fallBackBlock: String,
+    val messageBlock: MutableList<LayoutBlock>
 )
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class SlackFetchUserSuccess(
-    val ok: Boolean,
-    val user: SlackMockUser
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class SlackFetchUserFailure(
-    val ok: Boolean,
-    val error: String
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class SlackMockUser(
-    val id: String,
-    val name: String,
-    @JsonProperty("real_name") val realName: String?,
-    val profile: SlackMockProfile?
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class SlackMockProfile(
-    val email: String?,
-    @JsonProperty("image_original") val imageOriginal: String?,
-    @JsonProperty("image_192") val image192: String?
+data class SlackResponse(
+    val isOk: Boolean,
+    val error: String? = null
 )

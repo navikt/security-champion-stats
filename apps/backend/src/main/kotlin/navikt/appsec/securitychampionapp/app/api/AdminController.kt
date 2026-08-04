@@ -4,7 +4,7 @@ import navikt.appsec.securitychampionapp.integrations.postgress.PostgresReposito
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
-import navikt.appsec.securitychampionapp.integrations.slack.SlackService
+import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.NewSecurityChampion
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
@@ -27,7 +27,7 @@ private const val POINTS_FOR_MEETING = 4
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: PostgresRepository,
-    private val slackService: SlackService
+    private val slackService: SlackApiService
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
     private val validate = Validate()
@@ -75,16 +75,6 @@ class AdminController(
             repo.addMember("Paulius Deveika", id = UUID.randomUUID().toString(), email, listOf("appsec"))
             member = repo.getMemberByEmail(email)
         }
-        slackService.addSecurityChampionsToSlack(
-            "C0314EZ719S",
-            listOf(
-                NewSecurityChampion(
-                    email = member!!.email,
-                    teamNames = member.teams,
-                    fullName = member.fullname
-                )
-            )
-        )
 
         return ResponseEntity.ok().build()
     }
@@ -92,8 +82,6 @@ class AdminController(
     @PostMapping("/member/attended/{email}")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
         val member = repo.getMemberByEmail(email)
-        val updatedPoints = (member?.points ?: 0) + POINTS_FOR_MEETING
-        repo.addPoints(email, updatedPoints)
         return ResponseEntity.ok().build()
     }
 }

@@ -1,8 +1,8 @@
-package navikt.appsec.securitychampionapp.integrations
+package navikt.appsec.securitychampionapp.integrations.postgres
 
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -17,7 +17,6 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
-
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -74,9 +73,11 @@ class PostgresRepositoryTest {
 
         val member = repository.getMemberByEmail("test@nav.no")
 
-        assertThat(member).isNotNull()
-        assertThat(member?.level).isEqualTo("2")
-        assertThat(member?.teams).isEqualTo(listOf("team-a", "team-b"))
+        Assertions.assertThat(member.isOk).isTrue()
+        Assertions.assertThat(member.queryResult).hasSize(1)
+        val members = member.queryResult.orEmpty()
+        Assertions.assertThat(members.first().level).isEqualTo("2")
+        Assertions.assertThat(members.first().teams).isEqualTo(listOf("team-a", "team-b"))
     }
 
     @Test
@@ -86,9 +87,9 @@ class PostgresRepositoryTest {
 
         repository.deleteMember("member-1")
 
-        assertThat(repository.getMemberByEmail("test@nav.no")).isNull()
-        assertThat(repository.getMemberByEmail("keep@nav.no")).isNotNull()
-        assertThat(memberCount()).isEqualTo(1)
+        Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult).isEmpty()
+        Assertions.assertThat(repository.getMemberByEmail("keep@nav.no").queryResult).hasSize(1)
+        Assertions.assertThat(memberCount()).isEqualTo(1)
     }
 
     @Test
@@ -97,8 +98,8 @@ class PostgresRepositoryTest {
 
         repository.deleteMember("missing@nav.no")
 
-        assertThat(repository.getMemberByEmail("existing@nav.no")).isNotNull()
-        assertThat(memberCount()).isEqualTo(1)
+        Assertions.assertThat(repository.getMemberByEmail("existing@nav.no").queryResult).hasSize(1)
+        Assertions.assertThat(memberCount()).isEqualTo(1)
     }
 
     @Test
@@ -109,9 +110,9 @@ class PostgresRepositoryTest {
         repository.addPoints("test@nav.no", 10)
 
         val updatedMember = repository.getMemberByEmail("test@nav.no")
-        assertThat(updatedMember).isNotNull()
-        assertThat(updatedMember?.points).isEqualTo(15)
-        assertThat(fetchUpdatedAt("test@nav.no")).isAfter(originalUpdatedAt)
+        Assertions.assertThat(updatedMember.isOk).isTrue()
+        Assertions.assertThat(updatedMember.queryResult!!.first().points).isEqualTo(15)
+        Assertions.assertThat(fetchUpdatedAt("test@nav.no")).isAfter(originalUpdatedAt)
     }
 
     @Test
@@ -121,7 +122,7 @@ class PostgresRepositoryTest {
         repository.addPoints("test@nav.no", 10)
         repository.addPoints("test@nav.no", 7)
 
-        assertThat(repository.getMemberByEmail("test@nav.no")?.points).isEqualTo(20)
+        Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult!!.first().points).isEqualTo(20)
     }
 
     @Test
@@ -132,13 +133,13 @@ class PostgresRepositoryTest {
 
         val updatedRows = repository.resetAllPointsAndLevels()
 
-        assertThat(updatedRows).isEqualTo(2)
-        assertThat(repository.getMemberByEmail("first@nav.no")?.points).isEqualTo(0)
-        assertThat(repository.getMemberByEmail("first@nav.no")?.level).isEqualTo("1")
-        assertThat(repository.getMemberByEmail("second@nav.no")?.points).isEqualTo(0)
-        assertThat(repository.getMemberByEmail("second@nav.no")?.level).isEqualTo("1")
-        assertThat(fetchUpdatedAt("first@nav.no")).isAfter(originalUpdatedAt)
-        assertThat(fetchUpdatedAt("second@nav.no")).isAfter(originalUpdatedAt)
+        Assertions.assertThat(updatedRows.isOk).isTrue()
+        Assertions.assertThat(repository.getMemberByEmail("first@nav.no").queryResult!!.first().points).isEqualTo(0)
+        Assertions.assertThat(repository.getMemberByEmail("first@nav.no").queryResult!!.first().level).isEqualTo("1")
+        Assertions.assertThat(repository.getMemberByEmail("second@nav.no").queryResult!!.first().points).isEqualTo(0)
+        Assertions.assertThat(repository.getMemberByEmail("second@nav.no").queryResult!!.first().level).isEqualTo("1")
+        Assertions.assertThat(fetchUpdatedAt("first@nav.no")).isAfter(originalUpdatedAt)
+        Assertions.assertThat(fetchUpdatedAt("second@nav.no")).isAfter(originalUpdatedAt)
     }
 
     @Test
@@ -147,8 +148,8 @@ class PostgresRepositoryTest {
 
         repository.addPoints("missing@nav.no", 10)
 
-        assertThat(repository.getMemberByEmail("existing@nav.no")?.points).isEqualTo(4)
-        assertThat(memberCount()).isEqualTo(1)
+        Assertions.assertThat(repository.getMemberByEmail("existing@nav.no").queryResult!!.first().points).isEqualTo(4)
+        Assertions.assertThat(memberCount()).isEqualTo(1)
     }
 
     private fun insertMember(

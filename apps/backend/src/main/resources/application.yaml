@@ -57,6 +57,7 @@ slack:
     appsec-channel-id: ${SLACK_APPSEC_CHANNEL_ID}
     appsec-activity-channel-id: ${SLACK_APPSEC_ACTIVITY_CHANNEL_ID}
     playbook_url: https://sikkerhet.nav.no/docs/ny-security-champion/
+    userGroupId: ${SLACK_USER_GROUP_ID}
 
 graph:
     apiUrl: https://graph.microsoft.com/v1.0

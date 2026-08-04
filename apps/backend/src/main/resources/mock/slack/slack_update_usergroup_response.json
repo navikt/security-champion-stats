@@ -4,12 +4,12 @@
     "id": "S0616NG6M",
     "team_id": "T060R4BHN",
     "is_usergroup": true,
-    "name": "Engineering",
-    "description": "Engineering team members",
-    "handle": "engineering",
+    "name": "Marketing Team",
+    "description": "Marketing gurus, PR experts and product advocates.",
+    "handle": "marketing-team",
     "is_external": false,
-    "date_create": 1720010000,
-    "date_update": 1784502000,
+    "date_create": 1447096577,
+    "date_update": 1447102109,
     "date_delete": 0,
     "auto_type": null,
     "created_by": "U060R4BJ4",
@@ -20,10 +20,11 @@
       "groups": []
     },
     "users": [
+      "U08FGDKU83D",
       "U0123456789",
       "U0987654321",
-      "U08FGDKU83D"
+      "U0111222333"
     ],
-    "user_count": 2
+    "user_count": 1
   }
 }

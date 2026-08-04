@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import kotlin.math.log
 
 
 @RestController
@@ -33,19 +34,25 @@ class Controller(
 
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
-        logger.info("Request to fetch all members was made")
         val members = repo.getAllMembers()
-            .filter { it.inProgram }.map {
+
+        if (!members.isOk) {
+            logger.warn("Failed to fetch all member from database due to error: ${members.error}")
+            return ResponseEntity(emptyList(), HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+
+        val response = members.queryResult!!
+            .filter { it.inProgram }
+            .map { members ->
                 Member(
-                    id = it.id,
-                    fullname = it.fullname,
-                    points = it.points,
-                    email = it.email,
-                    level = it.level
+                    id = members.id,
+                    fullname = members.fullname,
+                    points = members.points,
+                    email = members.email,
+                    level = members.level
                 )
             }
-
-        return ResponseEntity(members, HttpStatus.OK)
+        return ResponseEntity(response, HttpStatus.OK)
     }
 
     @GetMapping("/validate")
@@ -53,7 +60,13 @@ class Controller(
         val authentication = SecurityContextHolder.getContext().authentication
         val email = authentication?.name.orEmpty()
         val isAdmin = authentication?.authorities?.any { it.authority == "ROLE_$ADMIN_ROLE" } ?: false
-        val inProgram = repo.getMemberByEmail(email)?.inProgram ?: false
+        val queryResponse = repo.getMemberByEmail(email)
+
+        if (!queryResponse.isOk) {
+            logger.warn("Failed to fetch member from database due to error: ${queryResponse.error}")
+            return ResponseEntity(Me(email, isAdmin, false), HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+        val inProgram = queryResponse.queryResult!!.firstOrNull()?.inProgram ?: false
         return ResponseEntity(Me(email, isAdmin, inProgram), HttpStatus.OK)
     }
 

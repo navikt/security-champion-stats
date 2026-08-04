@@ -1,4 +1,4 @@
-package navikt.appsec.securitychampionapp.app
+package navikt.appsec.securitychampionapp.app.jobs
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository

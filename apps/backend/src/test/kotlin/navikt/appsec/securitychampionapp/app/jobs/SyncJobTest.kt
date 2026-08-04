@@ -1,7 +1,6 @@
-package navikt.appsec.securitychampionapp.api
+package navikt.appsec.securitychampionapp.app.jobs
 
 import com.zaxxer.hikari.HikariDataSource
-import navikt.appsec.securitychampionapp.app.jobs.SyncJob
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
@@ -11,7 +10,7 @@ import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalogMock
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
-import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -30,6 +29,7 @@ import org.springframework.core.env.StandardEnvironment
 import org.springframework.core.io.DefaultResourceLoader
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.web.reactive.function.client.WebClient
+import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import tools.jackson.databind.ObjectMapper
@@ -52,7 +52,7 @@ class SyncJobTest {
     companion object {
         @JvmStatic
         @Container
-        val postgres = org.testcontainers.containers.PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
+        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
             withDatabaseName("testdb")
             withUsername("test")
             withPassword("test")
@@ -122,15 +122,15 @@ class SyncJobTest {
         syncJob().syncDatabase()
 
         val members = repository.getAllMembers().queryResult!!
-        assertThat(members).hasSize(5)
-        assertThat(members.map(SqlMember::email)).containsExactlyInAnyOrder(
+        Assertions.assertThat(members).hasSize(5)
+        Assertions.assertThat(members.map(SqlMember::email)).containsExactlyInAnyOrder(
             "ada.lovelace@nav.no",
             "local.user@nav.no",
             "thomas.aasen@nav.no",
             "ingrid.moen@nav.no",
             "sara.berg@nav.no"
         )
-        assertThat(members.map(SqlMember::email)).doesNotContain("test@nav.no")
+        Assertions.assertThat(members.map(SqlMember::email)).doesNotContain("test@nav.no")
         verify(slackChannelMembershipService).updateUserGroupWithNewMembers()
     }
 
@@ -142,7 +142,7 @@ class SyncJobTest {
 
         val captor = argumentCaptor<List<SecurityChampion>>()
         verify(slackChannelMembershipService).sendWelcomeMessage(captor.capture())
-        assertThat(captor.firstValue.map(SecurityChampion::email)).containsExactlyInAnyOrder(
+        Assertions.assertThat(captor.firstValue.map(SecurityChampion::email)).containsExactlyInAnyOrder(
             "ada.lovelace@nav.no",
             "local.user@nav.no",
             "thomas.aasen@nav.no",
@@ -164,7 +164,7 @@ class SyncJobTest {
 
         syncJob(emptyCatalog).syncDatabase()
 
-        assertThat(repository.getMemberByEmail("test@nav.no").queryResult).hasSize(1)
+        Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult).hasSize(1)
         verify(slackChannelMembershipService, never()).sendWelcomeMessage(any())
         verify(slackChannelMembershipService, never()).updateUserGroupWithNewMembers()
     }
@@ -205,7 +205,7 @@ class SyncJobTest {
 
         syncJob(catalogWithUpdatedTeam).syncDatabase()
 
-        assertThat(repository.getMemberByEmail("ada.lovelace@nav.no").queryResult!!.first().teams)
+        Assertions.assertThat(repository.getMemberByEmail("ada.lovelace@nav.no").queryResult!!.first().teams)
             .containsExactly("New team")
     }
 
@@ -214,7 +214,7 @@ class SyncJobTest {
         syncJob().syncDatabase()
 
         verify(jobLock).runWithLock(any(), any(), any())
-        assertThat(repository.getAllMembers().queryResult).isEmpty()
+        Assertions.assertThat(repository.getAllMembers().queryResult).isEmpty()
     }
 
     private fun seedMember(

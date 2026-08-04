@@ -1,6 +1,5 @@
 package navikt.appsec.securitychampionapp.integrations.slack
 
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummary
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummaryResponse
 import org.slf4j.LoggerFactory
@@ -15,15 +14,16 @@ class ActivityService(
 ) {
     private val logger = LoggerFactory.getLogger(ActivityService::class.java)
 
-    fun calculateActivityForMembers(securityChampions: List<SecurityChampion>): SlackActivitySummaryResponse {
-        val userData = securityChampions.mapNotNull { sc ->
-            slackApiService.fetchUserIdByEmail(sc.email)
+    fun calculateActivityForMembers(securityChampions: List<String>): SlackActivitySummaryResponse {
+        val userData = securityChampions.mapNotNull { email ->
+            slackApiService.fetchUserIdByEmail(email)
         }
 
         if (userData.isEmpty() || userData.size != securityChampions.size) {
             logger.warn("Failed to fetch all users from slack for point calculation")
             return SlackActivitySummaryResponse(
-                emptyList(),
+                isOk = false,
+                slackActivitySummaries = emptyList(),
                 error = "Failed to fetch all users from slack for point calculation"
             )
         }
@@ -48,7 +48,7 @@ class ActivityService(
 
         return SlackActivitySummaryResponse(
             slackActivitySummaries,
-            null
+            isOk = true
         )
     }
 

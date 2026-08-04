@@ -10,6 +10,7 @@ data class SlackActivitySummary(
 
 data class SlackActivitySummaryResponse(
     val slackActivitySummaries: List<SlackActivitySummary>,
+    val isOk: Boolean,
     val error: String? = null
 )
 

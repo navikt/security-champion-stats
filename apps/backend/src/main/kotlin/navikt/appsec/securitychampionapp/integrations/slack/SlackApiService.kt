@@ -31,7 +31,7 @@ class SlackApiService(
 
     fun fetchChannelConversation(channelId: String): List<ConversationsHistoryResponse> {
         val oldest = Instant.now(clock)
-            .minus(24, ChronoUnit.HOURS)
+            .minus(23, ChronoUnit.HOURS)
             .epochSecond
             .toString()
 

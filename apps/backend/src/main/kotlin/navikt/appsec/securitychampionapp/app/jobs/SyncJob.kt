@@ -21,7 +21,7 @@ class SyncJob(
 ) {
     private val logger = LoggerFactory.getLogger(SyncJob::class.java)
 
-    @Scheduled(cron = "0 0 13 */2 * *")
+    @Scheduled(cron = "0 0 12 */1 * *")
     fun syncDatabase() {
         jobLock.runWithLock(SYNC_JOB_LOCK_KEY, "syncDatabase") {
             val catalogMembers = catalog.fetchMembersWithRole()

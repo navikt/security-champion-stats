@@ -30,6 +30,14 @@ class ActivityService(
 
         val conversationHistory = slackApiService.fetchChannelConversation(scChannelId)
 
+        if (conversationHistory.isEmpty()) {
+            logger.warn("Failed to fetch conversation history for channel $scChannelId")
+            return SlackActivitySummaryResponse(
+                isOk = false,
+                slackActivitySummaries = emptyList(),
+                error = "Failed to fetch conversation history for channel $scChannelId"
+            )
+        }
         val slackActivitySummaries = mutableListOf<SlackActivitySummary>()
         var totalPoints = 0
         userData.forEach { user ->

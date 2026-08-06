@@ -69,13 +69,20 @@ class ChannelMembershipService(
     }
 
     fun sendWelcomeMessage(secChampions: List<SecurityChampion>): SlackResponse {
-
+        val secChampionsWithImage = secChampions.map { member ->
+            val response = slackApiService.fetchUserIdByEmail(member.email)
+            if (response != null) {
+                member.copy(imageUrl = response.user.profile.image192)
+            } else {
+                member
+            }
+        }
         val simpleMessage = listOf(
             "Nye Security Champions:",
-            *formatSimpleUserList(secChampions).toTypedArray()
+            *formatSimpleUserList(secChampionsWithImage).toTypedArray()
         )
 
-        val messageBlocks: List<LayoutBlock> = secChampions.map { sc ->
+        val messageBlocks: List<LayoutBlock> = secChampionsWithImage.map { sc ->
             userSlackBlock(
                 sc,
                 message = buildString {

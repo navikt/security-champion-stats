@@ -36,7 +36,7 @@ class SlackApiService(
             .toString()
 
         var cursor: String? = null
-        val messages = mutableListOf<ConversationsHistoryResponse>()
+        val messages = emptyList<ConversationsHistoryResponse>().toMutableList()
         do {
             val request = ConversationsHistoryRequest.builder()
                 .channel(channelId)

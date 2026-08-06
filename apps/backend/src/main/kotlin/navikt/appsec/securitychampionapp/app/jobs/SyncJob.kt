@@ -72,18 +72,18 @@ class SyncJob(
                 }
             }
 
-            if (membersToAdd.isNotEmpty()) {
-                val response = slackChannelMembershipService.sendWelcomeMessage(membersToAdd)
-                if (!response.isOk) {
-                    logger.error("Failed to send out welcome message, with error: ${response.error}")
-                    return@runWithLock
-                }
-            }
-
             if (membersToAdd.isNotEmpty() || membersToRemove.isNotEmpty()) {
                 val response = slackChannelMembershipService.updateUserGroupWithNewMembers()
                 if (!response.isOk) {
                     logger.error("Failed to update slack user group with new members, with error: ${response.error}")
+                    return@runWithLock
+                }
+            }
+
+            if (membersToAdd.isNotEmpty()) {
+                val response = slackChannelMembershipService.sendWelcomeMessage(membersToAdd)
+                if (!response.isOk) {
+                    logger.error("Failed to send out welcome message, with error: ${response.error}")
                     return@runWithLock
                 }
             }

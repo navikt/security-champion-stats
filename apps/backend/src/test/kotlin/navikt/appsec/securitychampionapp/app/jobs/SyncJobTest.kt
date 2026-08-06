@@ -21,6 +21,7 @@ import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -170,15 +171,29 @@ class SyncJobTest {
     }
 
     @Test
-    fun `should not update user group when welcome message fails`() {
+    fun `should update user group before sending welcome message`() {
         runJobInsideLock()
         whenever(slackChannelMembershipService.sendWelcomeMessage(any()))
             .thenReturn(SlackResponse(isOk = false, error = "slack failed"))
 
         syncJob().syncDatabase()
 
-        verify(slackChannelMembershipService).sendWelcomeMessage(any())
-        verify(slackChannelMembershipService, never()).updateUserGroupWithNewMembers()
+        inOrder(slackChannelMembershipService) {
+            verify(slackChannelMembershipService).updateUserGroupWithNewMembers()
+            verify(slackChannelMembershipService).sendWelcomeMessage(any())
+        }
+    }
+
+    @Test
+    fun `should not send welcome message when user group update fails`() {
+        runJobInsideLock()
+        whenever(slackChannelMembershipService.updateUserGroupWithNewMembers())
+            .thenReturn(SlackResponse(isOk = false, error = "slack failed"))
+
+        syncJob().syncDatabase()
+
+        verify(slackChannelMembershipService).updateUserGroupWithNewMembers()
+        verify(slackChannelMembershipService, never()).sendWelcomeMessage(any())
     }
 
     @Test

@@ -11,7 +11,7 @@ export const lineOptions: ChartOptions<"line"> = {
         },
         tooltip: {
             enabled: true,
-            backgroundColor: "var(--tooltip-big)",
+            backgroundColor: "var(--tooltip-bg)",
             titleColor: "var(--tooltip-text)",
             bodyColor: "var(--tooltip-text)",
             borderColor: "var(--border)",

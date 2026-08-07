@@ -5,7 +5,6 @@ import {Me, Member} from "../utils/Variables";
 import {Apies} from "../hooks/Apies";
 import {useTranslations} from "next-intl";
 import MembersTable from "../components/MembersTable";
-import "../../style/home.page.css"
 import {Button, Modal, TextField} from "@navikt/ds-react";
 
 function View({ canEdit, me  }: { canEdit: boolean; me: Me }) {

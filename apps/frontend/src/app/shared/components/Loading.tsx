@@ -1,5 +1,4 @@
 import {useTranslations} from "next-intl";
-import "../../style/loading.css"
 import {BodyShort, Box, Heading, Loader} from "@navikt/ds-react";
 
 export default function Loading() {
@@ -7,18 +6,16 @@ export default function Loading() {
     return (
         <Box
             as={"main"}
-            padding={"space-6"}
-            style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}
+            className={"loadingScreen"}
             aria-busy={true}
             aria-live={"polite"}
         >
-            <Box style={{ width: "100%", maxWidth: 720 }}>
+            <Box className={"loadingScreen__content"}>
                 <Heading size={"large"} level={"1"}>
                     {t("common.appTitle")}
                 </Heading>
                 <BodyShort spacing>{t("common.description")}</BodyShort>
-                <Box
-                    paddingBlock={"space-12"} style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 240}}>
+                <Box className={"loadingScreen__spinner"}>
                     <Loader size={"large"} title={t("common.loading")} />
                 </Box>
             </Box>

@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
     reactCompiler: true,
     // Enable standalone output for Docker deployment
     output: "standalone",
+    experimental: {
+        useTypeScriptCli: true,
+    },
 };
 
 export default withNextIntl(nextConfig);

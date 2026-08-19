@@ -1,6 +1,6 @@
-import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
+import {getBackendToken, getServerEnv} from "../../utils/Validation";
 import {NextRequest, NextResponse} from "next/server";
-import {AUTHENTICATED_FAILED, FAILED_TO_JOIN} from "../../shared/utils/Variables";
+import {AUTHENTICATED_FAILED, FAILED_TO_JOIN} from "../../utils/Variables";
 
 export async function POST(request: NextRequest) {
     try {

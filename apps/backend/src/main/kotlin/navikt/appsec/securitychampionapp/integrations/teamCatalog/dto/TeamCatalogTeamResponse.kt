@@ -44,7 +44,7 @@ data class ResourceResponse(
 data class MemberWithTeamData(
     val navIdent: String,
     val fullName: String,
-    val email: String?,
+    val email: String,
     val teamName: MutableList<String>,
     val teamId: MutableList<String>
 )

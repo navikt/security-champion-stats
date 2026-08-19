@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
-import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
-import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../shared/utils/Variables";
+import {getBackendToken, getServerEnv} from "../../utils/Validation";
+import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../utils/Variables";
 import {parseAzureUserToken} from "@navikt/oasis";
 import {createLocalParserResult} from "@/app/utils/LocalDevAuth";
 
@@ -70,7 +70,7 @@ export async function GET(
             {
                 username: parse.preferred_username,
                 isAdmin: parse.groups?.includes(id),
-                inProgram: backendResponse.inProgram
+                inProgram: backendResponse.isSecChamp
             }
         )
     } catch (error) {

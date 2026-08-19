@@ -3,46 +3,51 @@ package navikt.appsec.securitychampionapp.utils
 import org.junit.jupiter.api.Test
 
 class ValidationTest {
-
+    val validate = Validate(
+        novice = 1,
+        apprentice = 2,
+        adept = 3,
+        expert = 4
+    )
     @Test
     fun `Given valid input should validate with true`() {
         val email = "local.test@nav.no"
-        val result = Validate().isValidEmail(email)
+        val result = validate.isValidEmail(email)
         assert(result)
     }
 
     @Test
     fun `Given invalid input should validate with false`() {
         val email = "; ' Select all from somewhere '"
-        val result = Validate().isValidEmail(email)
+        val result = validate.isValidEmail(email)
         assert(!result)
     }
 
     @Test
     fun `Given valid number should validate with true`() {
         val number = 1234567890
-        val result = Validate().isValidNumber(number.toString())
+        val result = validate.isValidNumber(number.toString())
         assert(result)
     }
 
     @Test
     fun `Given invalid number should validate with false`() {
         val number = "1234abc567890"
-        val result = Validate().isValidNumber(number)
+        val result = validate.isValidNumber(number)
         assert(!result)
     }
 
     @Test
     fun `Given valid name should validate with true`() {
         val name = "Ola Nordmann"
-        val result = Validate().isValidName(name)
+        val result = validate.isValidName(name)
         assert(result)
     }
 
     @Test
     fun `Given value containing potential exploitable text should validate with false`() {
         val name = "Select * from somewhere"
-        val result = Validate().isValidName(name)
+        val result = validate.isValidName(name)
         assert(!result)
     }
 }

@@ -4,15 +4,18 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminController
+import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
+import navikt.appsec.securitychampionapp.config.USER_ROLE
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseUpdateResponse
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
-import org.assertj.core.api.Assertions
+import navikt.appsec.securitychampionapp.utils.Validate
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import org.mockito.kotlin.doNothing
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
@@ -23,6 +26,9 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import tools.jackson.databind.ObjectMapper
 
 
 @WebMvcTest(AdminController::class)
@@ -30,12 +36,18 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 class AdminControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
+
+    @Autowired
+    lateinit var objectMapper: ObjectMapper
+
     @MockitoBean
     lateinit var repo: PostgresRepository
+
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
     @MockitoBean
-    lateinit var slackService: SlackApiService
+    lateinit var validate: Validate
 
     private fun mockAuthenticatedUser(role: String) {
         Mockito.doAnswer { invocation ->
@@ -57,56 +69,28 @@ class AdminControllerTest {
     }
 
     @Test
-    fun `Trying access admin endpoint without admin role should return forbidden`() {
-        mockAuthenticatedUser("USER")
+    fun `should return 403 when accessing admin endpoint without admin role`() {
+        mockAuthenticatedUser(USER_ROLE)
 
-        doNothing().`when`(repo).addMember(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyList<String>()
-        )
-
-        val request = """
-            {
-              "fullname": "Test User",
-              "email": "test@nav.no"
-            }
-        """.trimIndent()
-
-        val result = mockMvc.perform (
+        mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/member")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(request)
-        ).andReturn()
-
-        Assertions.assertThat(result.response.status).isEqualTo(403)
+                .content(objectMapper.writeValueAsString(AddMember(fullName = "Test User", email = "test@nav.no")))
+        ).andExpect(status().isForbidden)
     }
 
     @Test
-    fun `Trying access admin endpoint with admin role should return ok`() {
+    fun `should return 201 when accessing admin endpoint with admin role`() {
         mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(validate.isValidEmail(any())).thenReturn(true)
+        whenever(validate.isValidName(any())).thenReturn(true)
+        whenever(repo.addMember(any(), any(), any(), any())).thenReturn(DatabaseUpdateResponse(isOk = true))
 
-        doNothing().`when`(repo).addMember(
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyString(),
-            Mockito.anyList<String>()
-        )
-        val request = """
-            {
-              "fullname": "Test User",
-              "email": "test@nav.no"
-            }
-        """.trimIndent()
-        val result = mockMvc.perform(
+        mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/member")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(request)
-        ).andReturn()
-        val error = result.resolvedException
-        assert(error == null)
-        assert(result.response.status == 201)
-        assert(result.response.contentAsString.contains("User was created"))
+                .content(objectMapper.writeValueAsString(AddMember(fullName = "Test User", email = "test@nav.no")))
+        ).andExpect(status().isCreated)
+            .andExpect(content().string("User was created"))
     }
 }

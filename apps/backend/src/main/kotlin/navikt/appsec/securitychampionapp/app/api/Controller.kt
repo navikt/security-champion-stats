@@ -1,20 +1,15 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import jakarta.transaction.Status
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
-import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -23,11 +18,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping(path = ["/api"])
 class Controller(
     private val repo: PostgresRepository,
-    private val catalog: TeamCatalog,
-    @Value($$"${spring.profiles.active}") val activeProfiles: String
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
-    private val validate = Validate()
 
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
@@ -63,12 +55,12 @@ class Controller(
         val queryResponse = repo.getMemberByEmail(email)
 
         if (!queryResponse.isOk) {
-            logger.warn("Failed to fetch member from database due to error: ${queryResponse.error}")
-            return ResponseEntity(Me(email, isAdmin, false), HttpStatus.INTERNAL_SERVER_ERROR)
+            logger.info("New potential new user")
+            return ResponseEntity(Me(email, isAdmin, isSecChamp = false, inGame = false), HttpStatus.INTERNAL_SERVER_ERROR)
         }
 
         val inProgram = queryResponse.queryResult!!.firstOrNull()?.inProgram ?: false
-        return ResponseEntity(Me(email, isAdmin, inProgram), HttpStatus.OK)
+        return ResponseEntity(Me(email, isAdmin, isSecChamp = true, inProgram), HttpStatus.OK)
     }
 
     @PostMapping("/join")

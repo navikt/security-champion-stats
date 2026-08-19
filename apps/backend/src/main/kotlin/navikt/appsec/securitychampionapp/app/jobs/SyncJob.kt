@@ -28,13 +28,8 @@ class SyncJob(
             val queryResponse = repo.getAllMembers()
             val membersToAdd = mutableListOf<SecurityChampion>()
 
-            if (!queryResponse.isOk) {
+            if (!queryResponse.isOk || catalogMembers.isEmpty()) {
                 logger.error("Failed to fetch members from database then sync data, with error: ${queryResponse.error}")
-                return@runWithLock
-            }
-
-            if (catalogMembers.isEmpty()) {
-                logger.warn("No members were found in Teamkatalogen, skipping sync")
                 return@runWithLock
             }
             val members = queryResponse.queryResult!!.toMutableList()
@@ -47,7 +42,7 @@ class SyncJob(
                     } else {
                         membersToAdd.add(
                             SecurityChampion(
-                                email = catalogMember.email ?: "",
+                                email = catalogMember.email,
                                 link = "",
                                 teams = catalogMember.teamName,
                                 imageUrl = "",
@@ -63,6 +58,7 @@ class SyncJob(
                     }
                 }
             }
+
 
             val membersToRemove = members.filter { member -> catalogMembers.none { it.email == member.email }}
             membersToRemove.forEach { member ->

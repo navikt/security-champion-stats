@@ -124,10 +124,9 @@ class PostgresRepository(
         val query = "DELETE FROM Members WHERE id = ?"
         return executeUpdate(query, id)
     }
-
-    fun addPoints(id: String, points: Int): DatabaseUpdateResponse{
-        val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE id = ?"
-        return executeUpdate(query, points, id)
+    fun addPoints(id: String, points: Int, level: String): DatabaseUpdateResponse{
+        val query = "UPDATE Members SET points = points + ?, level = ?, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, points, level, id)
     }
 
     fun resetAllPointsAndLevels(): DatabaseUpdateResponse {

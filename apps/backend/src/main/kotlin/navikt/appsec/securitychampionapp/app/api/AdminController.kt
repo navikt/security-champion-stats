@@ -4,7 +4,6 @@ import navikt.appsec.securitychampionapp.integrations.postgress.PostgresReposito
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
-import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -20,27 +19,23 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
-private const val POINTS_FOR_MEETING = 4
-
 @RestController
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: PostgresRepository,
-    private val slackService: SlackApiService
+    private val validate: Validate,
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
-    private val validate = Validate()
 
     @PostMapping("/member", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun addMember(@RequestBody memberInfo: AddMember): ResponseEntity<Any>{
-        // TODO: Fix adding member by finding them first in teamcatalog and then adding them, by doing checks like if they are SC and so on
-        if (!validate.isValidEmail(memberInfo.email) or !validate.isValidName(memberInfo.fullname)) {
+        if (!validate.isValidEmail(memberInfo.email) or !validate.isValidName(memberInfo.fullName)) {
             logger.warn("Attempt to add member failed due to invalid email format, " +
                     "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
             return ResponseEntity.status(HttpStatus.ACCEPTED).build()
         }
         val id = UUID.randomUUID().toString()
-        repo.addMember(memberInfo.fullname, id = id, memberInfo.email, emptyList())
+        repo.addMember(memberInfo.fullName, id = id, memberInfo.email, emptyList())
         return ResponseEntity("User was created", HttpStatus.CREATED)
     }
 
@@ -57,7 +52,14 @@ class AdminController(
                     "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
             return ResponseEntity.status(HttpStatus.ACCEPTED).build()
         }
-        repo.addPoints(points.email, points.points)
+        val user = repo.getMemberByEmail(points.email)
+        if (!user.isOk) {
+            logger.warn("Failed to find user then updating the points")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+        val newAmount = points.points + user.queryResult!!.first().points
+        val level = validate.calculateLevel(newAmount)
+        repo.addPoints(points.email, newAmount, level)
         return ResponseEntity("Points where added for user", HttpStatus.ACCEPTED)
     }
 
@@ -68,18 +70,11 @@ class AdminController(
 
     @PostMapping("/test/member/add/slack/{email}")
     fun addMemberToSlack(@PathVariable email: String): ResponseEntity<Any> {
-        var member = repo.getMemberByEmail(email)
-        if (member == null) {
-            repo.addMember("Paulius Deveika", id = UUID.randomUUID().toString(), email, listOf("appsec"))
-            member = repo.getMemberByEmail(email)
-        }
-
         return ResponseEntity.ok().build()
     }
 
     @PostMapping("/member/attended/{email}")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
-        val member = repo.getMemberByEmail(email)
         return ResponseEntity.ok().build()
     }
 }

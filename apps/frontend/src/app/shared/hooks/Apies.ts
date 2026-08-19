@@ -1,4 +1,4 @@
-import {Me, Member, SCData} from "../utils/Variables";
+import {Me, Member, SCData} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -48,7 +48,7 @@ export const Apies = {
         const res = await fetch("/api/validate")
         if (!res.ok) {
             console.error("Failed to validate user, status: ", res.status)
-            return { username: "", isAdmin: false, inProgram: false }
+            return { username: "", isAdmin: false, isSecChamp: false, inGame: false }
         }
         return await res.json()
     },
@@ -68,5 +68,13 @@ export const Apies = {
             return []
         }
         return res.json()
-    }
+    },
+    fetchMembership: async(): Promise<Member | null> => {
+        const res = await fetch("/api/membership")
+        if (!res.ok) {
+            console.error("Failed to fetch membership, with status: ", res.status)
+            return null
+        }
+        return res.json()
+    },
 }

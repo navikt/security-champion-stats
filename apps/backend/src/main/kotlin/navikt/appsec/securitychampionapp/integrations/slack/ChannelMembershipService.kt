@@ -7,7 +7,7 @@ import com.slack.api.model.block.element.ImageElement
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampionMessage
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackResponse
+import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackCommonResponse
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -22,53 +22,40 @@ class ChannelMembershipService(
 
     private val logger = LoggerFactory.getLogger(ChannelMembershipService::class.java)
 
-
-
-    fun updateUserGroupWithNewMembers(): SlackResponse {
-        val userIds = mutableListOf<String>()
+    fun updateUserGroupWithNewMembers(): SlackCommonResponse {
         val queryResponse = repo.getAllMembers()
+        val slackResponse = slackApiService.fetchAllUsers(null)
 
-        if (!queryResponse.isOk) {
-            logger.warn("Failed to fetch all member from database due to error: ${queryResponse.error}")
-            return SlackResponse(
+        if (!queryResponse.isOk || !slackResponse.isOk || slackResponse.users.isEmpty() || slackResponse.error != null) {
+            logger.warn("Failed fetching data from slack or database with errors: ${queryResponse.error} and ${slackResponse.error}")
+            return SlackCommonResponse(
                 isOk = false,
-                error = "Failed to fetch all member from database due to error: ${queryResponse.error}"
+                error = "Failed fetching data from slack or database with errors: ${queryResponse.error} and ${slackResponse.error}"
             )
         }
 
         val securityChampions = queryResponse.queryResult!!
-
-        securityChampions.forEach { sc ->
-            val response = slackApiService.fetchUserIdByEmail(sc.email)
-            if (response != null) {
-                userIds.add(response.user.id)
-            }
-        }
-
-        if (userIds.isEmpty() || securityChampions.size != userIds.size) {
-            logger.warn("Failed to fetch all users from slack, it could lead to potential fail update")
-            return SlackResponse(
-                isOk = false,
-                error = "Failed to fetch all users from slack, it could lead to potential fail update"
-            )
-        }
+        val slackUsers = slackResponse.users.filter { !it.isBot || !it.isDeleted }
+        val userIds: List<String> = slackUsers
+            .filter { it.profile.email.lowercase() in securityChampions.map { sc -> sc.email.lowercase() } }
+            .map { it.id }
 
         val response = slackApiService.updateUsersGroup(userIds, userGrouping)
 
         if (!response.isOk) {
             logger.error("failed to update user group due to some error: ${response.error}, check if user group is still correct")
-            return SlackResponse(
+            return SlackCommonResponse(
                 isOk = false,
                 error= response.error
             )
         }
 
-        return SlackResponse(
+        return SlackCommonResponse(
             isOk = true
         )
     }
 
-    fun sendWelcomeMessage(secChampions: List<SecurityChampion>): SlackResponse {
+    fun sendWelcomeMessage(secChampions: List<SecurityChampion>): SlackCommonResponse {
         val secChampionsWithImage = secChampions.map { member ->
             val response = slackApiService.fetchUserIdByEmail(member.email)
             if (response != null) {

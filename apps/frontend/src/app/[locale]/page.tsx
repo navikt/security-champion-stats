@@ -1,7 +1,7 @@
 "use client";
 
-import Loading from "../shared/components/Loading";
-import {MainView} from "../shared/view/HomeView";
+import Loading from "../view/mainView/components/Loading";
+import {MainView} from "../view/mainView/HomeView";
 import {useMe} from "../shared/hooks/UseMe";
 
 export default function Page() {

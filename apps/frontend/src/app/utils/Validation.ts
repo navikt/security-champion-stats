@@ -1,5 +1,5 @@
 import {NextRequest} from "next/server";
-import {createLocalDevToken} from "../../utils/LocalDevAuth";
+import {createLocalDevToken} from "../utils/LocalDevAuth";
 import {getToken, requestOboToken} from "@navikt/oasis";
 import {AUTHENTICATED_FAILED} from "./Variables";
 

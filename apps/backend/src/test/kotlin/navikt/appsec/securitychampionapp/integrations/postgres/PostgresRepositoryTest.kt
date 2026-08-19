@@ -108,7 +108,7 @@ class PostgresRepositoryTest {
         val originalUpdatedAt = Instant.parse("2026-01-01T00:00:00Z")
         insertMember(id = memberId, email = "test@nav.no", points = 5, updatedAt = originalUpdatedAt)
 
-        repository.addPoints(memberId, 10)
+        repository.addPoints(memberId, 10, "2")
 
         val updatedMember = repository.getMemberByEmail("test@nav.no")
         Assertions.assertThat(updatedMember.isOk).isTrue()
@@ -121,8 +121,8 @@ class PostgresRepositoryTest {
         val memberId = "member-1"
         insertMember(id = memberId, email = "test@nav.no", points = 3)
 
-        repository.addPoints(memberId, 10)
-        repository.addPoints(memberId, 7)
+        repository.addPoints(memberId, 10, "2")
+        repository.addPoints(memberId, 7, "2")
 
         Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult!!.first().points).isEqualTo(20)
     }
@@ -148,7 +148,7 @@ class PostgresRepositoryTest {
     fun `should not change existing members when adding points to member that does not exist`() {
         insertMember(email = "existing@nav.no", points = 4)
 
-        repository.addPoints("missing-id", 10)
+        repository.addPoints("missing-id", 10, "2")
 
         Assertions.assertThat(repository.getMemberByEmail("existing@nav.no").queryResult!!.first().points).isEqualTo(4)
         Assertions.assertThat(memberCount()).isEqualTo(1)

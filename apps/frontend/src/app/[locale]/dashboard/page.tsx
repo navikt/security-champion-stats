@@ -15,9 +15,9 @@ import {
     LineElement
 } from "chart.js";
 import {useEffect, useState} from "react";
-import {Row, SCData} from "@/app/shared/utils/Variables";
+import {Row, SCData} from "@/app/utils/Variables";
 import {Apies} from "@/app/shared/hooks/Apies";
-import Loading from "@/app/shared/components/Loading";
+import Loading from "@/app/view/mainView/components/Loading";
 import {useTranslations} from "next-intl";
 import {lineOptions} from "@/app/style/char.js.stylling";
 import {Box, Heading} from "@navikt/ds-react";

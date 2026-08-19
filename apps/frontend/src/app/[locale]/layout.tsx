@@ -2,7 +2,7 @@
 import {useLocale, useTranslations} from "next-intl";
 import {ActionMenu, InternalHeader, Page, Spacer} from "@navikt/ds-react";
 
-import SettingsMenu from "../shared/components/SettingsMenu";
+import SettingsMenu from "../view/mainView/components/SettingsMenu";
 import {useMe} from "../shared/hooks/UseMe";
 import {MenuGridIcon} from "@navikt/aksel-icons";
 

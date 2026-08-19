@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
-import {getBackendToken, getServerEnv} from "@/app/shared/utils/Validation";
-import {AUTHENTICATED_FAILED, FAILED_TO_LEAVE} from "@/app/shared/utils/Variables";
+import {getBackendToken, getServerEnv} from "@/app/utils/Validation";
+import {AUTHENTICATED_FAILED, FAILED_TO_LEAVE} from "@/app/utils/Variables";
 
 export async function POST(request: NextRequest) {
     const body = await request.json()

@@ -6,7 +6,7 @@ import navikt.appsec.securitychampionapp.integrations.postgress.PostgresReposito
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.slack.ChannelMembershipService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackResponse
+import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackCommonResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalogMock
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
@@ -93,8 +93,8 @@ class SyncJobTest {
         Mockito.reset(jobLock, slackChannelMembershipService)
         flyway.clean()
         flyway.migrate()
-        whenever(slackChannelMembershipService.sendWelcomeMessage(any())).thenReturn(SlackResponse(isOk = true))
-        whenever(slackChannelMembershipService.updateUserGroupWithNewMembers()).thenReturn(SlackResponse(isOk = true))
+        whenever(slackChannelMembershipService.sendWelcomeMessage(any())).thenReturn(SlackCommonResponse(isOk = true))
+        whenever(slackChannelMembershipService.updateUserGroupWithNewMembers()).thenReturn(SlackCommonResponse(isOk = true))
     }
 
     private fun syncJob(catalogOverride: TeamCatalog = catalog) = SyncJob(
@@ -174,7 +174,7 @@ class SyncJobTest {
     fun `should update user group before sending welcome message`() {
         runJobInsideLock()
         whenever(slackChannelMembershipService.sendWelcomeMessage(any()))
-            .thenReturn(SlackResponse(isOk = false, error = "slack failed"))
+            .thenReturn(SlackCommonResponse(isOk = false, error = "slack failed"))
 
         syncJob().syncDatabase()
 
@@ -188,7 +188,7 @@ class SyncJobTest {
     fun `should not send welcome message when user group update fails`() {
         runJobInsideLock()
         whenever(slackChannelMembershipService.updateUserGroupWithNewMembers())
-            .thenReturn(SlackResponse(isOk = false, error = "slack failed"))
+            .thenReturn(SlackCommonResponse(isOk = false, error = "slack failed"))
 
         syncJob().syncDatabase()
 

@@ -8,6 +8,7 @@ import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.slack.ActivityService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummary
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummaryResponse
+import navikt.appsec.securitychampionapp.utils.Validate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -15,30 +16,31 @@ import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
+
 
 class CalculatePointsJobTest {
     private val jobLock = mock<PostgresJobLock>()
     private val slackActivityService = mock<ActivityService>()
     private val repository = mock<PostgresRepository>()
-    private val fixedClock = Clock.fixed(Instant.parse("2026-08-03T12:00:00Z"), ZoneOffset.UTC)
+    private val validate = mock<Validate>()
 
     private val job = CalculatePointsJob(
         jobLock = jobLock,
         slackActivityService = slackActivityService,
         repo = repository,
+        validate = validate,
     )
 
     @BeforeEach
     fun setup() {
-        Mockito.reset(jobLock, slackActivityService, repository)
-        whenever(repository.addPoints(any(), any())).thenReturn(DatabaseUpdateResponse(isOk = true))
+        Mockito.reset(jobLock, slackActivityService, repository, validate)
+        whenever(repository.addPoints(any(), any(), any())).thenReturn(DatabaseUpdateResponse(isOk = true))
+        whenever(validate.calculateLevel(any())).thenReturn("1")
     }
 
     @Test
@@ -48,8 +50,8 @@ class CalculatePointsJobTest {
             DatabaseQueryResponse(
                 isOk = true,
                 queryResult = listOf(
-                    member(id = "member-1", email = "ada.lovelace@nav.no"),
-                    member(id = "member-2", email = "local.user@nav.no"),
+                    member(id = "member-1", email = "ada.lovelace@nav.no", points = 5),
+                    member(id = "member-2", email = "local.user@nav.no", points = 3),
                 )
             )
         )
@@ -68,8 +70,8 @@ class CalculatePointsJobTest {
         val emailCaptor = argumentCaptor<List<String>>()
         verify(slackActivityService).calculateActivityForMembers(emailCaptor.capture())
         assertThat(emailCaptor.firstValue).containsExactly("ada.lovelace@nav.no", "local.user@nav.no")
-        verify(repository).addPoints("member-1", 20)
-        verify(repository).addPoints("member-2", 10)
+        verify(repository).addPoints(eq("member-1"), eq(25), any())
+        verify(repository).addPoints(eq("member-2"), eq(13), any())
     }
 
     @Test
@@ -86,7 +88,7 @@ class CalculatePointsJobTest {
         job.calculatePoints()
 
         verify(slackActivityService, never()).calculateActivityForMembers(any())
-        verify(repository, never()).addPoints(any(), any())
+        verify(repository, never()).addPoints(any(), any(), any())
     }
 
     @Test
@@ -108,7 +110,7 @@ class CalculatePointsJobTest {
 
         job.calculatePoints()
 
-        verify(repository, never()).addPoints(any(), any())
+        verify(repository, never()).addPoints(any(), any(), any())
     }
 
     @Test
@@ -132,15 +134,14 @@ class CalculatePointsJobTest {
                 )
             )
         )
-        whenever(repository.addPoints("member-1", 20)).thenReturn(
+        whenever(repository.addPoints(eq("member-1"), any(), any())).thenReturn(
             DatabaseUpdateResponse(isOk = false, error = "update failed")
         )
-        whenever(repository.addPoints("member-2", 10)).thenReturn(DatabaseUpdateResponse(isOk = true))
 
         job.calculatePoints()
 
-        verify(repository).addPoints("member-1", 20)
-        verify(repository).addPoints("member-2", 10)
+        verify(repository).addPoints(eq("member-1"), eq(20), any())
+        verify(repository).addPoints(eq("member-2"), eq(10), any())
     }
 
     @Test

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Me } from "../utils/Variables";
+import { Me } from "../../utils/Variables";
 import { Apies } from "./Apies";
 
 export function useMe() {
-    const [me, setMe] = useState<Me>({ username: "", isAdmin: false, inProgram: false });
+    const [me, setMe] = useState<Me>({ username: "", isAdmin: false, isSecChamp: false, inGame: false });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

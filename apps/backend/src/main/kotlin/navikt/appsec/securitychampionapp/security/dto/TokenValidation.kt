@@ -20,3 +20,5 @@ data class IntrospectionRequest(
     val identity_provider: String,
     val token: String
 )
+
+data class AppPrincipal(val email: String, val navIdent: String)

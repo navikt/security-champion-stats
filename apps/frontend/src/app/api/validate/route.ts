@@ -66,13 +66,7 @@ export async function GET(
                 { status: 401 }
             )
         }
-        return NextResponse.json(
-            {
-                username: parse.preferred_username,
-                isAdmin: parse.groups?.includes(id),
-                inProgram: backendResponse.isSecChamp
-            }
-        )
+        return NextResponse.json(backendResponse)
     } catch (error) {
         console.error("Validation error, then validating user," + error)
         return NextResponse.json(

@@ -26,7 +26,6 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
     if (isLocaDev()) {
         return createLocalDevToken()
     } else {
-
         const accessToken = getToken(request)
         if (!accessToken) {
         console.error("failed to fetch access token from request")

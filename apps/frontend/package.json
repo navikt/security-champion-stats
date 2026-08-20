@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest run",
-    "dev": "next dev",
+    "dev": "next dev LOCAL_DEV=true",
     "dev:local": "LOCAL_DEV=true next dev",
     "build": "next build",
     "start": "next start"
@@ -29,6 +29,7 @@
     "react-router-dom": "7.15.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.9",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

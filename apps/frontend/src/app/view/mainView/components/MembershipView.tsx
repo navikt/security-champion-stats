@@ -1,4 +1,5 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import "../../../style/MembershipView.css"
 import {Me, Member} from "@/app/utils/Variables";
 import Loading from "@/app/view/mainView/components/Loading";
 import {Apies} from "@/app/shared/hooks/Apies";
@@ -10,15 +11,18 @@ export function MembershipView({me}: {me: Me}) {
     const [loading, setLoading] = useState(me.isSecChamp)
     const [memberships, setMemberships] = useState<Member | null>()
 
-    const fetchMembership = async () => {
-        const member = await Apies.fetchMembership()
-        setMemberships(member)
-        setLoading(false)
-    }
+    useEffect(() => {
+        if (!me.isSecChamp) return;
 
-    while (loading) {
-        return <Loading />
-    }
+        const fetchMembership = async () => {
+            const member = await Apies.fetchMembership()
+            setMemberships(member)
+        }
+
+        fetchMembership().then(() => setLoading(false))
+    }, [me.isSecChamp])
+
+    if (loading) return <Loading />
 
     if (userData.isSecChamp && memberships) {
         return <JoinedMembershipView member={memberships} />

@@ -50,6 +50,7 @@ export const Apies = {
             console.error("Failed to validate user, status: ", res.status)
             return { username: "", isAdmin: false, isSecChamp: false, inGame: false }
         }
+
         return await res.json()
     },
     leaveProgram: async(): Promise<Number> => {
@@ -70,7 +71,10 @@ export const Apies = {
         return res.json()
     },
     fetchMembership: async(): Promise<Member | null> => {
-        const res = await fetch("/api/membership")
+        const res = await fetch("/api/membership", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        })
         if (!res.ok) {
             console.error("Failed to fetch membership, with status: ", res.status)
             return null

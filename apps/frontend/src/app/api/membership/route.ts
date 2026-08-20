@@ -1,6 +1,6 @@
-import {NextRequest, NextResponse} from "next/server";
 import {getBackendToken, getServerEnv} from "@/app/utils/Validation";
-import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "@/app/utils/Variables";
+import {AUTHENTICATED_FAILED, FAILED_FETCH} from "@/app/utils/Variables";
+import {NextRequest, NextResponse} from "next/server";
 
 export async function GET(request: NextRequest) {
     try {
@@ -9,18 +9,17 @@ export async function GET(request: NextRequest) {
 
         if (backendToken === AUTHENTICATED_FAILED) {
             return NextResponse.json(
-                { error: AUTHENTICATED_FAILED },
+                { error: "Authentication failed, failed to fetch obo-token or token" },
                 { status: 401 }
             )
         }
 
-        const url = `${backendUrl}/api/admin/dashboard/members`
-
+        const url = `${backendUrl}/api/membership`
         const response = await fetch(url, {
             method: 'GET',
             headers: {
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${backendToken}`,
-                "Content-Type": "application/json"
             }
         })
 
@@ -32,11 +31,12 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json(await response.json())
+
     } catch (error) {
-        console.error("Internal server error: ", error)
+        console.error("Error in /api/membership: ", error)
         return NextResponse.json(
-            { error: INTERNAL_ERROR },
-            { status: 500 }
+            { error: "Failed to fetch membership, due to an internal error" },
+            { status: 500 },
         )
     }
 }

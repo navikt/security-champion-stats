@@ -5,10 +5,12 @@ import com.fasterxml.jackson.annotation.JsonInclude
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Member(
     val id: String,
-    val fullname: String,
-    val points: Int,
     val email: String,
-    val level: String = "1"
+    val points: Int,
+    val fullname: String,
+    val level: String = "1",
+    val inGame: Boolean = false,
+    val joinedAt: String
 )
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

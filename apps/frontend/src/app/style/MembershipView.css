@@ -62,7 +62,7 @@
     --sc-space-10: 2.5rem;
 }
 
-[dark-theme="dark"],
+[data-theme="dark"],
 html.dark {
     color-scheme: dark;
 
@@ -158,18 +158,26 @@ body {
 .sc-membership-card {
     position: relative;
     overflow: hidden;
+
     display: grid;
-    grid-template-columns: minmax(0, 1.45fr) minmax(16rem, 0.8fr);
-    min-height: 20rem;
+    grid-template-columns:
+        minmax(0, 1.55fr)
+        minmax(13rem, 0.9fr);
+
+    width: 100%;
+    min-height: unset;
+
     border: 1px solid var(--sc-border);
     border-radius: var(--sc-radius-lg);
+
     background:
-        linear-gradient(
-            135deg,
-            var(--sc-primary-soft) 0%,
-            transparent 52
-        ),
-        var(--sc-surface);
+            linear-gradient(
+                    135deg,
+                    var(--sc-primary-soft) 0%,
+                    transparent 52%
+            ),
+            var(--sc-surface);
+
     box-shadow: var(--sc-shadow-sm);
 }
 
@@ -184,7 +192,8 @@ body {
 .sc-membership-card__content {
     display: flex;
     flex-direction: column;
-    padding: clamp(1.25rem, 3vw, 2rem);
+
+    padding: 1.5rem;
 }
 
 .sc-membership-card__visual {
@@ -192,14 +201,19 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--sc-space-4);
-    padding: clamp(1.25rem, 3vw, 2rem);
+
+    gap: var(--sc-space-3);
+
+    padding: 1.5rem;
+
     border-left: 1px solid var(--sc-divider);
+
     background: rgb(255 255 255 / 0.18);
+
     text-align: center;
 }
 
-[data-theme="dark"].sc-membership-card__visual,
+[data-theme="dark"] .sc-membership-card__visual,
 html.dark .sc-membership-card__visual {
     background: rgb(255 255 255 / 0.015);
 }
@@ -253,8 +267,10 @@ html.dark .sc-membership-card__visual {
 .sc-membership-card__facts {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
-    gap: var(--sc-space-3) var(--sc-space-8);
-    margin: var(--sc-space-8) 0 0;
+
+    gap: 0.6rem 2rem;
+
+    margin: 1.25rem 0 0;
 }
 
 .sc-membership-card__facts dt {
@@ -270,9 +286,12 @@ html.dark .sc-membership-card__visual {
 .sc-membership-card__actions {
     display: flex;
     flex-wrap: wrap;
+
     gap: var(--sc-space-3);
+
     margin-top: auto;
-    padding-top: var(--sc-space-8);
+
+    padding-top: 1.5rem;
 }
 
 
@@ -329,7 +348,7 @@ html.dark .sc-membership-card__visual {
 }
 
 .sc-progress__value {
-    width: var(--sc-progress-track, 0%);
+    width: var(--sc-progress-value, 0%);
     height: 100%;
     border-radius: inherit;
     background: linear-gradient(90deg, var(--sc-primary), var(--sc-primary-hover));
@@ -370,7 +389,7 @@ html.dark .sc-membership-card__visual {
 
 /* Button*/
 
-sc-button {
+.sc-button {
     min-height: 2.5rem;
     display: inline-flex;
     align-items: center;
@@ -407,7 +426,7 @@ sc-button {
     opacity: 0.55;
 }
 
-.sc-button-primary {
+.sc-button--primary {
     background: var(--sc-primary);
     color: var(--sc-text-on-accent);
 }

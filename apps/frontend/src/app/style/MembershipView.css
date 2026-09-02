@@ -522,6 +522,52 @@ html.dark .sc-membership-card__visual {
     --ac-button-primary-text: var(--sc-text-on-accent);
 }
 
+.sc-gamification-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    max-width: 18rem;
+    margin-inline: auto;
+
+    text-align: center;
+}
+
+.sc-gamification-empty__icon {
+    display: grid;
+    place-items: center;
+
+    width: 5rem;
+    height: 5rem;
+
+    margin-bottom: 1rem;
+
+    border: 1px solid var(--sc-primary-border);
+    border-radius: 50%;
+
+    background: var(--sc-primary-soft);
+    color: var(--sc-primary);
+
+    font-size: 2rem;
+}
+
+.sc-gamification-empty__status {
+    margin-top: 0.25rem;
+
+    color: var(--sc-text-muted);
+    font-size: 0.875rem;
+}
+
+.sc-gamification-empty__description {
+    max-width: 28ch;
+
+    margin-block: 1rem;
+
+    color: var(--sc-text-muted);
+    line-height: 1.5;
+}
+
 @media (max-width: 48rem) {
     .sc-page-content {
         width: min(100% - 1.25rem, 72rem);

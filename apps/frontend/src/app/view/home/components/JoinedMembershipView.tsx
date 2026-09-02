@@ -1,5 +1,7 @@
 import {Member} from "@/app/utils/Variables";
 import {BodyShort, Button, Heading} from "@navikt/ds-react";
+import {useTranslations} from "next-intl";
+import {useState} from "react";
 
 interface JoinedMembershipViewProps {
     member: Member
@@ -9,11 +11,14 @@ export function JoinedMembershipView({
     member,
 }: JoinedMembershipViewProps) {
     const inGame = member.inGame
+    const t = useTranslations("home.membership.member")
 
     const points = member.points
     const progress = Math.min(100, Math.max(
         0, (points / 200) * 100
     ))
+
+    const [leaveGameOpen, setLeaveGameOpen] = useState(false)
 
     const handleLeaveGame = () => {
 
@@ -27,11 +32,33 @@ export function JoinedMembershipView({
 
     }
 
+    const fetchGameButtonValue = () => {
+        return inGame ? t("leaveGame") : t("joinGame")
+    }
+
+    const fetchLevelName = () => {
+        switch (member.level) {
+            case "1": return t("levelNames.level1")
+            case "2": return t("levelNames.level2")
+            case "3": return t("levelNames.level3")
+            default: return t("levelNames.level1")
+        }
+    }
+
+    const fetchLevelValue = () => {
+        switch (member.level) {
+            case "1": return t("level.level1")
+            case "2": return t("level.level2")
+            case "3": return t("level.level3")
+            default: return t("level.level1")
+        }
+    }
+
     return (
         <section className={"sc-membership-card sc-membership-card--joined"}>
             <div className={"sc-membership-card__content"}>
                 <span className={"sc-membership-card__status"}>
-                    temp Active member
+                    {t("status")}
                 </span>
 
                 <Heading
@@ -39,42 +66,39 @@ export function JoinedMembershipView({
                     level={"2"}
                     className={"sc-membership-card__description"}
                 >
-                    Temp Security Champion
+                    {t("securityChampion")}
                 </Heading>
 
                 <BodyShort className={"sc-membership-card__description"}>
-                    Temp You are an active member....
+                    {t("description")}
                 </BodyShort>
 
                 <dl className="sc-membership-card__facts">
-                    <dt>Joined</dt>
+                    <dt>{t("joined")}</dt>
                     <dd>
                         {new Date(
                             member.joinedAt
                         ).toLocaleDateString()}
                     </dd>
 
-                    <dt>Temp Gamification</dt>
+                    <dt>{t("gamification")}</dt>
                     <dd>
                         {inGame
-                            ? "Enabled"
-                            : "Disabled"}
+                            ? t("enabled")
+                            : t("disabled")}
                     </dd>
                 </dl>
 
                 <div className="sc-membership-card__actions">
                     <Button variant="primary">
-                        {/*TODO: add button functional*/}
-                        Temp View my profile
+                        {fetchGameButtonValue()}
                     </Button>
 
                     <Button variant="secondary">
-                        {/*TODO: add button functional*/}
-                        Temp Program settings
+                        {t("leave")}
                     </Button>
                 </div>
             </div>
-            {/* TODO: ADD button to join */}
             {inGame && member.level && (
                 <div className="sc-membership-card__visual">
                     <div
@@ -84,11 +108,11 @@ export function JoinedMembershipView({
                         Temp ★
                     </div>
                     <p className="sc-rank-name">
-                        Temp level name
+                        {fetchLevelName()}
                     </p>
 
                     <p className="sc-rank-level">
-                        Temp level the actual level
+                        {fetchLevelValue()}
                     </p>
 
                     <div className="sc-progress">
@@ -98,7 +122,7 @@ export function JoinedMembershipView({
                             </span>
 
                             <span>
-                               Temp {Math.round(progress)}%
+                               {Math.round(progress)}%
                             </span>
                         </div>
 
@@ -128,6 +152,25 @@ export function JoinedMembershipView({
                             XP to next level
                         </p>
                     </div>
+                </div>
+            )}
+            {!inGame && (
+                <div className={"sc-membership-card__visual"}>
+                    <div className={"sc-gamification-empty__icon"} aria-hidden={"true"}>
+
+                    </div>
+                    <Heading size={"medium"} level={"3"}>
+                        {t("gamification")}
+                    </Heading>
+
+                    <BodyShort className={"sc-gamification-empty__status"}>
+                        {t("optional")}
+                    </BodyShort>
+
+                    <BodyShort className={"sc-gamification-empty__description"}>
+                        {t("information")}
+                    </BodyShort>
+
                 </div>
             )}
         </section>

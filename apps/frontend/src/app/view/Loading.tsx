@@ -12,11 +12,11 @@ export default function Loading() {
         >
             <Box className={"loadingScreen__content"}>
                 <Heading size={"large"} level={"1"}>
-                    {t("common.appTitle")}
+                    {t("title")}
                 </Heading>
-                <BodyShort spacing>{t("common.description")}</BodyShort>
+                <BodyShort spacing> </BodyShort>
                 <Box className={"loadingScreen__spinner"}>
-                    <Loader size={"large"} title={t("common.loading")} />
+                    <Loader size={"large"} title={t("loading.title")} />
                 </Box>
             </Box>
         </Box>

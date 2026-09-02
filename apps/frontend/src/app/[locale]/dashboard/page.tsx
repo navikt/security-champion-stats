@@ -15,9 +15,9 @@ import {
     LineElement
 } from "chart.js";
 import {useEffect, useState} from "react";
-import {Row, SCData} from "@/app/utils/Variables";
+import {SCData} from "@/app/utils/Variables";
 import {Apies} from "@/app/shared/hooks/Apies";
-import Loading from "@/app/view/mainView/components/Loading";
+import Loading from "@/app/view/Loading";
 import {useTranslations} from "next-intl";
 import {lineOptions} from "@/app/style/char.js.stylling";
 import {Box, Heading} from "@navikt/ds-react";
@@ -60,7 +60,7 @@ export default function Page() {
         labels: scData.map((r) => r.timestamp),
         datasets: [
             {
-                label: t("SCData.title"),
+                label: t("title"),
                 data: scData.map((r) => r.amount),
                 backgroundColor: "color-mix(in oklab, var(--accent) 22%, transparent)",
                 borderColor: "var(--accent)",
@@ -79,7 +79,7 @@ export default function Page() {
     return (
         <Box>
             <Heading size={"small"} spacing level={"2"}>
-                {t("SCData.dashboards.SCDashboard.title")}
+                {t("title")}
             </Heading>
             <div className={"adminChart"}>
                 <Line data={lineData} options={lineOptions} />

@@ -1,9 +1,9 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
-import { ActionMenu, InternalHeader, Page, Spacer } from "@navikt/ds-react";
+import {ActionMenu, InfoCard, InternalHeader, Page, Spacer} from "@navikt/ds-react";
 
 import "@/app/style/TopLayout.css"
-import SettingsMenu from "../view/mainView/components/SettingsMenu";
+import SettingsMenu from "@/app/view/home/components/SettingsMenu";
 import { useMe } from "../shared/hooks/UseMe";
 import { MenuGridIcon } from "@navikt/aksel-icons";
 import { SideNavigation } from "@/app/shared/navigation/SideNavigation";
@@ -22,7 +22,7 @@ export default function LocaleLayout({
 		<Page className={"appLayout"}>
 			<InternalHeader>
 				<InternalHeader.Title as="h2" href={`/${locale}`}>
-					{t("common.appTitle")}
+					{t("title")}
 				</InternalHeader.Title>
 
 				{me.isAdmin && (
@@ -36,7 +36,7 @@ export default function LocaleLayout({
 						<ActionMenu.Content align="end">
 							<ActionMenu.Group label="Menu">
 								<ActionMenu.Item as="a" href={`/${locale}/dashboard`}>
-									{t("menu.dashboard")}
+									Temp Dashboard
 								</ActionMenu.Item>
 							</ActionMenu.Group>
 						</ActionMenu.Content>
@@ -65,6 +65,17 @@ export default function LocaleLayout({
                     gutters
                     className="appMain"
                 >
+					<InfoCard data-color={"info"}>
+						<InfoCard.Header>
+							<InfoCard.Title>
+								Work in progress
+							</InfoCard.Title>
+						</InfoCard.Header>
+						<InfoCard.Content>
+							This site is in working progress and is still under development. Content and visualization is due
+							change with time.
+						</InfoCard.Content>
+					</InfoCard>
                     {children}
                 </Page.Block>
             </div>

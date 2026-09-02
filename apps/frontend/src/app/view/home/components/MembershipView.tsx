@@ -1,10 +1,10 @@
 import {useEffect, useState} from "react";
 import "../../../style/MembershipView.css"
 import {Me, Member} from "@/app/utils/Variables";
-import Loading from "@/app/view/mainView/components/Loading";
+import Loading from "@/app/view/Loading";
 import {Apies} from "@/app/shared/hooks/Apies";
-import {JoinedMembershipView} from "@/app/view/mainView/components/JoinedMembershipView";
-import {JoinProgramView} from "@/app/view/mainView/components/JoinProgramView";
+import {JoinedMembershipView} from "@/app/view/home/components/JoinedMembershipView";
+import {JoinProgramView} from "@/app/view/home/components/JoinProgramView";
 
 export function MembershipView({me}: {me: Me}) {
     const [userData, setMe] = useState(me)

@@ -5,6 +5,9 @@
     "events": "Arrangementer",
     "community": "Nettverk"
   },
+  "loading": {
+    "title": "Laster..."
+  },
   "settings": {
     "title": "Instillinger",
     "themeOptions": {
@@ -40,7 +43,20 @@
         "leaveGame": "Forlat spill",
         "JoinGame": "Bli med i gamification",
         "enabled": "Aktivert",
-        "disabled": "Deaktivert"
+        "disabled": "Deaktivert",
+        "optional": "Valgfritt",
+        "information": "Tjen XP, lås opp champion levels og achievements ved å delta i Security Champion-aktiviteter.",
+        "leaveGamificationModal": {
+          "title": "Forlat gamification",
+          "question": "Er du sikker på at du vil forlate gamification?",
+          "cancel": "Avbryt",
+          "confirm": "Bekreft",
+          "description": "Du vil ikke lenger kunne tjene XP og låse opp levels og achievements.",
+          "loseList": {
+            "title": "",
+            "li1": ""
+          }
+        }
       },
       "nonmember": {
 

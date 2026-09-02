@@ -6,7 +6,7 @@
     "community": "Community"
   },
   "loading": {
-    "tittle": "Loading..."
+    "title": "Loading..."
   },
   "settings":{
     "title": "Settings",
@@ -45,7 +45,14 @@
         "enabled": "Enabled",
         "disabled": "Disabled",
         "optional": "Optional",
-        "information": "Earn Xp, unlock champion levels and achievements by participating in Security Champion activities."
+        "information": "Earn Xp, unlock champion levels and achievements by participating in Security Champion activities.",
+        "leaveGamificationModal": {
+          "title": "Leave gamification",
+          "question": "Are you sure you want to leave gamification?",
+          "cancel": "Cancel",
+          "confirm": "Confirm",
+          "description": "You will no longer be able to earn XP and unlock levels and achievements."
+        }
       },
       "nonmember": {
 

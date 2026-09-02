@@ -1,5 +1,5 @@
 import {useEffect, useState} from "react";
-import "../../../style/MembershipView.css"
+import "../../../style/home/MembershipView.css"
 import {Me, Member} from "@/app/utils/Variables";
 import Loading from "@/app/view/Loading";
 import {Apies} from "@/app/shared/hooks/Apies";

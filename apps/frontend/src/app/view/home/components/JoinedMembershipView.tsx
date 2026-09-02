@@ -2,6 +2,7 @@ import {Member} from "@/app/utils/Variables";
 import {BodyShort, Button, Heading} from "@navikt/ds-react";
 import {useTranslations} from "next-intl";
 import {useState} from "react";
+import {LeaveGamificationModal} from "@/app/view/home/modal/LeaveGamificationModal";
 
 interface JoinedMembershipViewProps {
     member: Member
@@ -90,7 +91,7 @@ export function JoinedMembershipView({
                 </dl>
 
                 <div className="sc-membership-card__actions">
-                    <Button variant="primary">
+                    <Button variant="secondary-neutral" onClick={() => setLeaveGameOpen(true)}>
                         {fetchGameButtonValue()}
                     </Button>
 
@@ -173,6 +174,11 @@ export function JoinedMembershipView({
 
                 </div>
             )}
+            <LeaveGamificationModal
+                open={leaveGameOpen}
+                onClose={() => setLeaveGameOpen(false)}
+                onConfirm={handleLeaveGame}
+            />
         </section>
     )
 }

@@ -218,7 +218,7 @@ html.dark .sc-membership-card__visual {
     background: rgb(255 255 255 / 0.015);
 }
 
-.sc-membership-card__status {
+.sc-membership-card__status__active {
     align-self: flex-start;
     display: inline-flex;
     align-items: center;
@@ -235,7 +235,24 @@ html.dark .sc-membership-card__visual {
     text-transform: uppercase;
 }
 
-.sc-membership-card__status::before {
+.sc-membership-card__status__inactive {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sc-space-2);
+    min-height: 1.75rem;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid var(--sc-danger-border);
+    background: var(--sc-danger-soft);
+    border-radius: var(--sc-radius-pill);
+    color: var(--sc-danger);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+.sc-membership-card__status__active::before {
     content: "";
     width: 0.45rem;
     height: 0.45rem;
@@ -243,10 +260,24 @@ html.dark .sc-membership-card__visual {
     background: currentColor;
 }
 
-.sc-membership-card--guest .sc-membership-card__status {
+.sc-membership-card--guest .sc-membership-card__status__active {
     border-color: var(--sc-info-border);
     background: var(--sc-info-soft);
     color: var(--sc-info)
+}
+
+.sc-membership-card__status__inactive::before {
+    content: "";
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.sc-membership-card--guest .sc-membership-card__status__inactive {
+    border-color: var(--sc-danger);
+    background: var(--sc-danger-soft);
+    color: var(--sc-danger-soft)
 }
 
 .sc-membership-card__title {
@@ -285,8 +316,8 @@ html.dark .sc-membership-card__visual {
 
 .sc-membership-card__actions {
     display: flex;
-    flex-wrap: wrap;
-
+    flex-direction: column;
+    align-items: flex-start;
     gap: var(--sc-space-3);
 
     margin-top: auto;
@@ -532,24 +563,6 @@ html.dark .sc-membership-card__visual {
     margin-inline: auto;
 
     text-align: center;
-}
-
-.sc-gamification-empty__icon {
-    display: grid;
-    place-items: center;
-
-    width: 5rem;
-    height: 5rem;
-
-    margin-bottom: 1rem;
-
-    border: 1px solid var(--sc-primary-border);
-    border-radius: 50%;
-
-    background: var(--sc-primary-soft);
-    color: var(--sc-primary);
-
-    font-size: 2rem;
 }
 
 .sc-gamification-empty__status {

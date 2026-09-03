@@ -19,12 +19,13 @@
     "language": "Språk"
   },
   "home": {
-    "welcome": "Velkommen, ",
+    "title": "Sikkerhet Champion Hub",
     "description": "Her er det som skjer i Security Champion-programmet.",
     "membership": {
       "member": {
         "securityChampion": "Sikkerhet champion",
-        "status": "AKTIV BRUKER",
+        "active": "SPILL AKTIV",
+        "inactive": "SPILL INAKTIV",
         "description": "Du er et aktivt medlem av Security Champion-programmet.",
         "levelNames": {
           "level1": "Nyebegynner champion",
@@ -37,11 +38,11 @@
           "level3": "nivå 3"
         },
         "nextLevel": "til neste nivå",
-        "gamification": "Gamification",
-        "joined": "Bli med",
-        "leave": "Forlat programmet",
+        "joinedGamification": "Ble i Gamification",
+        "joinedProgram": "Sikkerhet champion siden",
+        "leave": "Forlat Sikkerhet Champion",
         "leaveGame": "Forlat spill",
-        "JoinGame": "Bli med i gamification",
+        "joinGame": "Bli med i gamification",
         "enabled": "Aktivert",
         "disabled": "Deaktivert",
         "optional": "Valgfritt",

@@ -3,13 +3,16 @@ import {BodyShort, Button, Heading} from "@navikt/ds-react";
 import {useTranslations} from "next-intl";
 import {useState} from "react";
 import {LeaveGamificationModal} from "@/app/view/home/modal/LeaveGamificationModal";
+import {Apies} from "@/app/shared/hooks/Apies";
 
 interface JoinedMembershipViewProps {
     member: Member
+    onMembershipChange: () => Promise<void>
 }
 
 export function JoinedMembershipView({
     member,
+    onMembershipChange,
 }: JoinedMembershipViewProps) {
     const inGame = member.inGame
     const t = useTranslations("home.membership.member")
@@ -22,19 +25,18 @@ export function JoinedMembershipView({
     const [leaveGameOpen, setLeaveGameOpen] = useState(false)
 
     const handleLeaveGame = () => {
-
+        Apies.leaveGame()
+            .then(() => onMembershipChange())
+            .then(() => setLeaveGameOpen(false))
     }
 
     const handleJoinGame = () => {
-
+        Apies.joinGamification().
+        then(() => onMembershipChange())
     }
 
     const handleLeaveProgram = () => {
 
-    }
-
-    const fetchGameButtonValue = () => {
-        return inGame ? t("leaveGame") : t("joinGame")
     }
 
     const fetchLevelName = () => {
@@ -58,9 +60,15 @@ export function JoinedMembershipView({
     return (
         <section className={"sc-membership-card sc-membership-card--joined"}>
             <div className={"sc-membership-card__content"}>
-                <span className={"sc-membership-card__status"}>
-                    {t("status")}
-                </span>
+                {inGame ? (
+                    <span className={"sc-membership-card__status__active"}>
+                        {t("active")}
+                    </span>
+                ): (
+                    <span className={"sc-membership-card__status__inactive"}>
+                        {t("inactive")}
+                    </span>
+                )}
 
                 <Heading
                     size={"large"}
@@ -75,32 +83,39 @@ export function JoinedMembershipView({
                 </BodyShort>
 
                 <dl className="sc-membership-card__facts">
-                    <dt>{t("joined")}</dt>
+                    <dt>{t("joinedProgram")}</dt>
                     <dd>
                         {new Date(
                             member.joinedAt
                         ).toLocaleDateString()}
                     </dd>
 
-                    <dt>{t("gamification")}</dt>
+                    <dt>{t("joinedGamification")}</dt>
                     <dd>
-                        {inGame
-                            ? t("enabled")
-                            : t("disabled")}
+                        {inGame ? (
+                            new Date(
+                                member.joinedAt
+                            ).toLocaleDateString()
+                        ) : "not joined yet"}
                     </dd>
                 </dl>
 
                 <div className="sc-membership-card__actions">
-                    <Button variant="secondary-neutral" onClick={() => setLeaveGameOpen(true)}>
-                        {fetchGameButtonValue()}
-                    </Button>
-
-                    <Button variant="secondary">
+                    { inGame ? (
+                        <Button variant="secondary-neutral" onClick={() => setLeaveGameOpen(true)} size={"small"}>
+                            {t("leaveGame")}
+                        </Button>
+                    ): (
+                        <Button variant="secondary-neutral" onClick={() => handleJoinGame()} size={"small"}>
+                            {t("joinGame")}
+                        </Button>
+                    )}
+                    <Button variant="danger" size={"small"}>
                         {t("leave")}
                     </Button>
                 </div>
             </div>
-            {inGame && member.level && (
+            {inGame && member.level ? (
                 <div className="sc-membership-card__visual">
                     <div
                         className="sc-rank-emblem"
@@ -154,12 +169,8 @@ export function JoinedMembershipView({
                         </p>
                     </div>
                 </div>
-            )}
-            {!inGame && (
+            ): !inGame && (
                 <div className={"sc-membership-card__visual"}>
-                    <div className={"sc-gamification-empty__icon"} aria-hidden={"true"}>
-
-                    </div>
                     <Heading size={"medium"} level={"3"}>
                         {t("gamification")}
                     </Heading>

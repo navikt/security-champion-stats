@@ -35,8 +35,8 @@ export const Apies = {
         if (!res.ok) console.error("Failed to add points, with status code: ", res.status)
         return res.status
     },
-    joinProgram: async() => {
-        const res = await fetch("/api/join", {
+    joinGamification: async() => {
+        const res = await fetch("/api/joinGame", {
             method: "POST",
             headers: { "Content-Type": "application/json" }, // fixed typo
         })
@@ -53,11 +53,8 @@ export const Apies = {
 
         return await res.json()
     },
-    leaveProgram: async(): Promise<Number> => {
-        const res = await fetch("/api/leave", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        })
+    leaveGame: async(): Promise<Number> => {
+        const res = await fetch("/api/leaveGame", { method: "POST" })
         if (!res.ok) console.error("Failed to leave the program, with status code: ", res.status)
 
         return res.status

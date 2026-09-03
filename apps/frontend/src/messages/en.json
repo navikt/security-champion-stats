@@ -19,12 +19,14 @@
     "language": "Language"
   },
   "home": {
-    "welcome": "Welcome, ",
+    "title": "Security Champion Hub",
     "description": "Here's what's happening in the Security Champion program.",
     "membership": {
       "member": {
         "securityChampion": "Security champion",
-        "status": "ACTIVE MEMBER",
+        "active": "GAME ACTIVE",
+        "inactive": "GAME INACTIVE",
+        "gamification": "Gamification",
         "description": "You are an active member of the Security Champion program.",
         "levelNames": {
           "level1": "Novice Champion",
@@ -37,11 +39,11 @@
           "level3": "level 3"
         },
         "nextLevel": "to next level",
-        "gamification": "Gamification",
-        "joined": "Joined",
-        "leave": "Leave Program",
+        "joinedGamification": "Joined gamification",
+        "joinedProgram": "Security Champion since",
+        "leave": "Leave Security Champion",
         "leaveGame": "Leave Game",
-        "JoinGame": "Join gamification",
+        "joinGame": "Join gamification",
         "enabled": "Enabled",
         "disabled": "Disabled",
         "optional": "Optional",

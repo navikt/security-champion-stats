@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const url = `${backendUrl}/api/join`
+        const url = `${backendUrl}/api/joinGame`
         const response = await fetch(url, {
             method: 'POST',
             headers: {

@@ -20,7 +20,7 @@ function View({ canEdit, me }: { canEdit: boolean; me: Me }) {
 		<main className={"homeView"}>
 			<header className={"homeView__header"}>
 				<Heading level="1" size={"xlarge"}>
-					{t("welcome",) + userData.username}
+					{t("title")}
 				</Heading>
 				<BodyShort className={"homeView__subtitle"}>
 					{t("description")}

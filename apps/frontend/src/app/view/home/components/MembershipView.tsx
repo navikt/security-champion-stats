@@ -11,13 +11,15 @@ export function MembershipView({me}: {me: Me}) {
     const [loading, setLoading] = useState(me.isSecChamp)
     const [memberships, setMemberships] = useState<Member | null>()
 
+    const fetchMembership = async () => {
+        const member = await Apies.fetchMembership()
+        const updatedMe = await Apies.validatePerson()
+        setMemberships(member)
+        setMe(updatedMe)
+    }
+
     useEffect(() => {
         if (!me.isSecChamp) return;
-
-        const fetchMembership = async () => {
-            const member = await Apies.fetchMembership()
-            setMemberships(member)
-        }
 
         fetchMembership().then(() => setLoading(false))
     }, [me.isSecChamp])
@@ -25,7 +27,7 @@ export function MembershipView({me}: {me: Me}) {
     if (loading) return <Loading />
 
     if (userData.isSecChamp && memberships) {
-        return <JoinedMembershipView member={memberships} />
+        return <JoinedMembershipView member={memberships} onMembershipChange={fetchMembership} />
     }
 
     return (

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import kotlin.math.log
 
 
 @RestController
@@ -26,8 +25,6 @@ class Controller(
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
 
-    //TODO: Potentially delete this... might not be needed
-    //TODO: Reformat to use id instead of emails
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
         val queryResponse = repo.getAllMembers()
@@ -73,12 +70,12 @@ class Controller(
         return ResponseEntity(Me(email, isAdmin, isSecChamp = true, inProgram), HttpStatus.OK)
     }
 
-    @PostMapping("/join")
+    @PostMapping("/joinGame")
     fun applyMember(): ResponseEntity<String> {
         return updateUserInProgramStatus(true)
     }
 
-    @PostMapping("/leave")
+    @PostMapping("/leaveGame")
     fun leaveProgram(): ResponseEntity<String> {
         return updateUserInProgramStatus(false)
     }

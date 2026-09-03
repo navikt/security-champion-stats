@@ -174,5 +174,6 @@ class CalculatePointsJobTest {
         inProgram = inProgram,
         level = "1",
         teams = emptyList(),
+        createdAt = "2026-08-01T12:00:00Z",
     )
 }

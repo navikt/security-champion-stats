@@ -53,8 +53,14 @@
           "confirm": "Bekreft",
           "description": "Du vil ikke lenger kunne tjene XP og låse opp levels og achievements.",
           "loseList": {
-            "title": "",
-            "li1": ""
+            "title": "Dette endres",
+            "li1": "Xp-progresjonen vil stoppe",
+            "li2": "Champion-nivået ditt vil ikke lener være aktivt"
+          },
+          "keepList": {
+            "title": "Dette forblir uendret",
+            "l1": "Du forblir en sikkerhet champion",
+            "l2": "Du kan fortsatt se alle eventer og workshops og hvem som er i programmet"
           }
         }
       },

@@ -35,7 +35,6 @@ export function JoinProgramView() {
                         Temp Participate in optional XP and levels
                     </li>
                 </ul>
-                {/* TODO: Add button functionality*/ }
                 <div className="sc-membership-card__actions">
                     <Button
                         variant="primary"

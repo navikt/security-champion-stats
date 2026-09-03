@@ -51,7 +51,17 @@
           "question": "Are you sure you want to leave gamification?",
           "cancel": "Cancel",
           "confirm": "Confirm",
-          "description": "You will no longer be able to earn XP and unlock levels and achievements."
+          "description": "You will no longer be able to earn XP and unlock levels and achievements.",
+          "loseList": {
+            "title": "What changes",
+            "li1": "Xp progression will stop",
+            "li2": "Your champion level will no longer be active"
+          },
+          "keepList": {
+            "title": "What stays the same",
+            "l1": "You remain a Security Champion",
+            "l2": "You can still see all events and people in community"
+          }
         }
       },
       "nonmember": {

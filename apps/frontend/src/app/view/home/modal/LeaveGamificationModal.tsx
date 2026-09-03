@@ -40,21 +40,20 @@ export function LeaveGamificationModal({
 
                     <section className={"leaveGameModal__section"}>
                         <Heading size={"small"} level={"3"}>
-                            What changes
+                            {t("loseList.title")}
                         </Heading>
 
                         <ul className={"leaveGameModal__list"}>
-                            <li>Xp progression will stop</li>
-                            <li>Your champion level will no longer be active</li>
+                            <li>{t("loseList.li1")}</li>
+                            <li>{t("loseList.li2")}</li>
                         </ul>
                     </section>
 
                     <section className={"leaveGameModal__section"}>
-                        <Heading size={"small"} level={"3"}> What stays the same </Heading>
+                        <Heading size={"small"} level={"3"}> {t("keepList.title")} </Heading>
                         <ul className={"leaveGameModal__list"}>
-                            <li>You remain a Security Champion</li>
-                            <li>You can still attend meetings and workshops</li>
-                            <li>You keep access to program resources</li>
+                            <li>{t("keepList.l1")}</li>
+                            <li>{t("keepList.l2")}</li>
                         </ul>
                     </section>
                 </div>

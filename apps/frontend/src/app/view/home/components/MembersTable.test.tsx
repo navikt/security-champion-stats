@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest"
 import { render, screen } from "@testing-library/react"
 import MembersTable from "./MembersTable"
-import { Member } from "../utils/Variables"
+import { Member } from "@/app/utils/Variables"
 
 const members: Member[] = [
     { id: "1", email: "alice@example.com", fullname: "Alice", points: 100, level: "1"},

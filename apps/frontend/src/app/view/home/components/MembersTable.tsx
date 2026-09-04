@@ -1,6 +1,6 @@
 "use client"
 
-import {Member} from "../utils/Variables";
+import {Member} from "@/app/utils/Variables";
 import {useTranslations} from "next-intl";
 import {useRef, useState} from "react";
 import {Button, Modal, TextField} from "@navikt/ds-react";

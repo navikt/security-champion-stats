@@ -1,4 +1,4 @@
-import {Me, Member, SCData} from "../utils/Variables";
+import {Me, Member, SCData} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -35,8 +35,8 @@ export const Apies = {
         if (!res.ok) console.error("Failed to add points, with status code: ", res.status)
         return res.status
     },
-    joinProgram: async() => {
-        const res = await fetch("/api/join", {
+    joinGamification: async() => {
+        const res = await fetch("/api/joinGame", {
             method: "POST",
             headers: { "Content-Type": "application/json" }, // fixed typo
         })
@@ -48,15 +48,13 @@ export const Apies = {
         const res = await fetch("/api/validate")
         if (!res.ok) {
             console.error("Failed to validate user, status: ", res.status)
-            return { username: "", isAdmin: false, inProgram: false }
+            return { username: "", isAdmin: false, isSecChamp: false, inGame: false }
         }
+
         return await res.json()
     },
-    leaveProgram: async(): Promise<Number> => {
-        const res = await fetch("/api/leave", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-        })
+    leaveGame: async(): Promise<Number> => {
+        const res = await fetch("/api/leaveGame", { method: "POST" })
         if (!res.ok) console.error("Failed to leave the program, with status code: ", res.status)
 
         return res.status
@@ -68,5 +66,16 @@ export const Apies = {
             return []
         }
         return res.json()
-    }
+    },
+    fetchMembership: async(): Promise<Member | null> => {
+        const res = await fetch("/api/membership", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        })
+        if (!res.ok) {
+            console.error("Failed to fetch membership, with status: ", res.status)
+            return null
+        }
+        return res.json()
+    },
 }

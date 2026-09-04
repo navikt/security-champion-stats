@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
+import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
 import org.springframework.context.annotation.Profile
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -43,16 +44,15 @@ class LocalTokenIntrospection : AppAuthenticationFilter() {
         }
         val result = TokenResponse(
             active = true,
-            ident = "LZ00001",
+            ident = "A1234544426",
             preferredUsername = "local.user@nav.no",
             groups = listOf("local-admin-group", "local-user-group"),
             error = null
         )
-
+        val principal = AppPrincipal(result.preferredUsername!!, result.ident!!)
         val authentication = UsernamePasswordAuthenticationToken(
-            result.preferredUsername!!, result.ident, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
+            principal, null, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
         )
-        logger.info("Completed token introspection successfully for local request: ${request.requestURI}")
         SecurityContextHolder.getContext().authentication = authentication
         filterChain.doFilter(request, response)
     }

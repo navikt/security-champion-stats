@@ -1,110 +1,74 @@
 {
-  "common": {
-    "appTitle": "Security champion levels",
-    "loading": "Loading in application",
-    "description": "Security champions are those who take responsibility for spreading the security culture in the organization. They are drivers for making security a natural part of developing, and they inspire others to join the journey towards a safer digital future."
+  "title": "Security Champion app",
+  "sidebar": {
+    "overview": "Overview",
+    "events": "Events",
+    "community": "Community"
   },
-  "menu": {
-    "menuGroup": "Menu",
-    "home": "Home",
-    "dashboard": "Dashboard"
+  "loading": {
+    "title": "Loading..."
   },
-  "settings": {
+  "settings":{
     "title": "Settings",
-    "theme": "Theme",
-    "language": "Language",
-    "english": "English",
     "themeOptions": {
-      "darkMode": "Dark mode",
-      "lightMode": "Light mode",
-      "systemMode": "System"
+      "title": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
     },
-    "norwegian": "Norwegian",
-    "admin": "Admin",
-    "goToAdmin": "Open admin"
+    "language": "Language"
   },
-  "main": {
-    "title": "Welcome to the security champion program",
-    "subtitle": "Join the program and start earning points by doing security related activities, and climb the leaderboard to become the ultimate security champion.",
-    "cta": {
-      "hintJoin": "Join the program and show up in the leaderboard.",
-      "hintLeave": "You can leave the game at any time."
-    },
-    "statuses": {
-      "active": "Mission active",
-      "idle": "Recruiting Security champions"
-    },
-    "subtitles": {
-      "active": "Keep the shield charged by bringing in members.",
-      "idle": "Kick things off so that we can start growing security culture together."
-    },
-    "gameStats": {
-      "players": "Players joined",
-      "points": "Total points",
-      "topAgent": "Top Security champion",
-      "topAgentMeta": "{points} XP",
-      "topAgentFallback": "No leader yet"
-    },
-    "table": {
-      "adminActions": "Admin actions",
-      "leaderboardEyebrow": "Leaderboard",
-      "leaderboardTitle": "Security champion roster",
-      "cardAgentsLabel": "{count} Security champions",
-      "cardPointsLabel": "{points} XP banked",
-      "noMembers": "Table is empty",
-      "levels": {
-        "1": "Novice Champion",
-        "2": "Apprentice Champion",
-        "3": "Champion",
-        "4": "Master Champion"
-      },
-      "buttons": {
-        "joinProgram": "Join game",
-        "leaveProgram": "Leave game",
-        "admin": {
-          "addMember": "add member",
-          "deleteMember": "Delete",
-          "addPoints": "add points"
-        }
-      },
-      "modals": {
-        "buttons": {
-          "close": "Close",
-          "submit": "Submit"
-        },
-        "addMember": {
-          "title": "Add new member, backend will find them for you",
-          "email": "E-mail",
-          "fullname": "Full name",
-          "buttons": {
-            "add": "Add member",
-            "cancel": "Cancel"
-          }
-        },
-        "addPoints": {
-          "title": "Add amount of points to add to member, do know that there is no logic for value validation :D",
-          "pointsLabel": "Points:"
-        }
-      },
+  "home": {
+    "title": "Security Champion Hub",
+    "description": "Here's what's happening in the Security Champion program.",
+    "membership": {
       "member": {
-        "fullname": "fullname",
-        "points": "points",
-        "level": "levels"
-      }
-    }
-  },
-  "admin": {
-    "SCData": {
-      "title": "Security champion data",
-      "subtitle": "Here you can see data inform of a dashboards, in order to track how security champion program is doing.",
-      "dashboards": {
-        "SCDashboard": {
-          "title": "Security champions amount by time"
+        "securityChampion": "Security champion",
+        "active": "GAME ACTIVE",
+        "inactive": "GAME INACTIVE",
+        "gamification": "Gamification",
+        "description": "You are an active member of the Security Champion program.",
+        "levelNames": {
+          "level1": "Novice Champion",
+          "level2": "Intermediate Champion",
+          "level3": "Advanced Champion"
+        },
+        "level": {
+          "level1": "level 1",
+          "level2": "level 2",
+          "level3": "level 3"
+        },
+        "nextLevel": "to next level",
+        "joinedGamification": "Joined gamification",
+        "joinedProgram": "Security Champion since",
+        "leave": "Leave Security Champion",
+        "leaveGame": "Leave Game",
+        "joinGame": "Join gamification",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "optional": "Optional",
+        "information": "Earn Xp, unlock champion levels and achievements by participating in Security Champion activities.",
+        "leaveGamificationModal": {
+          "title": "Leave gamification",
+          "question": "Are you sure you want to leave gamification?",
+          "cancel": "Cancel",
+          "confirm": "Confirm",
+          "description": "You will no longer be able to earn XP and unlock levels and achievements.",
+          "loseList": {
+            "title": "What changes",
+            "li1": "Xp progression will stop",
+            "li2": "Your champion level will no longer be active"
+          },
+          "keepList": {
+            "title": "What stays the same",
+            "l1": "You remain a Security Champion",
+            "l2": "You can still see all events and people in community"
+          }
         }
+      },
+      "nonmember": {
+
       }
     }
-  },
-  "error": {
-    "generic": "Something went wrong, try again later"
   }
 }

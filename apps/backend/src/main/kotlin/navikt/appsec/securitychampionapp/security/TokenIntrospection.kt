@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.dto.SwaggerProperties
 import navikt.appsec.securitychampionapp.config.USER_ROLE
+import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Profile
@@ -95,7 +96,9 @@ class TokenIntrospection(
                 } else {
                     listOf(SimpleGrantedAuthority("ROLE_$USER_ROLE"))
                 }
-            val authentication = UsernamePasswordAuthenticationToken(preferredUsername, null, authorities)
+
+            val principal = AppPrincipal(result.preferredUsername, navIdent)
+            val authentication = UsernamePasswordAuthenticationToken(principal, null, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
         } catch (e: Exception) {

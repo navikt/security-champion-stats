@@ -1,6 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
-import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
-import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../shared/utils/Variables";
+import {getBackendToken, getServerEnv} from "../../utils/Validation";
+import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../utils/Variables";
 import {parseAzureUserToken} from "@navikt/oasis";
 import {createLocalParserResult} from "@/app/utils/LocalDevAuth";
 
@@ -66,13 +66,7 @@ export async function GET(
                 { status: 401 }
             )
         }
-        return NextResponse.json(
-            {
-                username: parse.preferred_username,
-                isAdmin: parse.groups?.includes(id),
-                inProgram: backendResponse.inProgram
-            }
-        )
+        return NextResponse.json(backendResponse)
     } catch (error) {
         console.error("Validation error, then validating user," + error)
         return NextResponse.json(

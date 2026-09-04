@@ -1,5 +1,6 @@
 package navikt.appsec.securitychampionapp.integrations.slack.dto
 
+import com.slack.api.model.User
 import com.slack.api.model.block.LayoutBlock
 
 data class SlackActivitySummary(
@@ -27,7 +28,13 @@ data class SecurityChampionMessage(
     val messageBlock: MutableList<LayoutBlock>
 )
 
-data class SlackResponse(
+data class SlackCommonResponse(
     val isOk: Boolean,
+    val error: String? = null
+)
+
+data class SlackUserResponse(
+    val isOk: Boolean,
+    val users: List<User>,
     val error: String? = null
 )

@@ -1,0 +1,30 @@
+:root {
+    --app-header-height: 3rem;
+    --app-sidebar-width: 12rem;
+}
+
+.appLayout {
+    min-height: var(--app-header-height);
+}
+
+.appBody {
+    display: grid;
+    grid-template-columns:
+        var(--app-sidebar-width)
+        minmax(0, 1fr);
+    min-height:
+            calc(100dvh - var(--app-header-height));
+    width: 100%;
+    min-width: 0;
+    background: var(--sc-bg);
+}
+
+.appMain {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+
+    margin: 0;
+
+    padding-block: 0.5rem 4rem;
+}

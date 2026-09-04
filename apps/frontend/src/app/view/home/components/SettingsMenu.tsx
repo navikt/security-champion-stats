@@ -4,17 +4,17 @@ import {BodyShort, Button, Popover, VStack} from "@navikt/ds-react";
 import {useTranslations} from "next-intl";
 import {CogIcon} from "@navikt/aksel-icons";
 import {useRouter} from "next/navigation";
-import {ThemeToggle} from "../theme/ThemeProvider";
+import {ThemeToggle} from "@/app/shared/theme/ThemeProvider";
 import {useRef, useState, useId} from "react";
 import LanguageSwitcher from "./LanguageSwitcher";
-import {useMe} from "../hooks/UseMe";
+import {useMe} from "@/app/shared/hooks/UseMe";
 
 export default function SettingsMenu({ locale }: {locale: string}) {
     const anchorRef= useRef<HTMLButtonElement>(null);
     const [open, setOpen] = useState(false);
     const t = useTranslations()
     const router = useRouter();
-    const popoverId = useId()
+    const popoverId = useId();
     const { me, loading } = useMe();
     if (loading) return null;
     return (

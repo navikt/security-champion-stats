@@ -44,10 +44,8 @@ To run the backend application, follow these steps:
 1. Make sure you have Java 17 or higher installed on your machine.
 2. Start the local database: `docker compose up -d postgres`
 3. Run the application with the local profile: `./gradlew bootRun --args='--spring.profiles.active=local'`
-4. Mint a token for local calls: `curl -X POST http://localhost:8080/auth/local/token -H 'Content-Type: application/json' -d '{"navIdent":"Z12345","preferredUsername":"user@nav.no","groups":["local-admin-group"]}'`
-5. Use the returned value as `Authorization: Bearer <token>` when calling `http://localhost:8080`.
-6. To run tests, use the command: `./gradlew test`
-7. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
+4. To run tests, use the command: `./gradlew test`
+5. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
 
 In production, Swagger endpoints are protected with Basic Authentication. Configure credentials in `application.yaml`:
 ```yaml
@@ -60,6 +58,36 @@ Access Swagger UI via browser at `http://localhost:8080/swagger-ui.html` and use
 This is best run together with the frontend application so you can see the data in the UI. To run the frontend
 application, follow the instructions in `apps/frontend/Readme.md`.
 
+## Useful Commands
+
+**View PostgreSQL logs (all statements):**
+```shell
+docker compose logs -f postgres
+```
+The database container is configured with `log_statement=all`, so every SQL query is logged to stderr and visible here.
+
+**Connect to the local database (psql):**
+```shell
+docker exec -it postgres psql -U security -d security_champion_stats
+```
+
+**List tables and inspect data:**
+```sql
+\dt
+SELECT * FROM member;
+```
+
+**Reset the database (wipe volume and restart):**
+```shell
+docker compose down -v && docker compose up -d postgres
+```
+Flyway will re-run all migrations on the next application startup.
+
+**Run only a specific test class:**
+```shell
+./gradlew test --tests "navikt.appsec.securitychampionapp.*ClassName*"
+```
+
 ## Technologies Used
 - Kotlin: A modern programming language that runs on the JVM and is fully interoperable with Java
 - Spring Boot: A framework for building production-ready applications with Java and Kotlin
@@ -70,13 +98,61 @@ application, follow the instructions in `apps/frontend/Readme.md`.
 - Docker: A platform for developing, shipping, and running applications in containers
 
 ## Folder Structure
-- `app/`: Contains the main application code, including the sync job and API controllers.
-- `integrations/`: Contains integrations with external services (PostgreSQL, Slack, Teamkatalogen).
-- `security/`: Contains authentication and authorization logic.
-- `config/`: Contains application configuration classes.
-- `utils/`: Contains shared utility functions.
-- `src/test/`: Contains unit and integration tests for the application.
-- `gradle/libs.versions.toml`: Contains version numbers for all dependencies used in the application, making it easier to manage and update them.
+```
+src/main/kotlin/.../
+├── app/
+│   ├── api/
+│   │   ├── Controller.kt           # Public API endpoints (/api/*)
+│   │   ├── AdminController.kt      # Admin-only endpoints (/api/admin/*)
+│   │   └── dto/                    # Request/response DTOs
+│   └── jobs/
+│       ├── SyncJob.kt              # Daily sync: adds/removes champions from Teamkatalogen
+│       ├── CalculatePointsJob.kt   # Daily job: calculates Slack activity points for all members
+│       └── ResetPointsSyncJob.kt   # Scheduled job: resets all points and levels
+├── config/                         # Spring configuration (Security, Swagger, Slack, TeamCatalog, Web)
+├── integrations/
+│   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
+│   ├── slack/                      # Slack API service, activity and channel membership services
+│   └── teamCatalog/                # Teamkatalogen client and DTOs
+├── security/                       # Token introspection, auth filter, and principal DTOs
+└── utils/
+    └── Validate.kt                 # Input validation and level calculation
+
+src/main/resources/
+├── application.yaml                # Main configuration
+├── application-local.yaml          # Local dev overrides (mocked integrations)
+├── db/migration/                   # Flyway SQL migrations (V1–V6)
+└── mock/                           # Static mock responses for Slack and Teamkatalogen (local profile)
+
+gradle/libs.versions.toml           # Centralized dependency version catalog
+```
+
+### API Endpoints
+
+**Public (`/api`)**
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/members` | List all active security champions |
+| GET | `/api/validate` | Validate current user and return role info |
+| GET | `/api/membership` | Fetch the authenticated user's membership details |
+| POST | `/api/join` | Opt in to the security champion program |
+| POST | `/api/leave` | Opt out of the security champion program |
+
+**Admin (`/api/admin`)** — requires admin role
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/admin/member` | Manually add a member |
+| DELETE | `/api/admin/member/{id}` | Delete a member |
+| POST | `/api/admin/points` | Add points to a member |
+| GET | `/api/admin/dashboard/members` | Get SC count over time |
+
+### Scheduled Jobs
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| `SyncJob` | Daily at 12:00 | Syncs champions from Teamkatalogen, updates Slack user group, sends welcome messages |
+| `CalculatePointsJob` | Daily at 13:00 | Fetches Slack activity and updates points/levels for all active members |
+| `ResetPointsSyncJob` | Configurable via `jobs.reset-points.cron` | Resets all points and levels |
 
 ## Contributing
 Contributions to the backend application are welcome! If you would like to contribute, please follow these steps:

@@ -29,7 +29,8 @@ class PostgresRepository(
                     email = rs.getString("email"),
                     inProgram = rs.getBoolean("inProgram"),
                     level = rs.getString("level") ?: "1",
-                    teams = teams
+                    teams = teams,
+                    createdAt = rs.getString("create_at")
                 )
             }
             if (args.isEmpty()) {
@@ -106,17 +107,17 @@ class PostgresRepository(
     }
 
     fun getAllMembers(): DatabaseQueryResponse {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, create_at, teams FROM Members"
         return queryMembersData(query)
     }
 
     fun addMember(fullname: String, id: String, email: String, teams: List<String>): DatabaseUpdateResponse {
-        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams) VALUES (?, ?, 0, ?, false, '1', ?)"
+        val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams, create_at) VALUES (?, ?, 0, ?, false, '1', ?, CURRENT_TIMESTAMP)"
         return executeUpdate(query, id, fullname, email, SqlTextArray(teams))
     }
 
     fun getMemberByEmail(email: String): DatabaseQueryResponse {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE email = ?"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, create_at, teams FROM Members WHERE email = ?"
         return queryMembersData(query, email)
     }
 
@@ -124,10 +125,9 @@ class PostgresRepository(
         val query = "DELETE FROM Members WHERE id = ?"
         return executeUpdate(query, id)
     }
-
-    fun addPoints(id: String, points: Int): DatabaseUpdateResponse{
-        val query = "UPDATE Members SET points = points + ?, update_at = NOW() WHERE id = ?"
-        return executeUpdate(query, points, id)
+    fun addPoints(id: String, points: Int, level: String): DatabaseUpdateResponse{
+        val query = "UPDATE Members SET points = points + ?, level = ?, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, points, level, id)
     }
 
     fun resetAllPointsAndLevels(): DatabaseUpdateResponse {
@@ -141,8 +141,8 @@ class PostgresRepository(
     }
 
     fun updateInProgram(id: String, inProgram: Boolean): DatabaseUpdateResponse {
-        val query = "UPDATE Members SET inProgram = $inProgram, update_at = NOW() WHERE id = ?"
-        return executeUpdate(query, id)
+        val query = "UPDATE Members SET inProgram = ?, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, inProgram, id)
     }
 
     fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {
@@ -153,5 +153,10 @@ class PostgresRepository(
             val query = "SELECT id, amount FROM SCData where id BETWEEN ? AND ?"
             querySCData(query, startDate.toString(), endDate.toString())
         }
+    }
+
+    fun fetchMember(id: String): DatabaseQueryResponse? {
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams, create_at FROM Members WHERE id = ?"
+        return queryMembersData(query, id)
     }
 }

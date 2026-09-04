@@ -16,7 +16,7 @@ class ActivityService(
 
     fun calculateActivityForMembers(securityChampions: List<String>): SlackActivitySummaryResponse {
         val userData = securityChampions.mapNotNull { email ->
-            slackApiService.fetchUserIdByEmail(email)
+            slackApiService.fetchUserIdByEmail(email.lowercase())
         }
 
         if (userData.isEmpty() || userData.size != securityChampions.size) {

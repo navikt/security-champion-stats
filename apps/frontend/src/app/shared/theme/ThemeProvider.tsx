@@ -29,26 +29,26 @@ export function ThemeToggle() {
     if (!mounted) {
         return (
             <Select
-                label={t("theme")}
+                label={t("themeOptions.title")}
                 size={"small"}
                 value={"system"}
                 onChange={() => {}}
                 disabled
             >
-                <option value={"system"}>{t("themeOptions.systemMode")}</option>
+                <option value={"system"}>{t("themeOptions.title")}</option>
             </Select>
         )
     }
 
     const themes = [
-        { value: "light", label: t("themeOptions.lightMode") },
-        { value: "dark", label: t("themeOptions.darkMode") },
-        { value: "system", label: t("themeOptions.systemMode") }
+        { value: "light", label: t("themeOptions.light") },
+        { value: "dark", label: t("themeOptions.dark") },
+        { value: "system", label: t("themeOptions.system") }
     ]
 
     return (
         <Select
-            label={t("theme")}
+            label={t("themeOptions.title")}
             size={"small"}
             value={theme}
             onChange={(e) => setTheme(e.target.value)}

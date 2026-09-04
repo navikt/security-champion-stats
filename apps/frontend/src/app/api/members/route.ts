@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import {getBackendToken, getServerEnv} from "../../shared/utils/Validation";
-import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../shared/utils/Variables";
+import {getBackendToken, getServerEnv} from "../../utils/Validation";
+import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "../../utils/Variables";
 
 
 export async function GET(request: NextRequest) {

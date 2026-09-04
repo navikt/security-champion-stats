@@ -12,7 +12,8 @@ data class SqlMember(
     val email: String,
     val inProgram: Boolean,
     val level: String,
-    val teams: List<String>
+    val teams: List<String>,
+    val createdAt: String,
 )
 
 data class DatabaseQueryResponse(

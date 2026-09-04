@@ -1,5 +1,5 @@
 import {NextRequest} from "next/server";
-import {createLocalDevToken} from "../../utils/LocalDevAuth";
+import {createLocalDevToken} from "../utils/LocalDevAuth";
 import {getToken, requestOboToken} from "@navikt/oasis";
 import {AUTHENTICATED_FAILED} from "./Variables";
 
@@ -26,7 +26,6 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
     if (isLocaDev()) {
         return createLocalDevToken()
     } else {
-
         const accessToken = getToken(request)
         if (!accessToken) {
         console.error("failed to fetch access token from request")

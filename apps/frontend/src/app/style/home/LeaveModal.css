@@ -1,0 +1,22 @@
+.leaveGameModal {
+    display: grid;
+    gap: 1.25rem;
+
+    max-width: 32rem;
+}
+
+.leaveGameModal__section {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.leaveGameModal__list {
+    margin: 0;
+    padding-left: 1.25rem;
+
+    color: var(--sc-text-muted);
+}
+
+.leaveGameModal__list li + li {
+    margin-top: 0.35rem;
+}

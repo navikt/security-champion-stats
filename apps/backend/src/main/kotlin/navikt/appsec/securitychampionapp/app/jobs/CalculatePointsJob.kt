@@ -3,7 +3,9 @@ package navikt.appsec.securitychampionapp.app.jobs
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.integrations.slack.ActivityService
+import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
@@ -15,6 +17,7 @@ class CalculatePointsJob(
     private val jobLock: PostgresJobLock,
     private val slackActivityService: ActivityService,
     private val repo: PostgresRepository,
+    private val validate: Validate,
 ) {
 
     private val logger = LoggerFactory.getLogger(CalculatePointsJob::class.java)
@@ -38,10 +41,13 @@ class CalculatePointsJob(
             }
 
             slackResponse.slackActivitySummaries.forEach { summary ->
-                val id = queryResponse.queryResult.first { it.email == summary.email }.id
-                val updateResponse = repo.addPoints(id, summary.totalPoints)
+                val user = queryResponse.queryResult.first { it.email == summary.email }
+                val updatedLevel = validate.calculateLevel(summary.totalPoints + user.points)
+                val totalPoints = user.points + summary.totalPoints
+
+                val updateResponse = repo.addPoints(user.id, totalPoints, updatedLevel)
                 if (!updateResponse.isOk) {
-                    logger.error("Failed to update points for member $id, with error: ${updateResponse.error}")
+                    logger.error("Failed to update points for member ${user.id}, with error: ${updateResponse.error}")
                 }
             }
         }

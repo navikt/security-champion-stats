@@ -7,8 +7,10 @@ import com.slack.api.methods.response.chat.ChatPostMessageResponse
 import com.slack.api.methods.response.conversations.ConversationsHistoryResponse
 import com.slack.api.methods.response.usergroups.users.UsergroupsUsersUpdateResponse
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse
+import com.slack.api.model.User
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampionMessage
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackResponse
+import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackCommonResponse
+import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackUserResponse
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -75,7 +77,7 @@ class SlackApiService(
     }
 
 
-    fun updateUsersGroup(userIds: List<String>, userGroupId: String): SlackResponse {
+    fun updateUsersGroup(userIds: List<String>, userGroupId: String): SlackCommonResponse {
         val response = if (mockResponse.useMockResponses()) {
             mockResponse.fetchMockData(
                 "classpath:mock/slack/slack_usergroups_users_update.json",
@@ -92,13 +94,13 @@ class SlackApiService(
             logger.warn("Failed updating user group $userGroupId, with error: ${response?.error}")
         }
 
-        return SlackResponse(
+        return SlackCommonResponse(
             isOk = response?.isOk ?: false,
             error = response?.error ?: "Unknown error"
         )
     }
 
-    fun postChatMessage(channelId: String, securityChampionMessage: SecurityChampionMessage): SlackResponse {
+    fun postChatMessage(channelId: String, securityChampionMessage: SecurityChampionMessage): SlackCommonResponse {
         val response = if (mockResponse.useMockResponses()) {
             mockResponse.fetchMockData(
                 "classpath:mock/slack/slack_post_message.json",
@@ -116,9 +118,45 @@ class SlackApiService(
             logger.warn("Failed posting message to channel $channelId, with error: ${response?.error}")
         }
 
-        return SlackResponse(
+        return SlackCommonResponse(
             isOk = response?.isOk ?: false,
             error = response?.error ?: "Unknown error"
+        )
+    }
+
+    fun fetchAllUsers(cursor: String?, level: Int = 0): SlackUserResponse {
+        if (level >= 20) {
+            return SlackUserResponse(
+                isOk = false,
+                users = emptyList(),
+                error = "Max level reached, stopping fetching users"
+            )
+        }
+
+        val response = client.usersList {
+            it.cursor(cursor)
+        }
+
+        if (!response.isOk) {
+            return SlackUserResponse(
+                isOk = false,
+                users = emptyList(),
+                error = response.error
+            )
+        }
+
+        val members = response.members ?: emptyList()
+        val nextCursor = response.responseMetadata?.nextCursor ?: return SlackUserResponse(
+            isOk = true,
+            users = members,
+            error = null
+        )
+
+        val nextUsers = fetchAllUsers(nextCursor, level + 1)
+        return SlackUserResponse(
+            isOk = true,
+            users = members + nextUsers.users,
+            error = nextUsers.error
         )
     }
 }

@@ -5,7 +5,7 @@ plugins {
     id("io.freefair.lombok") version "9.5.0"
     application
     java
-    id("org.springframework.boot") version "4.1.0"
+    id("org.springframework.boot") version "4.1.1"
     kotlin("plugin.spring") version "2.4.10"
 }
 

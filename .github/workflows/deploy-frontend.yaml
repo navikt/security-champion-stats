@@ -44,7 +44,7 @@ jobs:
           dockerfile: apps/frontend/Dockerfile
           docker_context: apps/frontend
           image_suffix: frontend
-      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199 # ratchet:nais/deploy/actions/deploy@v2
+      - uses: nais/deploy/actions/deploy@027a91857992525139798892f2804b0ca21f4af6 # ratchet:nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
           RESOURCE: apps/frontend/.nais/nais.yaml
@@ -71,6 +71,6 @@ jobs:
           format: 'sarif'
           scanners: 'secret'
           output: 'trivy.sarif'
-      - uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+      - uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: 'trivy.sarif'

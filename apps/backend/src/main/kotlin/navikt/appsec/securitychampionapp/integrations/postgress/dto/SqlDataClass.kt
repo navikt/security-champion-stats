@@ -1,5 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgress.dto
 
+import java.time.Instant
+
 data class SqlTextArray(
     val value: Collection<String>
 )
@@ -16,13 +18,34 @@ data class SqlMember(
     val createdAt: String,
 )
 
-data class DatabaseQueryResponse(
+data class MemberQueryResponse(
     val isOk: Boolean,
     val queryResult: List<SqlMember>? = null,
     val error: String? = null
 )
 
-data class DatabaseUpdateResponse(
+data class MemberUpdateResponse(
     val isOk: Boolean,
     val error: String? = null
+)
+
+data class SqlEvent(
+    val id: String,
+    val name: String,
+    val description: String,
+    val startDateTime: Instant,
+    val endDateTime: Instant,
+    val location: String,
+    val externalEvent: Boolean,
+    val deltaEvent: Boolean
+)
+
+data class EventQueryResponse(
+    val isOk: Boolean,
+    val queryResult: List<SqlEvent>? = null,
+    val error: String? = null
+)
+
+data class EventUpdateResponse(
+    val isOk: Boolean,
 )

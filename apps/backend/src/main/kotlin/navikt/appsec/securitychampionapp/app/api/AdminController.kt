@@ -1,6 +1,6 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
@@ -22,7 +22,7 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/admin")
 class AdminController(
-    private val repo: PostgresRepository,
+    private val repo: MemberRepository,
     private val validate: Validate,
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)

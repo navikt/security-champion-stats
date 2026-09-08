@@ -1,8 +1,8 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseUpdateResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberQueryResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberUpdateResponse
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlTextArray
 import org.springframework.jdbc.core.JdbcTemplate
@@ -12,10 +12,10 @@ import java.time.Instant
 
 
 @Repository
-class PostgresRepository(
+class MemberRepository(
     private val jdbcTemplate: JdbcTemplate,
 ) {
-    private fun queryMembersData(query: String, vararg args: Any): DatabaseQueryResponse {
+    private fun queryMembersData(query: String, vararg args: Any): MemberQueryResponse {
         return try {
             val rowMapper = RowMapper { rs, _ ->
                 val teams = (rs.getArray("teams")?.array as? Array<*>)
@@ -34,19 +34,19 @@ class PostgresRepository(
                 )
             }
             if (args.isEmpty()) {
-                DatabaseQueryResponse(
+                MemberQueryResponse(
                     isOk = true,
                     jdbcTemplate.query(query, rowMapper)
                 )
             } else {
-                DatabaseQueryResponse(
+                MemberQueryResponse(
                     isOk = true,
                     jdbcTemplate.query(query, rowMapper, *args)
 
                 )
             }
         } catch (e: Exception) {
-            DatabaseQueryResponse(
+            MemberQueryResponse(
                 isOk = false,
                 emptyList(),
                 error = "Failed to fetch members: ${e.message}"
@@ -72,7 +72,7 @@ class PostgresRepository(
         }
     }
 
-    private fun executeUpdate(query: String, vararg args: Any): DatabaseUpdateResponse {
+    private fun executeUpdate(query: String, vararg args: Any): MemberUpdateResponse {
         try {
             jdbcTemplate.update { connection ->
                 connection.prepareStatement(query).apply {
@@ -92,55 +92,55 @@ class PostgresRepository(
                     }
                 }
             }
-            return DatabaseUpdateResponse(isOk = true)
+            return MemberUpdateResponse(isOk = true)
         } catch (e: Exception) {
-            return DatabaseUpdateResponse(
+            return MemberUpdateResponse(
                 isOk = false,
                 error = "Failed to execute update: ${e.message}"
             )
         }
     }
 
-    fun getAllMembersInProgram(): DatabaseQueryResponse {
+    fun getAllMembersInProgram(): MemberQueryResponse {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE inProgram = true"
         return queryMembersData(query)
     }
 
-    fun getAllMembers(): DatabaseQueryResponse {
+    fun getAllMembers(): MemberQueryResponse {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, create_at, teams FROM Members"
         return queryMembersData(query)
     }
 
-    fun addMember(fullname: String, id: String, email: String, teams: List<String>): DatabaseUpdateResponse {
+    fun addMember(fullname: String, id: String, email: String, teams: List<String>): MemberUpdateResponse {
         val query = "INSERT INTO Members (id, fullname, points, email, inProgram, level, teams, create_at) VALUES (?, ?, 0, ?, false, '1', ?, CURRENT_TIMESTAMP)"
         return executeUpdate(query, id, fullname, email, SqlTextArray(teams))
     }
 
-    fun getMemberByEmail(email: String): DatabaseQueryResponse {
+    fun getMemberByEmail(email: String): MemberQueryResponse {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, create_at, teams FROM Members WHERE email = ?"
         return queryMembersData(query, email)
     }
 
-    fun deleteMember(id: String): DatabaseUpdateResponse {
+    fun deleteMember(id: String): MemberUpdateResponse {
         val query = "DELETE FROM Members WHERE id = ?"
         return executeUpdate(query, id)
     }
-    fun addPoints(id: String, points: Int, level: String): DatabaseUpdateResponse{
+    fun addPoints(id: String, points: Int, level: String): MemberUpdateResponse{
         val query = "UPDATE Members SET points = points + ?, level = ?, update_at = NOW() WHERE id = ?"
         return executeUpdate(query, points, level, id)
     }
 
-    fun resetAllPointsAndLevels(): DatabaseUpdateResponse {
+    fun resetAllPointsAndLevels(): MemberUpdateResponse {
         val query = "UPDATE Members SET points = 0, level = '1', update_at = NOW()"
         return executeUpdate(query)
     }
 
-    fun updateTeam(id: String, teams: List<String>): DatabaseUpdateResponse{
+    fun updateTeam(id: String, teams: List<String>): MemberUpdateResponse{
         val query = "UPDATE Members SET teams = ? WHERE id = ?"
         return executeUpdate(query, SqlTextArray(teams), id)
     }
 
-    fun updateInProgram(id: String, inProgram: Boolean): DatabaseUpdateResponse {
+    fun updateInProgram(id: String, inProgram: Boolean): MemberUpdateResponse {
         val query = "UPDATE Members SET inProgram = ?, update_at = NOW() WHERE id = ?"
         return executeUpdate(query, inProgram, id)
     }
@@ -155,7 +155,7 @@ class PostgresRepository(
         }
     }
 
-    fun fetchMember(id: String): DatabaseQueryResponse? {
+    fun fetchMember(id: String): MemberQueryResponse? {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams, create_at FROM Members WHERE id = ?"
         return queryMembersData(query, id)
     }

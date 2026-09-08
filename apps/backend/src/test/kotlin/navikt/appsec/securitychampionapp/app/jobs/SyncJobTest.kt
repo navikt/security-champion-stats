@@ -2,7 +2,7 @@ package navikt.appsec.securitychampionapp.app.jobs
 
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.slack.ChannelMembershipService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
@@ -62,7 +62,7 @@ class SyncJobTest {
 
     private lateinit var dataSource: HikariDataSource
     private lateinit var jdbcTemplate: JdbcTemplate
-    private lateinit var repository: PostgresRepository
+    private lateinit var repository: MemberRepository
     private lateinit var flyway: Flyway
 
     @BeforeAll
@@ -75,7 +75,7 @@ class SyncJobTest {
             maximumPoolSize = 2
         }
         jdbcTemplate = JdbcTemplate(dataSource)
-        repository = PostgresRepository(jdbcTemplate)
+        repository = MemberRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")

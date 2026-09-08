@@ -4,7 +4,7 @@ import com.slack.api.model.block.LayoutBlock
 import com.slack.api.model.block.SectionBlock
 import com.slack.api.model.block.composition.MarkdownTextObject
 import com.slack.api.model.block.element.ImageElement
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampionMessage
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackCommonResponse
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service
 @Service
 class ChannelMembershipService(
     private val slackApiService: SlackApiService,
-    private val repo: PostgresRepository,
+    private val repo: MemberRepository,
     @Value($$"${slack.appsec-activity-channel-id") private val scChannelId: String,
     @Value($$"${slack.userGroupId") private val userGrouping: String
 ) {

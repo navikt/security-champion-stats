@@ -1,11 +1,10 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.slack.ActivityService
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
@@ -16,7 +15,7 @@ private const val CALCULATE_POINTS_JOB_LOCK_KEY = 1_003L
 class CalculatePointsJob(
     private val jobLock: PostgresJobLock,
     private val slackActivityService: ActivityService,
-    private val repo: PostgresRepository,
+    private val repo: MemberRepository,
     private val validate: Validate,
 ) {
 

@@ -1,7 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
 import com.zaxxer.hikari.HikariDataSource
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import org.assertj.core.api.Assertions
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
@@ -20,7 +20,7 @@ import java.util.UUID
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class PostgresRepositoryTest {
+class MemberRepositoryTest {
 
     companion object {
         @JvmStatic
@@ -35,7 +35,7 @@ class PostgresRepositoryTest {
 
     lateinit var dataSource: HikariDataSource
     lateinit var jdbcTemplate: JdbcTemplate
-    lateinit var repository: PostgresRepository
+    lateinit var repository: MemberRepository
     lateinit var flyway: Flyway
 
     @BeforeAll
@@ -48,7 +48,7 @@ class PostgresRepositoryTest {
             maximumPoolSize = 2
         }
         jdbcTemplate = JdbcTemplate(dataSource)
-        repository = PostgresRepository(jdbcTemplate)
+        repository = MemberRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")

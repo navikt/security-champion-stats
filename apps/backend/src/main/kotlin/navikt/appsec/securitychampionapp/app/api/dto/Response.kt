@@ -24,3 +24,13 @@ data class SCdata(val timestamp: String, val amount: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Me(val username: String, val isAdmin: Boolean, val isSecChamp: Boolean, val inGame: Boolean)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class Event(
+    val id: String,
+    val name: String,
+    val description: String,
+    val startDateTime: String,
+    val endDateTime: String,
+    val location: String,
+)

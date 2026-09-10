@@ -102,7 +102,7 @@ class PostgresRepository(
     }
 
     fun getAllMembersInProgram(): DatabaseQueryResponse {
-        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams FROM Members WHERE inProgram = true"
+        val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams, create_at FROM Members WHERE inProgram = true"
         return queryMembersData(query)
     }
 

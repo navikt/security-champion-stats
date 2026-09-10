@@ -18,15 +18,14 @@ export type Member = {
 }
 export type SCData = { timestamp: string, amount: number }
 export type Row = { year: number, count: number }
+
 export interface SecurityEvent {
     id: string,
-    title: string,
+    name: string,
     description: string,
-    type: SecurityEventType,
-    startsAt: string,
-    endsAt: string,
-    location?: string,
-    onlineMeetingUrl?: string,
+    startDate: string,
+    endDate: string,
+    location: string
 }
 
 export type SecurityEventType = "meeting" | "workshop" | "course"

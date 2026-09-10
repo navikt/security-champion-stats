@@ -18,6 +18,11 @@
     },
     "language": "Language"
   },
+  "events": {
+    "title": "Events",
+    "noEvents": "No events found",
+    "description": "Meetings, workshops and other Security Champion activities."
+  },
   "home": {
     "title": "Security Champion Hub",
     "description": "Here's what's happening in the Security Champion program.",

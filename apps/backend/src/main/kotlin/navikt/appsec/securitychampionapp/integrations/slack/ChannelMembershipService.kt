@@ -35,7 +35,7 @@ class ChannelMembershipService(
         }
 
         val securityChampions = queryResponse.queryResult!!
-        val slackUsers = slackResponse.users.filter { !it.isBot || !it.isDeleted }
+        val slackUsers = slackResponse.users.filter { !it.isBot || !it.isDeleted || it.profile.email.isNullOrEmpty() }
         val userIds: List<String> = slackUsers
             .filter { it.profile.email.lowercase() in securityChampions.map { sc -> sc.email.lowercase() } }
             .map { it.id }

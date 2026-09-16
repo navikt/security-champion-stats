@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlEvent
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -22,7 +23,8 @@ class EventRepository(
                     endDateTime = rs.getTimestamp("end_date").toInstant(),
                     externalEvent = rs.getBoolean("external_event"),
                     deltaEvent = rs.getBoolean("delta_event"),
-                    location = rs.getString("location")
+                    location = rs.getString("location"),
+                    type = EventType.valueOf(rs.getString("event_type"))
                 )
             }
 
@@ -47,7 +49,7 @@ class EventRepository(
     }
 
     fun getAllEvents(): EventQueryResponse {
-        val query = "SELECT id, name, description, start_date, end_date, external_event, delta_event, location FROM Events"
+        val query = "SELECT id, name, description, start_date, end_date, external_event, delta_event, location, event_type FROM Events"
         return queryEvents(query)
     }
 }

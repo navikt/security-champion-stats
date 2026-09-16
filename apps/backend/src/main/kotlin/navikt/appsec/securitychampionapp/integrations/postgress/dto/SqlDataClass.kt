@@ -37,7 +37,8 @@ data class SqlEvent(
     val endDateTime: Instant,
     val location: String,
     val externalEvent: Boolean,
-    val deltaEvent: Boolean
+    val deltaEvent: Boolean,
+    val type: EventType
 )
 
 data class EventQueryResponse(
@@ -49,3 +50,7 @@ data class EventQueryResponse(
 data class EventUpdateResponse(
     val isOk: Boolean,
 )
+
+enum class EventType {
+    WORKSHOP, MEETING
+}

@@ -76,6 +76,7 @@ class EventRepositoryTest {
             startDateTime = start,
             endDateTime = end,
             location = "Oslo",
+
         )
 
         val response = repository.getAllEvents()
@@ -125,6 +126,7 @@ class EventRepositoryTest {
         externalEvent: Boolean = false,
         deltaEvent: Boolean = true,
         location: String = "Oslo",
+        eventType: String = "WORKSHOP"
     ) {
         dataSource.connection.use { connection ->
             connection.prepareStatement(
@@ -137,8 +139,9 @@ class EventRepositoryTest {
                         end_date,
                         external_event,
                         delta_event,
-                        location
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        location,
+                        event_type
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent()
             ).use { statement ->
                 statement.setObject(1, UUID.fromString(id))
@@ -149,6 +152,7 @@ class EventRepositoryTest {
                 statement.setBoolean(6, externalEvent)
                 statement.setBoolean(7, deltaEvent)
                 statement.setString(8, location)
+                statement.setString(9, eventType)
                 statement.executeUpdate()
             }
         }

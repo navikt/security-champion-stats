@@ -26,6 +26,7 @@ export interface SecurityEvent {
     startDate: string,
     endDate: string,
     location: string
+    type: SecurityEventType
 }
 
 export type SecurityEventType = "meeting" | "workshop" | "course"

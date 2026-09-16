@@ -1,4 +1,4 @@
-import {Me, Member, SCData} from "../../utils/Variables";
+import {Me, Member, SCData, SecurityEvent} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -78,4 +78,12 @@ export const Apies = {
         }
         return res.json()
     },
+    fetchEvents: async(): Promise<SecurityEvent[]> => {
+        const res = await fetch("/api/events")
+        if (!res.ok) {
+            console.error("Failed to fetch events, with status: ", res.status)
+            return []
+        }
+        return res.json()
+    }
 }

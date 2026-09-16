@@ -3,7 +3,7 @@ import { useLocale, useTranslations } from "next-intl";
 import {ActionMenu, InfoCard, InternalHeader, Page, Spacer} from "@navikt/ds-react";
 
 import "@/app/style/TopLayout.css"
-import SettingsMenu from "@/app/view/home/components/SettingsMenu";
+import SettingsMenu from "@/app/view/member/components/SettingsMenu";
 import { useMe } from "../shared/hooks/UseMe";
 import { MenuGridIcon } from "@navikt/aksel-icons";
 import { SideNavigation } from "@/app/shared/navigation/SideNavigation";

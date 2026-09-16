@@ -2,6 +2,9 @@ import {SecurityEvent} from "@/app/utils/Variables";
 import {getNextEvent, getPastEvents, getUpcomingEvents} from "@/app/utils/eventUtils";
 import {BodyShort, Heading} from "@navikt/ds-react";
 import {useTranslations} from "next-intl";
+import {NextEventCard} from "@/app/view/events/NextEventCard";
+import {EventList} from "@/app/view/events/EventList";
+import "../../style/events/EventsView.css"
 
 interface EventsViewProps {
     events: SecurityEvent[]
@@ -12,10 +15,10 @@ export function EventsView(props: EventsViewProps) {
 
     const t = useTranslations("events")
 
-    const upcomingEvents = getUpcomingEvents(props.events)
+    const upcomingEvents: SecurityEvent[] = getUpcomingEvents(props.events)
         .filter(event => event.id !== nextEvent?.id)
 
-    const past = getPastEvents(props.events)
+    const pastEvents: SecurityEvent[] = getPastEvents(props.events)
 
     return (
         <main className={"eventsView"}>
@@ -28,6 +31,22 @@ export function EventsView(props: EventsViewProps) {
                     {t("description")}
                 </BodyShort>
             </header>
+
+            {
+                nextEvent && (
+                    <NextEventCard event={nextEvent} />
+                )
+            }
+            <EventList
+                title={t("upcomingEvents")}
+                events={upcomingEvents}
+                emptyMessage={t("noUpcomingEvents")}
+            />
+            <EventList
+                title={t("pastEvents")}
+                events={pastEvents}
+                emptyMessage={t("noPastEvents")}
+            />
         </main>
     )
 }

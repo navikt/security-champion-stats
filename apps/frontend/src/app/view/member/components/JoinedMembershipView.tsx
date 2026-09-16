@@ -2,7 +2,7 @@ import {Member} from "@/app/utils/Variables";
 import {BodyShort, Button, Heading} from "@navikt/ds-react";
 import {useTranslations} from "next-intl";
 import {useState} from "react";
-import {LeaveGamificationModal} from "@/app/view/home/modal/LeaveGamificationModal";
+import {LeaveGamificationModal} from "@/app/view/member/modal/LeaveGamificationModal";
 import {Apies} from "@/app/shared/hooks/Apies";
 
 interface JoinedMembershipViewProps {

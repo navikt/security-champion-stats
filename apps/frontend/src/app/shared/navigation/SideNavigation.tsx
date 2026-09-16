@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import "../../style/SideNavigation.css";
-import { mainNavigation } from "@/app/shared/navigation/Navigation";
+import { navigation } from "@/app/shared/navigation/Navigation";
 import Link from "next/link";
 
 interface SideNavigationProps {
@@ -11,11 +11,11 @@ interface SideNavigationProps {
 
 export function SideNavigation({ locale }: SideNavigationProps) {
 	const pathName = usePathname();
-
+	const paths= navigation();
 	return (
 		<aside className={"sideNavigation"}>
 			<nav className={"sideNavigation__nav"} aria-label={"Main navigation"}>
-				{mainNavigation.map((item) => {
+				{paths.map((item) => {
 					const href =
 						item.path === "" ? `/${locale}` : `/${locale}${item.path}`;
 					const isActive =
@@ -37,7 +37,7 @@ export function SideNavigation({ locale }: SideNavigationProps) {
 							aria-current={isActive ? "page" : undefined}
 						>
 							<Icon aria-hidden className={"sideNa"} />
-							<span>{item.label}</span>
+							<span>{item.labelKey}</span>
 						</Link>
 					);
 				})}

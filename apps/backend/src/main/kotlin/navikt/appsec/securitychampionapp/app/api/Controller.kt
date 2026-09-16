@@ -124,9 +124,10 @@ class Controller(
                     id = it.id,
                     name = it.name,
                     description = it.description,
-                    startDateTime = it.startDateTime.toString(),
-                    endDateTime = it.endDateTime.toString(),
-                    location = it.location
+                    startDate = it.startDateTime.toString(),
+                    endDate = it.endDateTime.toString(),
+                    location = it.location,
+                    type = it.type.toString().lowercase()
                 )
             }
         )

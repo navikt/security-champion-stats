@@ -146,7 +146,7 @@ class SlackApiService(
         }
 
         val members = response.members ?: emptyList()
-        val nextCursor = response.responseMetadata?.nextCursor ?: return SlackUserResponse(
+        val nextCursor = response.responseMetadata?.nextCursor?.takeIf { it.isNotBlank() } ?: return SlackUserResponse(
             isOk = true,
             users = members,
             error = null

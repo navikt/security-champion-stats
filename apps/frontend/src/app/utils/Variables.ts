@@ -27,6 +27,7 @@ export type ChallengeMember = {
     level: string,
     inProgram: boolean,
 }
+export type InviteResponse = { status: string, notice?: string }
 export interface SecurityEvent {
     id: string,
     title: string,

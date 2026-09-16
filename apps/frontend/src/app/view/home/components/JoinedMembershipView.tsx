@@ -1,9 +1,12 @@
 import {Member} from "@/app/utils/Variables";
-import {BodyShort, Button, Heading} from "@navikt/ds-react";
+import {BodyShort, Button, Heading, TextField} from "@navikt/ds-react";
 import {useTranslations} from "next-intl";
-import {useState} from "react";
+import {useRef, useState} from "react";
 import {LeaveGamificationModal} from "@/app/view/home/modal/LeaveGamificationModal";
 import {Apies} from "@/app/shared/hooks/Apies";
+import {useMe} from "@/app/shared/hooks/UseMe";
+
+const APPSEC_TEAM_EMAIL = "appsec@nav.no"
 
 interface JoinedMembershipViewProps {
     member: Member
@@ -16,6 +19,7 @@ export function JoinedMembershipView({
 }: JoinedMembershipViewProps) {
     const inGame = member.inGame
     const t = useTranslations("home.membership.member")
+    const { me } = useMe()
 
     const points = member.points
     const progress = Math.min(100, Math.max(
@@ -23,6 +27,16 @@ export function JoinedMembershipView({
     ))
 
     const [leaveGameOpen, setLeaveGameOpen] = useState(false)
+    const [inviteStatus, setInviteStatus] = useState<string | null>(null)
+    const inviteNameRef = useRef<HTMLInputElement>(null)
+    const inviteEmailRef = useRef<HTMLInputElement>(null)
+
+    const handleInvite = async () => {
+        const fullName = inviteNameRef.current?.value ?? ""
+        const email = inviteEmailRef.current?.value ?? ""
+        const result = await Apies.inviteColleague(fullName, email, me.username)
+        setInviteStatus(result.notice ?? result.status)
+    }
 
     const handleLeaveGame = () => {
         Apies.leaveGame()
@@ -114,6 +128,17 @@ export function JoinedMembershipView({
                         {t("leave")}
                     </Button>
                 </div>
+
+                {me.username === APPSEC_TEAM_EMAIL && (
+                    <div className="sc-membership-card__invite">
+                        <Heading size={"xsmall"} level={"3"}>Invite a colleague</Heading>
+                        <TextField label="Full name" size={"small"} ref={inviteNameRef} />
+                        <TextField label="Email (@nav.no)" size={"small"} ref={inviteEmailRef} />
+                        <br />
+                        <Button size={"small"} onClick={handleInvite}>Invite</Button>
+                        {inviteStatus && <BodyShort>{inviteStatus}</BodyShort>}
+                    </div>
+                )}
             </div>
             {inGame && member.level ? (
                 <div className="sc-membership-card__visual">

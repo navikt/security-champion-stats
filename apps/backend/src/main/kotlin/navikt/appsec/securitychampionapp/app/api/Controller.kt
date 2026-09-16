@@ -1,20 +1,26 @@
 package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.app.api.dto.InviteRequest
+import navikt.appsec.securitychampionapp.app.api.dto.InviteResponse
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
+private const val APPSEC_TEAM_EMAIL = "appsec@nav.no"
 
 @RestController
 @RequestMapping(path = ["/api"])
@@ -105,6 +111,21 @@ class Controller(
                 joinedAt = queryResponse.queryResult.first().createdAt
             )
         )
+    }
+
+    @PostMapping("/invite", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun inviteColleague(@RequestBody invite: InviteRequest): ResponseEntity<InviteResponse> {
+        if (invite.requesterEmail != APPSEC_TEAM_EMAIL) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(InviteResponse("forbidden"))
+        }
+
+        val id = UUID.randomUUID().toString()
+        repo.addMember(invite.fullName, id = id, invite.email, emptyList())
+
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        val notice = if (principal.email != APPSEC_TEAM_EMAIL) "FLAG{client_side_authz_bypass}" else null
+        return ResponseEntity.status(HttpStatus.CREATED).body(InviteResponse("created", notice))
     }
 
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {

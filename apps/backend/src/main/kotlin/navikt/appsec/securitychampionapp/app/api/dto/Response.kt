@@ -17,6 +17,12 @@ data class Member(
 data class AddMember(val fullName: String, val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class InviteRequest(val fullName: String, val email: String, val requesterEmail: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class InviteResponse(val status: String, val notice: String? = null)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

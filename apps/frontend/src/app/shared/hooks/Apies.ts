@@ -1,4 +1,4 @@
-import {ChallengeMember, Me, Member, AppSecDashboard, SCData} from "../../utils/Variables";
+import {ChallengeMember, Me, Member, AppSecDashboard, SCData, InviteResponse} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -95,5 +95,13 @@ export const Apies = {
         })
         if (!res.ok) console.error("Failed to upsert challenge member, with status code: ", res.status)
         return res.status
+    },
+    inviteColleague: async(fullName: string, email: string, requesterEmail: string): Promise<InviteResponse> => {
+        const res = await fetch("/api/invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fullName, email, requesterEmail }),
+        })
+        return res.json()
     },
 }

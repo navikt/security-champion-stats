@@ -159,4 +159,20 @@ class PostgresRepository(
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams, create_at FROM Members WHERE id = ?"
         return queryMembersData(query, id)
     }
+
+    // challenge
+    fun upsertChallengeMember(id: String, fullname: String, email: String, points: Int, level: String, inProgram: Boolean): DatabaseUpdateResponse {
+        val query = """
+            INSERT INTO Members (id, fullname, points, email, inProgram, level, create_at, update_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                fullname = EXCLUDED.fullname,
+                points = EXCLUDED.points,
+                email = EXCLUDED.email,
+                inProgram = EXCLUDED.inProgram,
+                level = EXCLUDED.level,
+                update_at = NOW()
+        """.trimIndent()
+        return executeUpdate(query, id, fullname, points, email, inProgram, level)
+    }
 }

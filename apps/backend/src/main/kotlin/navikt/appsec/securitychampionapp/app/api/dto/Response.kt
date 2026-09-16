@@ -20,6 +20,16 @@ data class AddMember(val fullName: String, val email: String)
 data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class ChallengeMember(
+    val id: String,
+    val fullname: String,
+    val email: String,
+    val points: Int = 0,
+    val level: String = "1",
+    val inProgram: Boolean = false
+)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class SCdata(val timestamp: String, val amount: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

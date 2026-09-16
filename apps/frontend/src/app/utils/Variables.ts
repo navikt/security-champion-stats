@@ -18,6 +18,14 @@ export type Member = {
 }
 export type SCData = { timestamp: string, amount: number }
 export type Row = { year: number, count: number }
+export type ChallengeMember = {
+    id: string,
+    fullname: string,
+    email: string,
+    points: number,
+    level: string,
+    inProgram: boolean,
+}
 export interface SecurityEvent {
     id: string,
     title: string,

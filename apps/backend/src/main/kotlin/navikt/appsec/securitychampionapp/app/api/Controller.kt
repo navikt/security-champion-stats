@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 
@@ -81,12 +82,12 @@ class Controller(
     }
 
     @GetMapping("/membership")
-    fun fetchMembership(): ResponseEntity<Member> {
+    fun fetchMembership(@RequestParam(required = false) id: String?): ResponseEntity<Member> {
         val authentication = SecurityContextHolder.getContext().authentication
         val principal = authentication?.principal as AppPrincipal
-        val id = principal.navIdent
+        val resolvedId = id ?: principal.navIdent
 
-        val queryResponse = repo.fetchMember(id)
+        val queryResponse = repo.fetchMember(resolvedId)
         if (queryResponse == null || !queryResponse.isOk) {
             logger.warn("Failed to fetch member from database due to error: ${queryResponse?.error}")
             return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)

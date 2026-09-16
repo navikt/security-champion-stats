@@ -1,4 +1,4 @@
-import {Me, Member, SCData} from "../../utils/Variables";
+import {ChallengeMember, Me, Member, SCData} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -72,10 +72,20 @@ export const Apies = {
             method: "GET",
             headers: { "Content-Type": "application/json" },
         })
+        
         if (!res.ok) {
             console.error("Failed to fetch membership, with status: ", res.status)
             return null
         }
         return res.json()
+    },
+    upsertChallengeMember: async(member: ChallengeMember): Promise<number> => {
+        const res = await fetch("/api/admin/challenges/member", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(member),
+        })
+        if (!res.ok) console.error("Failed to upsert challenge member, with status code: ", res.status)
+        return res.status
     },
 }

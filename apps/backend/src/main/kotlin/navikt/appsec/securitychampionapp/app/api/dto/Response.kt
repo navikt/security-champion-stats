@@ -33,4 +33,7 @@ data class ChallengeMember(
 data class SCdata(val timestamp: String, val amount: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class AppSecDashboard(val data: List<SCdata>, val notice: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Me(val username: String, val isAdmin: Boolean, val isSecChamp: Boolean, val inGame: Boolean)

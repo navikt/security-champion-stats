@@ -1,4 +1,4 @@
-import {ChallengeMember, Me, Member, SCData} from "../../utils/Variables";
+import {ChallengeMember, Me, Member, AppSecDashboard, SCData} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -64,6 +64,14 @@ export const Apies = {
         if (!res.ok) {
             console.error("Failed to fetch SCData, with status: ", res.status)
             return []
+        }
+        return res.json()
+    },
+    getAppSecDashboard: async(): Promise<AppSecDashboard | null> => {
+        const res = await fetch("/api/appsec/dashboard")
+        if (!res.ok) {
+            console.error("Failed to fetch appsec dashboard, with status: ", res.status)
+            return null
         }
         return res.json()
     },

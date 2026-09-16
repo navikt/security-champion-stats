@@ -17,6 +17,7 @@ export type Member = {
     joinedAt: string,
 }
 export type SCData = { timestamp: string, amount: number }
+export type AppSecDashboard = { data: SCData[], notice: string }
 export type Row = { year: number, count: number }
 export type ChallengeMember = {
     id: string,

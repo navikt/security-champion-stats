@@ -104,4 +104,12 @@ export const Apies = {
         })
         return res.json()
     },
+    claimActivityPoints: async(amount: number): Promise<InviteResponse> => {
+        const res = await fetch("/api/activity/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount }),
+        })
+        return res.json()
+    },
 }

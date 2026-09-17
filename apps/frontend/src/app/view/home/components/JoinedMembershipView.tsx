@@ -30,12 +30,21 @@ export function JoinedMembershipView({
     const [inviteStatus, setInviteStatus] = useState<string | null>(null)
     const inviteNameRef = useRef<HTMLInputElement>(null)
     const inviteEmailRef = useRef<HTMLInputElement>(null)
+    const [claimStatus, setClaimStatus] = useState<string | null>(null)
+    const claimAmountRef = useRef<HTMLInputElement>(null)
 
     const handleInvite = async () => {
         const fullName = inviteNameRef.current?.value ?? ""
         const email = inviteEmailRef.current?.value ?? ""
         const result = await Apies.inviteColleague(fullName, email, me.username)
         setInviteStatus(result.notice ?? result.status)
+    }
+
+    const handleClaim = async () => {
+        const amount = Number(claimAmountRef.current?.value ?? 0)
+        const result = await Apies.claimActivityPoints(amount)
+        setClaimStatus(result.notice ?? result.status)
+        await onMembershipChange()
     }
 
     const handleLeaveGame = () => {
@@ -139,6 +148,14 @@ export function JoinedMembershipView({
                         {inviteStatus && <BodyShort>{inviteStatus}</BodyShort>}
                     </div>
                 )}
+
+                <div className="sc-membership-card__claim">
+                    <Heading size={"xsmall"} level={"3"}>Claim activity points</Heading>
+                    <input type="number" min={1} max={5} defaultValue={1} ref={claimAmountRef} />
+                    <br />
+                    <Button size={"small"} onClick={handleClaim}>Claim</Button>
+                    {claimStatus && <BodyShort>{claimStatus}</BodyShort>}
+                </div>
             </div>
             {inGame && member.level ? (
                 <div className="sc-membership-card__visual">

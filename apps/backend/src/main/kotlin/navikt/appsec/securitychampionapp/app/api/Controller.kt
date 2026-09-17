@@ -1,12 +1,14 @@
 package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.app.api.dto.ActivityClaim
 import navikt.appsec.securitychampionapp.app.api.dto.InviteRequest
 import navikt.appsec.securitychampionapp.app.api.dto.InviteResponse
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -21,11 +23,14 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 private const val APPSEC_TEAM_EMAIL = "appsec@nav.no"
+private const val MIN_ACTIVITY_CLAIM = 1
+private const val MAX_ACTIVITY_CLAIM = 5
 
 @RestController
 @RequestMapping(path = ["/api"])
 class Controller(
     private val repo: PostgresRepository,
+    private val validate: Validate,
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
 
@@ -126,6 +131,27 @@ class Controller(
         val principal = authentication?.principal as AppPrincipal
         val notice = if (principal.email != APPSEC_TEAM_EMAIL) "FLAG{client_side_authz_bypass}" else null
         return ResponseEntity.status(HttpStatus.CREATED).body(InviteResponse("created", notice))
+    }
+
+    @PostMapping("/activity/claim", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun claimActivityPoints(@RequestBody claim: ActivityClaim): ResponseEntity<InviteResponse> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        val email = principal.email
+
+        val queryResponse = repo.getMemberByEmail(email)
+        if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(InviteResponse("not_found"))
+        }
+
+        val current = queryResponse.queryResult.first()
+        val newTotal = current.points + claim.amount
+        val level = validate.calculateLevel(newTotal)
+        repo.addPoints(current.id, claim.amount, level)
+
+        val withinIntendedRange = claim.amount in MIN_ACTIVITY_CLAIM..MAX_ACTIVITY_CLAIM
+        val notice = if (!withinIntendedRange) "FLAG{unvalidated_business_logic_bypass}" else null
+        return ResponseEntity.ok(InviteResponse("claimed", notice))
     }
 
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {

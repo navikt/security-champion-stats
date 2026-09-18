@@ -32,6 +32,19 @@ export function JoinedMembershipView({
     const inviteEmailRef = useRef<HTMLInputElement>(null)
     const [claimStatus, setClaimStatus] = useState<string | null>(null)
     const claimAmountRef = useRef<HTMLInputElement>(null)
+    const [displayName, setDisplayName] = useState("")
+    const [displayNameStatus, setDisplayNameStatus] = useState<string | null>(null)
+
+    const handleDisplayNameChange = (value: string) => {
+        // client-side "sanitizer", only applied through the UI form
+        setDisplayName(value.replace(/[<>]/g, ""))
+    }
+
+    const handleDisplayNameSubmit = async () => {
+        const result = await Apies.updateDisplayName(displayName)
+        setDisplayNameStatus(result.status)
+        await onMembershipChange()
+    }
 
     const handleInvite = async () => {
         const fullName = inviteNameRef.current?.value ?? ""
@@ -155,6 +168,19 @@ export function JoinedMembershipView({
                     <br />
                     <Button size={"small"} onClick={handleClaim}>Claim</Button>
                     {claimStatus && <BodyShort>{claimStatus}</BodyShort>}
+                </div>
+
+                <div className="sc-membership-card__displayname">
+                    <Heading size={"xsmall"} level={"3"}>Display name</Heading>
+                    <TextField
+                        label="Display name"
+                        size={"small"}
+                        value={displayName}
+                        onChange={(e) => handleDisplayNameChange(e.target.value)}
+                    />
+                    <br />
+                    <Button size={"small"} onClick={handleDisplayNameSubmit}>Save</Button>
+                    {displayNameStatus && <BodyShort>{displayNameStatus}</BodyShort>}
                 </div>
             </div>
             {inGame && member.level ? (

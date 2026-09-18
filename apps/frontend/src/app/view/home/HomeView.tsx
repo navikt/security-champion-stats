@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Me, Member, SecurityEvent } from "../../utils/Variables";
 import { Apies } from "../../shared/hooks/Apies";
 import { MembershipView } from "./components/MembershipView";
+import { Leaderboard } from "./components/Leaderboard";
 import { useTranslations } from "next-intl";
 import "../../style/home/HomeView.css"
 import MembersTable from "./components/MembersTable";
@@ -29,6 +30,7 @@ function View({ canEdit, me }: { canEdit: boolean; me: Me }) {
 
 			<section className={"homeView__primary"}>
 				<MembershipView me={userData} />
+				<Leaderboard />
 			</section>
 		</main>
 	);

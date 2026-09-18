@@ -112,4 +112,12 @@ export const Apies = {
         })
         return res.json()
     },
+    updateDisplayName: async(displayName: string): Promise<InviteResponse> => {
+        const res = await fetch("/api/profile/displayname", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName }),
+        })
+        return res.json()
+    },
 }

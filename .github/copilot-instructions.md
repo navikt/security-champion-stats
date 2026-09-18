@@ -14,6 +14,7 @@
 - Do not run or ask to run terminal commands.
 - When adding or removing functionality, we update the README.md within frontend or backend folder with relevant information. Keep the information here VERY concise and to the point. For example when adding or removing a package or refactoring existing folder structure.
 - Do not change files without first presenting a solution and asking for approval.
+- Do not run commands, the workflow is done by you presenting the code solution, while the developer will test and confirm that it works as expected.
 
 ## Project Overview:
 

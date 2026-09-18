@@ -145,6 +145,11 @@ class PostgresRepository(
         return executeUpdate(query, inProgram, id)
     }
 
+    fun updateFullname(id: String, fullname: String): DatabaseUpdateResponse {
+        val query = "UPDATE Members SET fullname = ?, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, fullname, id)
+    }
+
     fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {
         return if (startDate == null || endDate == null) {
             val query = "SELECT id, amount FROM SCData"

@@ -26,6 +26,9 @@ data class InviteResponse(val status: String, val notice: String? = null)
 data class ActivityClaim(val amount: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class DisplayNameUpdate(val displayName: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.app.api.dto.ActivityClaim
+import navikt.appsec.securitychampionapp.app.api.dto.DisplayNameUpdate
 import navikt.appsec.securitychampionapp.app.api.dto.InviteRequest
 import navikt.appsec.securitychampionapp.app.api.dto.InviteResponse
 import navikt.appsec.securitychampionapp.app.api.dto.Me
@@ -152,6 +153,27 @@ class Controller(
         val withinIntendedRange = claim.amount in MIN_ACTIVITY_CLAIM..MAX_ACTIVITY_CLAIM
         val notice = if (!withinIntendedRange) "FLAG{unvalidated_business_logic_bypass}" else null
         return ResponseEntity.ok(InviteResponse("claimed", notice))
+    }
+
+    @PostMapping("/profile/displayname", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun updateDisplayName(@RequestBody body: DisplayNameUpdate): ResponseEntity<InviteResponse> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        val email = principal.email
+
+        val queryResponse = repo.getMemberByEmail(email)
+        if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(InviteResponse("not_found"))
+        }
+
+        val id = queryResponse.queryResult.first().id
+        repo.updateFullname(id, body.displayName)
+        return ResponseEntity.ok(InviteResponse("updated"))
+    }
+
+    @GetMapping("/xss/proof")
+    fun xssProof(): ResponseEntity<InviteResponse> {
+        return ResponseEntity.ok(InviteResponse("proof", "FLAG{stored_xss_client_side_filter_bypass}"))
     }
 
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {

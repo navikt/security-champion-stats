@@ -22,6 +22,9 @@ export function MembershipView({me}: {me: Me}) {
         if (!me.isSecChamp) return;
 
         fetchMembership().then(() => setLoading(false))
+
+        const interval = setInterval(fetchMembership, 4000)
+        return () => clearInterval(interval)
     }, [me.isSecChamp])
 
     if (loading) return <Loading />

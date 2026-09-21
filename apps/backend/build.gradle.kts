@@ -1,12 +1,12 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm") version "2.4.10"
+    kotlin("jvm") version "2.4.20"
     id("io.freefair.lombok") version "9.5.0"
     application
     java
     id("org.springframework.boot") version "4.1.1"
-    kotlin("plugin.spring") version "2.4.10"
+    kotlin("plugin.spring") version "2.4.20"
 }
 
 group = "no.navikt.appsec.securitychampionstats"

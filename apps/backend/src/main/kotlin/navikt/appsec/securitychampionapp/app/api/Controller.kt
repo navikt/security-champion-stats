@@ -2,11 +2,15 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.app.api.dto.ActivityClaim
+import navikt.appsec.securitychampionapp.app.api.dto.BoosterRedeemRequest
+import navikt.appsec.securitychampionapp.app.api.dto.BoosterToken
 import navikt.appsec.securitychampionapp.app.api.dto.DisplayNameUpdate
 import navikt.appsec.securitychampionapp.app.api.dto.InviteRequest
 import navikt.appsec.securitychampionapp.app.api.dto.InviteResponse
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.Member
+import navikt.appsec.securitychampionapp.app.api.dto.ReferralCertificate
+import navikt.appsec.securitychampionapp.app.api.dto.ReferralClaimRequest
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.utils.Validate
@@ -21,11 +25,22 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.security.MessageDigest
+import java.time.Instant
+import java.util.Base64
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 private const val APPSEC_TEAM_EMAIL = "appsec@nav.no"
 private const val MIN_ACTIVITY_CLAIM = 1
 private const val MAX_ACTIVITY_CLAIM = 5
+private const val BOOSTER_KEY = "S3cB00st"
+private const val INTENDED_BOOSTER_BONUS = 3
+private const val BOOSTER_VALID_SECONDS = 300L
+private const val REFERRAL_SECRET = "n4v-r3ferral-signing-2026"
+private const val INTENDED_REFERRAL_BONUS = 2
+private const val MAX_REFERRAL_CLAIMS = 5
 
 @RestController
 @RequestMapping(path = ["/api"])
@@ -34,6 +49,9 @@ class Controller(
     private val validate: Validate,
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
+
+    // in-memory, per-instance claim counter (no db schema change) - resets on app restart
+    private val referralClaimCounts = ConcurrentHashMap<String, AtomicInteger>()
 
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
@@ -174,6 +192,128 @@ class Controller(
     @GetMapping("/xss/proof")
     fun xssProof(): ResponseEntity<InviteResponse> {
         return ResponseEntity.ok(InviteResponse("proof", "FLAG{stored_xss_client_side_filter_bypass}"))
+    }
+
+    @GetMapping("/booster/mine")
+    fun getMyBoosterToken(): ResponseEntity<BoosterToken> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        val email = principal.email
+
+        val expiresAt = Instant.now().plusSeconds(BOOSTER_VALID_SECONDS).epochSecond
+        val plaintext = "$email:$INTENDED_BOOSTER_BONUS:$expiresAt"
+        val token = Base64.getUrlEncoder().withoutPadding()
+            .encodeToString(xorCrypt(plaintext.toByteArray(Charsets.UTF_8)))
+
+        return ResponseEntity.ok(BoosterToken(token, expiresAt))
+    }
+
+    @PostMapping("/booster/redeem", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun redeemBoosterToken(@RequestBody body: BoosterRedeemRequest): ResponseEntity<InviteResponse> {
+        val plaintext = try {
+            String(xorCrypt(Base64.getUrlDecoder().decode(body.token)), Charsets.UTF_8)
+        } catch (e: IllegalArgumentException) {
+            return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+        }
+
+        val parts = plaintext.split(":")
+        if (parts.size != 3) {
+            return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+        }
+        val (tokenEmail, bonusStr, expiryStr) = parts
+        val expiresAt = expiryStr.toLongOrNull() ?: return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+        val bonus = bonusStr.toIntOrNull() ?: return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+
+        if (Instant.now().epochSecond > expiresAt) {
+            return ResponseEntity.status(HttpStatus.GONE).body(InviteResponse("expired"))
+        }
+
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        val queryResponse = repo.getMemberByEmail(principal.email)
+        if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(InviteResponse("not_found"))
+        }
+
+        val current = queryResponse.queryResult.first()
+        val level = validate.calculateLevel(current.points + bonus)
+        repo.addPoints(current.id, bonus, level)
+
+        val notice = if (bonus > INTENDED_BOOSTER_BONUS || tokenEmail != principal.email) {
+            "FLAG{xor_key_recovery_known_plaintext}"
+        } else null
+        return ResponseEntity.ok(InviteResponse("redeemed", notice))
+    }
+
+    // repeating-key XOR, symmetric: same call encrypts and decrypts
+    private fun xorCrypt(input: ByteArray): ByteArray {
+        val key = BOOSTER_KEY.toByteArray(Charsets.UTF_8)
+        return ByteArray(input.size) { i -> (input[i].toInt() xor key[i % key.size].toInt()).toByte() }
+    }
+
+    @GetMapping("/referral/mine")
+    fun getMyReferralCertificate(): ResponseEntity<ReferralCertificate> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+
+        val message = "ref=${principal.email}&bonus=$INTENDED_REFERRAL_BONUS"
+        val messageBytes = message.toByteArray(Charsets.UTF_8)
+        val signature = sha256Hex(REFERRAL_SECRET.toByteArray(Charsets.UTF_8) + messageBytes)
+        val data = Base64.getEncoder().encodeToString(messageBytes)
+        val claimsUsed = referralClaimCounts[principal.email]?.get() ?: 0
+
+        return ResponseEntity.ok(ReferralCertificate(data, signature, claimsUsed, MAX_REFERRAL_CLAIMS))
+    }
+
+    @PostMapping("/referral/claim", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun claimReferralBonus(@RequestBody body: ReferralClaimRequest): ResponseEntity<InviteResponse> {
+        val messageBytes = try {
+            Base64.getDecoder().decode(body.data)
+        } catch (e: IllegalArgumentException) {
+            return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+        }
+
+        val expectedSignature = sha256Hex(REFERRAL_SECRET.toByteArray(Charsets.UTF_8) + messageBytes)
+        if (!expectedSignature.equals(body.signature, ignoreCase = true)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(InviteResponse("invalid_signature"))
+        }
+
+        // decoded 1:1 to preserve raw (possibly non-UTF8) padding bytes from a forged, length-extended message
+        val decoded = String(messageBytes, Charsets.ISO_8859_1)
+        val bonus = Regex("bonus=(\\d+)").findAll(decoded).lastOrNull()
+            ?.groupValues?.get(1)?.toIntOrNull()
+            ?: return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+        val ref = Regex("ref=([^&]+)").findAll(decoded).lastOrNull()
+            ?.groupValues?.get(1)
+            ?: return ResponseEntity.badRequest().body(InviteResponse("invalid"))
+
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        if (ref != principal.email) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(InviteResponse("not_your_certificate"))
+        }
+
+        val counter = referralClaimCounts.computeIfAbsent(principal.email) { AtomicInteger(0) }
+        if (counter.incrementAndGet() > MAX_REFERRAL_CLAIMS) {
+            counter.decrementAndGet()
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(InviteResponse("referral_limit_reached"))
+        }
+
+        val queryResponse = repo.getMemberByEmail(principal.email)
+        if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(InviteResponse("not_found"))
+        }
+
+        val current = queryResponse.queryResult.first()
+        val level = validate.calculateLevel(current.points + bonus)
+        repo.addPoints(current.id, bonus, level)
+
+        val notice = if (bonus > INTENDED_REFERRAL_BONUS) "FLAG{hash_length_extension_forgery}" else null
+        return ResponseEntity.ok(InviteResponse("claimed", notice))
+    }
+
+    private fun sha256Hex(input: ByteArray): String {
+        return MessageDigest.getInstance("SHA-256").digest(input).joinToString("") { "%02x".format(it) }
     }
 
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {

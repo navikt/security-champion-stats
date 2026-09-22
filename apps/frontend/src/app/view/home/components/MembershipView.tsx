@@ -5,8 +5,10 @@ import Loading from "@/app/view/Loading";
 import {Apies} from "@/app/shared/hooks/Apies";
 import {JoinedMembershipView} from "@/app/view/home/components/JoinedMembershipView";
 import {JoinProgramView} from "@/app/view/home/components/JoinProgramView";
+import {BoosterCard} from "@/app/view/home/components/BoosterCard";
+import {ReferralCard} from "@/app/view/home/components/ReferralCard";
 
-export function MembershipView({me}: {me: Me}) {
+export function MembershipView({me, onMembershipChange}: {me: Me, onMembershipChange?: () => void}) {
     const [userData, setMe] = useState(me)
     const [loading, setLoading] = useState(me.isSecChamp)
     const [memberships, setMemberships] = useState<Member | null>()
@@ -18,19 +20,29 @@ export function MembershipView({me}: {me: Me}) {
         setMe(updatedMe)
     }
 
+    const refreshMembership = async () => {
+        await fetchMembership()
+        onMembershipChange?.()
+    }
+
     useEffect(() => {
         if (!me.isSecChamp) return;
 
         fetchMembership().then(() => setLoading(false))
-
-        const interval = setInterval(fetchMembership, 4000)
-        return () => clearInterval(interval)
     }, [me.isSecChamp])
 
     if (loading) return <Loading />
 
     if (userData.isSecChamp && memberships) {
-        return <JoinedMembershipView member={memberships} onMembershipChange={fetchMembership} />
+        return (
+            <div className={"sc-membership-stack"}>
+                <JoinedMembershipView member={memberships} onMembershipChange={refreshMembership} />
+                <div className={"sc-membership-row"}>
+                    <BoosterCard onRedeemed={refreshMembership} />
+                    <ReferralCard onClaimed={refreshMembership} />
+                </div>
+            </div>
+        )
     }
 
     return (

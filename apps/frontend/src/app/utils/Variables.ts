@@ -28,6 +28,8 @@ export type ChallengeMember = {
     inProgram: boolean,
 }
 export type InviteResponse = { status: string, notice?: string }
+export type BoosterToken = { token: string, expiresAt: number }
+export type ReferralCertificate = { data: string, signature: string, claimsUsed: number, maxClaims: number }
 export interface SecurityEvent {
     id: string,
     title: string,

@@ -29,6 +29,18 @@ data class ActivityClaim(val amount: Int)
 data class DisplayNameUpdate(val displayName: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class BoosterToken(val token: String, val expiresAt: Long)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class BoosterRedeemRequest(val token: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ReferralCertificate(val data: String, val signature: String, val claimsUsed: Int, val maxClaims: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ReferralClaimRequest(val data: String, val signature: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

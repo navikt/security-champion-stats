@@ -14,6 +14,7 @@ interface HomeViewProps {}
 
 function View({ canEdit, me }: { canEdit: boolean; me: Me }) {
 	const [userData, _] = useState(me);
+	const [refreshKey, setRefreshKey] = useState(0);
 	const t = useTranslations("home");
 
 
@@ -29,8 +30,8 @@ function View({ canEdit, me }: { canEdit: boolean; me: Me }) {
 			</header>
 
 			<section className={"homeView__primary"}>
-				<MembershipView me={userData} />
-				<Leaderboard />
+				<MembershipView me={userData} onMembershipChange={() => setRefreshKey((k) => k + 1)} />
+				<Leaderboard refreshKey={refreshKey} />
 			</section>
 		</main>
 	);

@@ -7,28 +7,21 @@ import { Heading, BodyShort } from "@navikt/ds-react";
 import "../../../style/home/Leaderboard.css";
 
 const VISIBLE_ROWS = 5;
-const REFRESH_INTERVAL_MS = 4000;
 
-export function Leaderboard() {
+export function Leaderboard({ refreshKey }: { refreshKey?: number }) {
     const [members, setMembers] = useState<Member[]>([])
 
     useEffect(() => {
         let cancelled = false
 
-        const refresh = () => {
-            Apies.getMembers().then((data) => {
-                if (!cancelled) setMembers(data)
-            })
-        }
-
-        refresh()
-        const interval = setInterval(refresh, REFRESH_INTERVAL_MS)
+        Apies.getMembers().then((data) => {
+            if (!cancelled) setMembers(data)
+        })
 
         return () => {
             cancelled = true
-            clearInterval(interval)
         }
-    }, [])
+    }, [refreshKey])
 
     const ranked = members
         .filter((m) => m.inGame)

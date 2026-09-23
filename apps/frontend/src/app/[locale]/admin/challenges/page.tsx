@@ -25,7 +25,7 @@ export default function Page() {
     };
 
     return (
-        <Box padding="6">
+        <Box padding="space-6">
             <Heading level="1" size="large" spacing>
                 Challenge member setup
             </Heading>

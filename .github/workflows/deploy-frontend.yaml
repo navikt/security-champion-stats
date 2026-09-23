@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - 'main'
+      - 'burpsuite-workshop-challenges'
     paths:
       - '.github/workflows/deploy-frontend.yaml'
       - 'apps/frontend/**'

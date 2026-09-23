@@ -1,5 +1,6 @@
 # Frontend application for Security champions stats.
 
+test
 ## Overview
 The frontend application is built using React, TypeScript and Next, and it serves as the user interface for
 displaying security champions statistics, join security champions and much more with time. It interacts with the backend API to fetch data 

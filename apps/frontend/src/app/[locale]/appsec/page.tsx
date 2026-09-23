@@ -14,21 +14,18 @@ import {
     Filler,
     LineElement
 } from "chart.js";
-import {useEffect, useState} from "react";
-import {SCData} from "@/app/utils/Variables";
-import {Apies} from "@/app/shared/hooks/Apies";
+import { useEffect, useState } from "react";
+import { Apies } from "@/app/shared/hooks/Apies";
 import Loading from "@/app/view/Loading";
-import {useTranslations} from "next-intl";
-import {lineOptions} from "@/app/style/char.js.stylling";
-import {Box, Heading} from "@navikt/ds-react";
-import "../../style/admin.css";
+import { lineOptions } from "@/app/style/char.js.stylling";
+import { Box, Heading, BodyShort } from "@navikt/ds-react";
+import { AppSecDashboard } from "@/app/utils/Variables";
 
-ChartJsm.register(CategoryScale, LinearScale, BarElement, BarElement, Title, Tooltip, Legend, PointElement, LineElement, Filler)
+ChartJsm.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, PointElement, LineElement, Filler)
 
 export default function Page() {
-    const [scData, setSCData] = useState<SCData[] | null>([])
+    const [dashboard, setDashboard] = useState<AppSecDashboard | null>(null)
     const [loading, setLoading] = useState(true)
-    const t = useTranslations("admin")
 
     useEffect(() => {
         let cancelled = false
@@ -36,14 +33,10 @@ export default function Page() {
         async function load() {
             try {
                 setLoading(true)
-                const res = await Apies.getSCData()
-                if(!cancelled) setSCData(res)
-            } catch (error) {
-                console.log("Error fetching SCData: ", error)
+                const res = await Apies.getAppSecDashboard()
+                if (!cancelled) setDashboard(res)
             } finally {
-                if (!cancelled) {
-                    setLoading(false)
-                }
+                if (!cancelled) setLoading(false)
             }
         }
 
@@ -54,23 +47,21 @@ export default function Page() {
     }, [])
 
     if (loading) return <Loading />
-    if (!scData) return <div className={"dashboardView"}><p>{t("errors.AllDataFailedToLoad")}</p></div>
+    if (!dashboard) return <div className={"dashboardView"}><p>Failed to load data</p></div>
 
     const lineData: ChartData<"line", number[], string> = {
-        labels: scData.map((r) => r.timestamp),
+        labels: dashboard.data.map((r) => r.timestamp),
         datasets: [
             {
-                label: t("title"),
-                data: scData.map((r) => r.amount),
+                label: "Security Champions over time",
+                data: dashboard.data.map((r) => r.amount),
                 backgroundColor: "color-mix(in oklab, var(--accent) 22%, transparent)",
                 borderColor: "var(--accent)",
                 fill: true,
                 tension: 0.35,
-
                 pointRadius: 0,
                 pointHitRadius: 12,
                 pointHoverRadius: 4,
-
                 borderWidth: 2
             }
         ]
@@ -79,8 +70,9 @@ export default function Page() {
     return (
         <Box>
             <Heading size={"small"} spacing level={"2"}>
-                {t("title")}
+                AppSec internal dashboard
             </Heading>
+            <BodyShort spacing>{dashboard.notice}</BodyShort>
             <div className={"adminChart"}>
                 <Line data={lineData} options={lineOptions} />
             </div>

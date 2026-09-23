@@ -1,0 +1,83 @@
+.sc-leaderboard-card {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    max-width: 24rem;
+
+    padding: 1.5rem;
+
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-lg);
+
+    background: var(--sc-surface);
+    box-shadow: var(--sc-shadow-sm);
+}
+
+.sc-leaderboard-card__header {
+    margin-bottom: 1rem;
+}
+
+.sc-leaderboard-card__subtitle {
+    margin-top: 0.15rem;
+
+    color: var(--sc-text-muted);
+}
+
+.sc-leaderboard-card__empty {
+    color: var(--sc-text-muted);
+}
+
+.sc-leaderboard-card__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    max-height: 17.5rem;
+    overflow-y: auto;
+
+    padding: 0;
+    margin: 0;
+
+    list-style: none;
+}
+
+.sc-leaderboard-card__row {
+    display: grid;
+    grid-template-columns: 1.75rem 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+
+    padding: 0.5rem 0.6rem;
+
+    border-radius: var(--sc-radius-sm);
+    background: var(--sc-primary-soft);
+}
+
+.sc-leaderboard-card__rank {
+    font-weight: 600;
+    text-align: center;
+
+    color: var(--sc-primary);
+}
+
+.sc-leaderboard-card__name {
+    min-width: 0;
+    overflow: hidden;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.sc-leaderboard-card__points {
+    font-weight: 600;
+}
+
+.sc-leaderboard-card__hint {
+    margin-top: 0.75rem;
+
+    color: var(--sc-text-muted);
+    text-align: center;
+}

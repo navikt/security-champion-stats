@@ -1,4 +1,4 @@
-import {Me, Member, SCData} from "../../utils/Variables";
+import {ChallengeMember, Me, Member, AppSecDashboard, SCData, InviteResponse, BoosterToken, ReferralCertificate} from "../../utils/Variables";
 
 export const Apies = {
     getMembers: async (): Promise<Member[]> => {
@@ -67,15 +67,93 @@ export const Apies = {
         }
         return res.json()
     },
+    getAppSecDashboard: async(): Promise<AppSecDashboard | null> => {
+        const res = await fetch("/api/appsec/dashboard")
+        if (!res.ok) {
+            console.error("Failed to fetch appsec dashboard, with status: ", res.status)
+            return null
+        }
+        return res.json()
+    },
     fetchMembership: async(): Promise<Member | null> => {
         const res = await fetch("/api/membership", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
         })
+        
         if (!res.ok) {
             console.error("Failed to fetch membership, with status: ", res.status)
             return null
         }
+        return res.json()
+    },
+    upsertChallengeMember: async(member: ChallengeMember): Promise<number> => {
+        const res = await fetch("/api/admin/challenges/member", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(member),
+        })
+        if (!res.ok) console.error("Failed to upsert challenge member, with status code: ", res.status)
+        return res.status
+    },
+    inviteColleague: async(fullName: string, email: string, requesterEmail: string): Promise<InviteResponse> => {
+        const res = await fetch("/api/invite", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fullName, email, requesterEmail }),
+        })
+        return res.json()
+    },
+    claimActivityPoints: async(amount: number): Promise<InviteResponse> => {
+        const res = await fetch("/api/activity/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ amount }),
+        })
+        return res.json()
+    },
+    updateDisplayName: async(displayName: string): Promise<InviteResponse> => {
+        const res = await fetch("/api/profile/displayname", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName }),
+        })
+        return res.json()
+    },
+    getBoosterToken: async(): Promise<BoosterToken | null> => {
+        const res = await fetch("/api/booster/mine")
+        if (!res.ok) {
+            console.error("Failed to fetch booster token, with status: ", res.status)
+            return null
+        }
+        return res.json()
+    },
+    redeemBoosterToken: async(token: string): Promise<InviteResponse> => {
+        const res = await fetch("/api/booster/redeem", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+        })
+        return res.json()
+    },
+    getReferralCertificate: async(): Promise<ReferralCertificate | null> => {
+        const res = await fetch("/api/referral/mine")
+        if (!res.ok) {
+            console.error("Failed to fetch referral certificate, with status: ", res.status)
+            return null
+        }
+        return res.json()
+    },
+    claimReferralBonus: async(data: string, signature: string): Promise<InviteResponse> => {
+        const res = await fetch("/api/referral/claim", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data, signature }),
+        })
+        return res.json()
+    },
+    claimDailyBonus: async(): Promise<InviteResponse> => {
+        const res = await fetch("/api/daily/claim", { method: "POST" })
         return res.json()
     },
 }

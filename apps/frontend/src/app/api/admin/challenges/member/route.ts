@@ -1,26 +1,28 @@
-import {getBackendToken, getServerEnv} from "@/app/utils/Validation";
-import {AUTHENTICATED_FAILED, FAILED_FETCH} from "@/app/utils/Variables";
 import {NextRequest, NextResponse} from "next/server";
+import {getBackendToken, getServerEnv} from "@/app/utils/Validation";
+import {AUTHENTICATED_FAILED, FAILED_FETCH, INTERNAL_ERROR} from "@/app/utils/Variables";
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
+    const body = await request.json()
     try {
         const { backendUrl } = getServerEnv()
         const backendToken = await getBackendToken(request)
 
         if (backendToken === AUTHENTICATED_FAILED) {
             return NextResponse.json(
-                { error: "Authentication failed, failed to fetch obo-token or token" },
+                { error: AUTHENTICATED_FAILED },
                 { status: 401 }
             )
         }
 
-        const url = `${backendUrl}/api/membership${request.nextUrl.search}`
+        const url = `${backendUrl}/api/admin/challenges/member`
         const response = await fetch(url, {
-            method: 'GET',
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
                 Authorization: `Bearer ${backendToken}`,
-            }
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
         })
 
         if (!response.ok) {
@@ -29,13 +31,12 @@ export async function GET(request: NextRequest) {
                 { status: response.status }
             )
         }
-        return NextResponse.json(await response.json())
-
+        return NextResponse.json({ status: "success" })
     } catch (error) {
-        console.error("Error in /api/membership: ", error)
+        console.error("Internal server error: ", error)
         return NextResponse.json(
-            { error: "Failed to fetch membership, due to an internal error" },
-            { status: 500 },
+            { error: INTERNAL_ERROR },
+            { status: 500 }
         )
     }
 }

@@ -1,5 +1,5 @@
 {
-  "title": "Security Champion app",
+  "title": "Champion Nexus",
   "sidebar": {
     "overview": "Overview",
     "events": "Events",
@@ -19,7 +19,7 @@
     "language": "Language"
   },
   "home": {
-    "title": "Security Champion Hub",
+    "title": "Overview",
     "description": "Here's what's happening in the Security Champion program.",
     "membership": {
       "member": {

@@ -21,9 +21,19 @@
     display: grid;
 
     grid-template-columns:
-        minmax(0, 44rem);
+        minmax(0, 44rem)
+        minmax(0, 24rem);
+
+    align-items: start;
+    gap: 1.5rem;
 
     justify-content: start;
 
     width: 100%;
+}
+
+@media (max-width: 72rem) {
+    .homeView__primary {
+        grid-template-columns: minmax(0, 44rem);
+    }
 }

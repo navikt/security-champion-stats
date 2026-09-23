@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
+import navikt.appsec.securitychampionapp.app.api.dto.ChallengeMember
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
 import navikt.appsec.securitychampionapp.utils.Validate
@@ -76,5 +77,22 @@ class AdminController(
     @PostMapping("/member/attended/{email}")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
         return ResponseEntity.ok().build()
+    }
+
+    // challenge
+    @PostMapping("/challenges/member", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun upsertChallengeMember(@RequestBody member: ChallengeMember): ResponseEntity<Any> {
+        val response = repo.upsertChallengeMember(
+            id = member.id,
+            fullname = member.fullname,
+            email = member.email,
+            points = member.points,
+            level = member.level,
+            inProgram = member.inProgram
+        )
+        if (!response.isOk) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).build()
     }
 }

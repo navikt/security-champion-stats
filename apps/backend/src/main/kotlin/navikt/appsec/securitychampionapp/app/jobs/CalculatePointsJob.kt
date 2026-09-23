@@ -22,7 +22,7 @@ class CalculatePointsJob(
 
     private val logger = LoggerFactory.getLogger(CalculatePointsJob::class.java)
 
-    @Scheduled(cron = "0 0 13 */1 * *")
+    @Scheduled(cron = "0 0 13 * * Sun")
     fun calculatePoints() {
         jobLock.runWithLock(CALCULATE_POINTS_JOB_LOCK_KEY, "calculatePoints") {
             val queryResponse = repo.getAllMembersInProgram()

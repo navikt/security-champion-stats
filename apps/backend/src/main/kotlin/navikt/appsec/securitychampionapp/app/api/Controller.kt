@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.security.MessageDigest
 import java.time.Instant
+import java.time.LocalDateTime
 import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -42,6 +43,7 @@ private const val REFERRAL_SECRET = "n4v-r3ferral-signing-2026"
 private const val INTENDED_REFERRAL_BONUS = 2
 private const val MAX_REFERRAL_CLAIMS = 5
 private const val DAILY_BONUS_AMOUNT = 25
+private const val IDOR_CHALLENGE_MEMBER_ID = "challenge"
 
 @RestController
 @RequestMapping(path = ["/api"])
@@ -97,7 +99,7 @@ class Controller(
 
         if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
             logger.info("New potential new user")
-            return ResponseEntity(Me(email, isAdmin, isSecChamp = false, inGame = false), HttpStatus.OK)
+            return ResponseEntity(Me(email, isAdmin, isSecChamp = true, inGame = false), HttpStatus.OK)
         }
 
         val inProgram = queryResponse.queryResult.firstOrNull()?.inProgram ?: false
@@ -123,8 +125,17 @@ class Controller(
 
         val queryResponse = repo.fetchMember(resolvedId)
         if (queryResponse == null || !queryResponse.isOk) {
-            logger.warn("Failed to fetch member from database due to error: ${queryResponse?.error}")
-            return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+            return ResponseEntity.status(HttpStatus.OK).body(
+                Member(
+                    id = "challenger",
+                    email = "challenger@no.com",
+                    fullname = "Challenger temp user",
+                    points = 0,
+                    level = "0",
+                    inGame = false,
+                    joinedAt = LocalDateTime.now().toString()
+                )
+            )
         }
 
         logger.info("Fetched member: ${queryResponse.queryResult}")
@@ -248,7 +259,8 @@ class Controller(
         } else null
         return ResponseEntity.ok(InviteResponse("redeemed", notice))
     }
-    
+
+    // repeating-key XOR, symmetric: same call encrypts and decrypts
     private fun xorCrypt(input: ByteArray): ByteArray {
         val key = BOOSTER_KEY.toByteArray(Charsets.UTF_8)
         return ByteArray(input.size) { i -> (input[i].toInt() xor key[i % key.size].toInt()).toByte() }
@@ -281,6 +293,7 @@ class Controller(
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(InviteResponse("invalid_signature"))
         }
 
+        // decoded 1:1 to preserve raw (possibly non-UTF8) padding bytes from a forged, length-extended message
         val decoded = String(messageBytes, Charsets.ISO_8859_1)
         val bonus = Regex("bonus=(\\d+)").findAll(decoded).lastOrNull()
             ?.groupValues?.get(1)?.toIntOrNull()
@@ -324,6 +337,8 @@ class Controller(
         val principal = authentication?.principal as AppPrincipal
         val email = principal.email
 
+        // check-then-act: this read is not atomic with the increment further down,
+        // so concurrent requests can all observe "not claimed yet" before any of them commits
         val counter = dailyBonusClaimCount.computeIfAbsent(email) { AtomicInteger(0) }
         if (counter.get() >= 1) {
             return ResponseEntity.ok(InviteResponse("already_claimed"))

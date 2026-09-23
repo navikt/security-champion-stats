@@ -222,7 +222,7 @@ class Controller(
 
         return ResponseEntity.ok(BoosterToken(token, expiresAt))
     }
-
+    // FORCE push of deploy
     @PostMapping("/booster/redeem", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun redeemBoosterToken(@RequestBody body: BoosterRedeemRequest): ResponseEntity<InviteResponse> {
         val plaintext = try {

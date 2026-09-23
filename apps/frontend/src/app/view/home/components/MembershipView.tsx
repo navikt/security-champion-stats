@@ -7,6 +7,7 @@ import {JoinedMembershipView} from "@/app/view/home/components/JoinedMembershipV
 import {JoinProgramView} from "@/app/view/home/components/JoinProgramView";
 import {BoosterCard} from "@/app/view/home/components/BoosterCard";
 import {ReferralCard} from "@/app/view/home/components/ReferralCard";
+import {DailyBonusCard} from "@/app/view/home/components/DailyBonusCard";
 
 export function MembershipView({me, onMembershipChange}: {me: Me, onMembershipChange?: () => void}) {
     const [userData, setMe] = useState(me)
@@ -40,6 +41,7 @@ export function MembershipView({me, onMembershipChange}: {me: Me, onMembershipCh
                 <div className={"sc-membership-row"}>
                     <BoosterCard onRedeemed={refreshMembership} />
                     <ReferralCard onClaimed={refreshMembership} />
+                    <DailyBonusCard onClaimed={refreshMembership} />
                 </div>
             </div>
         )

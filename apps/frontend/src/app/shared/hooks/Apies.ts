@@ -152,4 +152,8 @@ export const Apies = {
         })
         return res.json()
     },
+    claimDailyBonus: async(): Promise<InviteResponse> => {
+        const res = await fetch("/api/daily/claim", { method: "POST" })
+        return res.json()
+    },
 }

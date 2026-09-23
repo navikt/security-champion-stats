@@ -41,6 +41,7 @@ private const val BOOSTER_VALID_SECONDS = 300L
 private const val REFERRAL_SECRET = "n4v-r3ferral-signing-2026"
 private const val INTENDED_REFERRAL_BONUS = 2
 private const val MAX_REFERRAL_CLAIMS = 5
+private const val DAILY_BONUS_AMOUNT = 25
 
 @RestController
 @RequestMapping(path = ["/api"])
@@ -52,6 +53,9 @@ class Controller(
 
     // in-memory, per-instance claim counter (no db schema change) - resets on app restart
     private val referralClaimCounts = ConcurrentHashMap<String, AtomicInteger>()
+
+    // in-memory, per-instance daily bonus claim counter (no db schema change) - resets on app restart
+    private val dailyBonusClaimCount = ConcurrentHashMap<String, AtomicInteger>()
 
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
@@ -244,8 +248,7 @@ class Controller(
         } else null
         return ResponseEntity.ok(InviteResponse("redeemed", notice))
     }
-
-    // repeating-key XOR, symmetric: same call encrypts and decrypts
+    
     private fun xorCrypt(input: ByteArray): ByteArray {
         val key = BOOSTER_KEY.toByteArray(Charsets.UTF_8)
         return ByteArray(input.size) { i -> (input[i].toInt() xor key[i % key.size].toInt()).toByte() }
@@ -278,7 +281,6 @@ class Controller(
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(InviteResponse("invalid_signature"))
         }
 
-        // decoded 1:1 to preserve raw (possibly non-UTF8) padding bytes from a forged, length-extended message
         val decoded = String(messageBytes, Charsets.ISO_8859_1)
         val bonus = Regex("bonus=(\\d+)").findAll(decoded).lastOrNull()
             ?.groupValues?.get(1)?.toIntOrNull()
@@ -314,6 +316,31 @@ class Controller(
 
     private fun sha256Hex(input: ByteArray): String {
         return MessageDigest.getInstance("SHA-256").digest(input).joinToString("") { "%02x".format(it) }
+    }
+
+    @PostMapping("/daily/claim")
+    fun claimDailyBonus(): ResponseEntity<InviteResponse> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val principal = authentication?.principal as AppPrincipal
+        val email = principal.email
+
+        val counter = dailyBonusClaimCount.computeIfAbsent(email) { AtomicInteger(0) }
+        if (counter.get() >= 1) {
+            return ResponseEntity.ok(InviteResponse("already_claimed"))
+        }
+
+        val queryResponse = repo.getMemberByEmail(email)
+        if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(InviteResponse("not_found"))
+        }
+
+        val current = queryResponse.queryResult.first()
+        val level = validate.calculateLevel(current.points + DAILY_BONUS_AMOUNT)
+        repo.addPoints(current.id, DAILY_BONUS_AMOUNT, level)
+
+        val timesClaimed = counter.incrementAndGet()
+        val notice = if (timesClaimed > 1) "FLAG{race_condition_toctou_double_claim}" else null
+        return ResponseEntity.ok(InviteResponse("claimed", notice))
     }
 
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {

@@ -223,6 +223,26 @@ body {
     align-items: flex-start;
 }
 
+.sc-daily-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sc-space-3);
+
+    width: 100%;
+}
+
+.sc-daily-card__description {
+    color: var(--sc-text-muted);
+}
+
+.sc-daily-card__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sc-space-2);
+
+    align-items: flex-start;
+}
+
 .sc-membership-card {
     position: relative;
     overflow: hidden;

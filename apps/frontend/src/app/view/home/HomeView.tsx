@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Me, Member, SecurityEvent } from "../../utils/Variables";
 import { Apies } from "../../shared/hooks/Apies";
 import { MembershipView } from "./components/MembershipView";
+import { Leaderboard } from "./components/Leaderboard";
 import { useTranslations } from "next-intl";
 import "../../style/home/HomeView.css"
 import MembersTable from "./components/MembersTable";
@@ -13,6 +14,7 @@ interface HomeViewProps {}
 
 function View({ canEdit, me }: { canEdit: boolean; me: Me }) {
 	const [userData, _] = useState(me);
+	const [refreshKey, setRefreshKey] = useState(0);
 	const t = useTranslations("home");
 
 
@@ -28,7 +30,8 @@ function View({ canEdit, me }: { canEdit: boolean; me: Me }) {
 			</header>
 
 			<section className={"homeView__primary"}>
-				<MembershipView me={userData} />
+				<MembershipView me={userData} onMembershipChange={() => setRefreshKey((k) => k + 1)} />
+				<Leaderboard refreshKey={refreshKey} />
 			</section>
 		</main>
 	);

@@ -17,10 +17,47 @@ data class Member(
 data class AddMember(val fullName: String, val email: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class InviteRequest(val fullName: String, val email: String, val requesterEmail: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class InviteResponse(val status: String, val notice: String? = null)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ActivityClaim(val amount: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class DisplayNameUpdate(val displayName: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class BoosterToken(val token: String, val expiresAt: Long)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class BoosterRedeemRequest(val token: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ReferralCertificate(val data: String, val signature: String, val claimsUsed: Int, val maxClaims: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class ReferralClaimRequest(val data: String, val signature: String)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class Points(val email: String, val points: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+data class ChallengeMember(
+    val id: String,
+    val fullname: String,
+    val email: String,
+    val points: Int = 0,
+    val level: String = "1",
+    val inProgram: Boolean = false
+)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class SCdata(val timestamp: String, val amount: Int)
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+data class AppSecDashboard(val data: List<SCdata>, val notice: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Me(val username: String, val isAdmin: Boolean, val isSecChamp: Boolean, val inGame: Boolean)

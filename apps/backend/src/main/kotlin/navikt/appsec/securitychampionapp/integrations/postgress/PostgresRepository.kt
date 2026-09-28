@@ -145,6 +145,11 @@ class PostgresRepository(
         return executeUpdate(query, inProgram, id)
     }
 
+    fun updateFullname(id: String, fullname: String): DatabaseUpdateResponse {
+        val query = "UPDATE Members SET fullname = ?, update_at = NOW() WHERE id = ?"
+        return executeUpdate(query, fullname, id)
+    }
+
     fun getSCAmountOverTime(startDate: Instant? = null, endDate: Instant? = null ): List<SCdata> {
         return if (startDate == null || endDate == null) {
             val query = "SELECT id, amount FROM SCData"
@@ -158,5 +163,21 @@ class PostgresRepository(
     fun fetchMember(id: String): DatabaseQueryResponse? {
         val query = "SELECT id, fullname, points, email, update_at, inProgram, level, teams, create_at FROM Members WHERE id = ?"
         return queryMembersData(query, id)
+    }
+
+    // challenge
+    fun upsertChallengeMember(id: String, fullname: String, email: String, points: Int, level: String, inProgram: Boolean): DatabaseUpdateResponse {
+        val query = """
+            INSERT INTO Members (id, fullname, points, email, inProgram, level, create_at, update_at)
+            VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ON CONFLICT (id) DO UPDATE SET
+                fullname = EXCLUDED.fullname,
+                points = EXCLUDED.points,
+                email = EXCLUDED.email,
+                inProgram = EXCLUDED.inProgram,
+                level = EXCLUDED.level,
+                update_at = NOW()
+        """.trimIndent()
+        return executeUpdate(query, id, fullname, points, email, inProgram, level)
     }
 }

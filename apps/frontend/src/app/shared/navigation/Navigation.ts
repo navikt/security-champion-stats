@@ -31,12 +31,6 @@ export const mainNavigation: NavigationItem[] = [
 		icon: HouseIcon,
 	},
 	{
-		id: "profile",
-		label: "My Profile",
-		path: "/profile",
-		icon: PersonIcon,
-	},
-	{
 		id: "events",
 		label: "Events",
 		path: "/events",

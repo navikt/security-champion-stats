@@ -1,12 +1,10 @@
 import { ComponentType, SVGProps } from "react";
 import { CalendarIcon, HouseIcon, PersonGroupIcon } from "@navikt/aksel-icons";
-import {useTranslations} from "next-intl";
-
+import { useTranslations } from "next-intl";
 
 export interface ModuleNavLink {
 	labelKey: string;
 	path: string;
-	//optional:
 	order?: number;
 }
 
@@ -26,7 +24,7 @@ export type NavigationItem = {
 };
 
 export function navigation(): NavigationItem[] {
-	const t = useTranslations("sidebar")
+	const t = useTranslations("sidebar");
 	return [
 		{
 			id: "overview",
@@ -46,5 +44,5 @@ export function navigation(): NavigationItem[] {
 			path: "/community",
 			icon: PersonGroupIcon,
 		},
-	]
+	];
 }

@@ -1,132 +1,132 @@
 .communityView {
-    width: 100%;
-    max-width: 68rem;
+	width: 100%;
+	max-width: 68rem;
 
-    min-width: 0;
+	min-width: 0;
 
-    padding-bottom: 4rem;
+	padding-bottom: 4rem;
 }
 
 .communityView__header {
-    margin-bottom: 1.5rem;
+	margin-bottom: 1.5rem;
 }
 
 .communityView__subtitle {
-    margin-top: 0.25rem;
+	margin-top: 0.25rem;
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 }
 
 .communityView__search {
-    max-width: 24rem;
+	max-width: 24rem;
 
-    margin-bottom: 1.5rem;
+	margin-bottom: 1.5rem;
 }
 
 .communitySection__empty {
-    padding: 1.5rem;
+	padding: 1.5rem;
 
-    border: 1px dashed var(--sc-border-strong);
-    border-radius: var(--sc-radius-md);
+	border: 1px dashed var(--sc-border-strong);
+	border-radius: var(--sc-radius-md);
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 
-    background: var(--sc-surface);
+	background: var(--sc-surface);
 }
 
 .communityList {
-    overflow: hidden;
+	overflow: hidden;
 
-    border: 1px solid var(--sc-border);
-    border-radius: var(--sc-radius-lg);
+	border: 1px solid var(--sc-border);
+	border-radius: var(--sc-radius-lg);
 
-    background: var(--sc-surface);
+	background: var(--sc-surface);
 
-    box-shadow: var(--sc-shadow-sm);
+	box-shadow: var(--sc-shadow-sm);
 }
 
 .communityMemberRow {
-    display: grid;
+	display: grid;
 
-    grid-template-columns:
-        auto
-        minmax(0, 1fr);
+	grid-template-columns:
+		auto
+		minmax(0, 1fr);
 
-    align-items: center;
+	align-items: center;
 
-    gap: 1rem;
+	gap: 1rem;
 
-    min-height: 4.5rem;
+	min-height: 4.5rem;
 
-    padding: 0.85rem 1rem;
+	padding: 0.85rem 1rem;
 
-    border-bottom: 1px solid var(--sc-divider);
+	border-bottom: 1px solid var(--sc-divider);
 }
 
 .communityMemberRow:last-child {
-    border-bottom: 0;
+	border-bottom: 0;
 }
 
 .communityMemberRow:hover {
-    background: var(--sc-surface-subtle);
+	background: var(--sc-surface-subtle);
 }
 
 .communityMemberRow__avatar {
-    display: grid;
+	display: grid;
 
-    width: 2.5rem;
-    height: 2.5rem;
+	width: 2.5rem;
+	height: 2.5rem;
 
-    place-items: center;
+	place-items: center;
 
-    border-radius: var(--sc-radius-pill);
+	border-radius: var(--sc-radius-pill);
 
-    background: var(--sc-primary-soft);
+	background: var(--sc-primary-soft);
 
-    color: var(--sc-primary);
+	color: var(--sc-primary);
 
-    font-size: 0.8rem;
-    font-weight: 700;
+	font-size: 0.8rem;
+	font-weight: 700;
 }
 
 .communityMemberRow__content {
-    display: flex;
+	display: flex;
 
-    min-width: 0;
+	min-width: 0;
 
-    flex-direction: column;
+	flex-direction: column;
 
-    gap: 0.35rem;
+	gap: 0.35rem;
 }
 
 .communityMemberRow__name {
-    overflow: hidden;
+	overflow: hidden;
 
-    color: var(--sc-text);
+	color: var(--sc-text);
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .communityMemberRow__teams {
-    display: flex;
-    flex-wrap: wrap;
+	display: flex;
+	flex-wrap: wrap;
 
-    gap: 0.4rem;
+	gap: 0.4rem;
 }
 
 .communityMemberRow__noTeam {
-    color: var(--sc-text-subtle);
+	color: var(--sc-text-subtle);
 
-    font-size: 0.8rem;
+	font-size: 0.8rem;
 }
 
 @media (max-width: 48rem) {
-    .communityView {
-        max-width: none;
-    }
+	.communityView {
+		max-width: none;
+	}
 
-    .communityView__search {
-        max-width: none;
-    }
+	.communityView__search {
+		max-width: none;
+	}
 }

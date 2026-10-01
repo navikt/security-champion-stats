@@ -1,25 +1,22 @@
 "use client";
 
-import {useEffect, useState} from "react";
-import {Me, SecurityEvent} from "../utils/Variables";
+import { useEffect, useState } from "react";
+import { Me, SecurityEvent } from "../utils/Variables";
 import { MembershipView } from "./member/components/MembershipView";
 import { useTranslations } from "next-intl";
-import "../style/home/HomeView.css"
+import "../style/home/HomeView.css";
 import { BodyShort, Heading } from "@navikt/ds-react";
-import {EventsView} from "@/app/view/events/EventsView";
-import {Apies} from "@/app/shared/hooks/Apies";
+import { EventsView } from "@/app/view/events/EventsView";
+import { Apies } from "@/app/shared/hooks/Apies";
 
 function View({ me }: { me: Me }) {
 	const [userData, _] = useState(me);
 	const t = useTranslations("home");
-	const [events, updateEvents] = useState<SecurityEvent[]>([])
+	const [events, updateEvents] = useState<SecurityEvent[]>([]);
 
 	useEffect(() => {
-		Apies.fetchEvents().then(res =>
-			updateEvents(res)
-		)
-	}, [])
-
+		Apies.fetchEvents().then((res) => updateEvents(res));
+	}, []);
 
 	return (
 		<main className={"homeView"}>

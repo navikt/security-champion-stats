@@ -17,13 +17,39 @@
     color: var(--sc-text-muted);
 }
 
+.homeView__body {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 44rem)
+        minmax(0, 1fr);
+
+    align-items: stretch;
+
+    gap: 2rem;
+
+    width: 100%;
+}
+
 .homeView__primary {
     display: grid;
 
     grid-template-columns:
-        minmax(0, 44rem);
+        minmax(0, 1fr);
 
     justify-content: start;
 
     width: 100%;
+}
+
+.homeView__secondary {
+    display: grid;
+
+    width: 100%;
+}
+
+@media (max-width: 64rem) {
+    .homeView__body {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }

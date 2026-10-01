@@ -7,6 +7,26 @@
     padding-bottom: 4rem;
 }
 
+.eventsView--compact {
+    max-width: none;
+
+    height: 100%;
+
+    padding: 1.5rem;
+    padding-bottom: 1.5rem;
+
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-lg);
+
+    background: var(--sc-surface);
+
+    box-shadow: var(--sc-shadow-sm);
+}
+
+.eventsView--compact .eventSection:first-child {
+    margin-top: 0;
+}
+
 .eventsView__header {
     margin-bottom: 1.5rem;
 }
@@ -181,6 +201,12 @@
     background: var(--sc-surface);
 
     box-shadow: var(--sc-shadow-sm);
+}
+
+.eventList--scrollable {
+    overflow-y: auto;
+
+    max-height: 31.5rem;
 }
 
 .eventListItem {

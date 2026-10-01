@@ -8,14 +8,21 @@ interface EventListProps {
     events: SecurityEvent[]
     emptyMessage?: string
     muted?: boolean
+    limit?: number
+    scrollAfter?: number
 }
 
 export function EventList({
     title,
     events,
     emptyMessage,
-    muted = false
+    muted = false,
+    limit,
+    scrollAfter
 }: EventListProps) {
+    const visibleEvents = limit !== undefined ? events.slice(0, limit) : events
+    const isScrollable = scrollAfter !== undefined && visibleEvents.length > scrollAfter
+
     return (
         <section className={"eventSection"}>
             <div className={"eventSection__header"}>
@@ -26,17 +33,17 @@ export function EventList({
                     {title}
                 </Heading>
 
-                {events.length > 0 && (
-                    <span className={"eventSection__count"}>{events.length}</span>
+                {visibleEvents.length > 0 && (
+                    <span className={"eventSection__count"}>{visibleEvents.length}</span>
                 )}
             </div>
-            {events.length === 0 ? (
+            {visibleEvents.length === 0 ? (
                 <div className={"eventSection__empty"}>
                     {emptyMessage}
                 </div>
             ): (
-                <div className={"eventList"}>
-                    {events.map(event => (
+                <div className={["eventList", isScrollable ? "eventList--scrollable" : ""].filter(Boolean).join(" ")}>
+                    {visibleEvents.map(event => (
                         <EventListItem event={event} muted={muted} key={event.id}/>
                     ))}
                 </div>

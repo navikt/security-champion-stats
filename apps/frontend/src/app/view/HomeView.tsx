@@ -32,12 +32,14 @@ function View({ me }: { me: Me }) {
 				</BodyShort>
 			</header>
 
-			<section className={"homeView__primary"}>
-				<MembershipView me={userData} />
-			</section>
-			<section className={"homeView__secondary"}>
-				<EventsView events={events} />
-			</section>
+			<div className={"homeView__body"}>
+				<section className={"homeView__primary"}>
+					<MembershipView me={userData} />
+				</section>
+				<section className={"homeView__secondary"}>
+					<EventsView events={events} compact limit={4} />
+				</section>
+			</div>
 		</main>
 	);
 }

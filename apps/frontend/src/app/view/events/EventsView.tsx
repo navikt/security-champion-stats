@@ -8,32 +8,37 @@ import "../../style/events/EventsView.css"
 
 interface EventsViewProps {
     events: SecurityEvent[]
+    compact?: boolean
+    limit?: number
+    scrollAfter?: number
 }
 
-export function EventsView(props: EventsViewProps) {
-    const nextEvent = getNextEvent(props.events)
+export function EventsView({events, compact = false, limit, scrollAfter}: EventsViewProps) {
+    const nextEvent = getNextEvent(events)
 
     const t = useTranslations("events")
 
-    const upcomingEvents: SecurityEvent[] = getUpcomingEvents(props.events)
+    const upcomingEvents: SecurityEvent[] = getUpcomingEvents(events)
         .filter(event => event.id !== nextEvent?.id)
 
-    const pastEvents: SecurityEvent[] = getPastEvents(props.events)
+    const pastEvents: SecurityEvent[] = getPastEvents(events)
 
     return (
-        <main className={"eventsView"}>
-            <header className={"eventsView__header"}>
-                <Heading level={"1"} size={"xlarge"}>
-                    {t("title")}
-                </Heading>
+        <main className={["eventsView", compact ? "eventsView--compact" : ""].filter(Boolean).join(" ")}>
+            {!compact && (
+                <header className={"eventsView__header"}>
+                    <Heading level={"1"} size={"xlarge"}>
+                        {t("title")}
+                    </Heading>
 
-                <BodyShort className={"eventsView__subtitle"}>
-                    {t("description")}
-                </BodyShort>
-            </header>
+                    <BodyShort className={"eventsView__subtitle"}>
+                        {t("description")}
+                    </BodyShort>
+                </header>
+            )}
 
             {
-                nextEvent && (
+                !compact && nextEvent && (
                     <NextEventCard event={nextEvent} />
                 )
             }
@@ -41,11 +46,15 @@ export function EventsView(props: EventsViewProps) {
                 title={t("upcomingEvents")}
                 events={upcomingEvents}
                 emptyMessage={t("noUpcomingEvents")}
+                limit={compact ? limit : undefined}
+                scrollAfter={scrollAfter}
             />
             <EventList
                 title={t("pastEvents")}
                 events={pastEvents}
                 emptyMessage={t("noPastEvents")}
+                limit={compact ? limit : undefined}
+                scrollAfter={scrollAfter}
             />
         </main>
     )

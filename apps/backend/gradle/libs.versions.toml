@@ -1,5 +1,5 @@
 [versions]
-logback = "1.6.3"
+logback = "1.6.4"
 logstash = "9.0"
 hikari = "7.1.0"
 slack = "1.51.0"
@@ -7,10 +7,10 @@ postgres = "42.7.13"
 junit-jupiter = "6.1.3"
 junit-container = "1.21.4"
 spring-doc = "3.1.1"
-flyway = "13.7.0"
-mockito-kotlin = "6.3.0"
+flyway = "13.8.0"
+mockito-kotlin = "6.4.0"
 spring-boot = "4.1.1"
-jackson-module = "3.2.2"
+jackson-module = "3.2.3"
 
 [libraries]
 
@@ -35,7 +35,7 @@ flyway-db = { module = "org.flywaydb:flyway-database-postgresql", version.ref = 
 
 #Logging
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
-ogstash = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash" }
+logstash = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash" }
 
 #Postgres
 hikariCP = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
@@ -71,7 +71,7 @@ flyway = [
 
 logging = [
     "logback-classic",
-    "ogstash"
+    "logstash"
 ]
 
 postgres = [

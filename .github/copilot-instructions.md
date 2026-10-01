@@ -17,18 +17,13 @@
 
 ## Project Overview:
 
-Security Champion Stats is a application for tracking and displaying statistics related to security champions within an organization. 
-The application should be designed to motivate and engage security champions by gamifying their experience and providing a platform for
-users to track their progress and see other security champions. 
+Security champion stats is a web application that allows nav employees to view whats happening with security champion program.
+On web application employees can view all security champions and events that are happening both internal and external. While
+employees that have the role of security champion can view additional information and also gamify their role of security champion.
+Lastly, the site has a admin part there appsec team can manage the site/program and also view dashboards that would indicate 
+how the security champion program is doing in general.
 
-The application is also meant to be used by appsec team for administrating, like adding points or deleting members and so on.
-Also should be used by appsec team to track activity of security champions and see how the security champion program is doing in general.
-
-The project is divided into two main parts: the backend and the frontend. The backend is responsible for handling the 
-business logic, data storage, and API endpoints, while the frontend is responsible for presenting the data in a simple way. 
-The project must be able to run locally for development and testing, as well as in serverless
-environment (gcp) for production use. The docker images will use distroless as base images.
-For testing we will avoid mocking as much as possible and use test containers or similar solutions.
+This project is a mono repo, meaning it contains both backend and frontend code. Lastly frontend also has a frackend.
 
 ### Integrations
 - **Entra ID** - For authentication and user management.

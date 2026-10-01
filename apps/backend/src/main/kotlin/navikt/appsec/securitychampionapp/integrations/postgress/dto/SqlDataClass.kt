@@ -1,5 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgress.dto
 
+import navikt.appsec.securitychampionapp.app.api.dto.Event
+
 data class SqlTextArray(
     val value: Collection<String>
 )
@@ -16,13 +18,27 @@ data class SqlMember(
     val createdAt: String,
 )
 
-data class DatabaseQueryResponse(
+data class MemberQueryResponse(
     val isOk: Boolean,
     val queryResult: List<SqlMember>? = null,
     val error: String? = null
 )
 
-data class DatabaseUpdateResponse(
+data class MemberUpdateResponse(
     val isOk: Boolean,
     val error: String? = null
 )
+
+data class EventQueryResponse(
+    val isOk: Boolean,
+    val queryResult: List<Event>? = null,
+    val error: String? = null
+)
+
+data class EventUpdateResponse(
+    val isOk: Boolean,
+)
+
+enum class EventType {
+    WORKSHOP, MEETUP
+}

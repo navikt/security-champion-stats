@@ -8,8 +8,9 @@ import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseUpdateResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberUpdateResponse
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.junit.jupiter.api.Test
@@ -41,10 +42,13 @@ class AdminControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @MockitoBean
-    lateinit var repo: PostgresRepository
+    lateinit var repo: MemberRepository
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
+    @MockitoBean
+    lateinit var eventRepository: EventRepository
 
     @MockitoBean
     lateinit var validate: Validate
@@ -84,7 +88,7 @@ class AdminControllerTest {
         mockAuthenticatedUser(ADMIN_ROLE)
         whenever(validate.isValidEmail(any())).thenReturn(true)
         whenever(validate.isValidName(any())).thenReturn(true)
-        whenever(repo.addMember(any(), any(), any(), any())).thenReturn(DatabaseUpdateResponse(isOk = true))
+        whenever(repo.addMember(any(), any(), any(), any())).thenReturn(MemberUpdateResponse(isOk = true))
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/member")

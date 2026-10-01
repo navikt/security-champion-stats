@@ -18,6 +18,36 @@
     },
     "language": "Språk"
   },
+  "appsec": {
+    "events": {
+      "title": "Administrer arrangementer",
+      "description": "Legg til og se over møter, workshops og eksterne arrangementer.",
+      "addEvent": "Legg til arrangement",
+      "allEvents": "Alle arrangementer",
+      "noEvents": "Ingen arrangementer ennå. Legg til et for å komme i gang.",
+      "form": {
+        "title": "Legg til arrangement",
+        "name": "Navn",
+        "description": "Beskrivelse",
+        "location": "Sted",
+        "type": "Type",
+        "types": {
+          "meeting": "Møte",
+          "workshop": "Workshop",
+          "course": "Kurs"
+        },
+        "startDate": "Startdato",
+        "startTime": "Starttid",
+        "endDate": "Sluttdato",
+        "endTime": "Sluttid",
+        "endBeforeStart": "Sluttidspunktet må være etter starttidspunktet",
+        "externalEvent": "Eksternt arrangement",
+        "deltaEvent": "Delta Event",
+        "submit": "Opprett arrangement",
+        "cancel": "Avbryt"
+      }
+    }
+  },
   "home": {
     "title": "Sikkerhet Champion Hub",
     "description": "Her er det som skjer i Security Champion-programmet.",

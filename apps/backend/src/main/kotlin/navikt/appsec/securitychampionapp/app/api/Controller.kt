@@ -1,9 +1,11 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.app.api.dto.Event
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.Member
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
+import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -18,7 +20,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping(path = ["/api"])
 class Controller(
-    private val repo: PostgresRepository,
+    private val memberRepository: MemberRepository,
+    private val eventRepository: EventRepository
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
 
@@ -27,7 +30,7 @@ class Controller(
 
     @GetMapping("/members")
     fun getAllMembers(): ResponseEntity<List<Member>> {
-        val queryResponse = repo.getAllMembers()
+        val queryResponse = memberRepository.getAllMembers()
 
         if (!queryResponse.isOk) {
             logger.warn("Failed to fetch all member from database due to error: ${queryResponse.error}")
@@ -58,7 +61,7 @@ class Controller(
         val principal = authentication?.principal as AppPrincipal
         val email = principal.email
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" }
-        val queryResponse = repo.getMemberByEmail(email)
+        val queryResponse = memberRepository.getMemberByEmail(email)
 
         if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
             logger.info("New potential new user")
@@ -66,7 +69,6 @@ class Controller(
         }
 
         val inProgram = queryResponse.queryResult.firstOrNull()?.inProgram ?: false
-        logger.info("User data: ${queryResponse.queryResult.firstOrNull()}")
         return ResponseEntity(Me(email, isAdmin, isSecChamp = true, inProgram), HttpStatus.OK)
     }
 
@@ -86,13 +88,12 @@ class Controller(
         val principal = authentication?.principal as AppPrincipal
         val id = principal.navIdent
 
-        val queryResponse = repo.fetchMember(id)
+        val queryResponse = memberRepository.fetchMember(id)
         if (queryResponse == null || !queryResponse.isOk) {
             logger.warn("Failed to fetch member from database due to error: ${queryResponse?.error}")
             return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
         }
 
-        logger.info("Fetched member: ${queryResponse.queryResult}")
         return ResponseEntity.status(HttpStatus.OK).body(
             Member(
                 id = queryResponse.queryResult!!.first().id,
@@ -106,16 +107,29 @@ class Controller(
         )
     }
 
+    @GetMapping("/events")
+    fun fetchEvents(): ResponseEntity<Any>{
+        val events = eventRepository.getAllEvents()
+
+        if (!events.isOk) {
+            logger.warn("Failed to fetch events from database due to error: ${events.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(events.queryResult)
+    }
+
+
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {
         val authentication = SecurityContextHolder.getContext().authentication
         val principal = authentication?.principal as AppPrincipal
         val email = principal.email
-        val queryResponse = repo.getMemberByEmail(email)
+        val queryResponse = memberRepository.getMemberByEmail(email)
         if (!queryResponse.isOk) {
             return returnInternalError("Failed to find/fetch member due to error: ${queryResponse.error}")
         }
         val id = queryResponse.queryResult!!.firstOrNull()?.id ?: ""
-        val updateResponse = repo.updateInProgram(id, status)
+        val updateResponse = memberRepository.updateInProgram(id, status)
 
         if (!updateResponse.isOk) {
             return returnInternalError("Failed to update member inProgram status due to error: ${updateResponse.error}")

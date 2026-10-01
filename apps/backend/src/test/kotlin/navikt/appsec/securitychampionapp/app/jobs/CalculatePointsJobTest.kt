@@ -1,9 +1,9 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.DatabaseUpdateResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberQueryResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberUpdateResponse
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
 import navikt.appsec.securitychampionapp.integrations.slack.ActivityService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackActivitySummary
@@ -26,7 +26,7 @@ import org.mockito.kotlin.whenever
 class CalculatePointsJobTest {
     private val jobLock = mock<PostgresJobLock>()
     private val slackActivityService = mock<ActivityService>()
-    private val repository = mock<PostgresRepository>()
+    private val repository = mock<MemberRepository>()
     private val validate = mock<Validate>()
 
     private val job = CalculatePointsJob(
@@ -39,7 +39,7 @@ class CalculatePointsJobTest {
     @BeforeEach
     fun setup() {
         Mockito.reset(jobLock, slackActivityService, repository, validate)
-        whenever(repository.addPoints(any(), any(), any())).thenReturn(DatabaseUpdateResponse(isOk = true))
+        whenever(repository.addPoints(any(), any(), any())).thenReturn(MemberUpdateResponse(isOk = true))
         whenever(validate.calculateLevel(any())).thenReturn("1")
     }
 
@@ -47,7 +47,7 @@ class CalculatePointsJobTest {
     fun `should add calculated points to members in program`() {
         runJobInsideLock()
         whenever(repository.getAllMembersInProgram()).thenReturn(
-            DatabaseQueryResponse(
+            MemberQueryResponse(
                 isOk = true,
                 queryResult = listOf(
                     member(id = "member-1", email = "ada.lovelace@nav.no", points = 5),
@@ -78,7 +78,7 @@ class CalculatePointsJobTest {
     fun `should skip calculation when database query fails`() {
         runJobInsideLock()
         whenever(repository.getAllMembersInProgram()).thenReturn(
-            DatabaseQueryResponse(
+            MemberQueryResponse(
                 isOk = false,
                 queryResult = emptyList(),
                 error = "database unavailable"
@@ -95,7 +95,7 @@ class CalculatePointsJobTest {
     fun `should skip point updates when slack activity calculation fails`() {
         runJobInsideLock()
         whenever(repository.getAllMembersInProgram()).thenReturn(
-            DatabaseQueryResponse(
+            MemberQueryResponse(
                 isOk = true,
                 queryResult = listOf(member(id = "member-1", email = "ada.lovelace@nav.no"))
             )
@@ -117,7 +117,7 @@ class CalculatePointsJobTest {
     fun `should continue updating other members when one point update fails`() {
         runJobInsideLock()
         whenever(repository.getAllMembersInProgram()).thenReturn(
-            DatabaseQueryResponse(
+            MemberQueryResponse(
                 isOk = true,
                 queryResult = listOf(
                     member(id = "member-1", email = "ada.lovelace@nav.no"),
@@ -135,7 +135,7 @@ class CalculatePointsJobTest {
             )
         )
         whenever(repository.addPoints(eq("member-1"), any(), any())).thenReturn(
-            DatabaseUpdateResponse(isOk = false, error = "update failed")
+            MemberUpdateResponse(isOk = false, error = "update failed")
         )
 
         job.calculatePoints()

@@ -3,8 +3,8 @@ import "../../../style/home/MembershipView.css"
 import {Me, Member} from "@/app/utils/Variables";
 import Loading from "@/app/view/Loading";
 import {Apies} from "@/app/shared/hooks/Apies";
-import {JoinedMembershipView} from "@/app/view/home/components/JoinedMembershipView";
-import {JoinProgramView} from "@/app/view/home/components/JoinProgramView";
+import {JoinedMembershipView} from "@/app/view/member/components/JoinedMembershipView";
+import {JoinProgramView} from "@/app/view/member/components/JoinProgramView";
 
 export function MembershipView({me}: {me: Me}) {
     const [userData, setMe] = useState(me)

@@ -1,7 +1,7 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
-import navikt.appsec.securitychampionapp.integrations.postgress.PostgresRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.slack.ChannelMembershipService
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
@@ -15,7 +15,7 @@ private const val SYNC_JOB_LOCK_KEY = 1_001L
 @Component
 class SyncJob(
     private val jobLock: PostgresJobLock,
-    private val repo: PostgresRepository,
+    private val repo: MemberRepository,
     private val catalog: TeamCatalog,
     private val slackChannelMembershipService: ChannelMembershipService,
 ) {

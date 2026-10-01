@@ -1,0 +1,2 @@
+ALTER TABLE Events ADD COLUMN
+    event_type VARCHAR(30) NOT NULL CHECK (event_type IN ('MEETUP', 'WORKSHOP'))

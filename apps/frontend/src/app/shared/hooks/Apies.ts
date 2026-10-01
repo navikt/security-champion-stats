@@ -85,5 +85,19 @@ export const Apies = {
             return []
         }
         return res.json()
+    },
+    createEvent: async(event: SecurityEvent): Promise<Number> => {
+        const response = await fetch("/api/events", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(event),
+        })
+
+        if (!response.ok) {
+            console.error("Failed to create event, with status: ", response.status)
+            return response.status
+        }
+
+        return response.status
     }
 }

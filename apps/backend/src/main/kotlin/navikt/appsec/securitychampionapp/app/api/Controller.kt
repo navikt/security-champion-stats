@@ -69,7 +69,6 @@ class Controller(
         }
 
         val inProgram = queryResponse.queryResult.firstOrNull()?.inProgram ?: false
-        logger.info("User data: ${queryResponse.queryResult.firstOrNull()}")
         return ResponseEntity(Me(email, isAdmin, isSecChamp = true, inProgram), HttpStatus.OK)
     }
 
@@ -95,7 +94,6 @@ class Controller(
             return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
         }
 
-        logger.info("Fetched member: ${queryResponse.queryResult}")
         return ResponseEntity.status(HttpStatus.OK).body(
             Member(
                 id = queryResponse.queryResult!!.first().id,
@@ -118,20 +116,9 @@ class Controller(
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
         }
 
-        return ResponseEntity.status(HttpStatus.OK).body(
-            events.queryResult!!.map {
-                Event(
-                    id = it.id,
-                    name = it.name,
-                    description = it.description,
-                    startDate = it.startDateTime.toString(),
-                    endDate = it.endDateTime.toString(),
-                    location = it.location,
-                    type = it.type.toString().lowercase()
-                )
-            }
-        )
+        return ResponseEntity.status(HttpStatus.OK).body(events.queryResult)
     }
+
 
     private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {
         val authentication = SecurityContextHolder.getContext().authentication

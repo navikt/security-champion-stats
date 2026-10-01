@@ -8,6 +8,7 @@ import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
+import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberUpdateResponse
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
@@ -45,6 +46,9 @@ class AdminControllerTest {
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
+    @MockitoBean
+    lateinit var eventRepository: EventRepository
 
     @MockitoBean
     lateinit var validate: Validate

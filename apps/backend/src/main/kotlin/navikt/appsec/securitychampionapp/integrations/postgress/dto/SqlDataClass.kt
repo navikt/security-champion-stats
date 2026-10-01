@@ -1,6 +1,6 @@
 package navikt.appsec.securitychampionapp.integrations.postgress.dto
 
-import java.time.Instant
+import navikt.appsec.securitychampionapp.app.api.dto.Event
 
 data class SqlTextArray(
     val value: Collection<String>
@@ -29,21 +29,9 @@ data class MemberUpdateResponse(
     val error: String? = null
 )
 
-data class SqlEvent(
-    val id: String,
-    val name: String,
-    val description: String,
-    val startDateTime: Instant,
-    val endDateTime: Instant,
-    val location: String,
-    val externalEvent: Boolean,
-    val deltaEvent: Boolean,
-    val type: EventType
-)
-
 data class EventQueryResponse(
     val isOk: Boolean,
-    val queryResult: List<SqlEvent>? = null,
+    val queryResult: List<Event>? = null,
     val error: String? = null
 )
 
@@ -52,5 +40,5 @@ data class EventUpdateResponse(
 )
 
 enum class EventType {
-    WORKSHOP, MEETING
+    WORKSHOP, MEETUP
 }

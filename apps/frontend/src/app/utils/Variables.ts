@@ -26,7 +26,10 @@ export interface SecurityEvent {
     startDate: string,
     endDate: string,
     location: string
-    type: SecurityEventType
+    type: SecurityEventType,
+    externalEvent: boolean,
+    deltaEvent: boolean,
+    amountOfPeopleJoined?: number,
 }
 
-export type SecurityEventType = "meeting" | "workshop" | "course"
+export type SecurityEventType = "meetup" | "workshop" | "course"

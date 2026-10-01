@@ -2,8 +2,11 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
+import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
+import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.time.Instant
 import java.util.UUID
 
 @RestController
@@ -24,6 +28,7 @@ import java.util.UUID
 class AdminController(
     private val repo: MemberRepository,
     private val validate: Validate,
+    private val eventRepository: EventRepository
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
 
@@ -63,6 +68,28 @@ class AdminController(
         return ResponseEntity("Points where added for user", HttpStatus.ACCEPTED)
     }
 
+
+    @PostMapping("/events")
+    fun addEvent(@RequestBody event: Event): ResponseEntity<String> {
+        if (!event.startDate.isValidTime() || !event.endDate.isValidTime()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid date format")
+        }
+
+        val validTypes = EventType.entries.map { it.name }
+        if (event.type.uppercase() !in validTypes) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid event type")
+        }
+
+        logger.info("Adding event: ${event.id}")
+        val result = eventRepository.addEvent(event)
+        if (!result.isOk) {
+            logger.warn("Failed to add event due to error: ${result.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add event")
+        }
+
+        return ResponseEntity.ok("Event was added")
+    }
+
     @GetMapping("/dashboard/members")
     fun getAllMembers(): ResponseEntity<List<SCdata>> {
         return ResponseEntity.ok(repo.getSCAmountOverTime())
@@ -77,4 +104,8 @@ class AdminController(
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
         return ResponseEntity.ok().build()
     }
+
+
+    private fun String.isValidTime(): Boolean = runCatching { Instant.parse(this) }.isSuccess
+
 }

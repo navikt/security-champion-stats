@@ -87,8 +87,8 @@ class EventRepositoryTest {
         Assertions.assertThat(event.name).isEqualTo("Security Champion Summit")
         Assertions.assertThat(event.description).isEqualTo("Yearly gathering for security champions")
         Assertions.assertThat(event.location).isEqualTo("Oslo")
-        Assertions.assertThat(event.startDateTime).isEqualTo(start)
-        Assertions.assertThat(event.endDateTime).isEqualTo(end)
+        Assertions.assertThat(Instant.parse(event.startDate)).isEqualTo(start)
+        Assertions.assertThat(Instant.parse(event.endDate)).isEqualTo(end)
     }
 
     @Test
@@ -126,7 +126,8 @@ class EventRepositoryTest {
         externalEvent: Boolean = false,
         deltaEvent: Boolean = true,
         location: String = "Oslo",
-        eventType: String = "WORKSHOP"
+        eventType: String = "WORKSHOP",
+        amountOfPeopleJoined: Int = 0
     ) {
         dataSource.connection.use { connection ->
             connection.prepareStatement(
@@ -140,8 +141,9 @@ class EventRepositoryTest {
                         external_event,
                         delta_event,
                         location,
-                        event_type
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        event_type,
+                        amount_of_people_joined
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """.trimIndent()
             ).use { statement ->
                 statement.setObject(1, UUID.fromString(id))
@@ -153,6 +155,7 @@ class EventRepositoryTest {
                 statement.setBoolean(7, deltaEvent)
                 statement.setString(8, location)
                 statement.setString(9, eventType)
+                statement.setInt(10, amountOfPeopleJoined)
                 statement.executeUpdate()
             }
         }

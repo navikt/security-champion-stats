@@ -29,6 +29,36 @@
     "noUpcomingEvents": "No other upcoming events.",
     "noPastEvents": "No previous events."
   },
+  "appsec": {
+    "events": {
+      "title": "Manage events",
+      "description": "Add and review meetings, workshops and external events.",
+      "addEvent": "Add event",
+      "allEvents": "All events",
+      "noEvents": "No events yet. Add one to get started.",
+      "form": {
+        "title": "Add event",
+        "name": "Name",
+        "description": "Description",
+        "location": "Location",
+        "type": "Type",
+        "types": {
+          "meeting": "Meeting",
+          "workshop": "Workshop",
+          "course": "Course"
+        },
+        "startDate": "Start date",
+        "startTime": "Start time",
+        "endDate": "End date",
+        "endTime": "End time",
+        "endBeforeStart": "End must be after start",
+        "externalEvent": "External event",
+        "deltaEvent": "delta Event",
+        "submit": "Create event",
+        "cancel": "Cancel"
+      }
+    }
+  },
   "home": {
     "title": "Security Champion Hub",
     "description": "Here's what's happening in the Security Champion program.",

@@ -39,3 +39,44 @@ export async function GET(request: NextRequest) {
         )
     }
 }
+
+export async function POST(
+    request: NextRequest
+) {
+    try {
+        const body = await request.json()
+        const token = await getBackendToken(request)
+
+        if (token === AUTHENTICATED_FAILED) {
+            return NextResponse.json(
+                { error: "Authentication failed, failed to fetch obo-token or token" },
+                { status: 401 }
+            )
+        }
+
+        const url = `${getServerEnv().backendUrl}/api/admin/events`
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(body)
+        })
+
+        if (!response.ok) {
+            return NextResponse.json(
+                { error: "Failed to create event" },
+                { status: 500 }
+            )
+        }
+
+        return NextResponse.json(await response.json())
+    } catch (error) {
+        console.error("Error in /api/createEvent: ", error)
+        return NextResponse.json(
+            { error: "Failed to create event, due to an internal error" },
+            { status: 500 }
+        )
+    }
+}

@@ -1,5 +1,5 @@
 import { ComponentType, SVGProps } from "react";
-import { CalendarIcon, HouseIcon, PersonGroupIcon, PersonIcon } from "@navikt/aksel-icons";
+import { CalendarIcon, HouseIcon, PersonGroupIcon } from "@navikt/aksel-icons";
 import {useTranslations} from "next-intl";
 
 

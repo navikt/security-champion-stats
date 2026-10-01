@@ -18,6 +18,17 @@
     },
     "language": "Språk"
   },
+  "events": {
+    "title": "Arrangementer",
+    "noEvents": "Ingen arrangementer ennå",
+    "description": "Møter, workshops og andre Security Champion-aktiviteter.",
+    "nextEvent": "Neste arrangement",
+    "details": "Se detaljer",
+    "upcomingEvents": "Kommende arrangementer",
+    "pastEvents": "Tidligere arrangementer",
+    "noUpcomingEvents": "Ingen andre kommende arrangementer.",
+    "noPastEvents": "Ingen tidligere arrangementer."
+  },
   "appsec": {
     "events": {
       "title": "Administrer arrangementer",

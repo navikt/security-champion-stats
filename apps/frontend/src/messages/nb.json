@@ -1,5 +1,5 @@
 {
-  "title": "Sikkerhet Champion app",
+  "title": "Sec Hub",
   "sidebar": {
     "overview": "Oversikt",
     "events": "Arrangementer",
@@ -11,12 +11,23 @@
   "settings": {
     "title": "Instillinger",
     "themeOptions": {
-      "theme": "Tema",
+      "title": "Tema",
       "light": "Lys",
       "dark": "Mørk",
       "system": "System"
     },
     "language": "Språk"
+  },
+  "events": {
+    "title": "Arrangementer",
+    "noEvents": "Ingen arrangementer ennå",
+    "description": "Møter, workshops og andre Security Champion-aktiviteter.",
+    "nextEvent": "Neste arrangement",
+    "details": "Se detaljer",
+    "upcomingEvents": "Kommende arrangementer",
+    "pastEvents": "Tidligere arrangementer",
+    "noUpcomingEvents": "Ingen andre kommende arrangementer.",
+    "noPastEvents": "Ingen tidligere arrangementer."
   },
   "appsec": {
     "events": {
@@ -56,6 +67,7 @@
         "securityChampion": "Sikkerhet champion",
         "active": "SPILL AKTIV",
         "inactive": "SPILL INAKTIV",
+        "gamification": "Gamification",
         "description": "Du er et aktivt medlem av Security Champion-programmet.",
         "levelNames": {
           "level1": "Nyebegynner champion",

@@ -10,7 +10,8 @@ data class Member(
     val fullname: String,
     val level: String = "1",
     val inGame: Boolean = false,
-    val joinedAt: String
+    val joinedAt: String,
+    val teams: List<String> = emptyList()
 )
 
 @JsonInclude(JsonInclude.Include.NON_NULL)

@@ -29,6 +29,14 @@
     "noUpcomingEvents": "Ingen andre kommende arrangementer.",
     "noPastEvents": "Ingen tidligere arrangementer."
   },
+  "community": {
+    "title": "Nettverk",
+    "description": "Alle Security Champions og teamene de er en del av.",
+    "searchLabel": "Søk etter navn eller team",
+    "searchPlaceholder": "Søk etter navn eller team",
+    "noResults": "Ingen Security Champions samsvarer med søket ditt.",
+    "noTeam": "Ingen team"
+  },
   "appsec": {
     "events": {
       "title": "Administrer arrangementer",

@@ -5,7 +5,7 @@
   If in doubt, ask for clarification. For example, if asked to implement functionality for fetching a set of data.
   Do not stray outside of this task. Ask if the user wants you to add documentation or extend the functionality
   of the initial request.
-- Do NOT do add anything comprehensive unless specifically instructed.
+- Do NOT add anything comprehensive unless specifically instructed.
 - Do NOT add documentation unless specifically asked.
 - Do NOT add comments in code unless the logic is VERY complex.
 - The user will verify functionality manually and ask for changes if needed. No need to build or run the application for verification.

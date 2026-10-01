@@ -1,8 +1,14 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
-import {ActionMenu, InfoCard, InternalHeader, Page, Spacer} from "@navikt/ds-react";
+import {
+	ActionMenu,
+	InfoCard,
+	InternalHeader,
+	Page,
+	Spacer,
+} from "@navikt/ds-react";
 
-import "@/app/style/TopLayout.css"
+import "@/app/style/TopLayout.css";
 import SettingsMenu from "@/app/view/member/components/SettingsMenu";
 import { useMe } from "../shared/hooks/UseMe";
 import { MenuGridIcon } from "@navikt/aksel-icons";
@@ -61,27 +67,21 @@ export default function LocaleLayout({
 				</div>
 			</InternalHeader>
 
-            <div className="appBody">
-                <SideNavigation locale={locale} />
-                <Page.Block
-                    as="main"
-                    gutters
-                    className="appMain"
-                >
+			<div className="appBody">
+				<SideNavigation locale={locale} />
+				<Page.Block as="main" gutters className="appMain">
 					<InfoCard data-color={"info"}>
 						<InfoCard.Header>
-							<InfoCard.Title>
-								Work in progress
-							</InfoCard.Title>
+							<InfoCard.Title>Work in progress</InfoCard.Title>
 						</InfoCard.Header>
 						<InfoCard.Content>
-							This site is in working progress and is still under development. Content and visualization is due
-							change with time.
+							This site is in working progress and is still under development.
+							Content and visualization is due change with time.
 						</InfoCard.Content>
 					</InfoCard>
-                    {children}
-                </Page.Block>
-            </div>
+					{children}
+				</Page.Block>
+			</div>
 		</Page>
 	);
 }

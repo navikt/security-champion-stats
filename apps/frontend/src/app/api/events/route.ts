@@ -1,82 +1,77 @@
-import {NextRequest, NextResponse} from "next/server";
-import {getBackendToken, getServerEnv} from "@/app/utils/Validation";
-import {AUTHENTICATED_FAILED, INTERNAL_ERROR} from "@/app/utils/Variables";
+import { NextRequest, NextResponse } from "next/server";
+import { getBackendToken, getServerEnv } from "@/app/utils/Validation";
+import { AUTHENTICATED_FAILED, INTERNAL_ERROR } from "@/app/utils/Variables";
 
 export async function GET(request: NextRequest) {
-    try {
-        const { backendUrl } = getServerEnv()
-        const backendToken = await getBackendToken(request)
+	try {
+		const { backendUrl } = getServerEnv();
+		const backendToken = await getBackendToken(request);
 
-        if (backendToken === AUTHENTICATED_FAILED) {
-            console.error("Authentication failed when trying to fetch events")
-            return NextResponse.json("Authentication failed", { status: 401 })
-        }
+		if (backendToken === AUTHENTICATED_FAILED) {
+			console.error("Authentication failed when trying to fetch events");
+			return NextResponse.json("Authentication failed", { status: 401 });
+		}
 
-        const url = `${backendUrl}/api/events`
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${backendToken}`,
-                "Content-Type": "application/json"
-            }
-        })
+		const url = `${backendUrl}/api/events`;
+		const response = await fetch(url, {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${backendToken}`,
+				"Content-Type": "application/json",
+			},
+		});
 
-        if (!response.ok) {
-            console.error("Failed to fetch events")
-            return NextResponse.json(
-                { error: "Failed fetch data" },
-                { status: response.status }
-            )
-        }
+		if (!response.ok) {
+			console.error("Failed to fetch events");
+			return NextResponse.json(
+				{ error: "Failed fetch data" },
+				{ status: response.status },
+			);
+		}
 
-        const data = await response.json()
-        return NextResponse.json(data)
-    } catch (error) {
-        console.error("Internal server error in events fetching: ", error)
-        return NextResponse.json(
-            { error: INTERNAL_ERROR },
-            { status: 500 }
-        )
-    }
+		const data = await response.json();
+		return NextResponse.json(data);
+	} catch (error) {
+		console.error("Internal server error in events fetching: ", error);
+		return NextResponse.json({ error: INTERNAL_ERROR }, { status: 500 });
+	}
 }
 
-export async function POST(
-    request: NextRequest
-) {
-    try {
-        const body = await request.json()
-        const token = await getBackendToken(request)
+export async function POST(request: NextRequest) {
+	try {
+		const body = await request.json();
+		const token = await getBackendToken(request);
 
-        if (token === AUTHENTICATED_FAILED) {
-            return NextResponse.json(
-                { error: "Authentication failed, failed to fetch obo-token or token" },
-                { status: 401 }
-            )
-        }
+		if (token === AUTHENTICATED_FAILED) {
+			return NextResponse.json(
+				{ error: "Authentication failed, failed to fetch obo-token or token" },
+				{ status: 401 },
+			);
+		}
 
-        const url = `${getServerEnv().backendUrl}/api/admin/events`
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(body)
-        })
+		const url = `${getServerEnv().backendUrl}/api/admin/events`;
+		const response = await fetch(url, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(body),
+		});
 
-        if (!response.ok) {
-            return NextResponse.json(
-                { error: "Failed to create event" },
-                { status: 500 }
-            )
-        }
+		if (!response.ok) {
+			return NextResponse.json(
+				{ error: "Failed to create event" },
+				{ status: 500 },
+			);
+		}
 
-        return NextResponse.json(await response.json())
-    } catch (error) {
-        console.error("Error in /api/createEvent: ", error)
-        return NextResponse.json(
-            { error: "Failed to create event, due to an internal error" },
-            { status: 500 }
-        )
-    }
+		return NextResponse.json(await response.json());
+	} catch (error) {
+		console.error("Error in /api/createEvent: ", error);
+		return NextResponse.json(
+			{ error: "Failed to create event, due to an internal error" },
+			{ status: 500 },
+		);
+	}
 }

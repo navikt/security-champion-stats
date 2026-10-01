@@ -1,77 +1,76 @@
-import {NextRequest, NextResponse} from "next/server";
-import {getBackendToken, getServerEnv} from "../../utils/Validation";
-import {AUTHENTICATED_FAILED, INTERNAL_ERROR, Me, MISSING_GROUP} from "../../utils/Variables";
-import {parseAzureUserToken} from "@navikt/oasis";
-import {createLocalParserResult} from "@/app/utils/LocalDevAuth";
+import { NextRequest, NextResponse } from "next/server";
+import { getBackendToken, getServerEnv } from "../../utils/Validation";
+import {
+	AUTHENTICATED_FAILED,
+	INTERNAL_ERROR,
+	Me,
+	MISSING_GROUP,
+} from "../../utils/Variables";
+import { parseAzureUserToken } from "@navikt/oasis";
+import { createLocalParserResult } from "@/app/utils/LocalDevAuth";
 
-export async function GET(
-    request: NextRequest
-) {
-    try {
-        const token = await getBackendToken(request)
-        const id = process.env.APPSEC_ID
-        if (!id) {
-            throw new Error("Missing environment variable APPSEC_ID")
-        }
+export async function GET(request: NextRequest) {
+	try {
+		const token = await getBackendToken(request);
+		const id = process.env.APPSEC_ID;
+		if (!id) {
+			throw new Error("Missing environment variable APPSEC_ID");
+		}
 
-        if (token === AUTHENTICATED_FAILED) {
-            return NextResponse.json(
-                { error: AUTHENTICATED_FAILED },
-                { status: 401 }
-            )
-        }
-        const { backendUrl, backendScope }  = getServerEnv()
-        let parse
-        if (backendScope !== "LOCAL") {
-            parse = parseAzureUserToken(token)
-            if (!parse.ok) {
-                return NextResponse.json(
-                    { error: parse.error },
-                    { status: 401 }
-                )
-            }
-        } else {
-            parse = createLocalParserResult()
-        }
+		if (token === AUTHENTICATED_FAILED) {
+			return NextResponse.json(
+				{ error: AUTHENTICATED_FAILED },
+				{ status: 401 },
+			);
+		}
+		const { backendUrl, backendScope } = getServerEnv();
+		let parse;
+		if (backendScope !== "LOCAL") {
+			parse = parseAzureUserToken(token);
+			if (!parse.ok) {
+				return NextResponse.json({ error: parse.error }, { status: 401 });
+			}
+		} else {
+			parse = createLocalParserResult();
+		}
 
-        const url = `${backendUrl}/api/validate`
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json"
-            }
-        })
+		const url = `${backendUrl}/api/validate`;
+		const response = await fetch(url, {
+			method: "GET",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-Type": "application/json",
+			},
+		});
 
-        if (!response.ok) {
-            return NextResponse.json(
-                { error: AUTHENTICATED_FAILED, backendStatus: response.status, backendHeaders: Object.fromEntries(response.headers.entries()), backendBody: response.text() },
-                { status: response.status }
-            )
-        }
+		if (!response.ok) {
+			return NextResponse.json(
+				{
+					error: AUTHENTICATED_FAILED,
+					backendStatus: response.status,
+					backendHeaders: Object.fromEntries(response.headers.entries()),
+					backendBody: response.text(),
+				},
+				{ status: response.status },
+			);
+		}
 
-        const backendResponse: Me = await response.json()
-        const groups = parse.groups
+		const backendResponse: Me = await response.json();
+		const groups = parse.groups;
 
-        if (!groups) {
-            return NextResponse.json(
-                { error: MISSING_GROUP },
-                { status: 403 }
-            )
-        }
+		if (!groups) {
+			return NextResponse.json({ error: MISSING_GROUP }, { status: 403 });
+		}
 
-        if (backendResponse.username !== parse.preferred_username) {
-            return NextResponse.json(
-                { error: AUTHENTICATED_FAILED },
-                { status: 401 }
-            )
-        }
-        return NextResponse.json(backendResponse)
-    } catch (error) {
-        console.error("Validation error, then validating user," + error)
-        return NextResponse.json(
-            { error: INTERNAL_ERROR },
-            { status: 500 }
-        )
-    }
+		if (backendResponse.username !== parse.preferred_username) {
+			return NextResponse.json(
+				{ error: AUTHENTICATED_FAILED },
+				{ status: 401 },
+			);
+		}
+		return NextResponse.json(backendResponse);
+	} catch (error) {
+		console.error("Validation error, then validating user," + error);
+		return NextResponse.json({ error: INTERNAL_ERROR }, { status: 500 });
+	}
 }

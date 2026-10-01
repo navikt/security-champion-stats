@@ -11,7 +11,7 @@ interface SideNavigationProps {
 
 export function SideNavigation({ locale }: SideNavigationProps) {
 	const pathName = usePathname();
-	const paths= navigation();
+	const paths = navigation();
 	return (
 		<aside className={"sideNavigation"}>
 			<nav className={"sideNavigation__nav"} aria-label={"Main navigation"}>

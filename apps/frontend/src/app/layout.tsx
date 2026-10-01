@@ -1,27 +1,27 @@
 import "./style/global.css";
-import {getLocale, getMessages} from "next-intl/server";
-import {NextIntlClientProvider} from "next-intl";
-import {FaroInitializer} from "@/app/view/member/components/FaroInitializer";
-import {ThemeProvider} from "./shared/theme/ThemeProvider";
+import { getLocale, getMessages } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { FaroInitializer } from "@/app/view/member/components/FaroInitializer";
+import { ThemeProvider } from "./shared/theme/ThemeProvider";
 
 export default async function RootLayout({
-    children
+	children,
 }: Readonly<{
-    children: React.ReactNode
+	children: React.ReactNode;
 }>) {
-    const locale = await getLocale()
-    const messages = await getMessages()
+	const locale = await getLocale();
+	const messages = await getMessages();
 
-    return (
-        <html lang={locale} suppressHydrationWarning>
-            <body>
-            <FaroInitializer />
-            <ThemeProvider>
-                <NextIntlClientProvider messages={messages}>
-                    {children}
-                </NextIntlClientProvider>
-            </ThemeProvider>
-            </body>
-        </html>
-    )
+	return (
+		<html lang={locale} suppressHydrationWarning>
+			<body>
+				<FaroInitializer />
+				<ThemeProvider>
+					<NextIntlClientProvider messages={messages}>
+						{children}
+					</NextIntlClientProvider>
+				</ThemeProvider>
+			</body>
+		</html>
+	);
 }

@@ -1,123 +1,121 @@
 {
-  "title": "Sec Hub",
-  "sidebar": {
-    "overview": "Oversikt",
-    "events": "Arrangementer",
-    "community": "Nettverk"
-  },
-  "loading": {
-    "title": "Laster..."
-  },
-  "settings": {
-    "title": "Instillinger",
-    "themeOptions": {
-      "title": "Tema",
-      "light": "Lys",
-      "dark": "Mørk",
-      "system": "System"
-    },
-    "language": "Språk"
-  },
-  "events": {
-    "title": "Arrangementer",
-    "noEvents": "Ingen arrangementer ennå",
-    "description": "Møter, workshops og andre Security Champion-aktiviteter.",
-    "nextEvent": "Neste arrangement",
-    "details": "Se detaljer",
-    "upcomingEvents": "Kommende arrangementer",
-    "pastEvents": "Tidligere arrangementer",
-    "noUpcomingEvents": "Ingen andre kommende arrangementer.",
-    "noPastEvents": "Ingen tidligere arrangementer."
-  },
-  "community": {
-    "title": "Nettverk",
-    "description": "Alle Security Champions og teamene de er en del av.",
-    "searchLabel": "Søk etter navn eller team",
-    "searchPlaceholder": "Søk etter navn eller team",
-    "noResults": "Ingen Security Champions samsvarer med søket ditt.",
-    "noTeam": "Ingen team"
-  },
-  "appsec": {
-    "events": {
-      "title": "Administrer arrangementer",
-      "description": "Legg til og se over møter, workshops og eksterne arrangementer.",
-      "addEvent": "Legg til arrangement",
-      "allEvents": "Alle arrangementer",
-      "noEvents": "Ingen arrangementer ennå. Legg til et for å komme i gang.",
-      "form": {
-        "title": "Legg til arrangement",
-        "name": "Navn",
-        "description": "Beskrivelse",
-        "location": "Sted",
-        "type": "Type",
-        "types": {
-          "meeting": "Møte",
-          "workshop": "Workshop",
-          "course": "Kurs"
-        },
-        "startDate": "Startdato",
-        "startTime": "Starttid",
-        "endDate": "Sluttdato",
-        "endTime": "Sluttid",
-        "endBeforeStart": "Sluttidspunktet må være etter starttidspunktet",
-        "externalEvent": "Eksternt arrangement",
-        "deltaEvent": "Delta Event",
-        "submit": "Opprett arrangement",
-        "cancel": "Avbryt"
-      }
-    }
-  },
-  "home": {
-    "title": "Sikkerhet Champion Hub",
-    "description": "Her er det som skjer i Security Champion-programmet.",
-    "membership": {
-      "member": {
-        "securityChampion": "Sikkerhet champion",
-        "active": "SPILL AKTIV",
-        "inactive": "SPILL INAKTIV",
-        "gamification": "Gamification",
-        "description": "Du er et aktivt medlem av Security Champion-programmet.",
-        "levelNames": {
-          "level1": "Nyebegynner champion",
-          "level2": "Intermediert champion",
-          "level3": "Avansert champion"
-        },
-        "level": {
-          "level1": "nivå 1",
-          "level2": "nivå 2",
-          "level3": "nivå 3"
-        },
-        "nextLevel": "til neste nivå",
-        "joinedGamification": "Ble i Gamification",
-        "joinedProgram": "Sikkerhet champion siden",
-        "leave": "Forlat Sikkerhet Champion",
-        "leaveGame": "Forlat spill",
-        "joinGame": "Bli med i gamification",
-        "enabled": "Aktivert",
-        "disabled": "Deaktivert",
-        "optional": "Valgfritt",
-        "information": "Tjen XP, lås opp champion levels og achievements ved å delta i Security Champion-aktiviteter.",
-        "leaveGamificationModal": {
-          "title": "Forlat gamification",
-          "question": "Er du sikker på at du vil forlate gamification?",
-          "cancel": "Avbryt",
-          "confirm": "Bekreft",
-          "description": "Du vil ikke lenger kunne tjene XP og låse opp levels og achievements.",
-          "loseList": {
-            "title": "Dette endres",
-            "li1": "Xp-progresjonen vil stoppe",
-            "li2": "Champion-nivået ditt vil ikke lener være aktivt"
-          },
-          "keepList": {
-            "title": "Dette forblir uendret",
-            "l1": "Du forblir en sikkerhet champion",
-            "l2": "Du kan fortsatt se alle eventer og workshops og hvem som er i programmet"
-          }
-        }
-      },
-      "nonmember": {
-
-      }
-    }
-  }
+	"title": "Sec Hub",
+	"sidebar": {
+		"overview": "Oversikt",
+		"events": "Arrangementer",
+		"community": "Nettverk"
+	},
+	"loading": {
+		"title": "Laster..."
+	},
+	"settings": {
+		"title": "Instillinger",
+		"themeOptions": {
+			"title": "Tema",
+			"light": "Lys",
+			"dark": "Mørk",
+			"system": "System"
+		},
+		"language": "Språk"
+	},
+	"events": {
+		"title": "Arrangementer",
+		"noEvents": "Ingen arrangementer ennå",
+		"description": "Møter, workshops og andre Security Champion-aktiviteter.",
+		"nextEvent": "Neste arrangement",
+		"details": "Se detaljer",
+		"upcomingEvents": "Kommende arrangementer",
+		"pastEvents": "Tidligere arrangementer",
+		"noUpcomingEvents": "Ingen andre kommende arrangementer.",
+		"noPastEvents": "Ingen tidligere arrangementer."
+	},
+	"community": {
+		"title": "Nettverk",
+		"description": "Alle Security Champions og teamene de er en del av.",
+		"searchLabel": "Søk etter navn eller team",
+		"searchPlaceholder": "Søk etter navn eller team",
+		"noResults": "Ingen Security Champions samsvarer med søket ditt.",
+		"noTeam": "Ingen team"
+	},
+	"appsec": {
+		"events": {
+			"title": "Administrer arrangementer",
+			"description": "Legg til og se over møter, workshops og eksterne arrangementer.",
+			"addEvent": "Legg til arrangement",
+			"allEvents": "Alle arrangementer",
+			"noEvents": "Ingen arrangementer ennå. Legg til et for å komme i gang.",
+			"form": {
+				"title": "Legg til arrangement",
+				"name": "Navn",
+				"description": "Beskrivelse",
+				"location": "Sted",
+				"type": "Type",
+				"types": {
+					"meeting": "Møte",
+					"workshop": "Workshop",
+					"course": "Kurs"
+				},
+				"startDate": "Startdato",
+				"startTime": "Starttid",
+				"endDate": "Sluttdato",
+				"endTime": "Sluttid",
+				"endBeforeStart": "Sluttidspunktet må være etter starttidspunktet",
+				"externalEvent": "Eksternt arrangement",
+				"deltaEvent": "Delta Event",
+				"submit": "Opprett arrangement",
+				"cancel": "Avbryt"
+			}
+		}
+	},
+	"home": {
+		"title": "Sikkerhet Champion Hub",
+		"description": "Her er det som skjer i Security Champion-programmet.",
+		"membership": {
+			"member": {
+				"securityChampion": "Sikkerhet champion",
+				"active": "SPILL AKTIV",
+				"inactive": "SPILL INAKTIV",
+				"gamification": "Gamification",
+				"description": "Du er et aktivt medlem av Security Champion-programmet.",
+				"levelNames": {
+					"level1": "Nyebegynner champion",
+					"level2": "Intermediert champion",
+					"level3": "Avansert champion"
+				},
+				"level": {
+					"level1": "nivå 1",
+					"level2": "nivå 2",
+					"level3": "nivå 3"
+				},
+				"nextLevel": "til neste nivå",
+				"joinedGamification": "Ble i Gamification",
+				"joinedProgram": "Sikkerhet champion siden",
+				"leave": "Forlat Sikkerhet Champion",
+				"leaveGame": "Forlat spill",
+				"joinGame": "Bli med i gamification",
+				"enabled": "Aktivert",
+				"disabled": "Deaktivert",
+				"optional": "Valgfritt",
+				"information": "Tjen XP, lås opp champion levels og achievements ved å delta i Security Champion-aktiviteter.",
+				"leaveGamificationModal": {
+					"title": "Forlat gamification",
+					"question": "Er du sikker på at du vil forlate gamification?",
+					"cancel": "Avbryt",
+					"confirm": "Bekreft",
+					"description": "Du vil ikke lenger kunne tjene XP og låse opp levels og achievements.",
+					"loseList": {
+						"title": "Dette endres",
+						"li1": "Xp-progresjonen vil stoppe",
+						"li2": "Champion-nivået ditt vil ikke lener være aktivt"
+					},
+					"keepList": {
+						"title": "Dette forblir uendret",
+						"l1": "Du forblir en sikkerhet champion",
+						"l2": "Du kan fortsatt se alle eventer og workshops og hvem som er i programmet"
+					}
+				}
+			},
+			"nonmember": {}
+		}
+	}
 }

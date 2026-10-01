@@ -1,27 +1,32 @@
+export function createLocalDevToken(
+	email: string = "local.user@nav.no",
+): string {
+	const header = { alg: "none", type: "JWT" };
+	const payload = {
+		preferred_username: email,
+		sub: "local-dev-user",
+		iat: Math.floor(Date.now() / 1000),
+		exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
+	};
 
-export function createLocalDevToken(email: string = "local.user@nav.no"): string {
-    const header = { alg: "none", type: "JWT" }
-    const payload = {
-        preferred_username: email,
-        sub: "local-dev-user",
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour
-    }
+	const encodedHeader = Buffer.from(JSON.stringify(header)).toString(
+		"base64url",
+	);
+	const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+		"base64url",
+	);
 
-    const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url");
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
-
-    return `${encodedHeader}.${encodedPayload}.local-dev-signature`;
+	return `${encodedHeader}.${encodedPayload}.local-dev-signature`;
 }
 
 export function createLocalParserResult() {
-    const username = process.env["LOCAL_DEV_EMAIL"] ?? "local.user@nav.no"
-    const groupIds = [process.env["APPSEC_ID"] ?? "1234567", "12345", "11111111" ]
-    return {
-        "oid": "SomeValue",
-        "NAVident": "D112345",
-        "name": "localTesting",
-        "preferred_username": username,
-        "groups" : groupIds
-    }
+	const username = process.env["LOCAL_DEV_EMAIL"] ?? "local.user@nav.no";
+	const groupIds = [process.env["APPSEC_ID"] ?? "1234567", "12345", "11111111"];
+	return {
+		oid: "SomeValue",
+		NAVident: "D112345",
+		name: "localTesting",
+		preferred_username: username,
+		groups: groupIds,
+	};
 }

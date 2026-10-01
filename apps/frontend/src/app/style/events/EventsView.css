@@ -1,325 +1,312 @@
 .eventsView {
-    width: 100%;
-    max-width: 68rem;
+	width: 100%;
+	max-width: 68rem;
 
-    min-width: 0;
+	min-width: 0;
 
-    padding-bottom: 4rem;
+	padding-bottom: 4rem;
 }
 
 .eventsView--compact {
-    max-width: none;
+	max-width: none;
 
-    height: 100%;
+	height: 100%;
 
-    padding: 1.5rem;
-    padding-bottom: 1.5rem;
+	padding: 1.5rem;
+	padding-bottom: 1.5rem;
 
-    border: 1px solid var(--sc-border);
-    border-radius: var(--sc-radius-lg);
+	border: 1px solid var(--sc-border);
+	border-radius: var(--sc-radius-lg);
 
-    background: var(--sc-surface);
+	background: var(--sc-surface);
 
-    box-shadow: var(--sc-shadow-sm);
+	box-shadow: var(--sc-shadow-sm);
 }
 
 .eventsView--compact .eventSection:first-child {
-    margin-top: 0;
+	margin-top: 0;
 }
 
 .eventsView__header {
-    margin-bottom: 1.5rem;
+	margin-bottom: 1.5rem;
 }
 
 .eventsView__subtitle {
-    margin-top: 0.25rem;
+	margin-top: 0.25rem;
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 }
 
 .nextEventCard {
-    position: relative;
+	position: relative;
 
-    padding: 1.5rem;
+	padding: 1.5rem;
 
-    border: 1px solid var(--sc-border);
-    border-radius: var(--sc-radius-lg);
+	border: 1px solid var(--sc-border);
+	border-radius: var(--sc-radius-lg);
 
-    background:
-            linear-gradient(
-                    135deg,
-                    var(--sc-primary-soft),
-                    transparent 55%
-            ),
-            var(--sc-surface);
+	background:
+		linear-gradient(135deg, var(--sc-primary-soft), transparent 55%),
+		var(--sc-surface);
 
-    box-shadow: var(--sc-shadow-sm);
+	box-shadow: var(--sc-shadow-sm);
 }
 
 .nextEventCard::before {
-    content: "";
+	content: "";
 
-    position: absolute;
+	position: absolute;
 
-    inset:
-            0
-            auto
-            0
-            0;
+	inset: 0 auto 0 0;
 
-    width: 4px;
+	width: 4px;
 
-    border-radius:
-            var(--sc-radius-lg)
-            0
-            0
-            var(--sc-radius-lg);
+	border-radius: var(--sc-radius-lg) 0 0 var(--sc-radius-lg);
 
-    background: var(--sc-primary);
+	background: var(--sc-primary);
 }
 
 .nextEventCard__eyebrow {
-    margin-bottom: 0.75rem;
+	margin-bottom: 0.75rem;
 
-    color: var(--sc-primary);
+	color: var(--sc-primary);
 
-    font-size: 0.75rem;
-    font-weight: 700;
+	font-size: 0.75rem;
+	font-weight: 700;
 
-    letter-spacing: 0.06em;
+	letter-spacing: 0.06em;
 
-    text-transform: uppercase;
+	text-transform: uppercase;
 }
 
 .nextEventCard__heading {
-    display: flex;
+	display: flex;
 
-    justify-content: space-between;
-    align-items: flex-start;
+	justify-content: space-between;
+	align-items: flex-start;
 
-    gap: 1rem;
+	gap: 1rem;
 }
 
 .nextEventCard__description {
-    max-width: 55ch;
+	max-width: 55ch;
 
-    margin-top: 0.35rem;
+	margin-top: 0.35rem;
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 }
 
 .nextEventCard__metadata {
-    display: flex;
-    flex-wrap: wrap;
+	display: flex;
+	flex-wrap: wrap;
 
-    gap: 0.75rem 1.5rem;
+	gap: 0.75rem 1.5rem;
 
-    margin-top: 1.5rem;
+	margin-top: 1.5rem;
 }
 
 .eventMeta {
-    display: inline-flex;
+	display: inline-flex;
 
-    align-items: center;
+	align-items: center;
 
-    gap: 0.45rem;
+	gap: 0.45rem;
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 
-    font-size: 0.875rem;
+	font-size: 0.875rem;
 }
 
 .eventMeta svg {
-    width: 1.15rem;
-    height: 1.15rem;
+	width: 1.15rem;
+	height: 1.15rem;
 
-    color: var(--sc-primary);
+	color: var(--sc-primary);
 }
 
 .nextEventCard__actions {
-    display: flex;
+	display: flex;
 
-    justify-content: flex-end;
+	justify-content: flex-end;
 
-    margin-top: 1.5rem;
+	margin-top: 1.5rem;
 }
 
 .eventSection {
-    margin-top: 2rem;
+	margin-top: 2rem;
 }
 
 .eventSection__header {
-    display: flex;
+	display: flex;
 
-    justify-content: space-between;
-    align-items: center;
+	justify-content: space-between;
+	align-items: center;
 
-    margin-bottom: 0.75rem;
+	margin-bottom: 0.75rem;
 }
 
 .eventSection__count {
-    display: inline-flex;
+	display: inline-flex;
 
-    min-width: 1.75rem;
-    height: 1.75rem;
+	min-width: 1.75rem;
+	height: 1.75rem;
 
-    align-items: center;
-    justify-content: center;
+	align-items: center;
+	justify-content: center;
 
-    border-radius: var(--sc-radius-pill);
+	border-radius: var(--sc-radius-pill);
 
-    background: var(--sc-surface-subtle);
+	background: var(--sc-surface-subtle);
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 
-    font-size: 0.8rem;
-    font-weight: 600;
+	font-size: 0.8rem;
+	font-weight: 600;
 }
 
 .eventSection__empty {
-    padding: 1.5rem;
+	padding: 1.5rem;
 
-    border: 1px dashed var(--sc-border-strong);
-    border-radius: var(--sc-radius-md);
+	border: 1px dashed var(--sc-border-strong);
+	border-radius: var(--sc-radius-md);
 
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 
-    background: var(--sc-surface);
+	background: var(--sc-surface);
 }
-
 
 /* ==================================================
    LIST
    ================================================== */
 
 .eventList {
-    overflow: hidden;
+	overflow: hidden;
 
-    border: 1px solid var(--sc-border);
-    border-radius: var(--sc-radius-lg);
+	border: 1px solid var(--sc-border);
+	border-radius: var(--sc-radius-lg);
 
-    background: var(--sc-surface);
+	background: var(--sc-surface);
 
-    box-shadow: var(--sc-shadow-sm);
+	box-shadow: var(--sc-shadow-sm);
 }
 
 .eventList--scrollable {
-    overflow-y: auto;
+	overflow-y: auto;
 
-    max-height: 31.5rem;
+	max-height: 31.5rem;
 }
 
 .eventListItem {
-    display: grid;
+	display: grid;
 
-    grid-template-columns:
-        auto
-        minmax(0, 1fr)
-        auto
-        auto;
+	grid-template-columns:
+		auto
+		minmax(0, 1fr)
+		auto
+		auto;
 
-    align-items: center;
+	align-items: center;
 
-    gap: 1rem;
+	gap: 1rem;
 
-    min-height: 4.5rem;
+	min-height: 4.5rem;
 
-    padding: 0.85rem 1rem;
+	padding: 0.85rem 1rem;
 
-    border-bottom: 1px solid var(--sc-divider);
+	border-bottom: 1px solid var(--sc-divider);
 }
 
 .eventListItem:last-child {
-    border-bottom: 0;
+	border-bottom: 0;
 }
 
 .eventListItem:hover {
-    background: var(--sc-surface-subtle);
+	background: var(--sc-surface-subtle);
 }
 
 .eventListItem__icon {
-    display: grid;
+	display: grid;
 
-    width: 2.25rem;
-    height: 2.25rem;
+	width: 2.25rem;
+	height: 2.25rem;
 
-    place-items: center;
+	place-items: center;
 
-    border-radius: var(--sc-radius-md);
+	border-radius: var(--sc-radius-md);
 
-    background: var(--sc-primary-soft);
+	background: var(--sc-primary-soft);
 
-    color: var(--sc-primary);
+	color: var(--sc-primary);
 }
 
 .eventListItem__content {
-    display: flex;
+	display: flex;
 
-    min-width: 0;
+	min-width: 0;
 
-    flex-direction: column;
+	flex-direction: column;
 
-    gap: 0.2rem;
+	gap: 0.2rem;
 }
 
 .eventListItem__title {
-    overflow: hidden;
+	overflow: hidden;
 
-    color: var(--sc-text);
+	color: var(--sc-text);
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .eventListItem__date {
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 
-    font-size: 0.8rem;
+	font-size: 0.8rem;
 }
 
 .eventListItem__type {
-    white-space: nowrap;
+	white-space: nowrap;
 }
 
 .eventListItem__chevron {
-    color: var(--sc-text-muted);
+	color: var(--sc-text-muted);
 }
 
 .eventListItem--muted {
-    opacity: 0.72;
+	opacity: 0.72;
 }
 
 @media (max-width: 48rem) {
-    .eventsView {
-        max-width: none;
-    }
+	.eventsView {
+		max-width: none;
+	}
 
-    .nextEventCard__heading {
-        flex-direction: column;
-    }
+	.nextEventCard__heading {
+		flex-direction: column;
+	}
 
-    .nextEventCard__metadata {
-        flex-direction: column;
+	.nextEventCard__metadata {
+		flex-direction: column;
 
-        gap: 0.65rem;
-    }
+		gap: 0.65rem;
+	}
 
-    .nextEventCard__actions {
-        justify-content: stretch;
-    }
+	.nextEventCard__actions {
+		justify-content: stretch;
+	}
 
-    .nextEventCard__actions > * {
-        width: 100%;
-    }
+	.nextEventCard__actions > * {
+		width: 100%;
+	}
 
-    .eventListItem {
-        grid-template-columns:
-            auto
-            minmax(0, 1fr)
-            auto;
-    }
+	.eventListItem {
+		grid-template-columns:
+			auto
+			minmax(0, 1fr)
+			auto;
+	}
 
-    .eventListItem__type {
-        display: none;
-    }
+	.eventListItem__type {
+		display: none;
+	}
 }

@@ -29,6 +29,14 @@
     "noUpcomingEvents": "No other upcoming events.",
     "noPastEvents": "No previous events."
   },
+  "community": {
+    "title": "Community",
+    "description": "All Security Champions and the teams they are part of.",
+    "searchLabel": "Search by name or team",
+    "searchPlaceholder": "Search by name or team",
+    "noResults": "No Security Champions match your search.",
+    "noTeam": "No team"
+  },
   "appsec": {
     "events": {
       "title": "Manage events",

@@ -15,6 +15,7 @@ export type Member = {
     level: string,
     inGame: boolean,
     joinedAt: string,
+    teams: string[],
 }
 export type SCData = { timestamp: string, amount: number }
 export type Row = { year: number, count: number }

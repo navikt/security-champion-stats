@@ -1,6 +1,5 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.Member
@@ -47,9 +46,12 @@ class Controller(
                     email = members.email,
                     level = members.level,
                     inGame = members.inProgram,
-                    joinedAt = members.createdAt
+                    joinedAt = members.createdAt,
+                    teams = members.teams
                 )
             }
+
+        logger.info("Fetched $response members")
         return ResponseEntity(response, HttpStatus.OK)
     }
 

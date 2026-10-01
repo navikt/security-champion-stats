@@ -1,5 +1,5 @@
 import { ComponentType, SVGProps } from "react";
-import { CalendarIcon, HouseIcon, PersonIcon } from "@navikt/aksel-icons";
+import { CalendarIcon, HouseIcon, PersonGroupIcon, PersonIcon } from "@navikt/aksel-icons";
 import {useTranslations} from "next-intl";
 
 
@@ -39,6 +39,12 @@ export function navigation(): NavigationItem[] {
 			labelKey: t("events"),
 			path: "/events",
 			icon: CalendarIcon,
+		},
+		{
+			id: "community",
+			labelKey: t("community"),
+			path: "/community",
+			icon: PersonGroupIcon,
 		},
 	]
 }

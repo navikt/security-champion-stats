@@ -1,0 +1,132 @@
+.communityView {
+    width: 100%;
+    max-width: 68rem;
+
+    min-width: 0;
+
+    padding-bottom: 4rem;
+}
+
+.communityView__header {
+    margin-bottom: 1.5rem;
+}
+
+.communityView__subtitle {
+    margin-top: 0.25rem;
+
+    color: var(--sc-text-muted);
+}
+
+.communityView__search {
+    max-width: 24rem;
+
+    margin-bottom: 1.5rem;
+}
+
+.communitySection__empty {
+    padding: 1.5rem;
+
+    border: 1px dashed var(--sc-border-strong);
+    border-radius: var(--sc-radius-md);
+
+    color: var(--sc-text-muted);
+
+    background: var(--sc-surface);
+}
+
+.communityList {
+    overflow: hidden;
+
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-lg);
+
+    background: var(--sc-surface);
+
+    box-shadow: var(--sc-shadow-sm);
+}
+
+.communityMemberRow {
+    display: grid;
+
+    grid-template-columns:
+        auto
+        minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 1rem;
+
+    min-height: 4.5rem;
+
+    padding: 0.85rem 1rem;
+
+    border-bottom: 1px solid var(--sc-divider);
+}
+
+.communityMemberRow:last-child {
+    border-bottom: 0;
+}
+
+.communityMemberRow:hover {
+    background: var(--sc-surface-subtle);
+}
+
+.communityMemberRow__avatar {
+    display: grid;
+
+    width: 2.5rem;
+    height: 2.5rem;
+
+    place-items: center;
+
+    border-radius: var(--sc-radius-pill);
+
+    background: var(--sc-primary-soft);
+
+    color: var(--sc-primary);
+
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.communityMemberRow__content {
+    display: flex;
+
+    min-width: 0;
+
+    flex-direction: column;
+
+    gap: 0.35rem;
+}
+
+.communityMemberRow__name {
+    overflow: hidden;
+
+    color: var(--sc-text);
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.communityMemberRow__teams {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 0.4rem;
+}
+
+.communityMemberRow__noTeam {
+    color: var(--sc-text-subtle);
+
+    font-size: 0.8rem;
+}
+
+@media (max-width: 48rem) {
+    .communityView {
+        max-width: none;
+    }
+
+    .communityView__search {
+        max-width: none;
+    }
+}

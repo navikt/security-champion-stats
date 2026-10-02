@@ -6,8 +6,8 @@ export function useMe() {
 	const [me, setMe] = useState<Me>({
 		username: "",
 		isAdmin: false,
-		isSecChamp: false,
-		inGame: false,
+		isParticipant: false,
+		isActive: false,
 	});
 	const [loading, setLoading] = useState(true);
 

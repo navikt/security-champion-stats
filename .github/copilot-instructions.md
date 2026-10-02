@@ -8,10 +8,13 @@
 - Do NOT add anything comprehensive unless specifically instructed.
 - Do NOT add documentation unless specifically asked.
 - Do NOT add comments in code unless the logic is VERY complex.
-- The user will verify functionality manually and ask for changes if needed. No need to build or run the application for verification.
+- Always verify new features and changes by running the build and tests for every affected app.
+  For backend changes, run `./gradlew build` from `apps/backend` (includes tests).
+  For frontend changes, run `pnpm test` and `pnpm build` from `apps/frontend`.
+  When both apps are affected, verify both. Report failures or blockers; do not claim verification succeeded.
 - **DO NOT ADD EXTRA DOCUMENTATION OR EXPLANATIONS UNLESS SPECIFICALLY ASKED.**
 - Do not use timeout when running terminal commands, we are running zsh on macos.
-- Do not run or ask to run terminal commands.
+- Run terminal commands needed to build and test affected apps.
 - When adding or removing functionality, we update the README.md within frontend or backend folder with relevant information. Keep the information here VERY concise and to the point. For example when adding or removing a package or refactoring existing folder structure.
 - Do not change files without first presenting a solution and asking for approval.
 

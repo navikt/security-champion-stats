@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
 import { getBackendToken, getServerEnv } from "@/app/utils/Validation";
-import { AUTHENTICATED_FAILED, FAILED_TO_LEAVE } from "@/app/utils/Variables";
+import { AUTHENTICATED_FAILED, FAILED_TO_JOIN } from "@/app/utils/Variables";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -9,30 +9,25 @@ export async function POST(request: NextRequest) {
 
 		if (backendToken === AUTHENTICATED_FAILED) {
 			return NextResponse.json(
-				{ error: "Authentication failed, failed to fetch obo-token or token" },
+				{ error: "Authentication failed, failed to fetch token" },
 				{ status: 401 },
 			);
 		}
-		const url = `${backendUrl}/api/leaveGame`;
-		const response = await fetch(url, {
+
+		const response = await fetch(`${backendUrl}/api/enroll`, {
 			method: "POST",
 			headers: {
 				Authorization: `Bearer ${backendToken}`,
 				"Content-Type": "application/json",
 			},
 		});
+
 		if (!response.ok) {
-			return NextResponse.json(
-				{ error: FAILED_TO_LEAVE },
-				{ status: response.status },
-			);
+			return NextResponse.json({ error: FAILED_TO_JOIN }, { status: response.status });
 		}
 		return NextResponse.json({ status: response.status });
 	} catch (error) {
-		console.error("Error in /api/leave:", error);
-		return NextResponse.json(
-			{ error: "Failed to leave program, due to an internal error" },
-			{ status: 500 },
-		);
+		console.error("Error in /api/enroll:", error);
+		return NextResponse.json({ error: FAILED_TO_JOIN }, { status: 500 });
 	}
 }

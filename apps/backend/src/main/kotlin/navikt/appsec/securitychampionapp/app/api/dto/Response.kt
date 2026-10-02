@@ -24,7 +24,35 @@ data class Points(val email: String, val points: Int)
 data class SCdata(val timestamp: String, val amount: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class Me(val username: String, val isAdmin: Boolean, val isSecChamp: Boolean, val inGame: Boolean)
+data class Me(val username: String, val isAdmin: Boolean, val isParticipant: Boolean, val isActive: Boolean)
+
+data class ProgramParticipantSummary(
+    val id: String,
+    val fullname: String,
+    val teams: List<String>,
+)
+
+data class ProgramParticipantView(
+    val id: String,
+    val email: String,
+    val fullname: String,
+    val active: Boolean,
+    val joinedAt: String,
+    val teams: List<String>,
+)
+
+data class AdminProgramParticipantView(
+    val id: String,
+    val email: String,
+    val fullname: String,
+    val teams: List<String>,
+    val active: Boolean,
+    val joinedAt: String,
+)
+
+data class UpdateParticipantStatusRequest(val active: Boolean)
+
+data class DeleteParticipantRequest(val confirmed: Boolean, val reason: String)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Event(

@@ -1,42 +1,44 @@
 import { BodyShort, Button, Heading } from "@navikt/ds-react";
+import { useTranslations } from "next-intl";
+import { useState } from "react";
 
-export function JoinProgramView() {
-	const handleJoin = () => {};
+export function JoinProgramView({
+	onEnroll,
+}: {
+	onEnroll: () => Promise<boolean>;
+}) {
+	const t = useTranslations("home.membership.nonmember");
+	const [pending, setPending] = useState(false);
+	const [failed, setFailed] = useState(false);
+
+	const handleJoin = async () => {
+		if (pending) return;
+		setPending(true);
+		setFailed(false);
+		try {
+			setFailed(!(await onEnroll()));
+		} catch {
+			setFailed(true);
+		} finally {
+			setPending(false);
+		}
+	};
 
 	return (
 		<section className="sc-membership-card sc-membership-card--guest">
 			<div className="sc-membership-card__content">
-				<span className="sc-membership-card__status">Temp Not enrolled</span>
-
 				<Heading level="2" size="large" className="sc-membership-card__title">
-					Temp Become a Security Champion
+					{t("title")}
 				</Heading>
-
 				<BodyShort className="sc-membership-card__description">
-					Temp Join the program to participate in workshops, access security
-					resources and connect with other champions.
+					{t("description")}
 				</BodyShort>
-				{/*TODO: go over them and potentially remove all of them*/}
-				<ul className="sc-benefit-list">
-					<li>Temp Attend meetings and workshops</li>
-
-					<li>Temp Participate in optional XP and levels</li>
-				</ul>
+				{failed && <p role="alert">{t("enrollError")}</p>}
 				<div className="sc-membership-card__actions">
 					<Button variant="primary" onClick={handleJoin}>
-						Temp Join the program
+						{pending ? t("enrolling") : t("enroll")}
 					</Button>
-
-					<Button variant="secondary">Temp Learn more</Button>
 				</div>
-			</div>
-
-			<div className="sc-membership-card__visual" aria-hidden="true">
-				<div className="sc-rank-emblem">+</div>
-				{/*TODO: look over this and decide to keep it or not*/}
-				<p className="sc-rank-name">Temp Your journey starts here</p>
-
-				<p className="sc-rank-level">Temp Levels and XP are optional</p>
 			</div>
 		</section>
 	);

@@ -46,10 +46,11 @@ class LocalTokenIntrospection : AppAuthenticationFilter() {
             active = true,
             ident = "A1234544426",
             preferredUsername = "local.user@nav.no",
+            navNoEmail = "local.user@nav.no",
             groups = listOf("local-admin-group", "local-user-group"),
             error = null
         )
-        val principal = AppPrincipal(result.preferredUsername!!, result.ident!!)
+        val principal = AppPrincipal(result.preferredUsername!!, result.ident!!, result.navNoEmail!!)
         val authentication = UsernamePasswordAuthenticationToken(
             principal, null, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
         )

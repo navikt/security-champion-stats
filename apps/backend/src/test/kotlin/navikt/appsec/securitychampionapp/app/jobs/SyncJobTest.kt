@@ -2,15 +2,10 @@ package navikt.appsec.securitychampionapp.app.jobs
 
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
-import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlMember
-import navikt.appsec.securitychampionapp.integrations.slack.ChannelMembershipService
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampion
-import navikt.appsec.securitychampionapp.integrations.slack.dto.SlackCommonResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
-import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalogMock
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
-import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -19,36 +14,20 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.mockito.Mockito
 import org.mockito.kotlin.any
-import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
-import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.springframework.core.env.StandardEnvironment
-import org.springframework.core.io.DefaultResourceLoader
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.web.reactive.function.client.WebClient
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import tools.jackson.databind.ObjectMapper
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SyncJobTest {
     private val jobLock = Mockito.mock(PostgresJobLock::class.java)
-    private val slackChannelMembershipService = mock<ChannelMembershipService>()
-    private val environment = StandardEnvironment().apply { setActiveProfiles("test") }
-    private val resourceLoader = DefaultResourceLoader()
-    private val objectMapper = ObjectMapper()
-    private val teamCatalogMock = TeamCatalogMock(objectMapper, resourceLoader)
-    private val catalog = TeamCatalog(
-        externalServiceWebClient = WebClient.builder().build(),
-        teamCatalogMock = teamCatalogMock,
-        environment = environment,
-    )
+    private val catalog = mock<TeamCatalog>()
 
     companion object {
         @JvmStatic
@@ -62,7 +41,7 @@ class SyncJobTest {
 
     private lateinit var dataSource: HikariDataSource
     private lateinit var jdbcTemplate: JdbcTemplate
-    private lateinit var repository: MemberRepository
+    private lateinit var repository: ProgramParticipantRepository
     private lateinit var flyway: Flyway
 
     @BeforeAll
@@ -75,7 +54,7 @@ class SyncJobTest {
             maximumPoolSize = 2
         }
         jdbcTemplate = JdbcTemplate(dataSource)
-        repository = MemberRepository(jdbcTemplate)
+        repository = ProgramParticipantRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")
@@ -90,18 +69,15 @@ class SyncJobTest {
 
     @BeforeEach
     fun setup() {
-        Mockito.reset(jobLock, slackChannelMembershipService)
+        Mockito.reset(jobLock, catalog)
         flyway.clean()
         flyway.migrate()
-        whenever(slackChannelMembershipService.sendWelcomeMessage(any())).thenReturn(SlackCommonResponse(isOk = true))
-        whenever(slackChannelMembershipService.updateUserGroupWithNewMembers()).thenReturn(SlackCommonResponse(isOk = true))
     }
 
-    private fun syncJob(catalogOverride: TeamCatalog = catalog) = SyncJob(
+    private fun syncJob() = SyncJob(
         jobLock = jobLock,
         repo = repository,
-        catalog = catalogOverride,
-        slackChannelMembershipService = slackChannelMembershipService,
+        catalog = catalog,
     )
 
     private fun runJobInsideLock() {
@@ -112,135 +88,66 @@ class SyncJobTest {
     }
 
     @Test
-    fun `should add new members and remove members no longer in team catalog`() {
+    fun `should update profile data without changing participation`() {
         runJobInsideLock()
-        seedMember(
-            id = "test-id",
-            fullname = "Test User",
-            email = "test@nav.no",
-        )
-
-        syncJob().syncDatabase()
-
-        val members = repository.getAllMembers().queryResult!!
-        Assertions.assertThat(members).hasSize(5)
-        Assertions.assertThat(members.map(SqlMember::email)).containsExactlyInAnyOrder(
-            "ada.lovelace@nav.no",
-            "local.user@nav.no",
-            "thomas.aasen@nav.no",
-            "ingrid.moen@nav.no",
-            "sara.berg@nav.no"
-        )
-        Assertions.assertThat(members.map(SqlMember::email)).doesNotContain("test@nav.no")
-        verify(slackChannelMembershipService).updateUserGroupWithNewMembers()
-    }
-
-    @Test
-    fun `should send welcome message for new members`() {
-        runJobInsideLock()
-
-        syncJob().syncDatabase()
-
-        val captor = argumentCaptor<List<SecurityChampion>>()
-        verify(slackChannelMembershipService).sendWelcomeMessage(captor.capture())
-        Assertions.assertThat(captor.firstValue.map(SecurityChampion::email)).containsExactlyInAnyOrder(
-            "ada.lovelace@nav.no",
-            "local.user@nav.no",
-            "thomas.aasen@nav.no",
-            "ingrid.moen@nav.no",
-            "sara.berg@nav.no"
-        )
-    }
-
-    @Test
-    fun `should skip sync when team catalog returns no members`() {
-        runJobInsideLock()
-        seedMember(
-            id = "test-id",
-            fullname = "Test User",
-            email = "test@nav.no",
-        )
-        val emptyCatalog = mock<TeamCatalog>()
-        whenever(emptyCatalog.fetchMembersWithRole()).thenReturn(emptyList())
-
-        syncJob(emptyCatalog).syncDatabase()
-
-        Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult).hasSize(1)
-        verify(slackChannelMembershipService, never()).sendWelcomeMessage(any())
-        verify(slackChannelMembershipService, never()).updateUserGroupWithNewMembers()
-    }
-
-    @Test
-    fun `should update user group before sending welcome message`() {
-        runJobInsideLock()
-        whenever(slackChannelMembershipService.sendWelcomeMessage(any()))
-            .thenReturn(SlackCommonResponse(isOk = false, error = "slack failed"))
-
-        syncJob().syncDatabase()
-
-        inOrder(slackChannelMembershipService) {
-            verify(slackChannelMembershipService).updateUserGroupWithNewMembers()
-            verify(slackChannelMembershipService).sendWelcomeMessage(any())
-        }
-    }
-
-    @Test
-    fun `should not send welcome message when user group update fails`() {
-        runJobInsideLock()
-        whenever(slackChannelMembershipService.updateUserGroupWithNewMembers())
-            .thenReturn(SlackCommonResponse(isOk = false, error = "slack failed"))
-
-        syncJob().syncDatabase()
-
-        verify(slackChannelMembershipService).updateUserGroupWithNewMembers()
-        verify(slackChannelMembershipService, never()).sendWelcomeMessage(any())
-    }
-
-    @Test
-    fun `should update teams for existing members`() {
-        runJobInsideLock()
-        seedMember(
-            id = "A123456",
-            fullname = "Ada Lovelace",
-            email = "ada.lovelace@nav.no",
-            teams = listOf("Old team"),
-        )
-        val catalogWithUpdatedTeam = mock<TeamCatalog>()
-        whenever(catalogWithUpdatedTeam.fetchMembersWithRole()).thenReturn(
+        repository.enroll("user@nav.no", "A12345", "user@nav.no")
+        whenever(catalog.fetchAllMembersWithTeamData()).thenReturn(
             listOf(
                 MemberWithTeamData(
-                    navIdent = "A123456",
-                    fullName = "Ada Lovelace",
-                    email = "ada.lovelace@nav.no",
-                    teamName = mutableListOf("New team"),
-                    teamId = mutableListOf("new-team-id"),
+                    navIdent = "A12345",
+                    fullName = "Test User",
+                    email = "user@nav.no",
+                    teamName = mutableListOf("Updated team"),
+                    teamId = mutableListOf("team-id"),
                 )
             )
         )
 
-        syncJob(catalogWithUpdatedTeam).syncDatabase()
+        syncJob().syncDatabase()
 
-        Assertions.assertThat(repository.getMemberByEmail("ada.lovelace@nav.no").queryResult!!.first().teams)
-            .containsExactly("New team")
+        val participant = repository.findByNavNoEmail("user@nav.no").queryResult.single()
+        assertThat(participant.fullname).isEqualTo("Test User")
+        assertThat(participant.teams).containsExactly("Updated team")
+        assertThat(participant.status).isEqualTo("ACTIVE")
     }
 
     @Test
-    fun `should skip sync when another instance already holds the lock`() {
+    fun `should not create participants for Teamkatalogen members`() {
+        runJobInsideLock()
+        whenever(catalog.fetchAllMembersWithTeamData()).thenReturn(
+            listOf(
+                MemberWithTeamData(
+                    navIdent = "A12345",
+                    fullName = "Not Enrolled",
+                    email = "not-enrolled@nav.no",
+                    teamName = mutableListOf("Team"),
+                    teamId = mutableListOf("team-id"),
+                )
+            )
+        )
+
+        syncJob().syncDatabase()
+
+        assertThat(repository.findAllParticipants().queryResult).isEmpty()
+    }
+
+    @Test
+    fun `should retain participants absent from Teamkatalogen`() {
+        runJobInsideLock()
+        repository.enroll("user@nav.no", "A12345", "user@nav.no")
+        whenever(catalog.fetchAllMembersWithTeamData()).thenReturn(emptyList())
+
+        syncJob().syncDatabase()
+
+        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult).hasSize(1)
+    }
+
+    @Test
+    fun `should not sync when another instance holds the lock`() {
         syncJob().syncDatabase()
 
         verify(jobLock).runWithLock(any(), any(), any())
-        Assertions.assertThat(repository.getAllMembers().queryResult).isEmpty()
+        verify(catalog, Mockito.never()).fetchAllMembersWithTeamData()
     }
 
-    private fun seedMember(
-        id: String,
-        fullname: String,
-        email: String,
-        teams: List<String> = emptyList(),
-    ) {
-        val member = repository.getMemberByEmail(email).queryResult!!.firstOrNull()
-        if (member == null) {
-            repository.addMember(fullname, id, email, teams)
-        }
-    }
 }

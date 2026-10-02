@@ -18,6 +18,29 @@ data class SqlMember(
     val createdAt: String,
 )
 
+data class ProgramParticipant(
+    val id: String,
+    val navNoEmail: String,
+    val navIdent: String?,
+    val email: String,
+    val fullname: String,
+    val teams: List<String>,
+    val status: String,
+    val createdAt: String,
+)
+
+data class ProgramParticipantQueryResponse(
+    val isOk: Boolean,
+    val queryResult: List<ProgramParticipant> = emptyList(),
+    val error: String? = null,
+)
+
+data class ProgramParticipantUpdateResponse(
+    val isOk: Boolean,
+    val error: String? = null,
+    val affectedRows: Int = 0,
+)
+
 data class MemberQueryResponse(
     val isOk: Boolean,
     val queryResult: List<SqlMember>? = null,

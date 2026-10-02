@@ -10,6 +10,8 @@ data class TokenResponse(
     val preferredUsername: String?,
     @JsonProperty("NAVident")
     val ident: String?,
+    @JsonProperty("nav.no-email")
+    val navNoEmail: String?,
     val groups: List<String> = emptyList(),
     val error: String?
 )
@@ -21,4 +23,4 @@ data class IntrospectionRequest(
     val token: String
 )
 
-data class AppPrincipal(val email: String, val navIdent: String)
+data class AppPrincipal(val email: String, val navIdent: String, val navNoEmail: String)

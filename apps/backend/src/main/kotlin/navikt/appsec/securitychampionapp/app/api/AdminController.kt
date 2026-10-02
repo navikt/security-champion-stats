@@ -1,12 +1,17 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
+import navikt.appsec.securitychampionapp.app.api.dto.AdminProgramParticipantView
+import navikt.appsec.securitychampionapp.app.api.dto.DeleteParticipantRequest
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
+import navikt.appsec.securitychampionapp.app.api.dto.UpdateParticipantStatusRequest
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
+import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -17,6 +22,7 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -27,16 +33,19 @@ import java.util.UUID
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: MemberRepository,
+    private val participantRepository: ProgramParticipantRepository,
     private val validate: Validate,
-    private val eventRepository: EventRepository
+    private val eventRepository: EventRepository,
 ) {
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
 
     @PostMapping("/member", consumes = [MediaType.APPLICATION_JSON_VALUE])
-    fun addMember(@RequestBody memberInfo: AddMember): ResponseEntity<Any>{
+    fun addMember(@RequestBody memberInfo: AddMember): ResponseEntity<Any> {
         if (!validate.isValidEmail(memberInfo.email) or !validate.isValidName(memberInfo.fullName)) {
-            logger.warn("Attempt to add member failed due to invalid email format, " +
-                    "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
+            logger.warn(
+                "Attempt to add member failed due to invalid email format, " +
+                    "request made by user ${SecurityContextHolder.getContext().authentication?.name}"
+            )
             return ResponseEntity.status(HttpStatus.ACCEPTED).build()
         }
         val id = UUID.randomUUID().toString()
@@ -45,16 +54,79 @@ class AdminController(
     }
 
     @DeleteMapping("/member/{id}")
-    fun deleteMember(@PathVariable id: String): ResponseEntity<Any>{
+    fun deleteMember(@PathVariable id: String): ResponseEntity<Any> {
         repo.deleteMember(id)
         return ResponseEntity.status(HttpStatus.ACCEPTED).build()
     }
 
+    @GetMapping("/participants")
+    fun getProgramParticipants(): ResponseEntity<List<AdminProgramParticipantView>> {
+        val response = participantRepository.findAllParticipants()
+        if (!response.isOk) {
+            logger.error("Failed to fetch program participants: ${response.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+
+        return ResponseEntity.ok(
+            response.queryResult.map {
+                AdminProgramParticipantView(
+                    id = it.id,
+                    email = it.email,
+                    fullname = it.fullname,
+                    teams = it.teams,
+                    active = it.status == "ACTIVE",
+                    joinedAt = it.createdAt,
+                )
+            }
+        )
+    }
+
+    @PutMapping("/participants/{id}/status", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun updateParticipantStatus(
+        @PathVariable id: String,
+        @RequestBody request: UpdateParticipantStatusRequest,
+    ): ResponseEntity<Any> {
+        val participantId = id.toUuid() ?: return ResponseEntity.badRequest().build()
+        val response = participantRepository.updateStatus(
+            participantId,
+            request.active,
+            currentPrincipal().navNoEmail,
+        )
+        if (!response.isOk) {
+            logger.error("Failed to update participant status: ${response.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+        if (response.affectedRows == 0) return ResponseEntity.notFound().build()
+        return ResponseEntity.noContent().build()
+    }
+
+    @DeleteMapping("/participants/{id}", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    fun permanentlyDeleteParticipant(
+        @PathVariable id: String,
+        @RequestBody request: DeleteParticipantRequest,
+    ): ResponseEntity<Any> {
+        if (!request.confirmed || request.reason.isBlank()) {
+            return ResponseEntity.badRequest().body("Confirmation and a reason are required")
+        }
+        val participantId = id.toUuid() ?: return ResponseEntity.badRequest().build()
+        val response = participantRepository.permanentlyDelete(
+            participantId,
+        )
+        if (!response.isOk) {
+            logger.error("Failed to permanently delete participant: ${response.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+        if (response.affectedRows == 0) return ResponseEntity.notFound().build()
+        return ResponseEntity.noContent().build()
+    }
+
     @PostMapping("/points")
-    fun addPoints(@RequestBody points: Points): ResponseEntity<Any>{
+    fun addPoints(@RequestBody points: Points): ResponseEntity<Any> {
         if (!validate.isValidEmail(points.email) or !validate.isValidNumber(points.points.toString())) {
-            logger.warn("Attempt to add points for user failed due to invalid email format, " +
-                    "request made by user ${SecurityContextHolder.getContext().authentication?.name}")
+            logger.warn(
+                "Attempt to add points for user failed due to invalid email format, " +
+                    "request made by user ${SecurityContextHolder.getContext().authentication?.name}"
+            )
             return ResponseEntity.status(HttpStatus.ACCEPTED).build()
         }
         val user = repo.getMemberByEmail(points.email)
@@ -67,7 +139,6 @@ class AdminController(
         repo.addPoints(points.email, newAmount, level)
         return ResponseEntity("Points where added for user", HttpStatus.ACCEPTED)
     }
-
 
     @PostMapping("/events")
     fun addEvent(@RequestBody event: Event): ResponseEntity<String> {
@@ -91,21 +162,21 @@ class AdminController(
     }
 
     @GetMapping("/dashboard/members")
-    fun getAllMembers(): ResponseEntity<List<SCdata>> {
-        return ResponseEntity.ok(repo.getSCAmountOverTime())
-    }
+    fun getAllMembers(): ResponseEntity<List<SCdata>> =
+        ResponseEntity.ok(repo.getSCAmountOverTime())
 
     @PostMapping("/test/member/add/slack/{email}")
-    fun addMemberToSlack(@PathVariable email: String): ResponseEntity<Any> {
-        return ResponseEntity.ok().build()
-    }
+    fun addMemberToSlack(@PathVariable email: String): ResponseEntity<Any> =
+        ResponseEntity.ok().build()
 
     @PostMapping("/member/attended/{email}")
-    fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> {
-        return ResponseEntity.ok().build()
-    }
-
+    fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> =
+        ResponseEntity.ok().build()
 
     private fun String.isValidTime(): Boolean = runCatching { Instant.parse(this) }.isSuccess
 
+    private fun String.toUuid(): UUID? = runCatching { UUID.fromString(this) }.getOrNull()
+
+    private fun currentPrincipal(): AppPrincipal =
+        requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal
 }

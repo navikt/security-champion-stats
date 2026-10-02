@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 
-private const val SECURITY_CHAMPION = "SECURITY_CHAMPION"
 @Service
 class TeamCatalog(
     private val externalServiceWebClient: WebClient,
@@ -70,7 +69,7 @@ class TeamCatalog(
         }
     }
 
-    fun fetchMembersWithRole(): List<MemberWithTeamData> {
+    fun fetchAllMembersWithTeamData(): List<MemberWithTeamData> {
         val productAreas = if (useMockResponses()) {
             teamCatalogMock.loadMockProductAreas()
         } else {
@@ -78,7 +77,7 @@ class TeamCatalog(
         }
 
         val teamsWithinProduct= if (useMockResponses()) {
-            teamCatalogMock.loadMockMembersWithRole(productAreas)
+            teamCatalogMock.loadMockTeamMembers(productAreas)
         } else {
             fetchAllTeams(productAreas)
         }
@@ -88,34 +87,30 @@ class TeamCatalog(
             return emptyList()
         }
 
-        val securityChamps = mutableListOf<MemberWithTeamData>()
+        val membersWithTeamData = linkedMapOf<String, MemberWithTeamData>()
 
         teamsWithinProduct.forEach { teams ->
             teams.content.forEach { team ->
                 team.members.forEach { member ->
-                    if (member.roles.contains(SECURITY_CHAMPION)) {
-                        if (securityChamps.any { champ -> champ.email == member.resource.email }) {
-                            securityChamps.forEach { champ ->
-                                if (champ.email == member.resource.email) {
-                                    champ.teamName.add(team.name)
-                                    champ.teamId.add(team.id)
-                                }
-                            }
+                    val email = member.resource.email
+                    if (email != null) {
+                        val existingMember = membersWithTeamData[email]
+                        if (existingMember != null) {
+                            existingMember.teamName.add(team.name)
+                            existingMember.teamId.add(team.id)
                         } else {
-                            securityChamps.add(
-                                MemberWithTeamData(
-                                    navIdent = member.resource.navIdent,
-                                    fullName = member.resource.fullName,
-                                    email = member.resource.email ?: "unknown",
-                                    teamName = mutableListOf(team.name),
-                                    teamId = mutableListOf(team.id)
-                                )
+                            membersWithTeamData[email] = MemberWithTeamData(
+                                navIdent = member.resource.navIdent,
+                                fullName = member.resource.fullName,
+                                email = email,
+                                teamName = mutableListOf(team.name),
+                                teamId = mutableListOf(team.id)
                             )
                         }
                     }
                 }
             }
         }
-        return securityChamps
+        return membersWithTeamData.values.toList()
     }
 }

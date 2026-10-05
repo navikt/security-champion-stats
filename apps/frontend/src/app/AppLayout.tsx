@@ -46,6 +46,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 								<ActionMenu.Item as="a" href="/appsec/scoring">
 									Manage scoring
 								</ActionMenu.Item>
+								<ActionMenu.Item as="a" href="/appsec/slack">
+									Manage Slack mappings
+								</ActionMenu.Item>
 							</ActionMenu.Group>
 						</ActionMenu.Content>
 					</ActionMenu>

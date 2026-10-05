@@ -12,7 +12,8 @@ creating, deactivating, or restoring participation.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
-Legacy per-message Slack scoring has been removed; weekly Slack credit integration remains pending.
+Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
+Administrators explicitly map Slack account IDs to participants and review unmapped authors.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
@@ -105,8 +106,9 @@ src/main/kotlin/.../
 │   │   └── dto/                    # Request/response DTOs
 │   ├── scoring/                    # Season scoring rules and application service
 │   └── jobs/
-│       ├── SyncJob.kt              # Daily sync: updates profiles for existing participants
-│       └── ResetSeasonJob.kt       # Daily check for the next configured season start
+│   ├── SyncJob.kt              # Daily sync: updates profiles for existing participants
+│   ├── SlackScoringSyncJob.kt  # Fetches allowlisted Slack activity and awards weekly credits
+│   └── ResetSeasonJob.kt       # Daily check for the next configured season start
 ├── config/                         # Spring configuration (Security, Swagger, Slack, TeamCatalog, Web)
 ├── integrations/
 │   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
@@ -119,7 +121,7 @@ src/main/kotlin/.../
 src/main/resources/
 ├── application.yaml                # Main configuration
 ├── application-local.yaml          # Local dev overrides (mocked integrations)
-├── db/migration/                   # Flyway SQL migrations (V1–V12)
+├── db/migration/                   # Flyway SQL migrations (V1–V13)
 └── mock/                           # Static mock responses for Slack and Teamkatalogen (local profile)
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
@@ -152,12 +154,16 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | POST | `/api/admin/scoring/participants/{id}/adjustments` | Add a signed, reasoned point adjustment |
 | PUT | `/api/admin/scoring/season/reset-date` | Set the next scheduled season start |
 | POST | `/api/admin/scoring/season/reset` | Start a manually confirmed season |
+| GET | `/api/admin/slack` | List approved Slack mappings and unmapped authors |
+| POST | `/api/admin/slack/mappings` | Explicitly map a Slack account to a participant |
+| DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs
 | Job | Schedule | Description |
 |-----|----------|-------------|
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
+| `SlackScoringSyncJob` | Every 6 hours | Awards qualifying Slack participation credits and queues unmapped authors |
 | `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |
 
 ## Contributing

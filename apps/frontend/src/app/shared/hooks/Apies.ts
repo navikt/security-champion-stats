@@ -7,6 +7,7 @@ import {
 	ProgramParticipantSummary,
 	SCData,
 	SecurityEvent,
+	SlackMappingOverview,
 } from "../../utils/Variables";
 
 export const Apies = {
@@ -25,6 +26,35 @@ export const Apies = {
 			return null;
 		}
 		return res.json();
+	},
+	getSlackMappingOverview: async (): Promise<SlackMappingOverview | null> => {
+		const res = await fetch("/api/admin/slack");
+		if (!res.ok) {
+			console.error("Failed to fetch Slack mappings, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	addSlackMapping: async (slackUserId: string, participantId: string): Promise<number> => {
+		const res = await fetch("/api/admin/slack", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ slackUserId, participantId }),
+		});
+		if (!res.ok) {
+			console.error("Failed to add Slack mapping, status: ", res.status);
+		}
+		return res.status;
+	},
+	removeSlackMapping: async (slackUserId: string): Promise<number> => {
+		const res = await fetch(
+			`/api/admin/slack/mappings/${encodeURIComponent(slackUserId)}`,
+			{ method: "DELETE" },
+		);
+		if (!res.ok) {
+			console.error("Failed to remove Slack mapping, status: ", res.status);
+		}
+		return res.status;
 	},
 	getParticipantCredits: async (
 		id: string,

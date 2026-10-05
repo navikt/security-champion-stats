@@ -8,20 +8,24 @@ metadata:
 spec:
   image: "{{ image }}"
   port: 8080
+  env:
+    - name: SLACK_APPSEC_ACTIVITY_CHANNEL_ID
+      value: C0314EZ719S
+    - name: SLACK_APPSEC_CHANNEL_ID
+      value: C06P91VN27M
+    - name: SLACK_SC_CHANNEL_ID
+      value: CN8N938K1
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:
     inbound:
       rules:
         - application: security-champion-stats-frontend
-          cluster: prod-gcp
-          namespace: appsec
     outbound:
       external:
         - host: slack.com
         - host: api.slack.com
         - host: graph.microsoft.com
-        - host: login.microsoftonline.com
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

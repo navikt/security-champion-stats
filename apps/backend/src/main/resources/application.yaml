@@ -59,6 +59,13 @@ slack:
     playbook_url: https://sikkerhet.nav.no/docs/ny-security-champion/
     userGroupId: ${SLACK_USER_GROUP_ID}
 
+delta:
+  scoring:
+    enabled: ${DELTA_SCORING_ENABLED:false}
+  api:
+    base-url: ${DELTA_API_BASE_URL:http://delta-backend.delta.svc.cluster.local}
+    target: ${DELTA_API_TARGET:prod-gcp:delta:delta-backend}
+
 graph:
     apiUrl: https://graph.microsoft.com/v1.0
 

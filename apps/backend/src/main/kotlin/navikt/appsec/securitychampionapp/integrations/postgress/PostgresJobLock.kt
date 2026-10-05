@@ -12,18 +12,38 @@ class PostgresJobLock(
     private val log = LoggerFactory.getLogger(PostgresJobLock::class.java)
 
     fun runWithLock(lockKey: Long, jobName: String, block: () -> Unit) {
-        dataSource.connection.use { connection ->
-            if (!tryAcquireLock(connection, lockKey)) {
-                log.info("Skipping $jobName because another instance already holds the lock")
-                return
-            }
+        val lease = tryAcquireLock(lockKey, jobName) ?: return
+        lease.use { block() }
+    }
 
+    fun tryAcquireLock(lockKey: Long, jobName: String): LockLease? {
+        val connection = dataSource.connection
+        return try {
+            if (!tryAcquireLock(connection, lockKey)) {
+                connection.close()
+                log.info("Skipping $jobName because another instance already holds the lock")
+                null
+            } else {
+                LockLease(connection, lockKey, jobName)
+            }
+        } catch (e: Exception) {
+            connection.close()
+            throw e
+        }
+    }
+
+    inner class LockLease internal constructor(
+        private val connection: Connection,
+        private val lockKey: Long,
+        private val jobName: String,
+    ) : AutoCloseable {
+        override fun close() {
             try {
-                block()
-            } finally {
                 if (!releaseLock(connection, lockKey)) {
                     log.warn("Failed to release advisory lock for $jobName")
                 }
+            } finally {
+                connection.close()
             }
         }
     }
@@ -46,4 +66,3 @@ class PostgresJobLock(
         }
     }
 }
-

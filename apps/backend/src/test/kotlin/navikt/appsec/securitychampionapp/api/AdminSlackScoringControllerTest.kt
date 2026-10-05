@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminSlackScoringController
+import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
+import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
@@ -40,6 +42,9 @@ class AdminSlackScoringControllerTest {
 
     @MockitoBean
     lateinit var slackScoringService: SlackScoringService
+
+    @MockitoBean
+    lateinit var syncJob: SlackScoringSyncJob
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
@@ -82,6 +87,32 @@ class AdminSlackScoringControllerTest {
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content("""{"slackUserId":"U_SLACK","participantId":"$participantId"}""")
         ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `should queue Slack sync as an admin`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.STARTED)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/slack/sync"))
+            .andExpect(status().isAccepted)
+    }
+
+    @Test
+    fun `should report when a Slack sync is already running`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.ALREADY_RUNNING)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/slack/sync"))
+            .andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `should reject manual Slack sync triggers from non-admins`() {
+        mockAuthenticatedUser(USER_ROLE)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/slack/sync"))
+            .andExpect(status().isForbidden)
     }
 
     private fun mockAuthenticatedUser(role: String) {

@@ -22,13 +22,14 @@ class SlackScoringSyncJobTest {
     @Test
     fun `should persist successful Slack sync summary`() {
         val jobLock = mock<PostgresJobLock>()
+        val syncTrigger = mock<ScoringSyncTrigger>()
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
         whenever(scoringService.sync("C123", attemptAt)).thenReturn(
             SlackSyncSummary(messagesScanned = 12, creditsAwarded = 2, duplicateCredits = 1, unmappedAuthors = 3),
         )
-        val job = SlackScoringSyncJob(jobLock, scoringService, statusRepository, "C123", clock)
+        val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
 
         job.syncSlackScoring()
 
@@ -42,12 +43,13 @@ class SlackScoringSyncJobTest {
     @Test
     fun `should store only a sanitized failure summary when Slack fails`() {
         val jobLock = mock<PostgresJobLock>()
+        val syncTrigger = mock<ScoringSyncTrigger>()
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
         whenever(scoringService.sync("C123", attemptAt))
             .thenThrow(SlackIntegrationException("raw provider error with sensitive payload"))
-        val job = SlackScoringSyncJob(jobLock, scoringService, statusRepository, "C123", clock)
+        val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
 
         job.syncSlackScoring()
 
@@ -55,6 +57,27 @@ class SlackScoringSyncJobTest {
             attemptAt,
             "Slack activity could not be synchronized; check API access and channel configuration",
         )
+    }
+
+    @Test
+    fun `should delegate manual sync triggers to the guarded trigger service`() {
+        val jobLock = mock<PostgresJobLock>()
+        val syncTrigger = mock<ScoringSyncTrigger>()
+        val job = SlackScoringSyncJob(
+            jobLock,
+            syncTrigger,
+            mock(),
+            mock(),
+            "C123",
+            clock,
+        )
+        whenever(syncTrigger.trigger(eq(1_002L), eq("syncSlackScoring"), any()))
+            .thenReturn(SyncTriggerResult.STARTED)
+
+        val result = job.triggerManualSync()
+
+        org.junit.jupiter.api.Assertions.assertEquals(SyncTriggerResult.STARTED, result)
+        verify(syncTrigger).trigger(eq(1_002L), eq("syncSlackScoring"), any())
     }
 
     private fun runLocked(jobLock: PostgresJobLock) {

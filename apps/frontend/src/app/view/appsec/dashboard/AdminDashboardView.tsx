@@ -1,4 +1,4 @@
-import { BodyShort, Heading, Table, VStack } from "@navikt/ds-react";
+import { BodyShort, Button, Heading, Table, VStack } from "@navikt/ds-react";
 import type {
 	AdminDashboardIntegrationStatus,
 	AdminDashboardOverview,
@@ -21,10 +21,18 @@ const ADMIN_LINKS = [
 	{ href: "/appsec/delta", label: "Manage Delta mappings" },
 ];
 
+export type ScoringIntegration = "slack" | "delta";
+
 export function AdminDashboardView({
 	overview,
+	onTriggerSync,
+	triggeringSync,
+	triggerError,
 }: {
 	overview: AdminDashboardOverview;
+	onTriggerSync: (integration: ScoringIntegration) => void;
+	triggeringSync: ScoringIntegration | null;
+	triggerError: { integration: ScoringIntegration; message: string } | null;
 }) {
 	const creditTypes = overview.pointsByCreditType.map(
 		(entry) => entry.creditType,
@@ -99,8 +107,22 @@ export function AdminDashboardView({
 					Integration health
 				</Heading>
 				<div>
-					<SyncStatus name="Slack" status={overview.slack} />
-					<SyncStatus name="Delta" status={overview.delta} />
+					<SyncStatus
+						name="Slack"
+						integration="slack"
+						status={overview.slack}
+						onTriggerSync={onTriggerSync}
+						triggeringSync={triggeringSync}
+						triggerError={triggerError}
+					/>
+					<SyncStatus
+						name="Delta"
+						integration="delta"
+						status={overview.delta}
+						onTriggerSync={onTriggerSync}
+						triggeringSync={triggeringSync}
+						triggerError={triggerError}
+					/>
 				</div>
 			</section>
 
@@ -122,10 +144,18 @@ export function AdminDashboardView({
 
 function SyncStatus({
 	name,
+	integration,
 	status,
+	onTriggerSync,
+	triggeringSync,
+	triggerError,
 }: {
 	name: string;
+	integration: ScoringIntegration;
 	status: AdminDashboardIntegrationStatus;
+	onTriggerSync: (integration: ScoringIntegration) => void;
+	triggeringSync: ScoringIntegration | null;
+	triggerError: { integration: ScoringIntegration; message: string } | null;
 }) {
 	const outcome = !status.enabled
 		? "Sync is disabled"
@@ -150,6 +180,22 @@ function SyncStatus({
 			<BodyShort>
 				Last successful sync: <FormattedDate value={status.lastSuccessAt} />
 			</BodyShort>
+			<Button
+				size="small"
+				variant="secondary"
+				loading={triggeringSync === integration}
+				disabled={
+					!status.enabled ||
+					status.outcome === "RUNNING" ||
+					triggeringSync !== null
+				}
+				onClick={() => onTriggerSync(integration)}
+			>
+				Run {name} sync now
+			</Button>
+			{triggerError?.integration === integration && (
+				<BodyShort role="alert">{triggerError.message}</BodyShort>
+			)}
 			{status.failureSummary && (
 				<BodyShort role="alert">{status.failureSummary}</BodyShort>
 			)}

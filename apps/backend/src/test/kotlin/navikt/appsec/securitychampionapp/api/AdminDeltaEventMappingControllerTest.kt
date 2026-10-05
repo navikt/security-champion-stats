@@ -51,16 +51,23 @@ class AdminDeltaEventMappingControllerTest {
             id = UUID.randomUUID(),
             programEventName = "Security Champion meetup",
             deltaEventUuid = UUID.randomUUID(),
+            deltaCategoryId = 7,
             createdAt = Instant.parse("2026-10-05T10:00:00Z"),
         )
-        whenever(service.addMapping("Security Champion meetup", mapping.deltaEventUuid.toString(), "admin@nav.no"))
-            .thenReturn(mapping)
+        whenever(
+            service.addMapping(
+                "Security Champion meetup",
+                mapping.deltaEventUuid.toString(),
+                7,
+                "admin@nav.no",
+            )
+        ).thenReturn(mapping)
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(
-                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"${mapping.deltaEventUuid}"}"""
+                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"${mapping.deltaEventUuid}","deltaCategoryId":7}"""
                 )
         ).andExpect(status().isCreated)
     }
@@ -73,7 +80,7 @@ class AdminDeltaEventMappingControllerTest {
             MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(
-                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"123e4567-e89b-12d3-a456-426614174000"}"""
+                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"123e4567-e89b-12d3-a456-426614174000","deltaCategoryId":7}"""
                 )
         ).andExpect(status().isForbidden)
     }
@@ -86,6 +93,7 @@ class AdminDeltaEventMappingControllerTest {
             service.addMapping(
                 eq("Security Champion meetup"),
                 eq(deltaEventUuid.toString()),
+                eq(7),
                 eq("admin@nav.no"),
             )
         ).thenThrow(DuplicateKeyException("mapping conflict"))
@@ -93,8 +101,21 @@ class AdminDeltaEventMappingControllerTest {
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("""{"programEventName":"Security Champion meetup","deltaEventUuid":"$deltaEventUuid"}""")
+                .content("""{"programEventName":"Security Champion meetup","deltaEventUuid":"$deltaEventUuid","deltaCategoryId":7}""")
         ).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `should update the category for a mapped Delta event as an admin`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val mappingId = UUID.randomUUID()
+        whenever(service.updateCategory(mappingId, 7, "admin@nav.no")).thenReturn(true)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.put("/api/admin/delta/event-mappings/$mappingId/category")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("""{"deltaCategoryId":7}""")
+        ).andExpect(status().isNoContent)
     }
 
     private fun mockAuthenticatedUser(role: String) {

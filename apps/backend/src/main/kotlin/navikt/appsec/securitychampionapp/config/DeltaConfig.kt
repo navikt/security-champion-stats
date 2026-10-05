@@ -1,7 +1,6 @@
 package navikt.appsec.securitychampionapp.config
 
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaApiClient
-import navikt.appsec.securitychampionapp.integrations.delta.DeltaRegistrationSource
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -15,7 +14,7 @@ class DeltaConfig(
     @Value($$"${delta.api.target}") private val target: String,
 ) {
     @Bean
-    fun deltaRegistrationSource(): DeltaRegistrationSource =
+    fun deltaApiClient(): DeltaApiClient =
         DeltaApiClient(
             apiClient = WebClient.builder().baseUrl(apiBaseUrl).build(),
             tokenClient = WebClient.builder().build(),

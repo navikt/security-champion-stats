@@ -32,6 +32,9 @@ spec:
         - application: team-catalog-backend
           cluster: prod-gcp
           namespace: org
+        - application: delta-backend
+          cluster: prod-gcp
+          namespace: delta
   replicas:
     max: 2
     min: 2

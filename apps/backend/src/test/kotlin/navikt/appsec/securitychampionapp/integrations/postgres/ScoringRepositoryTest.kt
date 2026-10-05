@@ -277,13 +277,17 @@ class ScoringRepositoryTest {
             mappingId,
             "Security Champion meetup",
             deltaEventUuid,
+            7,
             "admin@nav.no",
         )
 
         assertThat(created.id).isEqualTo(mappingId)
         assertThat(created.programEventName).isEqualTo("Security Champion meetup")
         assertThat(created.deltaEventUuid).isEqualTo(deltaEventUuid)
+        assertThat(created.deltaCategoryId).isEqualTo(7)
         assertThat(deltaEventMappingRepository.findAll()).containsExactly(created)
+        assertThat(deltaEventMappingRepository.updateCategory(mappingId, 8, "admin@nav.no")).isTrue()
+        assertThat(deltaEventMappingRepository.findAll().single().deltaCategoryId).isEqualTo(8)
         assertThat(deltaEventMappingRepository.removeMapping(mappingId, "admin@nav.no")).isTrue()
         assertThat(deltaEventMappingRepository.findAll()).isEmpty()
         assertThat(
@@ -291,7 +295,11 @@ class ScoringRepositoryTest {
                 "SELECT action FROM program_scoring_audit ORDER BY id",
                 String::class.java,
             )
-        ).containsExactly("DELTA_EVENT_MAPPING_ADDED", "DELTA_EVENT_MAPPING_REMOVED")
+        ).containsExactly(
+            "DELTA_EVENT_MAPPING_ADDED",
+            "DELTA_EVENT_MAPPING_CATEGORY_UPDATED",
+            "DELTA_EVENT_MAPPING_REMOVED",
+        )
     }
 
     @Test
@@ -301,6 +309,7 @@ class ScoringRepositoryTest {
             UUID.randomUUID(),
             "First program event",
             deltaEventUuid,
+            7,
             "admin@nav.no",
         )
 
@@ -309,9 +318,29 @@ class ScoringRepositoryTest {
                 UUID.randomUUID(),
                 "Second program event",
                 deltaEventUuid,
+                7,
                 "admin@nav.no",
             )
         }.isInstanceOf(DuplicateKeyException::class.java)
+    }
+
+    @Test
+    fun `should assign a category to an existing mapping that predates category support`() {
+        val mappingId = UUID.randomUUID()
+        val deltaEventUuid = UUID.randomUUID()
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_delta_event_mappings (
+                    id, program_event_name, delta_event_uuid, created_by_nav_no_email
+                ) VALUES (?, 'Legacy event', ?, 'admin@nav.no')
+            """.trimIndent(),
+            mappingId,
+            deltaEventUuid,
+        )
+
+        assertThat(deltaEventMappingRepository.updateCategory(mappingId, 7, "admin@nav.no")).isTrue()
+        assertThat(deltaEventMappingRepository.findAll().single().deltaCategoryId).isEqualTo(7)
+        assertThat(deltaEventMappingRepository.updateCategory(UUID.randomUUID(), 7, "admin@nav.no")).isFalse()
     }
 
     @Test
@@ -323,6 +352,7 @@ class ScoringRepositoryTest {
             mappingId,
             "Security Champion meetup",
             deltaEventUuid,
+            7,
             "admin@nav.no",
         )
         assertThat(

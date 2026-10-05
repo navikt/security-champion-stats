@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class DeltaApiClient(
@@ -18,46 +19,66 @@ class DeltaApiClient(
     private val tokenClient: WebClient,
     private val tokenEndpoint: String,
     private val target: String,
-) : DeltaRegistrationSource {
-    override fun fetchEvent(eventUuid: UUID): DeltaEventRoster {
-        if (tokenEndpoint.isBlank() || target.isBlank()) {
-            throw DeltaIntegrationException(DeltaFailure.CONFIGURATION)
-        }
-
-        val token = acquireToken()
-
-        val response = try {
+) : DeltaRegistrationSource, DeltaCategorySource {
+    override fun categories(): List<DeltaCategory> {
+        val response = apiRequest { token ->
             apiClient.get()
-                .uri("/event/{eventUuid}", eventUuid)
+                .uri("/category")
                 .headers { it.setBearerAuth(token) }
                 .retrieve()
                 .onStatus(HttpStatusCode::isError) {
                     Mono.error(DeltaIntegrationException(DeltaFailure.API))
                 }
-                .bodyToMono<DeltaFullEventResponse>()
+                .bodyToMono<List<DeltaCategory>>()
                 .block()
                 ?: throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
-        } catch (e: DeltaIntegrationException) {
-            throw e
-        } catch (_: WebClientRequestException) {
-            throw DeltaIntegrationException(DeltaFailure.API)
-        } catch (_: DecodingException) {
+        }
+        if (response.any { it.id <= 0 || it.name.isBlank() }) {
             throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
         }
+        return response
+    }
 
-        if (response.event.id != eventUuid || response.participants.any { it.email.isBlank() }) {
-            throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
+    override fun findRegisteredEvents(
+        categoryId: Int,
+        participantEmail: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): List<DeltaEventMatch> {
+        if (categoryId <= 0 || participantEmail.isBlank() || !from.isBefore(to)) {
+            throw DeltaIntegrationException(DeltaFailure.CONFIGURATION)
         }
 
-        return DeltaEventRoster(
-            eventUuid = response.event.id,
-            startTime = try {
-                LocalDateTime.parse(response.event.startTime)
-            } catch (_: RuntimeException) {
-                throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
-            },
-            participantEmails = response.participants.map { it.email.trim() }.distinctBy { it.lowercase() },
-        )
+        val response = apiRequest { token ->
+            apiClient.get()
+                .uri { uri ->
+                    uri.path("/event")
+                        .queryParam("categories", categoryId)
+                        .queryParam("participantEmail", participantEmail)
+                        .queryParam("from", from.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                        .queryParam("to", to.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                        .build()
+                }
+                .headers { it.setBearerAuth(token) }
+                .retrieve()
+                .onStatus(HttpStatusCode::isError) {
+                    Mono.error(DeltaIntegrationException(DeltaFailure.API))
+                }
+                .bodyToMono<List<DeltaEventResponse>>()
+                .block()
+                ?: throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
+        }
+
+        return response.map { event ->
+            DeltaEventMatch(
+                eventUuid = event.event.id,
+                startTime = try {
+                    LocalDateTime.parse(event.event.startTime)
+                } catch (_: RuntimeException) {
+                    throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
+                },
+            )
+        }
     }
 
     private fun acquireToken(): String =
@@ -85,12 +106,30 @@ class DeltaApiClient(
         } catch (_: DecodingException) {
             throw DeltaIntegrationException(DeltaFailure.TOKEN)
         }
+
+    private fun <T> apiRequest(request: (String) -> T): T =
+        try {
+            if (tokenEndpoint.isBlank() || target.isBlank()) {
+                throw DeltaIntegrationException(DeltaFailure.CONFIGURATION)
+            }
+            request(acquireToken())
+        } catch (e: DeltaIntegrationException) {
+            throw e
+        } catch (_: WebClientRequestException) {
+            throw DeltaIntegrationException(DeltaFailure.API)
+        } catch (_: DecodingException) {
+            throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
+        }
 }
 
-data class DeltaEventRoster(
+data class DeltaCategory(
+    val id: Int,
+    val name: String,
+)
+
+data class DeltaEventMatch(
     val eventUuid: UUID,
     val startTime: LocalDateTime,
-    val participantEmails: List<String>,
 )
 
 enum class DeltaFailure(val summary: String) {
@@ -99,6 +138,7 @@ enum class DeltaFailure(val summary: String) {
     API("Delta registration request failed"),
     INVALID_RESPONSE("Delta returned an invalid registration response"),
     PARTICIPANT_LOOKUP("Program participant data could not be loaded"),
+    MAPPING_CATEGORY("A Delta event mapping has no category selected"),
 }
 
 class DeltaIntegrationException(
@@ -106,7 +146,16 @@ class DeltaIntegrationException(
 ) : RuntimeException(failure.summary)
 
 interface DeltaRegistrationSource {
-    fun fetchEvent(eventUuid: UUID): DeltaEventRoster
+    fun findRegisteredEvents(
+        categoryId: Int,
+        participantEmail: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): List<DeltaEventMatch>
+}
+
+interface DeltaCategorySource {
+    fun categories(): List<DeltaCategory>
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -116,18 +165,12 @@ private data class NaisTokenResponse(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-private data class DeltaFullEventResponse(
-    val event: DeltaEventResponse,
-    val participants: List<DeltaParticipantResponse>,
+private data class DeltaEventResponse(
+    val event: DeltaEventDetailsResponse,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-private data class DeltaEventResponse(
+private data class DeltaEventDetailsResponse(
     val id: UUID,
     val startTime: String,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-private data class DeltaParticipantResponse(
-    val email: String,
 )

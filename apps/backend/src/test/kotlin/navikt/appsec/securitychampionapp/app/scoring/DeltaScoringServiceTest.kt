@@ -1,6 +1,6 @@
 package navikt.appsec.securitychampionapp.app.scoring
 
-import navikt.appsec.securitychampionapp.integrations.delta.DeltaEventRoster
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaEventMatch
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaRegistrationSource
@@ -35,45 +35,19 @@ class DeltaScoringServiceTest {
         statusRepository,
         Clock.fixed(Instant.parse("2026-10-05T12:00:00Z"), ZoneOffset.UTC),
     )
+    private val yearStart = LocalDateTime.parse("2026-01-01T00:00:00")
+    private val nextYearStart = LocalDateTime.parse("2027-01-01T00:00:00")
 
     @Test
-    fun `should award one current-year registration credit to an active matching participant`() {
+    fun `should award a current-year registration to the participant queried from Delta`() {
         val eventId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
         val participantId = UUID.fromString("223e4567-e89b-12d3-a456-426614174000")
-        whenever(mappingRepository.findAll()).thenReturn(
-            listOf(
-                DeltaEventMapping(
-                    id = UUID.randomUUID(),
-                    programEventName = "Security meetup",
-                    deltaEventUuid = eventId,
-                    createdAt = Instant.parse("2026-09-01T12:00:00Z"),
-                )
-            )
-        )
+        whenever(mappingRepository.findAll()).thenReturn(listOf(mapping(eventId)))
         whenever(participantRepository.findActiveParticipants()).thenReturn(
-            ProgramParticipantQueryResponse(
-                isOk = true,
-                queryResult = listOf(
-                    ProgramParticipant(
-                        id = participantId.toString(),
-                        navNoEmail = "participant@nav.no",
-                        navIdent = null,
-                        email = "participant@nav.no",
-                        fullname = "Synthetic Participant",
-                        teams = emptyList(),
-                        status = "ACTIVE",
-                        createdAt = "2026-09-01T12:00:00Z",
-                    )
-                )
-            )
+            ProgramParticipantQueryResponse(true, listOf(participant(participantId, "participant@nav.no")))
         )
-        whenever(eventSource.fetchEvent(eventId)).thenReturn(
-            DeltaEventRoster(
-                eventUuid = eventId,
-                startTime = LocalDateTime.parse("2026-10-03T10:00:00"),
-                participantEmails = listOf("participant@nav.no"),
-            )
-        )
+        whenever(eventSource.findRegisteredEvents(7, "participant@nav.no", yearStart, nextYearStart))
+            .thenReturn(listOf(event(eventId, "2026-10-03T10:00:00")))
         whenever(
             scoringService.awardCredit(
                 participantId,
@@ -87,10 +61,7 @@ class DeltaScoringServiceTest {
 
         assertThat(summary.creditsAwarded).isEqualTo(1)
         verify(statusRepository).recordStarted(Instant.parse("2026-10-05T12:00:00Z"))
-        verify(statusRepository).recordSucceeded(
-            Instant.parse("2026-10-05T12:00:00Z"),
-            summary,
-        )
+        verify(statusRepository).recordSucceeded(Instant.parse("2026-10-05T12:00:00Z"), summary)
         verify(scoringService).awardCredit(
             participantId,
             ActivityCreditType.DELTA_REGISTRATION,
@@ -100,7 +71,7 @@ class DeltaScoringServiceTest {
     }
 
     @Test
-    fun `should ignore old events and normalize registration emails`() {
+    fun `should normalize participant emails and ignore events outside the current year`() {
         val currentEventId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
         val oldEventId = UUID.fromString("323e4567-e89b-12d3-a456-426614174000")
         val participantId = UUID.fromString("223e4567-e89b-12d3-a456-426614174000")
@@ -108,14 +79,15 @@ class DeltaScoringServiceTest {
             listOf(mapping(currentEventId), mapping(oldEventId))
         )
         whenever(participantRepository.findActiveParticipants()).thenReturn(
-            ProgramParticipantQueryResponse(true, listOf(participant(participantId, "participant@nav.no")))
+            ProgramParticipantQueryResponse(true, listOf(participant(participantId, " PARTICIPANT@NAV.NO ")))
         )
-        whenever(eventSource.fetchEvent(currentEventId)).thenReturn(
-            roster(currentEventId, "2026-10-03T10:00:00", " Participant@NAV.NO ", "participant@nav.no")
-        )
-        whenever(eventSource.fetchEvent(oldEventId)).thenReturn(
-            roster(oldEventId, "2025-10-03T10:00:00", "participant@nav.no")
-        )
+        whenever(eventSource.findRegisteredEvents(7, "participant@nav.no", yearStart, nextYearStart))
+            .thenReturn(
+                listOf(
+                    event(currentEventId, "2026-10-03T10:00:00"),
+                    event(oldEventId, "2025-10-03T10:00:00"),
+                )
+            )
         whenever(
             scoringService.awardCredit(
                 participantId,
@@ -127,9 +99,10 @@ class DeltaScoringServiceTest {
 
         val summary = service.sync()
 
-        assertThat(summary.eventsScanned).isEqualTo(1)
+        assertThat(summary.eventsScanned).isEqualTo(2)
         assertThat(summary.creditsAwarded).isEqualTo(1)
         assertThat(summary.unmatchedRegistrations).isZero()
+        verify(eventSource).findRegisteredEvents(7, "participant@nav.no", yearStart, nextYearStart)
         verify(scoringService).awardCredit(
             participantId,
             ActivityCreditType.DELTA_REGISTRATION,
@@ -145,20 +118,20 @@ class DeltaScoringServiceTest {
     }
 
     @Test
-    fun `should retain failure status when one mapped Delta event cannot be fetched`() {
+    fun `should record partial failure for a category and continue other categories`() {
         val failedEventId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
         val successfulEventId = UUID.fromString("323e4567-e89b-12d3-a456-426614174000")
         val participantId = UUID.fromString("223e4567-e89b-12d3-a456-426614174000")
         whenever(mappingRepository.findAll()).thenReturn(
-            listOf(mapping(failedEventId), mapping(successfulEventId))
+            listOf(mapping(failedEventId, 7), mapping(successfulEventId, 8))
         )
         whenever(participantRepository.findActiveParticipants()).thenReturn(
             ProgramParticipantQueryResponse(true, listOf(participant(participantId, "participant@nav.no")))
         )
-        whenever(eventSource.fetchEvent(failedEventId)).thenThrow(DeltaIntegrationException(DeltaFailure.API))
-        whenever(eventSource.fetchEvent(successfulEventId)).thenReturn(
-            roster(successfulEventId, "2026-10-03T10:00:00", "participant@nav.no")
-        )
+        whenever(eventSource.findRegisteredEvents(7, "participant@nav.no", yearStart, nextYearStart))
+            .thenThrow(DeltaIntegrationException(DeltaFailure.API))
+        whenever(eventSource.findRegisteredEvents(8, "participant@nav.no", yearStart, nextYearStart))
+            .thenReturn(listOf(event(successfulEventId, "2026-10-03T10:00:00")))
         whenever(
             scoringService.awardCredit(
                 participantId,
@@ -173,17 +146,27 @@ class DeltaScoringServiceTest {
         assertThat(summary.failedEvents).isEqualTo(1)
         assertThat(summary.eventsScanned).isEqualTo(1)
         assertThat(summary.creditsAwarded).isEqualTo(1)
-        verify(statusRepository).recordStarted(Instant.parse("2026-10-05T12:00:00Z"))
-        verify(statusRepository).recordPartialFailure(
-            Instant.parse("2026-10-05T12:00:00Z"),
-            summary,
-        )
+        verify(statusRepository).recordPartialFailure(Instant.parse("2026-10-05T12:00:00Z"), summary)
     }
 
-    private fun mapping(eventId: UUID) = DeltaEventMapping(
+    @Test
+    fun `should mark legacy mappings without a category as incomplete`() {
+        val eventId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
+        whenever(mappingRepository.findAll()).thenReturn(listOf(mapping(eventId, null)))
+
+        val summary = service.sync()
+
+        assertThat(summary.failedEvents).isEqualTo(1)
+        assertThat(summary.failureSummary).isEqualTo(DeltaFailure.MAPPING_CATEGORY.summary)
+        verify(participantRepository, never()).findActiveParticipants()
+        verify(statusRepository).recordPartialFailure(Instant.parse("2026-10-05T12:00:00Z"), summary)
+    }
+
+    private fun mapping(eventId: UUID, categoryId: Int? = 7) = DeltaEventMapping(
         id = UUID.randomUUID(),
         programEventName = "Security meetup",
         deltaEventUuid = eventId,
+        deltaCategoryId = categoryId,
         createdAt = Instant.parse("2026-09-01T12:00:00Z"),
     )
 
@@ -198,9 +181,8 @@ class DeltaScoringServiceTest {
         createdAt = "2026-09-01T12:00:00Z",
     )
 
-    private fun roster(eventId: UUID, startTime: String, vararg emails: String) = DeltaEventRoster(
+    private fun event(eventId: UUID, startTime: String) = DeltaEventMatch(
         eventUuid = eventId,
         startTime = LocalDateTime.parse(startTime),
-        participantEmails = emails.toList(),
     )
 }

@@ -125,16 +125,6 @@ class MemberRepository(
         val query = "DELETE FROM Members WHERE id = ?"
         return executeUpdate(query, id)
     }
-    fun addPoints(id: String, points: Int, level: String): MemberUpdateResponse{
-        val query = "UPDATE Members SET points = points + ?, level = ?, update_at = NOW() WHERE id = ?"
-        return executeUpdate(query, points, level, id)
-    }
-
-    fun resetAllPointsAndLevels(): MemberUpdateResponse {
-        val query = "UPDATE Members SET points = 0, level = '1', update_at = NOW()"
-        return executeUpdate(query)
-    }
-
     fun updateTeam(id: String, teams: List<String>): MemberUpdateResponse{
         val query = "UPDATE Members SET teams = ? WHERE id = ?"
         return executeUpdate(query, SqlTextArray(teams), id)

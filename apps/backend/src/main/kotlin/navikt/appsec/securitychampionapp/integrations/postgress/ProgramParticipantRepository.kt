@@ -148,6 +148,13 @@ class ProgramParticipantRepository(
                     AND audit.participant_id <> target.id
                 RETURNING audit.id
             ),
+            anonymized_scoring_actor_history AS (
+                UPDATE program_scoring_audit AS audit
+                SET actor_nav_no_email = NULL
+                FROM target
+                WHERE audit.actor_nav_no_email = target.nav_no_email
+                RETURNING audit.id
+            ),
             deleted_legacy_members AS (
                 DELETE FROM Members
                 WHERE email IN (SELECT email FROM target)

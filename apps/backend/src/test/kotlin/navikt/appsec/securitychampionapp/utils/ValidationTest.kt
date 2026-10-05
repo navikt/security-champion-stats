@@ -3,12 +3,8 @@ package navikt.appsec.securitychampionapp.utils
 import org.junit.jupiter.api.Test
 
 class ValidationTest {
-    val validate = Validate(
-        novice = 1,
-        apprentice = 2,
-        adept = 3,
-        expert = 4
-    )
+    val validate = Validate()
+
     @Test
     fun `Given valid input should validate with true`() {
         val email = "local.test@nav.no"
@@ -20,20 +16,6 @@ class ValidationTest {
     fun `Given invalid input should validate with false`() {
         val email = "; ' Select all from somewhere '"
         val result = validate.isValidEmail(email)
-        assert(!result)
-    }
-
-    @Test
-    fun `Given valid number should validate with true`() {
-        val number = 1234567890
-        val result = validate.isValidNumber(number.toString())
-        assert(result)
-    }
-
-    @Test
-    fun `Given invalid number should validate with false`() {
-        val number = "1234abc567890"
-        val result = validate.isValidNumber(number)
         assert(!result)
     }
 

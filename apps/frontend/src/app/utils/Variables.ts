@@ -32,6 +32,37 @@ export type ProgramParticipant = ProgramParticipantSummary & {
 	joinedAt: string;
 };
 export type AdminProgramParticipant = ProgramParticipant;
+export type SeasonSummary = {
+	id: string;
+	startsOn: string;
+	endsOn: string | null;
+	nextResetDate: string;
+};
+export type ActivityCredit = {
+	id: string;
+	creditType:
+		| "SLACK_WEEK"
+		| "DELTA_REGISTRATION"
+		| "GITHUB_COMMIT"
+		| "GITHUB_PULL_REQUEST"
+		| "SECURITY_EVENT_CONTRIBUTION";
+	sourceReference: string;
+	points: number;
+	seasonStartsOn: string;
+};
+export type AdminParticipantScore = {
+	participantId: string;
+	fullName: string;
+	email: string;
+	active: boolean;
+	points: number;
+	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+};
+export type AdminScoringOverview = {
+	season: SeasonSummary;
+	today: string;
+	participants: AdminParticipantScore[];
+};
 export type SCData = { timestamp: string; amount: number };
 export type Row = { year: number; count: number };
 

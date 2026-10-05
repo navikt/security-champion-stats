@@ -65,18 +65,3 @@ graph:
 springdoc:
   api-docs:
     enabled: true
-
-pointsSystem:
-  amount:
-    meeting: 2
-    message: 3
-    response-message: 2
-  levels:
-    novice: 0
-    apprentice: 100
-    adept: 250
-    expert: 500
-
-jobs:
-  reset-points:
-    cron: 0 0 10 * */3 *

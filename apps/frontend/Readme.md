@@ -2,8 +2,8 @@
 
 ## Overview
 The frontend application is built using React, TypeScript, and Next.js. Employees can enroll in the
-program and view participant names and teams. AppSec administrators can manage participant status and
-permanently delete participant records.
+program and view participant names and teams. AppSec administrators can manage participant status,
+correct season scores, and schedule or start a new season.
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 
@@ -33,6 +33,7 @@ To get started with the frontend application, follow these steps:
 - `i18n/`: i18n configuration and routing setup.
 - `messages/`: Translation message files.
 - `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
+- `app/view/appsec/scoring/`: Season score corrections and reset controls.
 
 ## Contributing
 Contributions to the frontend application are welcome! If you would like to contribute, please follow these steps:

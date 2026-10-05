@@ -13,9 +13,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import java.time.Instant
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
 import java.util.UUID
 
 @Testcontainers
@@ -102,58 +99,6 @@ class MemberRepositoryTest {
         Assertions.assertThat(memberCount()).isEqualTo(1)
     }
 
-    @Test
-    fun `should add points and update timestamp when member exists`() {
-        val memberId = "member-1"
-        val originalUpdatedAt = Instant.parse("2026-01-01T00:00:00Z")
-        insertMember(id = memberId, email = "test@nav.no", points = 5, updatedAt = originalUpdatedAt)
-
-        repository.addPoints(memberId, 10, "2")
-
-        val updatedMember = repository.getMemberByEmail("test@nav.no")
-        Assertions.assertThat(updatedMember.isOk).isTrue()
-        Assertions.assertThat(updatedMember.queryResult!!.first().points).isEqualTo(15)
-        Assertions.assertThat(fetchUpdatedAt("test@nav.no")).isAfter(originalUpdatedAt)
-    }
-
-    @Test
-    fun `should accumulate points across multiple updates`() {
-        val memberId = "member-1"
-        insertMember(id = memberId, email = "test@nav.no", points = 3)
-
-        repository.addPoints(memberId, 10, "2")
-        repository.addPoints(memberId, 7, "2")
-
-        Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult!!.first().points).isEqualTo(20)
-    }
-
-    @Test
-    fun `should reset all member points and levels`() {
-        val originalUpdatedAt = Instant.parse("2026-01-01T00:00:00Z")
-        insertMember(email = "first@nav.no", points = 40, level = "4", updatedAt = originalUpdatedAt)
-        insertMember(email = "second@nav.no", points = 10, level = "2", updatedAt = originalUpdatedAt)
-
-        val updatedRows = repository.resetAllPointsAndLevels()
-
-        Assertions.assertThat(updatedRows.isOk).isTrue()
-        Assertions.assertThat(repository.getMemberByEmail("first@nav.no").queryResult!!.first().points).isEqualTo(0)
-        Assertions.assertThat(repository.getMemberByEmail("first@nav.no").queryResult!!.first().level).isEqualTo("1")
-        Assertions.assertThat(repository.getMemberByEmail("second@nav.no").queryResult!!.first().points).isEqualTo(0)
-        Assertions.assertThat(repository.getMemberByEmail("second@nav.no").queryResult!!.first().level).isEqualTo("1")
-        Assertions.assertThat(fetchUpdatedAt("first@nav.no")).isAfter(originalUpdatedAt)
-        Assertions.assertThat(fetchUpdatedAt("second@nav.no")).isAfter(originalUpdatedAt)
-    }
-
-    @Test
-    fun `should not change existing members when adding points to member that does not exist`() {
-        insertMember(email = "existing@nav.no", points = 4)
-
-        repository.addPoints("missing-id", 10, "2")
-
-        Assertions.assertThat(repository.getMemberByEmail("existing@nav.no").queryResult!!.first().points).isEqualTo(4)
-        Assertions.assertThat(memberCount()).isEqualTo(1)
-    }
-
     private fun insertMember(
         id: String = UUID.randomUUID().toString(),
         fullname: String = "Test User",
@@ -161,8 +106,6 @@ class MemberRepositoryTest {
         points: Int = 0,
         inProgram: Boolean = false,
         level: String = "1",
-        createdAt: Instant = Instant.parse("2026-01-01T00:00:00Z"),
-        updatedAt: Instant = createdAt,
         teams: List<String> = emptyList()
     ) {
         dataSource.connection.use { connection ->
@@ -185,8 +128,8 @@ class MemberRepositoryTest {
                 statement.setString(1, id)
                 statement.setString(2, fullname)
                 statement.setInt(3, points)
-                statement.setObject(4, OffsetDateTime.ofInstant(createdAt, ZoneOffset.UTC))
-                statement.setObject(5, OffsetDateTime.ofInstant(updatedAt, ZoneOffset.UTC))
+                statement.setObject(4, java.time.OffsetDateTime.now())
+                statement.setObject(5, java.time.OffsetDateTime.now())
                 statement.setString(6, email)
                 statement.setBoolean(7, inProgram)
                 statement.setString(8, level)
@@ -196,15 +139,6 @@ class MemberRepositoryTest {
         }
     }
 
-    private fun memberCount(): Int {
-        return jdbcTemplate.queryForObject("SELECT COUNT(*) FROM Members", Int::class.java) ?: 0
-    }
-
-    private fun fetchUpdatedAt(email: String): Instant {
-        return jdbcTemplate.queryForObject(
-            "SELECT update_at FROM Members WHERE email = ?",
-            OffsetDateTime::class.java,
-            email
-        )!!.toInstant()
-    }
+    private fun memberCount(): Int =
+        jdbcTemplate.queryForObject("SELECT COUNT(*) FROM Members", Int::class.java) ?: 0
 }

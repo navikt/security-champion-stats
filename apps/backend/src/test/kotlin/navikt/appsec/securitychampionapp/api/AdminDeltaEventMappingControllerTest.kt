@@ -3,8 +3,9 @@ package navikt.appsec.securitychampionapp.api
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
-import navikt.appsec.securitychampionapp.app.api.AdminSlackScoringController
-import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
+import navikt.appsec.securitychampionapp.app.api.AdminDeltaEventMappingController
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMapping
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingService
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
@@ -12,9 +13,7 @@ import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
-import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
@@ -29,58 +28,72 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.Instant
 import java.util.UUID
 
-@WebMvcTest(AdminSlackScoringController::class)
+@WebMvcTest(AdminDeltaEventMappingController::class)
 @ActiveProfiles("test")
 @Import(SecurityConfig::class)
-class AdminSlackScoringControllerTest {
+class AdminDeltaEventMappingControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
 
     @MockitoBean
-    lateinit var slackScoringService: SlackScoringService
+    lateinit var service: DeltaEventMappingService
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
 
     @Test
-    fun `should create an explicitly approved Slack mapping as an admin`() {
+    fun `should add an explicit Delta event mapping as an admin`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        val participantId = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        whenever(slackScoringService.addMapping("U_SLACK", participantId, "admin@nav.no")).thenReturn(true)
+        val mapping = DeltaEventMapping(
+            id = UUID.randomUUID(),
+            programEventName = "Security Champion meetup",
+            deltaEventUuid = UUID.randomUUID(),
+            createdAt = Instant.parse("2026-10-05T10:00:00Z"),
+        )
+        whenever(service.addMapping("Security Champion meetup", mapping.deltaEventUuid.toString(), "admin@nav.no"))
+            .thenReturn(mapping)
 
         mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/admin/slack/mappings")
+            MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("""{"slackUserId":"U_SLACK","participantId":"$participantId"}""")
+                .content(
+                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"${mapping.deltaEventUuid}"}"""
+                )
         ).andExpect(status().isCreated)
-
-        verify(slackScoringService).addMapping("U_SLACK", participantId, "admin@nav.no")
     }
 
     @Test
-    fun `should reject Slack mapping changes for non-admins`() {
+    fun `should reject Delta mapping changes for non-admins`() {
         mockAuthenticatedUser(USER_ROLE)
 
         mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/admin/slack/mappings")
+            MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("""{"slackUserId":"U_SLACK","participantId":"00000000-0000-0000-0000-000000000001"}""")
+                .content(
+                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"123e4567-e89b-12d3-a456-426614174000"}"""
+                )
         ).andExpect(status().isForbidden)
     }
 
     @Test
-    fun `should reject conflicting Slack mappings`() {
+    fun `should reject a Delta event UUID that is already mapped`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        val participantId = UUID.fromString("00000000-0000-0000-0000-000000000001")
-        whenever(slackScoringService.addMapping(any(), eq(participantId), eq("admin@nav.no")))
-            .thenThrow(DuplicateKeyException("mapping conflict"))
+        val deltaEventUuid = UUID.randomUUID()
+        whenever(
+            service.addMapping(
+                eq("Security Champion meetup"),
+                eq(deltaEventUuid.toString()),
+                eq("admin@nav.no"),
+            )
+        ).thenThrow(DuplicateKeyException("mapping conflict"))
 
         mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/admin/slack/mappings")
+            MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("""{"slackUserId":"U_SLACK","participantId":"$participantId"}""")
+                .content("""{"programEventName":"Security Champion meetup","deltaEventUuid":"$deltaEventUuid"}""")
         ).andExpect(status().isConflict)
     }
 

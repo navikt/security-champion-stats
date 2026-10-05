@@ -2,6 +2,7 @@ import {
 	AdminProgramParticipant,
 	ActivityCredit,
 	AdminScoringOverview,
+	DeltaEventMapping,
 	Me,
 	ProgramParticipant,
 	ProgramParticipantSummary,
@@ -53,6 +54,38 @@ export const Apies = {
 		);
 		if (!res.ok) {
 			console.error("Failed to remove Slack mapping, status: ", res.status);
+		}
+		return res.status;
+	},
+	getDeltaEventMappings: async (): Promise<DeltaEventMapping[] | null> => {
+		const res = await fetch("/api/admin/delta/event-mappings");
+		if (!res.ok) {
+			console.error("Failed to fetch Delta event mappings, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	addDeltaEventMapping: async (
+		programEventName: string,
+		deltaEventUuid: string,
+	): Promise<number> => {
+		const res = await fetch("/api/admin/delta/event-mappings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ programEventName, deltaEventUuid }),
+		});
+		if (!res.ok) {
+			console.error("Failed to add Delta event mapping, status: ", res.status);
+		}
+		return res.status;
+	},
+	removeDeltaEventMapping: async (id: string): Promise<number> => {
+		const res = await fetch(
+			`/api/admin/delta/event-mappings/${encodeURIComponent(id)}`,
+			{ method: "DELETE" },
+		);
+		if (!res.ok) {
+			console.error("Failed to remove Delta event mapping, status: ", res.status);
 		}
 		return res.status;
 	},

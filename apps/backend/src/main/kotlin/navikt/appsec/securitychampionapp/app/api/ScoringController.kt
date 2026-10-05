@@ -33,7 +33,7 @@ class ScoringController(
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" }
         if (!isAdmin) {
             val principal = authentication.principal as AppPrincipal
-            val participant = participantRepository.findByNavNoEmail(principal.navNoEmail)
+            val participant = participantRepository.findByNavNoEmail(principal.email)
             if (!participant.isOk) {
                 logger.error("Failed to validate leaderboard access: ${participant.error}")
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -48,7 +48,7 @@ class ScoringController(
     @GetMapping("/scoring/me")
     fun ownScore(): ResponseEntity<OwnSeasonScore> {
         val principal = currentPrincipal()
-        val participant = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        val participant = participantRepository.findByNavNoEmail(principal.email)
         if (!participant.isOk) {
             logger.error("Failed to find participant score: ${participant.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()

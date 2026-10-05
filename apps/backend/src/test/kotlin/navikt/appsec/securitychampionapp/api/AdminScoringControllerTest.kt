@@ -125,7 +125,7 @@ class AdminScoringControllerTest {
             val response = invocation.getArgument<ServletResponse>(1)
             val filterChain = invocation.getArgument<FilterChain>(2)
             SecurityContextHolder.getContext().authentication = UsernamePasswordAuthenticationToken(
-                AppPrincipal("admin@nav.no", "A12345", "admin@nav.no"),
+                AppPrincipal("admin@nav.no", "A12345"),
                 null,
                 listOf(SimpleGrantedAuthority("ROLE_$role")),
             )

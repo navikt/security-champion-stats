@@ -58,7 +58,7 @@ class ControllerTest {
             val response = invocation.getArgument<ServletResponse>(1)
             val filterChain = invocation.getArgument<FilterChain>(2)
             SecurityContextHolder.getContext().authentication = UsernamePasswordAuthenticationToken(
-                AppPrincipal("user@nav.no", "A12345", "user@nav.no"),
+                AppPrincipal("user@nav.no", "A12345"),
                 null,
                 listOf(SimpleGrantedAuthority("ROLE_USER")),
             )

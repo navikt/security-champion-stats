@@ -89,7 +89,7 @@ class AdminController(
         val response = participantRepository.updateStatus(
             participantId,
             request.active,
-            currentPrincipal().navNoEmail,
+            currentPrincipal().email,
         )
         if (!response.isOk) {
             logger.error("Failed to update participant status: ${response.error}")

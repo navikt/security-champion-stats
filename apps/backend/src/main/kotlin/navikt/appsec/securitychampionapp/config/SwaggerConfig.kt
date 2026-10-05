@@ -24,14 +24,15 @@ open class SwaggerConfig {
                     .contact(Contact().name("AppSec Team"))
                     .license(License().name("MIT License").url("https://opensource.org/licenses/MIT"))
             )
-            .addSecurityItem(SecurityRequirement().addList("Basic Auth"))
+            .addSecurityItem(SecurityRequirement().addList("Bearer Auth"))
             .components(
                 Components()
-                    .addSecuritySchemes("Basic Auth",
+                    .addSecuritySchemes("Bearer Auth",
                         SecurityScheme()
                             .type(SecurityScheme.Type.HTTP)
-                            .scheme("basic")
-                            .description("Basic authentication for Swagger endpoints")
+                            .scheme("bearer")
+                            .bearerFormat("JWT")
+                            .description("Entra ID token; administrator access requires the configured Entra group")
                     )
             )
 }

@@ -2,14 +2,13 @@
 
 import {
 	ActionMenu,
-	InfoCard,
 	InternalHeader,
 	Page,
 	Spacer,
 } from "@navikt/ds-react";
 import { MenuGridIcon } from "@navikt/aksel-icons";
 import "@/app/style/TopLayout.css";
-import SettingsMenu from "@/app/view/member/components/SettingsMenu";
+import { ThemeToggle } from "@/app/shared/theme/ThemeProvider";
 import { useMe } from "./shared/hooks/UseMe";
 import { SideNavigation } from "@/app/shared/navigation/SideNavigation";
 
@@ -59,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 				<Spacer />
 
-				<SettingsMenu />
+				<ThemeToggle />
 
 				<div
 					style={{
@@ -75,15 +74,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 			<div className="appBody">
 				<SideNavigation />
 				<Page.Block as="main" gutters className="appMain">
-					<InfoCard data-color={"info"}>
-						<InfoCard.Header>
-							<InfoCard.Title>Work in progress</InfoCard.Title>
-						</InfoCard.Header>
-						<InfoCard.Content>
-							This site is in working progress and is still under development.
-							Content and visualization is due change with time.
-						</InfoCard.Content>
-					</InfoCard>
 					{children}
 				</Page.Block>
 			</div>

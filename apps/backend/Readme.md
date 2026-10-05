@@ -13,6 +13,7 @@ creating, deactivating, or restoring participation.
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
+The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
 Administrators explicitly map Slack account IDs to participants and review unmapped authors.
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
@@ -57,6 +58,8 @@ To run the backend application, follow these steps:
 
 Tests inherit the main configuration and apply `application-test.yaml` overrides.
 `ApplicationStartupTest` boots the production profile with main configuration and Testcontainers PostgreSQL.
+Scheduled Slack sync is disabled locally and in tests. Local manual sync uses real Slack access;
+set `SLACK_TOKEN` and `SLACK_SC_CHANNEL_ID` to use it.
 
 Swagger documentation is publicly accessible. In production, API operations require an Entra ID bearer token;
 administrator access requires membership in the configured Entra group. Basic Authentication is not supported.
@@ -121,7 +124,7 @@ src/main/kotlin/.../
 ├── integrations/
 │   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
 │   ├── delta/                      # Delta API client and registration roster DTOs
-│   ├── slack/                      # Slack API and channel membership services
+│   ├── slack/                      # Slack scoring history and thread-reply adapter
 │   └── teamCatalog/                # Teamkatalogen client and DTOs
 ├── security/                       # Token introspection, auth filter, and principal DTOs
 └── utils/
@@ -129,9 +132,9 @@ src/main/kotlin/.../
 
 src/main/resources/
 ├── application.yaml                # Main configuration
-├── application-local.yaml          # Local dev overrides (mocked integrations)
+├── application-local.yaml          # Local dev overrides (mocked Teamkatalogen)
 ├── db/migration/                   # Flyway SQL migrations
-└── mock/                           # Static mock responses for Slack and Teamkatalogen (local profile)
+└── mock/                           # Static Teamkatalogen responses (local profile)
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
 ```

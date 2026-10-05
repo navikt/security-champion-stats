@@ -25,7 +25,7 @@ class SlackScoringSyncJob(
 ) {
     private val logger = LoggerFactory.getLogger(SlackScoringSyncJob::class.java)
 
-    @Scheduled(cron = "0 0 */6 * * *")
+    @Scheduled(cron = $$"${slack.scoring.cron:0 0 */6 * * *}")
     fun syncSlackScoring() {
         jobLock.runWithLock(SLACK_SCORING_JOB_LOCK_KEY, "syncSlackScoring", ::runSync)
     }

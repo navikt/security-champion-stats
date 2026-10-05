@@ -1,9 +1,8 @@
 slack:
   token: ""
-  playbook_url: ""
   sc-channel-id: ""
-  appsec-channel-id: ""
-  appsec-activity-channel-id: ""
+  scoring:
+    cron: "-"
 
 spring:
   security:

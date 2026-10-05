@@ -144,10 +144,6 @@ class AdminController(
     fun getAllMembers(): ResponseEntity<List<SCdata>> =
         ResponseEntity.ok(repo.getSCAmountOverTime())
 
-    @PostMapping("/test/member/add/slack/{email}")
-    fun addMemberToSlack(@PathVariable email: String): ResponseEntity<Any> =
-        ResponseEntity.ok().build()
-
     @PostMapping("/member/attended/{email}")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> =
         ResponseEntity.ok().build()

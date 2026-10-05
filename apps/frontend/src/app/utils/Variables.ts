@@ -83,7 +83,12 @@ export type DeltaEventMapping = {
 	id: string;
 	programEventName: string;
 	deltaEventUuid: string;
+	deltaCategoryId: number | null;
 	createdAt: string;
+};
+export type DeltaCategory = {
+	id: number;
+	name: string;
 };
 export type SCData = { timestamp: string; amount: number };
 export type Row = { year: number; count: number };

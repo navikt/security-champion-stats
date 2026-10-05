@@ -3,9 +3,9 @@
 ## Overview
 The frontend application is built using React, TypeScript, and Next.js. Employees can enroll in the
 program and view participant names and teams. AppSec administrators can manage participant status,
-correct season scores, schedule or start a new season, and map Slack accounts and program events to
-participants and owner-confirmed Delta event UUIDs. Delta registration sync is pending confirmed
-production access and eligible event identifiers.
+correct season scores, schedule or start a new season, map Slack accounts, and map program events to
+owner-confirmed Delta event UUIDs and Delta categories. Delta registration sync is disabled until
+production access and eligible public event identifiers are confirmed.
 The user interface is English-only.
 
 ## Getting Started
@@ -34,7 +34,7 @@ To get started with the frontend application, follow these steps:
 - `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
 - `app/view/appsec/scoring/`: Season score corrections and reset controls.
 - `app/view/appsec/slack/`: Slack account mappings and unmapped author review.
-- `app/view/appsec/delta/`: Explicit program-event-to-Delta UUID mappings.
+- `app/view/appsec/delta/`: Explicit program-event-to-Delta UUID and category mappings.
 
 ## Contributing
 Contributions to the frontend application are welcome! If you would like to contribute, please follow these steps:

@@ -3,6 +3,7 @@ import {
 	ActivityCredit,
 	AdminScoringOverview,
 	DeltaEventMapping,
+	DeltaCategory,
 	Me,
 	ProgramParticipant,
 	ProgramParticipantSummary,
@@ -65,17 +66,40 @@ export const Apies = {
 		}
 		return res.json();
 	},
+	getDeltaCategories: async (): Promise<DeltaCategory[] | null> => {
+		const res = await fetch("/api/admin/delta/categories");
+		if (!res.ok) {
+			console.error("Failed to fetch Delta categories, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
 	addDeltaEventMapping: async (
 		programEventName: string,
 		deltaEventUuid: string,
+		deltaCategoryId: number,
 	): Promise<number> => {
 		const res = await fetch("/api/admin/delta/event-mappings", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ programEventName, deltaEventUuid }),
+			body: JSON.stringify({ programEventName, deltaEventUuid, deltaCategoryId }),
 		});
 		if (!res.ok) {
 			console.error("Failed to add Delta event mapping, status: ", res.status);
+		}
+		return res.status;
+	},
+	updateDeltaEventMappingCategory: async (id: string, deltaCategoryId: number): Promise<number> => {
+		const res = await fetch(
+			`/api/admin/delta/event-mappings/${encodeURIComponent(id)}/category`,
+			{
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ deltaCategoryId }),
+			},
+		);
+		if (!res.ok) {
+			console.error("Failed to update Delta mapping category, status: ", res.status);
 		}
 		return res.status;
 	},

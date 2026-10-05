@@ -3,9 +3,13 @@ package navikt.appsec.securitychampionapp.integrations.postgres
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncSummary
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaSyncOutcome
 import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -22,6 +26,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.LocalDate
+import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
 
@@ -43,6 +48,7 @@ class ScoringRepositoryTest {
     private lateinit var repository: ScoringRepository
     private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
     private lateinit var deltaEventMappingRepository: DeltaEventMappingRepository
+    private lateinit var deltaScoringStatusRepository: DeltaScoringStatusRepository
     private lateinit var flyway: Flyway
 
     @BeforeAll
@@ -58,6 +64,7 @@ class ScoringRepositoryTest {
         repository = ScoringRepository(jdbcTemplate)
         slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)
         deltaEventMappingRepository = DeltaEventMappingRepository(jdbcTemplate)
+        deltaScoringStatusRepository = DeltaScoringStatusRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")
@@ -270,13 +277,17 @@ class ScoringRepositoryTest {
             mappingId,
             "Security Champion meetup",
             deltaEventUuid,
+            7,
             "admin@nav.no",
         )
 
         assertThat(created.id).isEqualTo(mappingId)
         assertThat(created.programEventName).isEqualTo("Security Champion meetup")
         assertThat(created.deltaEventUuid).isEqualTo(deltaEventUuid)
+        assertThat(created.deltaCategoryId).isEqualTo(7)
         assertThat(deltaEventMappingRepository.findAll()).containsExactly(created)
+        assertThat(deltaEventMappingRepository.updateCategory(mappingId, 8, "admin@nav.no")).isTrue()
+        assertThat(deltaEventMappingRepository.findAll().single().deltaCategoryId).isEqualTo(8)
         assertThat(deltaEventMappingRepository.removeMapping(mappingId, "admin@nav.no")).isTrue()
         assertThat(deltaEventMappingRepository.findAll()).isEmpty()
         assertThat(
@@ -284,7 +295,11 @@ class ScoringRepositoryTest {
                 "SELECT action FROM program_scoring_audit ORDER BY id",
                 String::class.java,
             )
-        ).containsExactly("DELTA_EVENT_MAPPING_ADDED", "DELTA_EVENT_MAPPING_REMOVED")
+        ).containsExactly(
+            "DELTA_EVENT_MAPPING_ADDED",
+            "DELTA_EVENT_MAPPING_CATEGORY_UPDATED",
+            "DELTA_EVENT_MAPPING_REMOVED",
+        )
     }
 
     @Test
@@ -294,6 +309,7 @@ class ScoringRepositoryTest {
             UUID.randomUUID(),
             "First program event",
             deltaEventUuid,
+            7,
             "admin@nav.no",
         )
 
@@ -302,9 +318,29 @@ class ScoringRepositoryTest {
                 UUID.randomUUID(),
                 "Second program event",
                 deltaEventUuid,
+                7,
                 "admin@nav.no",
             )
         }.isInstanceOf(DuplicateKeyException::class.java)
+    }
+
+    @Test
+    fun `should assign a category to an existing mapping that predates category support`() {
+        val mappingId = UUID.randomUUID()
+        val deltaEventUuid = UUID.randomUUID()
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_delta_event_mappings (
+                    id, program_event_name, delta_event_uuid, created_by_nav_no_email
+                ) VALUES (?, 'Legacy event', ?, 'admin@nav.no')
+            """.trimIndent(),
+            mappingId,
+            deltaEventUuid,
+        )
+
+        assertThat(deltaEventMappingRepository.updateCategory(mappingId, 7, "admin@nav.no")).isTrue()
+        assertThat(deltaEventMappingRepository.findAll().single().deltaCategoryId).isEqualTo(7)
+        assertThat(deltaEventMappingRepository.updateCategory(UUID.randomUUID(), 7, "admin@nav.no")).isFalse()
     }
 
     @Test
@@ -316,19 +352,91 @@ class ScoringRepositoryTest {
             mappingId,
             "Security Champion meetup",
             deltaEventUuid,
+            7,
             "admin@nav.no",
         )
-        repository.awardCredit(
-            participantId,
-            ActivityCreditType.DELTA_REGISTRATION,
-            deltaEventUuid.toString(),
-            deltaEventUuid.toString(),
-        )
+        assertThat(
+            repository.awardCredit(
+                participantId,
+                ActivityCreditType.DELTA_REGISTRATION,
+                deltaEventUuid.toString(),
+                deltaEventUuid.toString(),
+            )
+        ).isEqualTo(CreditAwardResult.AWARDED)
+        assertThat(
+            repository.awardCredit(
+                participantId,
+                ActivityCreditType.DELTA_REGISTRATION,
+                deltaEventUuid.toString(),
+                deltaEventUuid.toString(),
+            )
+        ).isEqualTo(CreditAwardResult.DUPLICATE)
 
         assertThatThrownBy {
             deltaEventMappingRepository.removeMapping(mappingId, "admin@nav.no")
         }.isInstanceOf(DeltaEventMappingHasCreditsException::class.java)
         assertThat(deltaEventMappingRepository.findAll()).hasSize(1)
+    }
+
+    @Test
+    fun `should award Delta registration credit only once per participant and event`() {
+        val participantId = createParticipant("person@nav.no")
+        val deltaEventUuid = UUID.randomUUID()
+
+        assertThat(
+            repository.awardCredit(
+                participantId,
+                ActivityCreditType.DELTA_REGISTRATION,
+                deltaEventUuid.toString(),
+                deltaEventUuid.toString(),
+            )
+        ).isEqualTo(CreditAwardResult.AWARDED)
+        assertThat(
+            repository.awardCredit(
+                participantId,
+                ActivityCreditType.DELTA_REGISTRATION,
+                deltaEventUuid.toString(),
+                deltaEventUuid.toString(),
+            )
+        ).isEqualTo(CreditAwardResult.DUPLICATE)
+        assertThat(repository.creditsForParticipant(participantId)).hasSize(1)
+    }
+
+    @Test
+    fun `should persist sanitized Delta sync outcomes and retain the last success`() {
+        val firstAttempt = Instant.parse("2026-10-05T12:00:00Z")
+        val firstSuccess = firstAttempt.plusSeconds(30)
+        deltaScoringStatusRepository.recordStarted(firstAttempt)
+        deltaScoringStatusRepository.recordSucceeded(
+            firstSuccess,
+            DeltaSyncSummary(
+                eventsScanned = 2,
+                creditsAwarded = 4,
+                duplicateCredits = 1,
+                unmatchedRegistrations = 3,
+            ),
+        )
+
+        val secondAttempt = firstSuccess.plusSeconds(3600)
+        deltaScoringStatusRepository.recordStarted(secondAttempt)
+        deltaScoringStatusRepository.recordPartialFailure(
+            secondAttempt,
+            DeltaSyncSummary(
+                eventsScanned = 1,
+                creditsAwarded = 2,
+                failedEvents = 1,
+                failureSummary = DeltaFailure.API.summary,
+            ),
+        )
+
+        val status = requireNotNull(deltaScoringStatusRepository.find())
+        assertThat(status.lastAttemptAt).isEqualTo(secondAttempt)
+        assertThat(status.lastSuccessAt).isEqualTo(firstSuccess)
+        assertThat(status.outcome).isEqualTo(DeltaSyncOutcome.PARTIAL_FAILURE)
+        assertThat(status.eventsScanned).isEqualTo(1)
+        assertThat(status.creditsAwarded).isEqualTo(2)
+        assertThat(status.failedEvents).isEqualTo(1)
+        assertThat(status.failureSummary).isEqualTo(DeltaFailure.API.summary)
     }
 
     private fun createParticipant(email: String): UUID {

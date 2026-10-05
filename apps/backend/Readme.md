@@ -15,7 +15,10 @@ use Europe/Oslo dates and keep previous seasons intact; legacy point balances ar
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 Administrators explicitly map Slack account IDs to participants and review unmapped authors.
 Administrators can also map program events to owner-confirmed Delta event UUIDs. Delta registration sync
-remains pending confirmed production access and eligible event identifiers.
+stores a Delta category with each mapping and finds registrations through the participant-specific lookup
+for public events in the current calendar year. The sync is disabled by default until Delta read access,
+outbound network access, and eligible public event identifiers are confirmed. Administrators can inspect
+its latest outcome at `/api/admin/delta/sync-status`.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
@@ -114,6 +117,7 @@ src/main/kotlin/.../
 ├── config/                         # Spring configuration (Security, Swagger, Slack, TeamCatalog, Web)
 ├── integrations/
 │   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
+│   ├── delta/                      # Delta API client and registration roster DTOs
 │   ├── slack/                      # Slack API and channel membership services
 │   └── teamCatalog/                # Teamkatalogen client and DTOs
 ├── security/                       # Token introspection, auth filter, and principal DTOs
@@ -123,7 +127,7 @@ src/main/kotlin/.../
 src/main/resources/
 ├── application.yaml                # Main configuration
 ├── application-local.yaml          # Local dev overrides (mocked integrations)
-├── db/migration/                   # Flyway SQL migrations (V1–V13)
+├── db/migration/                   # Flyway SQL migrations
 └── mock/                           # Static mock responses for Slack and Teamkatalogen (local profile)
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
@@ -161,7 +165,10 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
 | GET | `/api/admin/delta/event-mappings` | List explicit program-event-to-Delta UUID mappings |
 | POST | `/api/admin/delta/event-mappings` | Add an explicit Delta event mapping |
+| PUT | `/api/admin/delta/event-mappings/{id}/category` | Set or update the category for a Delta mapping |
 | DELETE | `/api/admin/delta/event-mappings/{id}` | Remove a Delta mapping with no awarded credits |
+| GET | `/api/admin/delta/categories` | List Delta categories for eligible event mappings |
+| GET | `/api/admin/delta/sync-status` | View the latest Delta registration sync outcome |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs
@@ -169,6 +176,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 |-----|----------|-------------|
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
 | `SlackScoringSyncJob` | Every 6 hours | Awards qualifying Slack participation credits and queues unmapped authors |
+| `DeltaScoringSyncJob` | Every 6 hours | Finds active participant registrations for mapped, current-year public Delta events; disabled by default |
 | `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |
 
 ## Contributing

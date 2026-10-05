@@ -1,0 +1,151 @@
+package navikt.appsec.securitychampionapp.app.scoring
+
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaRegistrationSource
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
+import org.springframework.dao.DataAccessException
+import org.springframework.stereotype.Service
+import java.time.Clock
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.util.Locale
+
+private val DELTA_SCORING_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
+
+@Service
+class DeltaScoringService(
+    private val eventSource: DeltaRegistrationSource,
+    private val mappingRepository: DeltaEventMappingRepository,
+    private val participantRepository: ProgramParticipantRepository,
+    private val scoringService: ScoringService,
+    private val statusRepository: DeltaScoringStatusRepository,
+    private val clock: Clock,
+) {
+    fun sync(): DeltaSyncSummary {
+        val attemptStartedAt = clock.instant()
+        statusRepository.recordStarted(attemptStartedAt)
+        return try {
+            val summary = syncMappedEvents()
+            if (summary.failedEvents == 0) {
+                statusRepository.recordSucceeded(clock.instant(), summary)
+            } else {
+                statusRepository.recordPartialFailure(clock.instant(), summary)
+            }
+            summary
+        } catch (e: DeltaIntegrationException) {
+            statusRepository.recordFailed(clock.instant(), e.failure.summary)
+            throw e
+        } catch (e: DataAccessException) {
+            statusRepository.recordFailed(
+                clock.instant(),
+                "Delta registration sync failed because scoring persistence is unavailable",
+            )
+            throw e
+        }
+    }
+
+    private fun syncMappedEvents(): DeltaSyncSummary {
+        val mappings = mappingRepository.findAll()
+        if (mappings.isEmpty()) return DeltaSyncSummary()
+
+        val currentYear = LocalDate.now(clock.withZone(DELTA_SCORING_ZONE)).year
+        val from = LocalDate.of(currentYear, 1, 1).atStartOfDay()
+        val to = LocalDate.of(currentYear + 1, 1, 1).atStartOfDay()
+        val mappingsByCategory = mappings.mapNotNull { mapping ->
+            mapping.deltaCategoryId?.let { categoryId -> categoryId to mapping }
+        }.groupBy({ it.first }, { it.second })
+        val mappingsByCategoryAndEvent = mappingsByCategory.mapValues { (_, categoryMappings) ->
+            categoryMappings.associateBy { it.deltaEventUuid }
+        }
+        val failedMappingIds = mappings.filter { it.deltaCategoryId == null }.mapTo(mutableSetOf()) { it.id }
+        if (mappingsByCategory.isEmpty()) {
+            return DeltaSyncSummary(
+                failedEvents = failedMappingIds.size,
+                failureSummary = DeltaFailure.MAPPING_CATEGORY.summary,
+            )
+        }
+        val activeParticipants = participantRepository.findActiveParticipants()
+        if (!activeParticipants.isOk) {
+            throw DeltaIntegrationException(DeltaFailure.PARTICIPANT_LOOKUP)
+        }
+        val participantsByEmail = activeParticipants.queryResult
+            .filter { it.email.isNotBlank() }
+            .groupBy { it.email.normalizeEmail() }
+        var eventsScanned = 0
+        var creditsAwarded = 0
+        var duplicateCredits = 0
+        var unmatchedRegistrations = 0
+        val failureSummaries = linkedSetOf<String>()
+        if (failedMappingIds.isNotEmpty()) failureSummaries += DeltaFailure.MAPPING_CATEGORY.summary
+
+        mappingsByCategory.forEach { (categoryId, categoryMappings) ->
+            var categoryFailed = false
+            participantsByEmail.forEach participantLoop@{ (email, participants) ->
+                val matchingEvents = try {
+                    eventSource.findRegisteredEvents(categoryId, email, from, to)
+                } catch (e: DeltaIntegrationException) {
+                    if (e.failure == DeltaFailure.TOKEN || e.failure == DeltaFailure.CONFIGURATION) throw e
+                    categoryFailed = true
+                    failureSummaries += e.failure.summary
+                    return@participantLoop
+                }
+
+                matchingEvents.distinctBy { it.eventUuid }
+                    .filter { it.startTime >= from && it.startTime < to }
+                    .forEach eventLoop@{ event ->
+                        val mapping = mappingsByCategoryAndEvent[categoryId]?.get(event.eventUuid) ?: return@eventLoop
+                        val participant = participants.singleOrNull()
+                        if (participant == null) {
+                            unmatchedRegistrations++
+                            return@eventLoop
+                        }
+                        when (
+                            scoringService.awardCredit(
+                                participantId = java.util.UUID.fromString(participant.id),
+                                creditType = ActivityCreditType.DELTA_REGISTRATION,
+                                uniquenessKey = mapping.deltaEventUuid.toString(),
+                                sourceReference = mapping.deltaEventUuid.toString(),
+                            )
+                        ) {
+                            CreditAwardResult.AWARDED -> creditsAwarded++
+                            CreditAwardResult.DUPLICATE -> duplicateCredits++
+                            CreditAwardResult.PARTICIPANT_INACTIVE_OR_MISSING -> unmatchedRegistrations++
+                        }
+                    }
+            }
+            if (categoryFailed) {
+                failedMappingIds += categoryMappings.map { it.id }
+            } else {
+                eventsScanned += categoryMappings.size
+            }
+        }
+
+        return DeltaSyncSummary(
+            eventsScanned = eventsScanned,
+            creditsAwarded = creditsAwarded,
+            duplicateCredits = duplicateCredits,
+            unmatchedRegistrations = unmatchedRegistrations,
+            failedEvents = failedMappingIds.size,
+            failureSummary = when (failureSummaries.size) {
+                0 -> null
+                1 -> failureSummaries.single()
+                else -> "Some mapped Delta events could not be synchronized"
+            },
+        )
+    }
+
+    private fun String.normalizeEmail(): String = trim().lowercase(Locale.ROOT)
+}
+
+data class DeltaSyncSummary(
+    val eventsScanned: Int = 0,
+    val creditsAwarded: Int = 0,
+    val duplicateCredits: Int = 0,
+    val unmatchedRegistrations: Int = 0,
+    val failedEvents: Int = 0,
+    val failureSummary: String? = null,
+)

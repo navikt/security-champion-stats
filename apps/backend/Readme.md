@@ -49,13 +49,9 @@ To run the backend application, follow these steps:
 4. To run tests, use the command: `./gradlew test`
 5. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
 
-In production, Swagger endpoints are protected with Basic Authentication. Configure credentials in `application.yaml`:
-```yaml
-swagger:
-  username: admin
-  password: your-secure-password
-```
-Access Swagger UI via browser at `http://localhost:8080/swagger-ui.html` and use the configured credentials when prompted.
+Swagger documentation is publicly accessible. In production, API operations require an Entra ID bearer token;
+administrator access requires membership in the configured Entra group. Basic Authentication is not supported.
+The non-local application will not start if `spring.security.token-validation.groups` is missing or blank.
 
 This is best run together with the frontend application so you can see the data in the UI. To run the frontend
 application, follow the instructions in `apps/frontend/Readme.md`.

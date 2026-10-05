@@ -14,10 +14,6 @@ spring:
       identity-provider: ""
       groups: ""
 
-swagger:
-  username: admin
-  password: test123
-
 pointsSystem:
   amount:
     meeting: 10

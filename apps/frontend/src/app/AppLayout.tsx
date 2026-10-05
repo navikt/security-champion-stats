@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 						<ActionMenu.Content align="end">
 							<ActionMenu.Group label="Menu">
 								<ActionMenu.Item as="a" href="/dashboard">
-									Temp Dashboard
+									Program dashboard
 								</ActionMenu.Item>
 								<ActionMenu.Item as="a" href="/appsec/events">
 									Manage events

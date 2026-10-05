@@ -14,6 +14,7 @@ Scores come from season-specific activity credits and signed administrator adjus
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 Administrators explicitly map Slack account IDs to participants and review unmapped authors.
+The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can also map program events to owner-confirmed Delta event UUIDs. Delta registration sync
 stores a Delta category with each mapping and finds registrations through the participant-specific lookup
 for public events in the current calendar year. The sync is disabled by default until Delta read access,
@@ -156,6 +157,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | PUT | `/api/admin/participants/{id}/status` | Activate or deactivate a participant |
 | DELETE | `/api/admin/participants/{id}` | Permanently delete a participant after confirmation |
 | GET | `/api/admin/scoring` | Get the current season and participant scores |
+| GET | `/api/admin/dashboard/overview` | Get aggregate program metrics and Slack/Delta sync health |
 | GET | `/api/admin/scoring/participants/{id}/credits` | List a participant's activities for corrections |
 | POST | `/api/admin/scoring/participants/{id}/adjustments` | Add a signed, reasoned point adjustment |
 | PUT | `/api/admin/scoring/season/reset-date` | Set the next scheduled season start |

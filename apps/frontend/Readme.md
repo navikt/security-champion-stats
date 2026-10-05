@@ -6,6 +6,7 @@ program and view participant names and teams. AppSec administrators can manage p
 correct season scores, schedule or start a new season, map Slack accounts, and map program events to
 owner-confirmed Delta event UUIDs and Delta categories. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
+The admin program dashboard summarizes active participants, season activity, and Slack/Delta sync health.
 The user interface is English-only.
 
 ## Getting Started
@@ -33,6 +34,7 @@ To get started with the frontend application, follow these steps:
   - `utils/`: App-level utility functions.
 - `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
 - `app/view/appsec/scoring/`: Season score corrections and reset controls.
+- `app/view/appsec/dashboard/`: Aggregate program metrics and integration status.
 - `app/view/appsec/slack/`: Slack account mappings and unmapped author review.
 - `app/view/appsec/delta/`: Explicit program-event-to-Delta UUID and category mappings.
 

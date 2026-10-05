@@ -1,7 +1,8 @@
-import {
+import type {
 	AdminProgramParticipant,
 	ActivityCredit,
 	AdminScoringOverview,
+	AdminDashboardOverview,
 	DeltaEventMapping,
 	DeltaCategory,
 	Me,
@@ -13,6 +14,14 @@ import {
 } from "../../utils/Variables";
 
 export const Apies = {
+	getAdminDashboard: async (): Promise<AdminDashboardOverview | null> => {
+		const res = await fetch("/api/admin/dashboard/overview");
+		if (!res.ok) {
+			console.error("Failed to fetch admin dashboard, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
 	getAdminParticipants: async (): Promise<AdminProgramParticipant[] | null> => {
 		const res = await fetch("/api/admin/participants");
 		if (!res.ok) {

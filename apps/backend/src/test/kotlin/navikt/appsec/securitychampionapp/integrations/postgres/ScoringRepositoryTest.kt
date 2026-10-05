@@ -5,12 +5,16 @@ import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncSummary
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
+import navikt.appsec.securitychampionapp.app.scoring.SlackSyncSummary
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaSyncOutcome
 import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.SlackScoringStatusRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.SlackSyncOutcome
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.assertj.core.api.Assertions.assertThat
@@ -46,6 +50,8 @@ class ScoringRepositoryTest {
     private lateinit var dataSource: HikariDataSource
     private lateinit var jdbcTemplate: JdbcTemplate
     private lateinit var repository: ScoringRepository
+    private lateinit var adminDashboardRepository: AdminDashboardRepository
+    private lateinit var slackScoringStatusRepository: SlackScoringStatusRepository
     private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
     private lateinit var deltaEventMappingRepository: DeltaEventMappingRepository
     private lateinit var deltaScoringStatusRepository: DeltaScoringStatusRepository
@@ -62,6 +68,8 @@ class ScoringRepositoryTest {
         }
         jdbcTemplate = JdbcTemplate(dataSource)
         repository = ScoringRepository(jdbcTemplate)
+        adminDashboardRepository = AdminDashboardRepository(jdbcTemplate)
+        slackScoringStatusRepository = SlackScoringStatusRepository(jdbcTemplate)
         slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)
         deltaEventMappingRepository = DeltaEventMappingRepository(jdbcTemplate)
         deltaScoringStatusRepository = DeltaScoringStatusRepository(jdbcTemplate)
@@ -439,6 +447,82 @@ class ScoringRepositoryTest {
         assertThat(status.failureSummary).isEqualTo(DeltaFailure.API.summary)
     }
 
+    @Test
+    fun `should aggregate active participants and current season credits by Oslo week and type`() {
+        val activeParticipant = createParticipant("active@nav.no")
+        val inactiveParticipant = createParticipant("inactive@nav.no")
+        jdbcTemplate.update(
+            "UPDATE program_participants SET status = 'DEACTIVATED' WHERE id = ?",
+            inactiveParticipant,
+        )
+        val season = repository.currentSeason()
+        val firstWeek = season.startsOn.plusDays(4)
+        val secondWeek = season.startsOn.plusDays(11)
+
+        insertCredit(activeParticipant, season.id, "SLACK_WEEK", "week-1", 1, firstWeek)
+        insertCredit(activeParticipant, season.id, "DELTA_REGISTRATION", "event-1", 1, firstWeek)
+        insertCredit(inactiveParticipant, season.id, "DELTA_REGISTRATION", "event-2", 1, secondWeek)
+        jdbcTemplate.update(
+            """
+                INSERT INTO point_adjustments (
+                    participant_id, season_id, points_delta, reason, actor_nav_no_email,
+                    score_before, score_after, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            activeParticipant,
+            season.id,
+            2,
+            "Correction",
+            "admin@nav.no",
+            2,
+            4,
+            atOsloNoon(secondWeek),
+        )
+
+        val metrics = adminDashboardRepository.metrics(season.id, season.startsOn, secondWeek)
+
+        assertThat(metrics.activeParticipantCount).isEqualTo(1)
+        assertThat(metrics.eventRegistrationCount).isEqualTo(2)
+        assertThat(metrics.pointsByCreditType).containsEntry("SLACK_WEEK", 1L)
+            .containsEntry("DELTA_REGISTRATION", 2L)
+            .containsEntry("POINT_ADJUSTMENT", 2L)
+        val weeklyTotals = metrics.weeklyPoints.associateBy(
+            { it.weekStarting to it.creditType },
+            { it.points },
+        )
+        assertThat(weeklyTotals)
+            .containsEntry(firstWeek.with(java.time.DayOfWeek.MONDAY) to "SLACK_WEEK", 1L)
+            .containsEntry(firstWeek.with(java.time.DayOfWeek.MONDAY) to "DELTA_REGISTRATION", 1L)
+            .containsEntry(secondWeek.with(java.time.DayOfWeek.MONDAY) to "DELTA_REGISTRATION", 1L)
+            .containsEntry(secondWeek.with(java.time.DayOfWeek.MONDAY) to "POINT_ADJUSTMENT", 2L)
+    }
+
+    @Test
+    fun `should persist Slack outcomes and retain successful sync time without raw errors`() {
+        val firstAttempt = Instant.parse("2026-10-05T12:00:00Z")
+        val firstSuccess = firstAttempt.plusSeconds(30)
+        slackScoringStatusRepository.recordStarted(firstAttempt)
+        slackScoringStatusRepository.recordSucceeded(
+            firstSuccess,
+            SlackSyncSummary(messagesScanned = 12, creditsAwarded = 2, duplicateCredits = 1, unmappedAuthors = 3),
+        )
+
+        val secondAttempt = firstSuccess.plusSeconds(3600)
+        slackScoringStatusRepository.recordStarted(secondAttempt)
+        slackScoringStatusRepository.recordFailed(
+            secondAttempt,
+            "Slack activity could not be synchronized; check API access and channel configuration",
+        )
+
+        val status = requireNotNull(slackScoringStatusRepository.find())
+        assertThat(status.lastAttemptAt).isEqualTo(secondAttempt)
+        assertThat(status.lastSuccessAt).isEqualTo(firstSuccess)
+        assertThat(status.outcome).isEqualTo(SlackSyncOutcome.FAILED)
+        assertThat(status.messagesScanned).isZero()
+        assertThat(status.failureSummary)
+            .isEqualTo("Slack activity could not be synchronized; check API access and channel configuration")
+    }
+
     private fun createParticipant(email: String): UUID {
         val id = UUID.randomUUID()
         jdbcTemplate.update(
@@ -454,4 +538,31 @@ class ScoringRepositoryTest {
         )
         return id
     }
+
+    private fun insertCredit(
+        participantId: UUID,
+        seasonId: UUID,
+        creditType: String,
+        uniquenessKey: String,
+        points: Int,
+        date: LocalDate,
+    ) {
+        jdbcTemplate.update(
+            """
+                INSERT INTO activity_credits (
+                    participant_id, season_id, credit_type, uniqueness_key, source_reference, points, awarded_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            participantId,
+            seasonId,
+            creditType,
+            uniquenessKey,
+            uniquenessKey,
+            points,
+            atOsloNoon(date),
+        )
+    }
+
+    private fun atOsloNoon(date: LocalDate) =
+        java.sql.Timestamp.from(date.atTime(12, 0).atZone(ZoneId.of("Europe/Oslo")).toInstant())
 }

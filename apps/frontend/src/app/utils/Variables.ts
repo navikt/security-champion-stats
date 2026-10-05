@@ -63,6 +63,42 @@ export type AdminScoringOverview = {
 	today: string;
 	participants: AdminParticipantScore[];
 };
+export type AdminDashboardCreditTotal = {
+	creditType: string;
+	points: number;
+};
+export type AdminDashboardWeeklyTotals = {
+	weekStarting: string;
+	pointsByCreditType: Record<string, number>;
+};
+export type AdminDashboardIntegrationStatus = {
+	enabled: boolean;
+	lastAttemptAt: string | null;
+	lastSuccessAt: string | null;
+	outcome: "RUNNING" | "SUCCEEDED" | "PARTIAL_FAILURE" | "FAILED" | null;
+	failureSummary: string | null;
+};
+export type AdminDashboardOverview = {
+	season: SeasonSummary;
+	today: string;
+	activeParticipantCount: number;
+	eventRegistrationCount: number;
+	pointsByCreditType: AdminDashboardCreditTotal[];
+	weeklyTotals: AdminDashboardWeeklyTotals[];
+	slack: AdminDashboardIntegrationStatus & {
+		messagesScanned: number;
+		creditsAwarded: number;
+		duplicateCredits: number;
+		unmappedAuthors: number;
+	};
+	delta: AdminDashboardIntegrationStatus & {
+		eventsScanned: number;
+		creditsAwarded: number;
+		duplicateCredits: number;
+		unmatchedRegistrations: number;
+		failedEvents: number;
+	};
+};
 export type SlackAccountMapping = {
 	slackUserId: string;
 	participantId: string;

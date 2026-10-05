@@ -63,6 +63,22 @@ export type AdminScoringOverview = {
 	today: string;
 	participants: AdminParticipantScore[];
 };
+export type SlackAccountMapping = {
+	slackUserId: string;
+	participantId: string;
+	participantName: string;
+	participantEmail: string;
+	createdAt: string;
+};
+export type UnmappedSlackAuthor = {
+	slackUserId: string;
+	firstSeenAt: string;
+	lastSeenAt: string;
+};
+export type SlackMappingOverview = {
+	mappings: SlackAccountMapping[];
+	unmappedAuthors: UnmappedSlackAuthor[];
+};
 export type SCData = { timestamp: string; amount: number };
 export type Row = { year: number; count: number };
 

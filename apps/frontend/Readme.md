@@ -3,7 +3,7 @@
 ## Overview
 The frontend application is built using React, TypeScript, and Next.js. Employees can enroll in the
 program and view participant names and teams. AppSec administrators can manage participant status,
-correct season scores, and schedule or start a new season.
+correct season scores, schedule or start a new season, and map Slack accounts to participants.
 The user interface is English-only.
 
 ## Getting Started
@@ -31,6 +31,7 @@ To get started with the frontend application, follow these steps:
   - `utils/`: App-level utility functions.
 - `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
 - `app/view/appsec/scoring/`: Season score corrections and reset controls.
+- `app/view/appsec/slack/`: Slack account mappings and unmapped author review.
 
 ## Contributing
 Contributions to the frontend application are welcome! If you would like to contribute, please follow these steps:

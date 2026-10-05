@@ -5,6 +5,8 @@ import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.assertj.core.api.Assertions.assertThat
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
@@ -13,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.dao.DuplicateKeyException
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -36,6 +39,7 @@ class ScoringRepositoryTest {
     private lateinit var dataSource: HikariDataSource
     private lateinit var jdbcTemplate: JdbcTemplate
     private lateinit var repository: ScoringRepository
+    private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
     private lateinit var flyway: Flyway
 
     @BeforeAll
@@ -49,6 +53,7 @@ class ScoringRepositoryTest {
         }
         jdbcTemplate = JdbcTemplate(dataSource)
         repository = ScoringRepository(jdbcTemplate)
+        slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")
@@ -91,6 +96,58 @@ class ScoringRepositoryTest {
         val overview = ScoringService(repository).adminOverview()
         assertThat(overview.participants.single().points).isEqualTo(3)
         assertThat(repository.creditsForParticipant(participantId).single().points).isEqualTo(3)
+    }
+
+    @Test
+    fun `should award Slack participation only once for a participant week`() {
+        val participantId = createParticipant("person@nav.no")
+        val first = repository.awardCredit(
+            participantId,
+            ActivityCreditType.SLACK_WEEK,
+            "2026-10-05",
+            "CN8N938K1:1791187260.000001",
+        )
+        val overlappingSync = repository.awardCredit(
+            participantId,
+            ActivityCreditType.SLACK_WEEK,
+            "2026-10-05",
+            "CN8N938K1:1791187320.000001",
+        )
+
+        assertThat(first).isEqualTo(CreditAwardResult.AWARDED)
+        assertThat(overlappingSync).isEqualTo(CreditAwardResult.DUPLICATE)
+        val credits = repository.creditsForParticipant(participantId)
+        assertThat(credits).hasSize(1)
+        assertThat(credits.single().points).isEqualTo(1)
+    }
+
+    @Test
+    fun `should retain Slack credit after deactivation and allow linked correction`() {
+        val participantId = createParticipant("person@nav.no")
+        repository.awardCredit(
+            participantId,
+            ActivityCreditType.SLACK_WEEK,
+            "2026-10-05",
+            "CN8N938K1:1791187260.000001",
+        )
+        val credit = repository.creditsForParticipant(participantId).single()
+        jdbcTemplate.update(
+            "UPDATE program_participants SET status = 'DEACTIVATED' WHERE id = ?",
+            participantId,
+        )
+
+        assertThat(repository.creditsForParticipant(participantId)).containsExactly(credit)
+        val adjustment = repository.addAdjustment(
+            participantId,
+            -1,
+            "Correct a Slack credit",
+            "admin@nav.no",
+            credit.id,
+        )
+
+        assertThat(adjustment.scoreBefore).isEqualTo(1)
+        assertThat(adjustment.scoreAfter).isZero()
+        assertThat(repository.creditsForParticipant(participantId)).containsExactly(credit)
     }
 
     @Test
@@ -172,6 +229,32 @@ class ScoringRepositoryTest {
 
         assertThat(result).isEqualTo(CreditAwardResult.PARTICIPANT_INACTIVE_OR_MISSING)
         assertThat(repository.creditsForParticipant(participantId)).isEmpty()
+    }
+
+    @Test
+    fun `should require unique approved Slack mappings and audit changes`() {
+        val participantId = createParticipant("person@nav.no")
+        slackIdentityMappingRepository.recordUnmappedAuthor("U_SLACK")
+
+        assertThat(slackIdentityMappingRepository.addMapping("U_SLACK", participantId, "admin@nav.no")).isTrue()
+        val mapping = slackIdentityMappingRepository.mappingOverview().first.single()
+        assertThat(mapping.slackUserId).isEqualTo("U_SLACK")
+        assertThat(mapping.participantId).isEqualTo(participantId)
+        assertThat(slackIdentityMappingRepository.mappingOverview().second).isEmpty()
+        assertThatThrownBy {
+            slackIdentityMappingRepository.addMapping("U_SECOND", participantId, "admin@nav.no")
+        }.isInstanceOf(DuplicateKeyException::class.java)
+
+        assertThat(slackIdentityMappingRepository.removeMapping("U_SLACK", "admin@nav.no")).isTrue()
+        assertThat(slackIdentityMappingRepository.mappingOverview().first).isEmpty()
+        assertThat(slackIdentityMappingRepository.mappingOverview().second.map { it.slackUserId })
+            .containsExactly("U_SLACK")
+        assertThat(
+            jdbcTemplate.queryForList(
+                "SELECT action FROM program_participant_audit ORDER BY id",
+                String::class.java,
+            )
+        ).containsExactly("SLACK_ACCOUNT_MAPPED", "SLACK_ACCOUNT_UNMAPPED")
     }
 
     private fun createParticipant(email: String): UUID {

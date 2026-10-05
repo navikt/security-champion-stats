@@ -3,11 +3,16 @@ package navikt.appsec.securitychampionapp.integrations.slack
 import com.slack.api.RequestConfigurator
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.chat.ChatPostMessageRequest
+import com.slack.api.methods.request.conversations.ConversationsHistoryRequest
+import com.slack.api.methods.request.conversations.ConversationsRepliesRequest
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersUpdateRequest
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest
 import com.slack.api.methods.response.chat.ChatPostMessageResponse
+import com.slack.api.methods.response.conversations.ConversationsHistoryResponse
+import com.slack.api.methods.response.conversations.ConversationsRepliesResponse
 import com.slack.api.methods.response.usergroups.users.UsergroupsUsersUpdateResponse
 import com.slack.api.methods.response.users.UsersLookupByEmailResponse
+import com.slack.api.model.Message
 import com.slack.api.model.User
 import navikt.appsec.securitychampionapp.integrations.slack.dto.SecurityChampionMessage
 import org.assertj.core.api.Assertions.assertThat
@@ -79,6 +84,41 @@ class SlackTest {
         assertThat(request.channel).isEqualTo("channel-id")
         assertThat(request.text).isEqualTo("Fallback text")
         assertThat(response.isOk).isTrue()
+    }
+
+    @Test
+    fun `should fetch root messages and thread replies for scoring`() {
+        val root = Message().apply {
+            user = "U_ROOT"
+            text = "A qualifying root message with enough text"
+            ts = "1791187200.000001"
+            replyCount = 1
+        }
+        val reply = Message().apply {
+            user = "U_REPLY"
+            text = "A qualifying reply message with enough text"
+            ts = "1791187260.000001"
+            threadTs = root.ts
+        }
+        whenever(client.conversationsHistory(any<ConversationsHistoryRequest>()))
+            .thenReturn(ConversationsHistoryResponse().apply {
+                isOk = true
+                messages = listOf(root)
+            })
+        whenever(client.conversationsReplies(any<ConversationsRepliesRequest>()))
+            .thenReturn(ConversationsRepliesResponse().apply {
+                isOk = true
+                messages = listOf(root, reply)
+            })
+
+        val messages = slackService.fetchScoringMessages(
+            channelId = "scoring-channel",
+            latest = java.time.Instant.parse("2026-10-06T00:00:00Z"),
+        )
+
+        assertThat(messages).hasSize(2)
+        assertThat(messages.map { it.userId }).containsExactly("U_ROOT", "U_REPLY")
+        assertThat(messages).allSatisfy { assertThat(it.channelId).isEqualTo("scoring-channel") }
     }
 
     private fun capturedUserLookupRequest(): UsersLookupByEmailRequest {

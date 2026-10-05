@@ -54,7 +54,7 @@ class Controller(
         val principal = currentPrincipal()
         val isAdmin = requireNotNull(SecurityContextHolder.getContext().authentication).authorities
             .any { it.authority == "ROLE_$ADMIN_ROLE" }
-        val queryResponse = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        val queryResponse = participantRepository.findByNavNoEmail(principal.email)
         if (!queryResponse.isOk) {
             logger.warn("Failed to validate program participant: ${queryResponse.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -63,7 +63,7 @@ class Controller(
         val participant = queryResponse.queryResult.firstOrNull()
         if (participant != null) {
             val updateResponse = participantRepository.updateAuthenticatedIdentity(
-                navNoEmail = principal.navNoEmail,
+                navNoEmail = principal.email,
                 navIdent = principal.navIdent,
                 email = principal.email,
             )
@@ -86,7 +86,7 @@ class Controller(
     @PostMapping("/enroll")
     fun enroll(): ResponseEntity<String> {
         val principal = currentPrincipal()
-        val existingResponse = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        val existingResponse = participantRepository.findByNavNoEmail(principal.email)
         if (!existingResponse.isOk) {
             logger.warn("Failed to find program participant: ${existingResponse.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -104,7 +104,7 @@ class Controller(
             it.navIdent == principal.navIdent && it.email == principal.email
         }
         val enrollmentResponse = participantRepository.enroll(
-            navNoEmail = principal.navNoEmail,
+            navNoEmail = principal.email,
             navIdent = principal.navIdent,
             email = principal.email,
             fullname = profile?.fullName.orEmpty(),
@@ -116,7 +116,7 @@ class Controller(
         }
 
         val identityUpdateResponse = participantRepository.updateAuthenticatedIdentity(
-            navNoEmail = principal.navNoEmail,
+            navNoEmail = principal.email,
             navIdent = principal.navIdent,
             email = principal.email,
         )
@@ -131,7 +131,7 @@ class Controller(
     @GetMapping("/membership")
     fun fetchMembership(): ResponseEntity<ProgramParticipantView> {
         val principal = currentPrincipal()
-        val queryResponse = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        val queryResponse = participantRepository.findByNavNoEmail(principal.email)
         if (!queryResponse.isOk) {
             logger.warn("Failed to fetch program participant: ${queryResponse.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
@@ -140,7 +140,7 @@ class Controller(
         val participant = queryResponse.queryResult.firstOrNull()
             ?: return ResponseEntity.notFound().build()
         val updateResponse = participantRepository.updateAuthenticatedIdentity(
-            navNoEmail = principal.navNoEmail,
+            navNoEmail = principal.email,
             navIdent = principal.navIdent,
             email = principal.email,
         )

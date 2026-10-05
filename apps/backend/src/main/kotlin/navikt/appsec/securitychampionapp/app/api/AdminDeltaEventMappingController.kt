@@ -1,9 +1,10 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import navikt.appsec.securitychampionapp.app.scoring.AddSlackAccountMappingRequest
+import navikt.appsec.securitychampionapp.app.scoring.AddDeltaEventMappingRequest
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMapping
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingService
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
-import navikt.appsec.securitychampionapp.app.scoring.SlackMappingOverview
-import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
@@ -19,40 +20,45 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/admin/slack")
-class AdminSlackScoringController(
-    private val slackScoringService: SlackScoringService,
+@RequestMapping("/api/admin/delta/event-mappings")
+class AdminDeltaEventMappingController(
+    private val service: DeltaEventMappingService,
 ) {
     @GetMapping
-    fun overview(): ResponseEntity<SlackMappingOverview> =
-        ResponseEntity.ok(slackScoringService.mappingOverview())
+    fun mappings(): ResponseEntity<List<DeltaEventMapping>> = ResponseEntity.ok(service.mappings())
 
-    @PostMapping("/mappings")
-    fun addMapping(@RequestBody request: AddSlackAccountMappingRequest): ResponseEntity<Any> {
-        val participantId = request.participantId.toUuid() ?: return ResponseEntity.badRequest().build()
-        return try {
-            if (!slackScoringService.addMapping(request.slackUserId, participantId, currentPrincipal().email)) {
-                return ResponseEntity.notFound().build()
-            }
-            ResponseEntity.status(HttpStatus.CREATED).build()
+    @PostMapping
+    fun addMapping(@RequestBody request: AddDeltaEventMappingRequest): ResponseEntity<Any> =
+        try {
+            val mapping = service.addMapping(
+                request.programEventName,
+                request.deltaEventUuid,
+                currentPrincipal().email,
+            )
+            ResponseEntity.status(HttpStatus.CREATED).body(mapping)
         } catch (e: InvalidScoringRequestException) {
             ResponseEntity.badRequest().body(mapOf("error" to e.message))
         } catch (_: DuplicateKeyException) {
-            ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "The Slack account is already mapped"))
+            ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(mapOf("error" to "The Delta event UUID is already mapped"))
         }
-    }
 
-    @DeleteMapping("/mappings/{slackUserId}")
-    fun removeMapping(@PathVariable slackUserId: String): ResponseEntity<Any> =
-        try {
-            if (!slackScoringService.removeMapping(slackUserId, currentPrincipal().email)) {
+    @DeleteMapping("/{id}")
+    fun removeMapping(@PathVariable id: String): ResponseEntity<Any> {
+        val mappingId = id.toUuid() ?: return ResponseEntity.badRequest().build()
+        return try {
+            if (!service.removeMapping(mappingId, currentPrincipal().email)) {
                 ResponseEntity.notFound().build()
             } else {
                 ResponseEntity.noContent().build()
             }
+        } catch (e: DeltaEventMappingHasCreditsException) {
+            ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(mapOf("error" to "A Delta mapping with awarded credits cannot be removed"))
         } catch (e: InvalidScoringRequestException) {
             ResponseEntity.badRequest().body(mapOf("error" to e.message))
         }
+    }
 
     private fun currentPrincipal(): AppPrincipal =
         requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal

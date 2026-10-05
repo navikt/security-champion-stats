@@ -79,6 +79,12 @@ export type SlackMappingOverview = {
 	mappings: SlackAccountMapping[];
 	unmappedAuthors: UnmappedSlackAuthor[];
 };
+export type DeltaEventMapping = {
+	id: string;
+	programEventName: string;
+	deltaEventUuid: string;
+	createdAt: string;
+};
 export type SCData = { timestamp: string; amount: number };
 export type Row = { year: number; count: number };
 

@@ -80,12 +80,6 @@ class TokenIntrospection(
                 handleUnauthenticated(request, response, "Missing preferred Username")
                 return
             }
-            val navNoEmail = result.navNoEmail
-            if (navNoEmail.isNullOrEmpty()) {
-                log.warn("Missing nav.no-email claim in token for request: ${request.requestURI}")
-                handleUnauthenticated(request, response, "Missing nav.no-email")
-                return
-            }
             val groups = result.groups
 
             val authorities =
@@ -95,7 +89,7 @@ class TokenIntrospection(
                     listOf(SimpleGrantedAuthority("ROLE_$USER_ROLE"))
                 }
 
-            val principal = AppPrincipal(preferredUsername, navIdent, navNoEmail)
+            val principal = AppPrincipal(preferredUsername, navIdent)
             val authentication = UsernamePasswordAuthenticationToken(principal, null, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)

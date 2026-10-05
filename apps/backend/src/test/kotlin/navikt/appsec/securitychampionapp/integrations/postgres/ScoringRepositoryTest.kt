@@ -3,7 +3,9 @@ package navikt.appsec.securitychampionapp.integrations.postgres
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -40,6 +42,7 @@ class ScoringRepositoryTest {
     private lateinit var jdbcTemplate: JdbcTemplate
     private lateinit var repository: ScoringRepository
     private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
+    private lateinit var deltaEventMappingRepository: DeltaEventMappingRepository
     private lateinit var flyway: Flyway
 
     @BeforeAll
@@ -54,6 +57,7 @@ class ScoringRepositoryTest {
         jdbcTemplate = JdbcTemplate(dataSource)
         repository = ScoringRepository(jdbcTemplate)
         slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)
+        deltaEventMappingRepository = DeltaEventMappingRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
             .locations("classpath:db/migration")
@@ -255,6 +259,76 @@ class ScoringRepositoryTest {
                 String::class.java,
             )
         ).containsExactly("SLACK_ACCOUNT_MAPPED", "SLACK_ACCOUNT_UNMAPPED")
+    }
+
+    @Test
+    fun `should create and remove an explicitly named Delta event mapping with audit history`() {
+        val mappingId = UUID.randomUUID()
+        val deltaEventUuid = UUID.randomUUID()
+
+        val created = deltaEventMappingRepository.addMapping(
+            mappingId,
+            "Security Champion meetup",
+            deltaEventUuid,
+            "admin@nav.no",
+        )
+
+        assertThat(created.id).isEqualTo(mappingId)
+        assertThat(created.programEventName).isEqualTo("Security Champion meetup")
+        assertThat(created.deltaEventUuid).isEqualTo(deltaEventUuid)
+        assertThat(deltaEventMappingRepository.findAll()).containsExactly(created)
+        assertThat(deltaEventMappingRepository.removeMapping(mappingId, "admin@nav.no")).isTrue()
+        assertThat(deltaEventMappingRepository.findAll()).isEmpty()
+        assertThat(
+            jdbcTemplate.queryForList(
+                "SELECT action FROM program_scoring_audit ORDER BY id",
+                String::class.java,
+            )
+        ).containsExactly("DELTA_EVENT_MAPPING_ADDED", "DELTA_EVENT_MAPPING_REMOVED")
+    }
+
+    @Test
+    fun `should reject duplicate Delta event UUID mappings`() {
+        val deltaEventUuid = UUID.randomUUID()
+        deltaEventMappingRepository.addMapping(
+            UUID.randomUUID(),
+            "First program event",
+            deltaEventUuid,
+            "admin@nav.no",
+        )
+
+        assertThatThrownBy {
+            deltaEventMappingRepository.addMapping(
+                UUID.randomUUID(),
+                "Second program event",
+                deltaEventUuid,
+                "admin@nav.no",
+            )
+        }.isInstanceOf(DuplicateKeyException::class.java)
+    }
+
+    @Test
+    fun `should prevent removing a Delta mapping after registration credits exist`() {
+        val participantId = createParticipant("person@nav.no")
+        val deltaEventUuid = UUID.randomUUID()
+        val mappingId = UUID.randomUUID()
+        deltaEventMappingRepository.addMapping(
+            mappingId,
+            "Security Champion meetup",
+            deltaEventUuid,
+            "admin@nav.no",
+        )
+        repository.awardCredit(
+            participantId,
+            ActivityCreditType.DELTA_REGISTRATION,
+            deltaEventUuid.toString(),
+            deltaEventUuid.toString(),
+        )
+
+        assertThatThrownBy {
+            deltaEventMappingRepository.removeMapping(mappingId, "admin@nav.no")
+        }.isInstanceOf(DeltaEventMappingHasCreditsException::class.java)
+        assertThat(deltaEventMappingRepository.findAll()).hasSize(1)
     }
 
     private fun createParticipant(email: String): UUID {

@@ -14,6 +14,8 @@ Scores come from season-specific activity credits and signed administrator adjus
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 Administrators explicitly map Slack account IDs to participants and review unmapped authors.
+Administrators can also map program events to owner-confirmed Delta event UUIDs. Delta registration sync
+remains pending confirmed production access and eligible event identifiers.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
@@ -157,6 +159,9 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | GET | `/api/admin/slack` | List approved Slack mappings and unmapped authors |
 | POST | `/api/admin/slack/mappings` | Explicitly map a Slack account to a participant |
 | DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
+| GET | `/api/admin/delta/event-mappings` | List explicit program-event-to-Delta UUID mappings |
+| POST | `/api/admin/delta/event-mappings` | Add an explicit Delta event mapping |
+| DELETE | `/api/admin/delta/event-mappings/{id}` | Remove a Delta mapping with no awarded credits |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs

@@ -1,11 +1,14 @@
 package navikt.appsec.securitychampionapp.security
 
 import navikt.appsec.securitychampionapp.app.api.AdminController
+import navikt.appsec.securitychampionapp.app.api.Controller
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.junit.jupiter.api.BeforeEach
@@ -30,6 +33,7 @@ import org.springframework.web.context.WebApplicationContext
 import java.util.Base64
 
 @WebMvcTest(
+    Controller::class,
     AdminController::class,
     properties = ["spring.security.token-validation.groups=test-admin-group"],
 )
@@ -66,6 +70,9 @@ class TokenAuthorizationTest {
 
     @MockitoBean
     lateinit var validate: Validate
+
+    @MockitoBean
+    lateinit var teamCatalog: TeamCatalog
 
     @Test
     fun `should reject Swagger credentials on application admin endpoints`() {
@@ -155,9 +162,9 @@ class TokenAuthorizationTest {
     }
 
     @Test
-    fun `should deny access when nav no email is missing`() {
+    fun `should deny access when preferred username is missing`() {
         whenever(tokenClient.validate(any(), any(), any()))
-            .thenReturn(validToken().copy(navNoEmail = null))
+            .thenReturn(validToken().copy(preferredUsername = null))
 
         mockMvc.perform(
             get("/api/admin/participants").header("Authorization", "Bearer test-token")
@@ -166,11 +173,23 @@ class TokenAuthorizationTest {
         verify(participantRepository, never()).findAllParticipants()
     }
 
+    @Test
+    fun `should allow event requests when preferred username exists without nav no email`() {
+        whenever(tokenClient.validate(any(), any(), any())).thenReturn(validToken())
+        whenever(eventRepository.getAllEvents())
+            .thenReturn(EventQueryResponse(isOk = true, queryResult = emptyList()))
+
+        mockMvc.perform(
+            get("/api/events").header("Authorization", "Bearer test-token")
+        ).andExpect(status().isOk)
+
+        verify(eventRepository).getAllEvents()
+    }
+
     private fun validToken() = TokenResponse(
         active = true,
         preferredUsername = "admin@example.test",
         ident = "TEST123",
-        navNoEmail = "admin@example.test",
         groups = listOf("test-admin-group"),
         error = null,
     )

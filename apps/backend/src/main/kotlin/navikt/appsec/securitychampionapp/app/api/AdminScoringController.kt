@@ -58,7 +58,7 @@ class AdminScoringController(
                 participantId,
                 request.pointsDelta,
                 request.reason,
-                currentPrincipal().navNoEmail,
+                currentPrincipal().email,
                 sourceCreditId,
             )
             ResponseEntity.status(HttpStatus.CREATED).body(result)
@@ -81,7 +81,7 @@ class AdminScoringController(
             return ResponseEntity.badRequest().body(mapOf("error" to "Use an ISO date"))
         }
         return try {
-            ResponseEntity.ok(scoringService.updateNextResetDate(resetDate, currentPrincipal().navNoEmail))
+            ResponseEntity.ok(scoringService.updateNextResetDate(resetDate, currentPrincipal().email))
         } catch (e: InvalidScoringRequestException) {
             ResponseEntity.badRequest().body(mapOf("error" to e.message))
         }
@@ -94,7 +94,7 @@ class AdminScoringController(
                 scoringService.resetManually(
                     request.confirmed,
                     request.reason,
-                    currentPrincipal().navNoEmail,
+                    currentPrincipal().email,
                 )
             )
         } catch (e: InvalidScoringRequestException) {

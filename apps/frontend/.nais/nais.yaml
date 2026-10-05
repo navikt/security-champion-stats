@@ -47,5 +47,3 @@ spec:
     logging:
       destinations:
         - id: loki
-  envFrom:
-    - secret: security-champion-stats

@@ -1,7 +1,22 @@
-import { Me, Member, SCData, SecurityEvent } from "../../utils/Variables";
+import {
+	AdminProgramParticipant,
+	Me,
+	ProgramParticipant,
+	ProgramParticipantSummary,
+	SCData,
+	SecurityEvent,
+} from "../../utils/Variables";
 
 export const Apies = {
-	getMembers: async (): Promise<Member[]> => {
+	getAdminParticipants: async (): Promise<AdminProgramParticipant[] | null> => {
+		const res = await fetch("/api/admin/participants");
+		if (!res.ok) {
+			console.error("Failed to fetch program participants, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	getMembers: async (): Promise<ProgramParticipantSummary[]> => {
 		const res = await fetch("/api/members");
 		if (!res.ok) {
 			console.warn("Failed to fetch members, status: ", res.status);
@@ -27,6 +42,34 @@ export const Apies = {
 			console.error("Failed to delete member, with status code ", res.status);
 		return res.status;
 	},
+	updateParticipantStatus: async (id: string, active: boolean): Promise<number> => {
+		const res = await fetch(
+			`/api/admin/participants/${encodeURIComponent(id)}/status`,
+			{
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ active }),
+			},
+		);
+		if (!res.ok) {
+			console.error("Failed to update participant status, status: ", res.status);
+		}
+		return res.status;
+	},
+	deleteParticipant: async (id: string, reason: string): Promise<number> => {
+		const res = await fetch(
+			`/api/admin/participants/${encodeURIComponent(id)}`,
+			{
+				method: "DELETE",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ confirmed: true, reason }),
+			},
+		);
+		if (!res.ok) {
+			console.error("Failed to delete participant, status: ", res.status);
+		}
+		return res.status;
+	},
 	addPoints: async (email: string, amount: number) => {
 		const res = await fetch("/api/admin/points", {
 			method: "POST",
@@ -37,37 +80,25 @@ export const Apies = {
 			console.error("Failed to add points, with status code: ", res.status);
 		return res.status;
 	},
-	joinGamification: async () => {
-		const res = await fetch("/api/joinGame", {
+	joinProgram: async (): Promise<boolean> => {
+		const res = await fetch("/api/enroll", {
 			method: "POST",
-			headers: { "Content-Type": "application/json" }, // fixed typo
+			headers: { "Content-Type": "application/json" },
 		});
-
-		if (!res.ok)
-			console.error(
-				"Failed to join a member to the program, with status code: ",
-				res.status,
-			);
-		return res.status;
+		if (!res.ok) {
+			console.error("Failed to join the program, with status code: ", res.status);
+			return false;
+		}
+		return true;
 	},
 	validatePerson: async (): Promise<Me> => {
 		const res = await fetch("/api/validate");
 		if (!res.ok) {
 			console.error("Failed to validate user, status: ", res.status);
-			return { username: "", isAdmin: false, isSecChamp: false, inGame: false };
+			return { username: "", isAdmin: false, isParticipant: false, isActive: false };
 		}
 
 		return await res.json();
-	},
-	leaveGame: async (): Promise<Number> => {
-		const res = await fetch("/api/leaveGame", { method: "POST" });
-		if (!res.ok)
-			console.error(
-				"Failed to leave the program, with status code: ",
-				res.status,
-			);
-
-		return res.status;
 	},
 	getSCData: async (): Promise<SCData[]> => {
 		const res = await fetch("/api/admin/dashboard/members");
@@ -77,7 +108,7 @@ export const Apies = {
 		}
 		return res.json();
 	},
-	fetchMembership: async (): Promise<Member | null> => {
+	fetchMembership: async (): Promise<ProgramParticipant | null> => {
 		const res = await fetch("/api/membership", {
 			method: "GET",
 			headers: { "Content-Type": "application/json" },

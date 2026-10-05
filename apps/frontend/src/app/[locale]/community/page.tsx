@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Member } from "@/app/utils/Variables";
+import { ProgramParticipantSummary } from "@/app/utils/Variables";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { CommunityView } from "@/app/view/community/CommunityView";
 import Loading from "@/app/view/Loading";
 
 export default function CommunityPage() {
-	const [members, setMembers] = useState<Member[] | null>(null);
+	const [members, setMembers] = useState<ProgramParticipantSummary[] | null>(null);
 
 	useEffect(() => {
 		Apies.getMembers().then((response) => setMembers(response));

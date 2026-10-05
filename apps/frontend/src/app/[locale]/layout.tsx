@@ -47,6 +47,9 @@ export default function LocaleLayout({
 								<ActionMenu.Item as="a" href={`/${locale}/appsec/events`}>
 									{t("appsec.events.title")}
 								</ActionMenu.Item>
+								<ActionMenu.Item as="a" href={`/${locale}/appsec/membership`}>
+									{t("appsec.membership.title")}
+								</ActionMenu.Item>
 							</ActionMenu.Group>
 						</ActionMenu.Content>
 					</ActionMenu>

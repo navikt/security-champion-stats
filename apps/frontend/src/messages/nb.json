@@ -31,13 +31,39 @@
 	},
 	"community": {
 		"title": "Nettverk",
-		"description": "Alle Security Champions og teamene de er en del av.",
+		"description": "Programdeltakerne og teamene deres.",
 		"searchLabel": "Søk etter navn eller team",
 		"searchPlaceholder": "Søk etter navn eller team",
-		"noResults": "Ingen Security Champions samsvarer med søket ditt.",
-		"noTeam": "Ingen team"
+		"noResults": "Ingen deltakere passer til søket ditt.",
+		"noTeam": "Ingen team",
+		"nameUnavailable": "Navn mangler"
 	},
 	"appsec": {
+		"membership": {
+			"title": "Administrer deltakere",
+			"description": "Deaktivering beholder opplysningene. Permanent sletting fjerner opplysninger og historikk som kan knyttes til deltakeren.",
+			"name": "Navn",
+			"email": "E-post",
+			"nameUnavailable": "Navn mangler",
+			"teams": "Team",
+			"status": "Status",
+			"actions": "Handlinger",
+			"active": "Aktiv",
+			"deactivated": "Deaktivert",
+			"deactivate": "Deaktiver",
+			"reactivate": "Aktiver",
+			"delete": "Slett permanent",
+			"deleteTitle": "Slett deltaker",
+			"deleteDescription": "Slettingen kan ikke angres. Skriv inn en grunn før du sletter deltakeren.",
+			"reason": "Grunn for sletting",
+			"reasonRequired": "Skriv inn en grunn.",
+			"confirmDelete": "Slett deltaker",
+			"cancel": "Avbryt",
+			"statusError": "Vi kunne ikke endre statusen. Prøv igjen.",
+			"deleteError": "Vi kunne ikke slette deltakeren. Prøv igjen.",
+			"loadError": "Vi kunne ikke hente deltakerne. Prøv igjen senere.",
+			"empty": "Ingen deltakere."
+		},
 		"events": {
 			"title": "Administrer arrangementer",
 			"description": "Legg til og se over møter, workshops og eksterne arrangementer.",
@@ -72,11 +98,11 @@
 		"description": "Her er det som skjer i Security Champion-programmet.",
 		"membership": {
 			"member": {
-				"securityChampion": "Sikkerhet champion",
-				"active": "SPILL AKTIV",
-				"inactive": "SPILL INAKTIV",
+				"securityChampion": "Deltakelse i programmet",
+				"active": "Aktiv deltaker",
+				"inactive": "Deaktivert",
 				"gamification": "Gamification",
-				"description": "Du er et aktivt medlem av Security Champion-programmet.",
+				"description": "Du er en aktiv deltaker i Security Champion-programmet.",
 				"levelNames": {
 					"level1": "Nyebegynner champion",
 					"level2": "Intermediert champion",
@@ -89,7 +115,8 @@
 				},
 				"nextLevel": "til neste nivå",
 				"joinedGamification": "Ble i Gamification",
-				"joinedProgram": "Sikkerhet champion siden",
+				"joinedProgram": "Deltaker siden",
+				"inactiveDescription": "Programadministratoren har deaktivert deltakelsen din.",
 				"leave": "Forlat Sikkerhet Champion",
 				"leaveGame": "Forlat spill",
 				"joinGame": "Bli med i gamification",
@@ -115,7 +142,14 @@
 					}
 				}
 			},
-			"nonmember": {}
+			"nonmember": {
+				"title": "Bli med i Security Champion-programmet",
+				"description": "Meld deg på for å delta i programmet.",
+				"enroll": "Meld deg på",
+				"enrolling": "Melder deg på",
+				"enrollError": "Vi kunne ikke melde deg på. Prøv igjen."
+			},
+			"fetchError": "Vi kunne ikke hente deltakerinformasjonen din. Prøv igjen senere."
 		}
 	}
 }

@@ -25,7 +25,7 @@ class TeamCatalogMock(
         }
     }
 
-    fun loadMockMembersWithRole(productAreaResponse: ProductAreaResponse): List<TeamResponse> {
+    fun loadMockTeamMembers(productAreaResponse: ProductAreaResponse): List<TeamResponse> {
         return try {
             productAreaResponse.content.map { productArea ->
                 resourceLoader.getResource("classpath:mock/teamCatalog/team_catalog_fetch_team_${productArea.id}.json")
@@ -35,7 +35,7 @@ class TeamCatalogMock(
                     }
             }
         } catch (e: Exception) {
-            logger.error("Failed to load Teamkatalogen members with role mock response", e)
+            logger.error("Failed to load Teamkatalogen team members mock response", e)
             emptyList()
         }
     }

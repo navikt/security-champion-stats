@@ -31,13 +31,39 @@
 	},
 	"community": {
 		"title": "Community",
-		"description": "All Security Champions and the teams they are part of.",
+		"description": "Program participants and their teams.",
 		"searchLabel": "Search by name or team",
 		"searchPlaceholder": "Search by name or team",
-		"noResults": "No Security Champions match your search.",
-		"noTeam": "No team"
+		"noResults": "No participants match your search.",
+		"noTeam": "No team",
+		"nameUnavailable": "Name unavailable"
 	},
 	"appsec": {
+		"membership": {
+			"title": "Manage participants",
+			"description": "Deactivation keeps participant data. Permanent deletion removes all information and history linked to the participant.",
+			"name": "Name",
+			"email": "Email",
+			"nameUnavailable": "Name unavailable",
+			"teams": "Teams",
+			"status": "Status",
+			"actions": "Actions",
+			"active": "Active",
+			"deactivated": "Deactivated",
+			"deactivate": "Deactivate",
+			"reactivate": "Reactivate",
+			"delete": "Delete permanently",
+			"deleteTitle": "Delete participant",
+			"deleteDescription": "This cannot be undone. Enter a reason before deleting the participant.",
+			"reason": "Reason for deletion",
+			"reasonRequired": "Enter a reason.",
+			"confirmDelete": "Delete participant",
+			"cancel": "Cancel",
+			"statusError": "We couldn't change the status. Try again.",
+			"deleteError": "We couldn't delete the participant. Try again.",
+			"loadError": "We couldn't fetch participants. Try again later.",
+			"empty": "No participants."
+		},
 		"events": {
 			"title": "Manage events",
 			"description": "Add and review meetings, workshops and external events.",
@@ -72,11 +98,11 @@
 		"description": "Here's what's happening in the Security Champion program.",
 		"membership": {
 			"member": {
-				"securityChampion": "Security champion",
-				"active": "GAME ACTIVE",
-				"inactive": "GAME INACTIVE",
+				"securityChampion": "Program participation",
+				"active": "Active participant",
+				"inactive": "Deactivated",
 				"gamification": "Gamification",
-				"description": "You are an active member of the Security Champion program.",
+				"description": "You are an active participant in the Security Champion program.",
 				"levelNames": {
 					"level1": "Novice Champion",
 					"level2": "Intermediate Champion",
@@ -89,7 +115,8 @@
 				},
 				"nextLevel": "to next level",
 				"joinedGamification": "Joined gamification",
-				"joinedProgram": "Security Champion since",
+				"joinedProgram": "Participant since",
+				"inactiveDescription": "A program administrator has deactivated your participation.",
 				"leave": "Leave Security Champion",
 				"leaveGame": "Leave Game",
 				"joinGame": "Join gamification",
@@ -115,7 +142,14 @@
 					}
 				}
 			},
-			"nonmember": {}
+			"nonmember": {
+				"title": "Join the Security Champion program",
+				"description": "Enroll to take part in the program.",
+				"enroll": "Enroll",
+				"enrolling": "Enrolling",
+				"enrollError": "We couldn't enroll you. Try again."
+			},
+			"fetchError": "We couldn't fetch your participant details. Try again later."
 		}
 	}
 }

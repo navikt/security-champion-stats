@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Member } from "@/app/utils/Variables";
+import { ProgramParticipantSummary } from "@/app/utils/Variables";
 import { BodyShort, Heading, Search } from "@navikt/ds-react";
 import { useTranslations } from "next-intl";
 import { CommunityMemberRow } from "@/app/view/community/CommunityMemberRow";
 import "../../style/community/CommunityView.css";
 
 interface CommunityViewProps {
-	members: Member[];
+	members: ProgramParticipantSummary[];
 }
 
 export function CommunityView({ members }: CommunityViewProps) {

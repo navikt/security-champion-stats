@@ -1,10 +1,13 @@
 package navikt.appsec.securitychampionapp.app.api
 
-import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
+import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.Me
-import navikt.appsec.securitychampionapp.app.api.dto.Member
+import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantSummary
+import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantView
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -15,12 +18,12 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-
 @RestController
 @RequestMapping(path = ["/api"])
 class Controller(
-    private val memberRepository: MemberRepository,
-    private val eventRepository: EventRepository
+    private val participantRepository: ProgramParticipantRepository,
+    private val eventRepository: EventRepository,
+    private val teamCatalog: TeamCatalog,
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
 
@@ -28,121 +31,147 @@ class Controller(
     fun healthCheck(): String = "OK"
 
     @GetMapping("/members")
-    fun getAllMembers(): ResponseEntity<List<Member>> {
-        val queryResponse = memberRepository.getAllMembers()
-
-        if (!queryResponse.isOk) {
-            logger.warn("Failed to fetch all member from database due to error: ${queryResponse.error}")
-            return ResponseEntity(emptyList(), HttpStatus.INTERNAL_SERVER_ERROR)
+    fun getAllMembers(): ResponseEntity<List<ProgramParticipantSummary>> {
+        val response = participantRepository.findActiveParticipants()
+        if (!response.isOk) {
+            logger.warn("Failed to fetch program participants: ${response.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
 
-        val response = queryResponse.queryResult!!
-            .filter { it.inProgram }
-            .map { members ->
-                Member(
-                    id = members.id,
-                    fullname = members.fullname,
-                    points = members.points,
-                    email = members.email,
-                    level = members.level,
-                    inGame = members.inProgram,
-                    joinedAt = members.createdAt,
-                    teams = members.teams
+        return ResponseEntity.ok(
+            response.queryResult.map {
+                ProgramParticipantSummary(
+                    id = it.id,
+                    fullname = it.fullname,
+                    teams = it.teams,
                 )
             }
-
-        logger.info("Fetched $response members")
-        return ResponseEntity(response, HttpStatus.OK)
+        )
     }
 
     @GetMapping("/validate")
     fun getMe(): ResponseEntity<Me> {
-
-        logger.info("Validating user")
-        val authentication = SecurityContextHolder.getContext().authentication
-        val principal = authentication?.principal as AppPrincipal
-        val email = principal.email
-        val isAdmin = authentication.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" }
-        val queryResponse = memberRepository.getMemberByEmail(email)
-
-        if (!queryResponse.isOk || queryResponse.queryResult!!.isEmpty()) {
-            logger.info("New potential new user")
-            return ResponseEntity(Me(email, isAdmin, isSecChamp = false, inGame = false), HttpStatus.OK)
+        val principal = currentPrincipal()
+        val isAdmin = requireNotNull(SecurityContextHolder.getContext().authentication).authorities
+            .any { it.authority == "ROLE_$ADMIN_ROLE" }
+        val queryResponse = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        if (!queryResponse.isOk) {
+            logger.warn("Failed to validate program participant: ${queryResponse.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
 
-        val inProgram = queryResponse.queryResult.firstOrNull()?.inProgram ?: false
-        return ResponseEntity(Me(email, isAdmin, isSecChamp = true, inProgram), HttpStatus.OK)
+        val participant = queryResponse.queryResult.firstOrNull()
+        if (participant != null) {
+            val updateResponse = participantRepository.updateAuthenticatedIdentity(
+                navNoEmail = principal.navNoEmail,
+                navIdent = principal.navIdent,
+                email = principal.email,
+            )
+            if (!updateResponse.isOk) {
+                logger.warn("Failed to update participant identity: ${updateResponse.error}")
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+            }
+        }
+
+        return ResponseEntity.ok(
+            Me(
+                username = principal.email,
+                isAdmin = isAdmin,
+                isParticipant = participant != null,
+                isActive = participant?.status == "ACTIVE",
+            )
+        )
     }
 
-    @PostMapping("/joinGame")
-    fun applyMember(): ResponseEntity<String> {
-        return updateUserInProgramStatus(true)
-    }
+    @PostMapping("/enroll")
+    fun enroll(): ResponseEntity<String> {
+        val principal = currentPrincipal()
+        val existingResponse = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        if (!existingResponse.isOk) {
+            logger.warn("Failed to find program participant: ${existingResponse.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
 
-    @PostMapping("/leaveGame")
-    fun leaveProgram(): ResponseEntity<String> {
-        return updateUserInProgramStatus(false)
+        val existingParticipant = existingResponse.queryResult.firstOrNull()
+        if (existingParticipant != null) {
+            if (existingParticipant.status == "DEACTIVATED") {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("Program participation is deactivated")
+            }
+            return ResponseEntity.ok("Already enrolled")
+        }
+
+        val profile = teamCatalog.fetchAllMembersWithTeamData().firstOrNull {
+            it.navIdent == principal.navIdent && it.email == principal.email
+        }
+        val enrollmentResponse = participantRepository.enroll(
+            navNoEmail = principal.navNoEmail,
+            navIdent = principal.navIdent,
+            email = principal.email,
+            fullname = profile?.fullName.orEmpty(),
+            teams = profile?.teamName.orEmpty(),
+        )
+        if (!enrollmentResponse.isOk) {
+            logger.error("Failed to enroll program participant: ${enrollmentResponse.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+
+        val identityUpdateResponse = participantRepository.updateAuthenticatedIdentity(
+            navNoEmail = principal.navNoEmail,
+            navIdent = principal.navIdent,
+            email = principal.email,
+        )
+        if (!identityUpdateResponse.isOk) {
+            logger.error("Failed to update enrolled participant identity: ${identityUpdateResponse.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body("Enrolled in the program")
     }
 
     @GetMapping("/membership")
-    fun fetchMembership(): ResponseEntity<Member> {
-        val authentication = SecurityContextHolder.getContext().authentication
-        val principal = authentication?.principal as AppPrincipal
-        val id = principal.navIdent
-
-        val queryResponse = memberRepository.fetchMember(id)
-        if (queryResponse == null || !queryResponse.isOk) {
-            logger.warn("Failed to fetch member from database due to error: ${queryResponse?.error}")
-            return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
+    fun fetchMembership(): ResponseEntity<ProgramParticipantView> {
+        val principal = currentPrincipal()
+        val queryResponse = participantRepository.findByNavNoEmail(principal.navNoEmail)
+        if (!queryResponse.isOk) {
+            logger.warn("Failed to fetch program participant: ${queryResponse.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
 
-        return ResponseEntity.status(HttpStatus.OK).body(
-            Member(
-                id = queryResponse.queryResult!!.first().id,
-                email = queryResponse.queryResult.first().email,
-                fullname = queryResponse.queryResult.first().fullname,
-                points = queryResponse.queryResult.first().points,
-                level = queryResponse.queryResult.first().level,
-                inGame = queryResponse.queryResult.first().inProgram,
-                joinedAt = queryResponse.queryResult.first().createdAt
+        val participant = queryResponse.queryResult.firstOrNull()
+            ?: return ResponseEntity.notFound().build()
+        val updateResponse = participantRepository.updateAuthenticatedIdentity(
+            navNoEmail = principal.navNoEmail,
+            navIdent = principal.navIdent,
+            email = principal.email,
+        )
+        if (!updateResponse.isOk) {
+            logger.warn("Failed to update participant identity: ${updateResponse.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+
+        return ResponseEntity.ok(
+            ProgramParticipantView(
+                id = participant.id,
+                email = principal.email,
+                fullname = participant.fullname,
+                active = participant.status == "ACTIVE",
+                joinedAt = participant.createdAt,
+                teams = participant.teams,
             )
         )
     }
 
     @GetMapping("/events")
-    fun fetchEvents(): ResponseEntity<Any>{
+    fun fetchEvents(): ResponseEntity<Any> {
         val events = eventRepository.getAllEvents()
-
         if (!events.isOk) {
-            logger.warn("Failed to fetch events from database due to error: ${events.error}")
+            logger.warn("Failed to fetch events from database: ${events.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)
         }
 
-        return ResponseEntity.status(HttpStatus.OK).body(events.queryResult)
+        return ResponseEntity.ok(events.queryResult)
     }
 
-
-    private fun updateUserInProgramStatus(status: Boolean): ResponseEntity<String> {
-        val authentication = SecurityContextHolder.getContext().authentication
-        val principal = authentication?.principal as AppPrincipal
-        val email = principal.email
-        val queryResponse = memberRepository.getMemberByEmail(email)
-        if (!queryResponse.isOk) {
-            return returnInternalError("Failed to find/fetch member due to error: ${queryResponse.error}")
-        }
-        val id = queryResponse.queryResult!!.firstOrNull()?.id ?: ""
-        val updateResponse = memberRepository.updateInProgram(id, status)
-
-        if (!updateResponse.isOk) {
-            return returnInternalError("Failed to update member inProgram status due to error: ${updateResponse.error}")
-        }
-
-        return ResponseEntity(HttpStatus.OK)
-    }
-
-
-    private fun returnInternalError(error: String): ResponseEntity<String> {
-        logger.error("Internal error: $error")
-        return ResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR)
-    }
+    private fun currentPrincipal(): AppPrincipal =
+        requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal
 }

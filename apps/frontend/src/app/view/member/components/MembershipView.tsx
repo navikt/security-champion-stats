@@ -1,39 +1,59 @@
-import { useEffect, useState } from "react";
-import "../../../style/home/MembershipView.css";
-import { Me, Member } from "@/app/utils/Variables";
+import { BodyShort } from "@navikt/ds-react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { Me, ProgramParticipant } from "@/app/utils/Variables";
 import Loading from "@/app/view/Loading";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { JoinedMembershipView } from "@/app/view/member/components/JoinedMembershipView";
 import { JoinProgramView } from "@/app/view/member/components/JoinProgramView";
+import "../../../style/home/MembershipView.css";
 
 export function MembershipView({ me }: { me: Me }) {
+	const t = useTranslations("home.membership");
 	const [userData, setMe] = useState(me);
-	const [loading, setLoading] = useState(me.isSecChamp);
-	const [memberships, setMemberships] = useState<Member | null>();
+	const [loading, setLoading] = useState(me.isParticipant);
+	const [participant, setParticipant] = useState<ProgramParticipant | null>(null);
+	const [fetchFailed, setFetchFailed] = useState(false);
 
-	const fetchMembership = async () => {
-		const member = await Apies.fetchMembership();
-		const updatedMe = await Apies.validatePerson();
-		setMemberships(member);
-		setMe(updatedMe);
-	};
+	const refreshMembership = useCallback(async () => {
+		try {
+			const updatedMe = await Apies.validatePerson();
+			setMe(updatedMe);
+			if (!updatedMe.isParticipant) {
+				setParticipant(null);
+				setFetchFailed(false);
+				return;
+			}
+			const result = await Apies.fetchMembership();
+			setParticipant(result);
+			setFetchFailed(result === null);
+		} catch {
+			setFetchFailed(true);
+		}
+	}, []);
 
 	useEffect(() => {
-		if (!me.isSecChamp) return;
+		if (!me.isParticipant) return;
+		refreshMembership().finally(() => setLoading(false));
+	}, [me.isParticipant, refreshMembership]);
 
-		fetchMembership().then(() => setLoading(false));
-	}, [me.isSecChamp]);
+	const enroll = async () => {
+		setLoading(true);
+		try {
+			const enrolled = await Apies.joinProgram();
+			if (!enrolled) return false;
+			await refreshMembership();
+			return true;
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	if (loading) return <Loading />;
-
-	if (userData.isSecChamp && memberships) {
-		return (
-			<JoinedMembershipView
-				member={memberships}
-				onMembershipChange={fetchMembership}
-			/>
-		);
+	if (!userData.isParticipant) return <JoinProgramView onEnroll={enroll} />;
+	if (fetchFailed || !participant) {
+		return <BodyShort>{t("fetchError")}</BodyShort>;
 	}
 
-	return <JoinProgramView />;
+	return <JoinedMembershipView participant={participant} />;
 }

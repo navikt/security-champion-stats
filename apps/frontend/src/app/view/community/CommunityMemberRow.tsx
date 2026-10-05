@@ -1,10 +1,10 @@
-import { Member } from "@/app/utils/Variables";
+import { ProgramParticipantSummary } from "@/app/utils/Variables";
 import { Tag } from "@navikt/ds-react";
 import { useTranslations } from "next-intl";
 import "../../style/community/CommunityView.css";
 
 interface CommunityMemberRowProps {
-	member: Member;
+	member: ProgramParticipantSummary;
 }
 
 function getInitials(fullname: string): string {
@@ -16,16 +16,17 @@ function getInitials(fullname: string): string {
 
 export function CommunityMemberRow({ member }: CommunityMemberRowProps) {
 	const t = useTranslations("community");
+	const fullname = member.fullname || t("nameUnavailable");
 
 	return (
 		<article className={"communityMemberRow"}>
 			<div className={"communityMemberRow__avatar"} aria-hidden>
-				{getInitials(member.fullname)}
+				{getInitials(fullname)}
 			</div>
 
 			<div className={"communityMemberRow__content"}>
 				<strong className={"communityMemberRow__name"}>
-					{member.fullname}
+					{fullname}
 				</strong>
 
 				<div className={"communityMemberRow__teams"}>

@@ -6,8 +6,9 @@ It provides endpoints for fetching security champion statistics, managing securi
 Security Champion program over time. The backend application is responsible for handling business logic, data storage
 and retrieval, and authentication and authorization for the frontend application.
 
-The backend also includes a scheduled job that runs every two days. It syncs security champions, adds new security
-champions to the Slack channel, and greets them with a welcome message.
+Participation is managed in the application: employees can self-enroll, and administrators can manage
+active status. The scheduled Teamkatalogen sync refreshes profiles for existing participants without
+creating, deactivating, or restoring participation.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
@@ -17,7 +18,8 @@ sequenceDiagram
     participant DB as Database
     participant TK as Teamkatalogen
     participant Slack as Slack
-    participant BES as Backend scheduler (runs on a schedule, e.g. every two days)
+    participant BES as Backend scheduler
+    participant Scoring as Slack scoring job
 
     FE->>BE: Request one of the endpoints (e.g. get security champion stats)
     BE->>DB: Query for data related to the request (e.g. security champion stats)
@@ -26,22 +28,22 @@ sequenceDiagram
     
     BES->>TK: Get all teams
     TK-->>BES: [team, team, …]
-    BES-->>BES: Map to a list of members with the role SECURITY_CHAMPION: [team_member, team_member, …]
-    BES->>DB: Fetch the current list of team members with the role SECURITY_CHAMPION
-    DB-->>BES: [team_member, team_member, …]
-    BES-->>BES: Calculate diff between current and previous list
-    BES->>DB: Store current list of champions for next time [team_member, team_member, …]
-    BES->>Slack: Add new security champions to the configured channel and post a welcome message
+    BES->>DB: Fetch existing program participants
+    DB-->>BES: [participant, participant, …]
+    BES-->>BES: Match profile details by NAVident and email
+    BES->>DB: Update profile details without changing participation
     loop paginated
-        BES->>Slack: Get all activity for team_member with role SECURITY_CHAMPION who has agreed to share it
-        Slack-->>BES: [activity, activity, …]
-        BES-->>BES: Map each activity to the corresponding team_member and calculate points based on activity
+        Scoring->>DB: Fetch active members eligible for point calculation
+        DB-->>Scoring: [member, member, …]
+        Scoring->>Slack: Get Slack activity for each member
+        Slack-->>Scoring: [activity, activity, …]
+        Scoring->>DB: Update points for qualifying activity
     end    
 ```
 
 ## How to run
 To run the backend application, follow these steps:
-1. Make sure you have Java 17 or higher installed on your machine.
+1. Make sure you have Java 25 installed on your machine.
 2. Start the local database: `docker compose up -d postgres`
 3. Run the application with the local profile: `./gradlew bootRun --args='--spring.profiles.active=local'`
 4. To run tests, use the command: `./gradlew test`
@@ -106,7 +108,7 @@ src/main/kotlin/.../
 │   │   ├── AdminController.kt      # Admin-only endpoints (/api/admin/*)
 │   │   └── dto/                    # Request/response DTOs
 │   └── jobs/
-│       ├── SyncJob.kt              # Daily sync: adds/removes champions from Teamkatalogen
+│       ├── SyncJob.kt              # Daily sync: updates profiles for existing participants
 │       ├── CalculatePointsJob.kt   # Daily job: calculates Slack activity points for all members
 │       └── ResetPointsSyncJob.kt   # Scheduled job: resets all points and levels
 ├── config/                         # Spring configuration (Security, Swagger, Slack, TeamCatalog, Web)
@@ -121,7 +123,7 @@ src/main/kotlin/.../
 src/main/resources/
 ├── application.yaml                # Main configuration
 ├── application-local.yaml          # Local dev overrides (mocked integrations)
-├── db/migration/                   # Flyway SQL migrations (V1–V6)
+├── db/migration/                   # Flyway SQL migrations (V1–V11)
 └── mock/                           # Static mock responses for Slack and Teamkatalogen (local profile)
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
@@ -133,24 +135,26 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
-| GET | `/api/members` | List all active security champions |
-| GET | `/api/validate` | Validate current user and return role info |
-| GET | `/api/membership` | Fetch the authenticated user's membership details |
-| POST | `/api/join` | Opt in to the security champion program |
-| POST | `/api/leave` | Opt out of the security champion program |
+| GET | `/api/members` | List active participant names and teams |
+| GET | `/api/validate` | Validate the current user and return participation status |
+| GET | `/api/membership` | Fetch the authenticated user's participation details |
+| POST | `/api/enroll` | Enroll the authenticated employee in the program |
 
 **Admin (`/api/admin`)** — requires admin role
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/admin/member` | Manually add a member |
 | DELETE | `/api/admin/member/{id}` | Delete a member |
+| GET | `/api/admin/participants` | List program participants |
+| PUT | `/api/admin/participants/{id}/status` | Activate or deactivate a participant |
+| DELETE | `/api/admin/participants/{id}` | Permanently delete a participant after confirmation |
 | POST | `/api/admin/points` | Add points to a member |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs
 | Job | Schedule | Description |
 |-----|----------|-------------|
-| `SyncJob` | Daily at 12:00 | Syncs champions from Teamkatalogen, updates Slack user group, sends welcome messages |
+| `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
 | `CalculatePointsJob` | Daily at 13:00 | Fetches Slack activity and updates points/levels for all active members |
 | `ResetPointsSyncJob` | Configurable via `jobs.reset-points.cron` | Resets all points and levels |
 

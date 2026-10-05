@@ -1,10 +1,9 @@
 # Frontend application for Security champions stats.
 
 ## Overview
-The frontend application is built using React, TypeScript and Next, and it serves as the user interface for
-displaying security champions statistics, join security champions and much more with time. It interacts with the backend API to fetch data 
-and presents it to users. Frontend has also admin endpoint meant to be use for appsec team for administrating like adding points or deleting members and so on. 
-The application is meant to increase engagement and motivation among security champion by gamifying the experience and providing a platform for users to track their progress and see other security champions.
+The frontend application is built using React, TypeScript, and Next.js. Employees can enroll in the
+program and view participant names and teams. AppSec administrators can manage participant status and
+permanently delete participant records.
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 

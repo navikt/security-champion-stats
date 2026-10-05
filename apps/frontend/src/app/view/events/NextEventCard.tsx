@@ -43,7 +43,9 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			<div className={"nextEventCard__metadata"}>
 				<div className={"eventMeta"}>
 					<CalendarIcon aria-hidden />
-					<span>{start.toLocaleDateString("en")}</span>
+					<span>
+						{start.toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })}
+					</span>
 				</div>
 
 				<div className={"eventMeta"}>
@@ -68,9 +70,10 @@ export function NextEventCard({ event }: NextEventCardProps) {
 
 function formatEventTime(start: Date, end?: Date): string {
 	const format = (date: Date) => {
-		return date.toLocaleDateString("en", {
+		return date.toLocaleTimeString("nb-NO", {
 			hour: "2-digit",
 			minute: "2-digit",
+			timeZone: "Europe/Oslo",
 		});
 	};
 

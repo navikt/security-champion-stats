@@ -32,7 +32,11 @@ export function JoinedMembershipView({
 				</BodyShort>
 				<dl className="sc-membership-card__facts">
 					<dt>Participant since</dt>
-					<dd>{new Date(participant.joinedAt).toLocaleDateString("en")}</dd>
+					<dd>
+						{new Date(participant.joinedAt).toLocaleDateString("nb-NO", {
+							timeZone: "Europe/Oslo",
+						})}
+					</dd>
 				</dl>
 			</div>
 		</section>

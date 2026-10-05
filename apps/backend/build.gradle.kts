@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.4.20"
-    id("io.freefair.lombok") version "9.5.0"
+    id("io.freefair.lombok") version "9.7.0"
     application
     java
     id("org.springframework.boot") version "4.1.1"

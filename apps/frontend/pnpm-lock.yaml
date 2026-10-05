@@ -32,9 +32,6 @@ importers:
       next:
         specifier: 16.3.3
         version: 16.3.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      next-intl:
-        specifier: ^4.14.1
-        version: 4.14.1(@swc/helpers@0.5.23)(next@16.3.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1623,15 +1620,6 @@ packages:
     resolution: {integrity: sha512-NMPBRMJgiQHjbd8phG3Vebdx4kZ1H121rbl5IkMqeOsahptB9BKo/d7oJ3zTXqTgagn2bWlNSXkh0QUGM31RYg==}
     engines: {node: '>=18'}
 
-  next-intl-swc-plugin-extractor@4.14.1:
-    resolution: {integrity: sha512-ixZCS/z1Nx0sto4rWFfoCqahzqXjdhVuQzYrITVwXsrVzYi1ZKrWP8evoXTB5+F+j9FpLQIMIYB6gp3k+zePWA==}
-
-  next-intl@4.14.1:
-    resolution: {integrity: sha512-7o7ZyYIWoB0w87n13sezA8r1uLH0ipZCGrMHFKVhwFnwUI1/tym04P/T5NiyULaXUQ276m60xsmInE+HnfAq3A==}
-    peerDependencies:
-      next: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || >=19.0.0-rc <19.0.0 || ^19.0.0
-
   next-themes@0.4.6:
     resolution: {integrity: sha512-pZvgD5L0IEvX5/9GWyHMf3m8BKiVQwsCMHfoFosXtXBMnaS0ZnIJ9ST4b4NqLVKDEm8QBxoNNGNaBv2JNF6XNA==}
     peerDependencies:
@@ -3160,25 +3148,6 @@ snapshots:
   negotiator@1.1.0:
     dependencies:
       content-type: 2.1.0
-
-  next-intl-swc-plugin-extractor@4.14.1: {}
-
-  next-intl@4.14.1(@swc/helpers@0.5.23)(next@16.3.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8):
-    dependencies:
-      '@eloqnt/config': 0.0.2
-      '@eloqnt/format-json': 0.0.3
-      '@eloqnt/format-po': 0.0.3
-      '@formatjs/intl-localematcher': 0.8.13
-      '@parcel/watcher': 2.6.0
-      '@swc/core': 1.16.1(@swc/helpers@0.5.23)
-      icu-minify: 4.14.1
-      negotiator: 1.1.0
-      next: 16.3.3(@opentelemetry/api@1.9.1)(@types/node@24.19.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      next-intl-swc-plugin-extractor: 4.14.1
-      react: 19.2.8
-      use-intl: 4.14.1(react@19.2.8)
-    transitivePeerDependencies:
-      - '@swc/helpers'
 
   next-themes@0.4.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
     dependencies:

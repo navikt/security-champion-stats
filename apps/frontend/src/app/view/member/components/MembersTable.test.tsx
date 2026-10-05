@@ -48,7 +48,7 @@ describe("MembersTable", () => {
 				canEdit={false}
 			/>,
 		);
-		expect(await screen.findByText("main.table.noMembers")).toBeInTheDocument();
+		expect(await screen.findByText("No members found.")).toBeInTheDocument();
 	});
 
 	it("should show scores and admin actions when canEdit is true", async () => {
@@ -60,7 +60,7 @@ describe("MembersTable", () => {
 			/>,
 		);
 		expect(await screen.findByText("100")).toBeInTheDocument();
-		expect(screen.getAllByText("main.table.buttons.admin.deleteMember")).toHaveLength(
+		expect(screen.getAllByText("Delete member")).toHaveLength(
 			members.length,
 		);
 	});
@@ -75,6 +75,6 @@ describe("MembersTable", () => {
 			/>,
 		);
 		expect(await screen.findByText("100")).toBeInTheDocument();
-		expect(screen.queryByText("main.table.adminActions")).not.toBeInTheDocument();
+		expect(screen.queryByText("Actions")).not.toBeInTheDocument();
 	});
 });

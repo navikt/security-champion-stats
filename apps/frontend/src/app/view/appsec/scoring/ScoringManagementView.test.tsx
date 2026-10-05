@@ -45,19 +45,19 @@ describe("ScoringManagementView", () => {
 		const refresh = vi.fn().mockResolvedValue(undefined);
 		render(<ScoringManagementView overview={overview} onRefresh={refresh} />);
 
-		fireEvent.click(screen.getByRole("button", { name: "adjust" }));
-		expect(await screen.findByRole("heading", { name: "adjustmentTitle" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Adjust points" }));
+		expect(await screen.findByRole("heading", { name: "Adjust points" })).toBeInTheDocument();
 
-		fireEvent.change(screen.getByRole("textbox", { name: "pointsDelta" }), {
+		fireEvent.change(screen.getByRole("textbox", { name: "Point change" }), {
 			target: { value: "-1" },
 		});
-		fireEvent.change(screen.getByRole("combobox", { name: "sourceCredit" }), {
+		fireEvent.change(screen.getByRole("combobox", { name: "Activity to correct" }), {
 			target: { value: "credit-1" },
 		});
-		fireEvent.change(screen.getByRole("textbox", { name: "reason" }), {
+		fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
 			target: { value: "Correct duplicate registration" },
 		});
-		fireEvent.click(screen.getByRole("button", { name: "saveAdjustment" }));
+		fireEvent.click(screen.getByRole("button", { name: "Save adjustment" }));
 
 		await waitFor(() =>
 			expect(addAdjustment).toHaveBeenCalledWith(
@@ -79,15 +79,15 @@ describe("ScoringManagementView", () => {
 			/>,
 		);
 
-		fireEvent.click(screen.getByRole("button", { name: "startSeason" }));
-		fireEvent.click(screen.getByRole("button", { name: "confirmReset" }));
-		expect(await screen.findByText("reasonRequired")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Start a new season" }));
+		fireEvent.click(screen.getByRole("button", { name: "Start new season" }));
+		expect(await screen.findByText("Enter a reason.")).toBeInTheDocument();
 		expect(resetSeason).not.toHaveBeenCalled();
 
-		fireEvent.change(screen.getByRole("textbox", { name: "reason" }), {
+		fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
 			target: { value: "Program reset" },
 		});
-		fireEvent.click(screen.getByRole("button", { name: "confirmReset" }));
+		fireEvent.click(screen.getByRole("button", { name: "Start new season" }));
 
 		await waitFor(() => expect(resetSeason).toHaveBeenCalledWith("Program reset"));
 	});

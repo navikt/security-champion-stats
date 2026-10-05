@@ -1,7 +1,6 @@
 import { BodyShort, Button, Heading, Tag } from "@navikt/ds-react";
 import { SecurityEvent } from "@/app/utils/Variables";
 import "../../style/events/EventsView.css";
-import { useTranslations } from "next-intl";
 import { CalendarIcon, ClockIcon, LocationPinIcon } from "@navikt/aksel-icons";
 
 interface NextEventCardProps {
@@ -13,11 +12,9 @@ export function NextEventCard({ event }: NextEventCardProps) {
 
 	const end = event.endDate ? new Date(event.endDate) : undefined;
 
-	const t = useTranslations("events");
-
 	return (
 		<article className={"nextEventCard"}>
-			<div className={"nextEventCard__eyebrow"}>{t("nextEvent")}</div>
+			<div className={"nextEventCard__eyebrow"}>Next event</div>
 
 			<div className={"nextEventCard__heading"}>
 				<div>
@@ -46,7 +43,9 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			<div className={"nextEventCard__metadata"}>
 				<div className={"eventMeta"}>
 					<CalendarIcon aria-hidden />
-					<span>{start.toLocaleDateString("no-NO")}</span>
+					<span>
+						{start.toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })}
+					</span>
 				</div>
 
 				<div className={"eventMeta"}>
@@ -63,7 +62,7 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			</div>
 
 			<div className={"nextEventCard__actions"}>
-				<Button variant={"secondary"}>{t("details")}</Button>
+				<Button variant={"secondary"}>View details</Button>
 			</div>
 		</article>
 	);
@@ -71,9 +70,10 @@ export function NextEventCard({ event }: NextEventCardProps) {
 
 function formatEventTime(start: Date, end?: Date): string {
 	const format = (date: Date) => {
-		return date.toLocaleDateString([], {
+		return date.toLocaleTimeString("nb-NO", {
 			hour: "2-digit",
 			minute: "2-digit",
+			timeZone: "Europe/Oslo",
 		});
 	};
 

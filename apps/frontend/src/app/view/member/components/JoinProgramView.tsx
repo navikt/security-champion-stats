@@ -1,5 +1,4 @@
 import { BodyShort, Button, Heading } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 export function JoinProgramView({
@@ -7,7 +6,6 @@ export function JoinProgramView({
 }: {
 	onEnroll: () => Promise<boolean>;
 }) {
-	const t = useTranslations("home.membership.nonmember");
 	const [pending, setPending] = useState(false);
 	const [failed, setFailed] = useState(false);
 
@@ -28,15 +26,15 @@ export function JoinProgramView({
 		<section className="sc-membership-card sc-membership-card--guest">
 			<div className="sc-membership-card__content">
 				<Heading level="2" size="large" className="sc-membership-card__title">
-					{t("title")}
+					Join the Security Champion program
 				</Heading>
 				<BodyShort className="sc-membership-card__description">
-					{t("description")}
+					Enroll to take part in the program.
 				</BodyShort>
-				{failed && <p role="alert">{t("enrollError")}</p>}
+				{failed && <p role="alert">We couldn't enroll you. Try again.</p>}
 				<div className="sc-membership-card__actions">
 					<Button variant="primary" onClick={handleJoin}>
-						{pending ? t("enrolling") : t("enroll")}
+						{pending ? "Enrolling" : "Enroll"}
 					</Button>
 				</div>
 			</div>

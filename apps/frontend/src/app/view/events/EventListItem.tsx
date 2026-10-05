@@ -25,10 +25,11 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 				<strong className={"eventListItem__title"}>{event.name}</strong>
 
 				<span className={"eventListItem__date"}>
-					{start.toLocaleDateString()} ·{" "}
-					{start.toLocaleDateString([], {
+					{start.toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })} ·{" "}
+					{start.toLocaleTimeString("nb-NO", {
 						hour: "2-digit",
 						minute: "2-digit",
+						timeZone: "Europe/Oslo",
 					})}
 				</span>
 			</div>

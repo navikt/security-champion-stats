@@ -4,6 +4,7 @@
 The frontend application is built using React, TypeScript, and Next.js. Employees can enroll in the
 program and view participant names and teams. AppSec administrators can manage participant status,
 correct season scores, and schedule or start a new season.
+The user interface is English-only.
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 
@@ -17,7 +18,6 @@ To get started with the frontend application, follow these steps:
 - TypeScript: A typed superset of JavaScript that compiles to plain JavaScript.
 - Next.js: A React framework using the App Router for server-side rendering and routing.
 - Tailwind CSS: A utility-first CSS framework for styling the application.
-- next-intl: Internationalization (i18n) support for Next.js.
 - NAV Aksel (`@navikt/ds-react`): NAV's design system component library.
 - chart.js / react-chartjs-2: For rendering statistics charts.
 - Vitest: A fast unit test runner.
@@ -25,13 +25,10 @@ To get started with the frontend application, follow these steps:
 
 ## Folder Structure
 - `app/`: Main Next.js App Router directory.
-  - `[locale]/`: Locale-based routing (supports i18n).
   - `api/`: Next.js API routes (proxied calls to the backend).
   - `shared/`: Shared components, hooks, utilities, and theme.
   - `style/`: Global styles.
   - `utils/`: App-level utility functions.
-- `i18n/`: i18n configuration and routing setup.
-- `messages/`: Translation message files.
 - `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
 - `app/view/appsec/scoring/`: Season score corrections and reset controls.
 

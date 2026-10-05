@@ -2,7 +2,7 @@
 
 import Loading from "@/app/view/Loading";
 import { MainView } from "@/app/view/HomeView";
-import { useMe } from "../shared/hooks/UseMe";
+import { useMe } from "./shared/hooks/UseMe";
 
 export default function Page() {
 	const { me, loading } = useMe();

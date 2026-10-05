@@ -18,7 +18,6 @@ import {
 	VStack,
 	useDatepicker,
 } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 export function ScoringManagementView({
@@ -28,7 +27,6 @@ export function ScoringManagementView({
 	overview: AdminScoringOverview;
 	onRefresh: () => Promise<void>;
 }) {
-	const t = useTranslations("appsec.scoring");
 	const [nextResetDate, setNextResetDate] = useState(
 		overview.season.nextResetDate,
 	);
@@ -68,7 +66,7 @@ export function ScoringManagementView({
 
 	const saveResetDate = async () => {
 		if (!nextResetDate || busy) {
-			setDateError(t("dateRequired"));
+			setDateError("Choose the next season start date.");
 			return;
 		}
 		setBusy(true);
@@ -77,13 +75,17 @@ export function ScoringManagementView({
 		try {
 			const status = await Apies.updateNextResetDate(nextResetDate);
 			if (status !== 200) {
-				setDateError(t("resetDateError"));
+				setDateError(
+					"We couldn't save the date. Choose a date after today and try again.",
+				);
 				return;
 			}
-			setNotice(t("resetDateSaved"));
+			setNotice("The next season start date was saved.");
 			await onRefresh();
 		} catch {
-			setDateError(t("resetDateError"));
+			setDateError(
+				"We couldn't save the date. Choose a date after today and try again.",
+			);
 		} finally {
 			setBusy(false);
 		}
@@ -102,13 +104,17 @@ export function ScoringManagementView({
 		try {
 			const result = await Apies.getParticipantCredits(participant.participantId);
 			if (result === null) {
-				setAdjustmentError(t("creditsError"));
+				setAdjustmentError(
+					"We couldn't load the activities. Close this dialog and try again.",
+				);
 				setCreditsFailed(true);
 			} else {
 				setCredits(result);
 			}
 		} catch {
-			setAdjustmentError(t("creditsError"));
+			setAdjustmentError(
+				"We couldn't load the activities. Close this dialog and try again.",
+			);
 			setCreditsFailed(true);
 		} finally {
 			setCreditsLoading(false);
@@ -128,11 +134,11 @@ export function ScoringManagementView({
 			!Number.isSafeInteger(pointsDelta) ||
 			pointsDelta === 0
 		) {
-			setAdjustmentValidationError(t("invalidPoints"));
+			setAdjustmentValidationError("Enter a non-zero whole number.");
 			return;
 		}
 		if (!adjustmentReason.trim()) {
-			setAdjustmentValidationError(t("reasonRequired"));
+			setAdjustmentValidationError("Enter a reason.");
 			return;
 		}
 
@@ -148,14 +154,18 @@ export function ScoringManagementView({
 				sourceCreditId || undefined,
 			);
 			if (status !== 201) {
-				setAdjustmentError(t("adjustmentError"));
+				setAdjustmentError(
+					"We couldn't save the adjustment. Check the details and try again.",
+				);
 				return;
 			}
 			setSelectedParticipant(null);
-			setNotice(t("adjustmentSaved"));
+			setNotice("The point adjustment was saved.");
 			await onRefresh();
 		} catch {
-			setAdjustmentError(t("adjustmentError"));
+			setAdjustmentError(
+				"We couldn't save the adjustment. Check the details and try again.",
+			);
 		} finally {
 			setBusy(false);
 		}
@@ -173,15 +183,15 @@ export function ScoringManagementView({
 		try {
 			const status = await Apies.resetSeason(resetReason.trim());
 			if (status !== 200) {
-				setResetError(t("resetError"));
+				setResetError("We couldn't start a new season. Try again.");
 				return;
 			}
 			setResetDialogOpen(false);
 			setResetReason("");
-			setNotice(t("resetSaved"));
+			setNotice("The new season has started.");
 			await onRefresh();
 		} catch {
-			setResetError(t("resetError"));
+			setResetError("We couldn't start a new season. Try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -193,9 +203,11 @@ export function ScoringManagementView({
 		<VStack gap="space-24">
 			<VStack gap="space-4">
 				<Heading level="1" size="xlarge">
-					{t("title")}
+					Manage scoring
 				</Heading>
-				<BodyShort>{t("description")}</BodyShort>
+				<BodyShort>
+					View current-season points, correct scores, and manage season starts.
+				</BodyShort>
 			</VStack>
 
 			{notice && <BodyShort role="status">{notice}</BodyShort>}
@@ -203,21 +215,21 @@ export function ScoringManagementView({
 			<section aria-labelledby="season-heading">
 				<VStack gap="space-16">
 					<Heading level="2" size="large" id="season-heading">
-						{t("seasonTitle")}
+						Current season
 					</Heading>
 					<BodyShort>
-						{t("seasonStart", { date: overview.season.startsOn })}
+						The season started on {overview.season.startsOn}.
 					</BodyShort>
 					<BodyShort>
 						{overview.season.endsOn
-							? t("seasonEnd", { date: overview.season.endsOn })
-							: t("seasonOngoing")}
+							? `The season ends on ${overview.season.endsOn}.`
+							: "The season is ongoing."}
 					</BodyShort>
 					<DatePicker {...datepickerProps}>
 						<DatePicker.Input
 							{...inputProps}
-							label={t("nextResetDate")}
-							description={t("nextResetDescription")}
+							label="Next season start"
+							description="The date uses local time in Oslo."
 						/>
 					</DatePicker>
 					{dateError && <BodyShort role="alert">{dateError}</BodyShort>}
@@ -227,7 +239,7 @@ export function ScoringManagementView({
 						loading={busy}
 						onClick={saveResetDate}
 					>
-						{t("saveResetDate")}
+						Save date
 					</Button>
 					<Button
 						type="button"
@@ -240,7 +252,7 @@ export function ScoringManagementView({
 							setResetDialogOpen(true);
 						}}
 					>
-						{t("startSeason")}
+						Start a new season
 					</Button>
 				</VStack>
 			</section>
@@ -248,31 +260,31 @@ export function ScoringManagementView({
 			<section aria-labelledby="scores-heading">
 				<VStack gap="space-16">
 					<Heading level="2" size="large" id="scores-heading">
-						{t("participantsTitle")}
+						Participants and points
 					</Heading>
 					<Table size="small">
 						<Table.Header>
 							<Table.Row>
-								<Table.HeaderCell scope="col">{t("name")}</Table.HeaderCell>
-								<Table.HeaderCell scope="col">{t("email")}</Table.HeaderCell>
-								<Table.HeaderCell scope="col">{t("status")}</Table.HeaderCell>
-								<Table.HeaderCell scope="col">{t("points")}</Table.HeaderCell>
-								<Table.HeaderCell scope="col">{t("level")}</Table.HeaderCell>
-								<Table.HeaderCell scope="col">{t("actions")}</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Name</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Email</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Status</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Points</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Level</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Actions</Table.HeaderCell>
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
 							{sortedParticipants.map((participant) => (
 								<Table.Row key={participant.participantId}>
 									<Table.HeaderCell scope="row">
-										{participant.fullName || t("nameUnavailable")}
+										{participant.fullName || "Name unavailable"}
 									</Table.HeaderCell>
 									<Table.DataCell>{participant.email}</Table.DataCell>
 									<Table.DataCell>
-										{participant.active ? t("active") : t("deactivated")}
+										{participant.active ? "Active" : "Deactivated"}
 									</Table.DataCell>
 									<Table.DataCell>{participant.points}</Table.DataCell>
-									<Table.DataCell>{t(`levels.${participant.level}`)}</Table.DataCell>
+									<Table.DataCell>{participant.level}</Table.DataCell>
 									<Table.DataCell>
 										<Button
 											size="small"
@@ -280,7 +292,7 @@ export function ScoringManagementView({
 											variant="secondary"
 											onClick={() => openAdjustment(participant)}
 										>
-											{t("adjust")}
+											Adjust points
 										</Button>
 									</Table.DataCell>
 								</Table.Row>
@@ -288,7 +300,7 @@ export function ScoringManagementView({
 							{sortedParticipants.length === 0 && (
 								<Table.Row>
 									<Table.DataCell colSpan={6}>
-										{t("noParticipants")}
+										No participants.
 									</Table.DataCell>
 								</Table.Row>
 							)}
@@ -300,41 +312,39 @@ export function ScoringManagementView({
 			<Modal
 				open={selectedParticipant !== null}
 				onClose={closeAdjustment}
-				header={{ heading: t("adjustmentTitle") }}
+				header={{ heading: "Adjust points" }}
 			>
 				<Modal.Body>
 					<VStack gap="space-16">
 						{selectedParticipant && (
 							<BodyShort>
-								{t("adjustmentDescription", {
-									name: selectedParticipant.fullName,
-								})}
+								{`Adjust points for ${selectedParticipant.fullName}. Selecting an activity assigns the adjustment to that activity's season.`}
 							</BodyShort>
 						)}
 						<TextField
-							label={t("pointsDelta")}
-							description={t("pointsDeltaDescription")}
+							label="Point change"
+							description="Use a positive number to add points and a negative number to subtract them."
 							inputMode="numeric"
 							value={adjustmentPoints}
 							onChange={(event) => setAdjustmentPoints(event.target.value)}
 						/>
 						<Select
-							label={t("sourceCredit")}
+							label="Activity to correct"
 							value={sourceCreditId}
 							onChange={(event) => setSourceCreditId(event.target.value)}
 						>
-							<option value="">{t("currentSeasonCredit")}</option>
+							<option value="">No activity, use the current season</option>
 							{credits.map((credit) => (
 								<option key={credit.id} value={credit.id}>
-									{creditLabel(credit, t(`creditTypes.${credit.creditType}`))}
+									{creditLabel(credit, creditTypeLabel(credit.creditType))}
 								</option>
 							))}
 						</Select>
 						{creditsLoading && (
-							<BodyShort role="status">{t("creditsLoading")}</BodyShort>
+							<BodyShort role="status">Loading activities...</BodyShort>
 						)}
 						<TextField
-							label={t("reason")}
+							label="Reason"
 							value={adjustmentReason}
 							onChange={(event) => setAdjustmentReason(event.target.value)}
 						/>
@@ -348,10 +358,10 @@ export function ScoringManagementView({
 				</Modal.Body>
 				<Modal.Footer>
 					<Button type="button" variant="tertiary" onClick={closeAdjustment}>
-						{t("cancel")}
+						Cancel
 					</Button>
 					<Button type="button" loading={busy} onClick={addAdjustment}>
-						{t("saveAdjustment")}
+						Save adjustment
 					</Button>
 				</Modal.Footer>
 			</Modal>
@@ -359,21 +369,17 @@ export function ScoringManagementView({
 			<Modal
 				open={resetDialogOpen}
 				onClose={() => setResetDialogOpen(false)}
-				header={{ heading: t("confirmResetTitle") }}
+				header={{ heading: "Start a new season?" }}
 			>
 				<Modal.Body>
 					<VStack gap="space-16">
 						<BodyShort>
-							{t("resetPreview", {
-								start: overview.season.startsOn,
-								end: toDateString(addDays(parseLocalDate(today), -1)),
-								nextStart: today,
-							})}
+							{`The season that started on ${overview.season.startsOn} ends on ${toDateString(addDays(parseLocalDate(today), -1))}. The new season starts on ${today}.`}
 						</BodyShort>
 						<TextField
-							label={t("reason")}
+							label="Reason"
 							value={resetReason}
-							error={resetReasonError ? t("reasonRequired") : undefined}
+							error={resetReasonError ? "Enter a reason." : undefined}
 							onChange={(event) => {
 								setResetReason(event.target.value);
 								setResetReasonError(false);
@@ -388,7 +394,7 @@ export function ScoringManagementView({
 						variant="tertiary"
 						onClick={() => setResetDialogOpen(false)}
 					>
-						{t("cancel")}
+						Cancel
 					</Button>
 					<Button
 						type="button"
@@ -396,7 +402,7 @@ export function ScoringManagementView({
 						loading={busy}
 						onClick={resetSeason}
 					>
-						{t("confirmReset")}
+						Start new season
 					</Button>
 				</Modal.Footer>
 			</Modal>
@@ -427,4 +433,19 @@ function creditLabel(
 	typeLabel: string,
 ): string {
 	return `${typeLabel} · ${credit.sourceReference} · ${credit.points} · ${credit.seasonStartsOn}`;
+}
+
+function creditTypeLabel(creditType: ActivityCredit["creditType"]): string {
+	switch (creditType) {
+		case "SLACK_WEEK":
+			return "Slack participation";
+		case "DELTA_REGISTRATION":
+			return "Delta registration";
+		case "GITHUB_COMMIT":
+			return "GitHub commit";
+		case "GITHUB_PULL_REQUEST":
+			return "GitHub pull request";
+		case "SECURITY_EVENT_CONTRIBUTION":
+			return "Security event contribution";
+	}
 }

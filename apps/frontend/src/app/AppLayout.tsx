@@ -1,5 +1,5 @@
 "use client";
-import { useLocale, useTranslations } from "next-intl";
+
 import {
 	ActionMenu,
 	InfoCard,
@@ -7,28 +7,21 @@ import {
 	Page,
 	Spacer,
 } from "@navikt/ds-react";
-
+import { MenuGridIcon } from "@navikt/aksel-icons";
 import "@/app/style/TopLayout.css";
 import SettingsMenu from "@/app/view/member/components/SettingsMenu";
-import { useMe } from "../shared/hooks/UseMe";
-import { MenuGridIcon } from "@navikt/aksel-icons";
+import { useMe } from "./shared/hooks/UseMe";
 import { SideNavigation } from "@/app/shared/navigation/SideNavigation";
 
-export default function LocaleLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
 	const { me, loading } = useMe();
-	const t = useTranslations();
-	const locale = useLocale();
 	if (loading) return null;
 
 	return (
 		<Page className={"appLayout"}>
 			<InternalHeader>
-				<InternalHeader.Title as="h2" href={`/${locale}`}>
-					{t("title")}
+				<InternalHeader.Title as="h2" href="/">
+					Sec Hub
 				</InternalHeader.Title>
 
 				{me.isAdmin && (
@@ -41,17 +34,17 @@ export default function LocaleLayout({
 
 						<ActionMenu.Content align="end">
 							<ActionMenu.Group label="Menu">
-								<ActionMenu.Item as="a" href={`/${locale}/dashboard`}>
+								<ActionMenu.Item as="a" href="/dashboard">
 									Temp Dashboard
 								</ActionMenu.Item>
-								<ActionMenu.Item as="a" href={`/${locale}/appsec/events`}>
-									{t("appsec.events.title")}
+								<ActionMenu.Item as="a" href="/appsec/events">
+									Manage events
 								</ActionMenu.Item>
-								<ActionMenu.Item as="a" href={`/${locale}/appsec/membership`}>
-									{t("appsec.membership.title")}
+								<ActionMenu.Item as="a" href="/appsec/membership">
+									Manage participants
 								</ActionMenu.Item>
-								<ActionMenu.Item as="a" href={`/${locale}/appsec/scoring`}>
-									{t("appsec.scoring.title")}
+								<ActionMenu.Item as="a" href="/appsec/scoring">
+									Manage scoring
 								</ActionMenu.Item>
 							</ActionMenu.Group>
 						</ActionMenu.Content>
@@ -60,7 +53,7 @@ export default function LocaleLayout({
 
 				<Spacer />
 
-				<SettingsMenu locale={locale} />
+				<SettingsMenu />
 
 				<div
 					style={{
@@ -74,7 +67,7 @@ export default function LocaleLayout({
 			</InternalHeader>
 
 			<div className="appBody">
-				<SideNavigation locale={locale} />
+				<SideNavigation />
 				<Page.Block as="main" gutters className="appMain">
 					<InfoCard data-color={"info"}>
 						<InfoCard.Header>

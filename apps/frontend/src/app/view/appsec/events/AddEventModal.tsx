@@ -14,7 +14,6 @@ import {
 	useDatepicker,
 	VStack,
 } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { SecurityEvent, SecurityEventType } from "@/app/utils/Variables";
 
 interface AddEventModalProps {
@@ -30,8 +29,6 @@ export function AddEventModal({
 	onCreate,
 	loading = false,
 }: AddEventModalProps) {
-	const t = useTranslations("appsec.events.form");
-
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
 	const [location, setLocation] = useState("");
@@ -84,47 +81,47 @@ export function AddEventModal({
 		>
 			<Modal.Header>
 				<Heading size={"medium"} id={"add-event-title"} level={"2"}>
-					{t("title")}
+					Add event
 				</Heading>
 			</Modal.Header>
 			<Modal.Body>
 				<VStack gap={"space-16"}>
 					<TextField
-						label={t("name")}
+						label="Name"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 					/>
 
 					<Textarea
-						label={t("description")}
+						label="Description"
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
 					/>
 
 					<TextField
-						label={t("location")}
+						label="Location"
 						value={location}
 						onChange={(e) => setLocation(e.target.value)}
 					/>
 
 					<Select
-						label={t("type")}
+						label="Type"
 						value={type}
 						onChange={(e) => setType(e.target.value as SecurityEventType)}
 					>
-						<option value={"meetup"}>{t("types.meeting")}</option>
-						<option value={"workshop"}>{t("types.workshop")}</option>
-						<option value={"course"}>{t("types.course")}</option>
+						<option value={"meetup"}>Meeting</option>
+						<option value={"workshop"}>Workshop</option>
+						<option value={"course"}>Course</option>
 					</Select>
 
 					<DatePicker {...startDatepicker.datepickerProps}>
 						<DatePicker.Input
 							{...startDatepicker.inputProps}
-							label={t("startDate")}
+							label="Start date"
 						/>
 					</DatePicker>
 					<TextField
-						label={t("startTime")}
+						label="Start time"
 						type={"time"}
 						value={startTime}
 						onChange={(e) => setStartTime(e.target.value)}
@@ -133,31 +130,31 @@ export function AddEventModal({
 					<DatePicker {...endDatepicker.datepickerProps}>
 						<DatePicker.Input
 							{...endDatepicker.inputProps}
-							label={t("endDate")}
+							label="End date"
 						/>
 					</DatePicker>
 					<TextField
-						label={t("endTime")}
+						label="End time"
 						type={"time"}
 						value={endTime}
 						onChange={(e) => setEndTime(e.target.value)}
 					/>
 					{isEndBeforeStart && (
-						<ErrorMessage>{t("endBeforeStart")}</ErrorMessage>
+						<ErrorMessage>End must be after start</ErrorMessage>
 					)}
 
 					<Switch
 						checked={externalEvent}
 						onChange={(e) => setExternalEvent(e.target.checked)}
 					>
-						{t("externalEvent")}
+						External event
 					</Switch>
 
 					<Switch
 						checked={deltaEvent}
 						onChange={(e) => setDeltaEvent(e.target.checked)}
 					>
-						{t("deltaEvent")}
+						delta Event
 					</Switch>
 				</VStack>
 			</Modal.Body>
@@ -167,10 +164,10 @@ export function AddEventModal({
 					loading={loading}
 					disabled={!name || !startDate || !endDate || isEndBeforeStart}
 				>
-					{t("submit")}
+					Create event
 				</Button>
 				<Button variant={"secondary"} onClick={onClose} disabled={loading}>
-					{t("cancel")}
+					Cancel
 				</Button>
 			</Modal.Footer>
 		</Modal>

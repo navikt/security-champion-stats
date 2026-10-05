@@ -5,22 +5,17 @@ import "../../style/SideNavigation.css";
 import { navigation } from "@/app/shared/navigation/Navigation";
 import Link from "next/link";
 
-interface SideNavigationProps {
-	locale: string;
-}
-
-export function SideNavigation({ locale }: SideNavigationProps) {
+export function SideNavigation() {
 	const pathName = usePathname();
 	const paths = navigation();
 	return (
 		<aside className={"sideNavigation"}>
 			<nav className={"sideNavigation__nav"} aria-label={"Main navigation"}>
 				{paths.map((item) => {
-					const href =
-						item.path === "" ? `/${locale}` : `/${locale}${item.path}`;
+					const href = item.path || "/";
 					const isActive =
 						item.path === ""
-							? pathName === `/${locale}`
+							? pathName === "/"
 							: pathName.startsWith(href);
 					const Icon = item.icon;
 
@@ -37,7 +32,7 @@ export function SideNavigation({ locale }: SideNavigationProps) {
 							aria-current={isActive ? "page" : undefined}
 						>
 							<Icon aria-hidden className={"sideNa"} />
-							<span>{item.labelKey}</span>
+							<span>{item.label}</span>
 						</Link>
 					);
 				})}

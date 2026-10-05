@@ -56,3 +56,10 @@ val compileKotlin: KotlinCompile by tasks
 compileKotlin.compilerOptions {
     freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }
+
+configurations.configureEach {
+    if (name == "compileClasspath" || name == "runtimeClasspath"
+            || name.endsWith("CompileClasspath") || name.endsWith("RuntimeClasspath")) {
+        resolutionStrategy.activateDependencyLocking()
+    }
+}

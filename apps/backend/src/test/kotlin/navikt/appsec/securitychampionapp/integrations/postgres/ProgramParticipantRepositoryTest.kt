@@ -138,9 +138,55 @@ class ProgramParticipantRepositoryTest {
             active = false,
             actorNavNoEmail = "first@nav.no",
         )
+        val firstId = UUID.fromString(first.id)
+        val secondId = UUID.fromString(second.id)
+        val creditId = UUID.randomUUID()
+        val seasonId = jdbcTemplate.queryForObject(
+            "SELECT id FROM program_seasons WHERE ends_on IS NULL",
+            UUID::class.java,
+        )!!
+        jdbcTemplate.update(
+            """
+                INSERT INTO activity_credits (
+                    id, participant_id, season_id, credit_type, uniqueness_key, source_reference, points
+                ) VALUES (?, ?, ?, 'DELTA_REGISTRATION', 'event:1', 'Event 1', 1)
+            """.trimIndent(),
+            creditId,
+            firstId,
+            seasonId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO point_adjustments (
+                    participant_id, season_id, source_credit_id, points_delta, reason,
+                    actor_nav_no_email, score_before, score_after
+                ) VALUES (?, ?, ?, -1, 'Correction', 'admin@nav.no', 1, 0)
+            """.trimIndent(),
+            firstId,
+            seasonId,
+            creditId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_scoring_audit (
+                    participant_id, actor_nav_no_email, action, before_values, after_values
+                ) VALUES (?, ?, 'POINTS_ADJUSTED', '{}'::jsonb, '{}'::jsonb)
+            """.trimIndent(),
+            firstId,
+            "first@nav.no",
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_scoring_audit (
+                    participant_id, actor_nav_no_email, action, before_values, after_values
+                ) VALUES (?, ?, 'POINTS_ADJUSTED', '{}'::jsonb, '{}'::jsonb)
+            """.trimIndent(),
+            secondId,
+            "first@nav.no",
+        )
 
         val deletion = repository.permanentlyDelete(
-            UUID.fromString(first.id),
+            firstId,
         )
 
         assertThat(deletion.isOk).isTrue()
@@ -161,9 +207,33 @@ class ProgramParticipantRepositoryTest {
                 UUID.fromString(first.id),
             )
         ).isZero()
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM activity_credits WHERE participant_id = ?",
+                Int::class.javaObjectType,
+                firstId,
+            )
+        ).isZero()
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM point_adjustments WHERE participant_id = ?",
+                Int::class.javaObjectType,
+                firstId,
+            )
+        ).isZero()
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM program_scoring_audit WHERE participant_id = ?",
+                Int::class.javaObjectType,
+                firstId,
+            )
+        ).isZero()
         val remainingAudit = jdbcTemplate.queryForMap(
-            "SELECT actor_nav_no_email FROM program_participant_audit WHERE participant_id = ?",
-            UUID.fromString(second.id),
+            """
+                SELECT actor_nav_no_email FROM program_scoring_audit
+                WHERE participant_id = ? AND action = 'POINTS_ADJUSTED'
+            """.trimIndent(),
+            secondId,
         )
         assertThat(remainingAudit["actor_nav_no_email"]).isNull()
     }

@@ -32,12 +32,12 @@ describe("MembersTable", () => {
 			<MembersTable
 				members={members}
 				onDelete={vi.fn()}
-				onAddPoints={vi.fn()}
 				canEdit={false}
 			/>,
 		);
 		expect(await screen.findByText("Alice")).toBeInTheDocument();
 		expect(await screen.findByText("Bob")).toBeInTheDocument();
+		expect(screen.queryByText("100")).not.toBeInTheDocument();
 	});
 
 	it("should show empty state when no members", async () => {
@@ -45,40 +45,36 @@ describe("MembersTable", () => {
 			<MembersTable
 				members={[]}
 				onDelete={vi.fn()}
-				onAddPoints={vi.fn()}
 				canEdit={false}
 			/>,
 		);
 		expect(await screen.findByText("main.table.noMembers")).toBeInTheDocument();
 	});
 
-	it("should render admin action buttons when canEdit is true", async () => {
+	it("should show scores and admin actions when canEdit is true", async () => {
 		render(
 			<MembersTable
 				members={members}
 				onDelete={vi.fn()}
-				onAddPoints={vi.fn()}
 				canEdit={true}
 			/>,
 		);
-		const addPointsButtons = await screen.findAllByText(
-			"main.table.buttons.admin.addPoints",
+		expect(await screen.findByText("100")).toBeInTheDocument();
+		expect(screen.getAllByText("main.table.buttons.admin.deleteMember")).toHaveLength(
+			members.length,
 		);
-		expect(addPointsButtons).toHaveLength(members.length);
 	});
 
-	it("should not render admin action buttons when canEdit is false", async () => {
+	it("should allow a participant to view their leaderboard scores without admin actions", async () => {
 		render(
 			<MembersTable
 				members={members}
 				onDelete={vi.fn()}
-				onAddPoints={vi.fn()}
 				canEdit={false}
+				canViewScores
 			/>,
 		);
-		expect(await screen.findByText("Alice")).toBeInTheDocument();
-		expect(
-			screen.queryByText("main.table.buttons.admin.addPoints"),
-		).not.toBeInTheDocument();
+		expect(await screen.findByText("100")).toBeInTheDocument();
+		expect(screen.queryByText("main.table.adminActions")).not.toBeInTheDocument();
 	});
 });

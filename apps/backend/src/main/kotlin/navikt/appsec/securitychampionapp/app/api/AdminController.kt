@@ -4,7 +4,6 @@ import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.AdminProgramParticipantView
 import navikt.appsec.securitychampionapp.app.api.dto.DeleteParticipantRequest
 import navikt.appsec.securitychampionapp.app.api.dto.Event
-import navikt.appsec.securitychampionapp.app.api.dto.Points
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
 import navikt.appsec.securitychampionapp.app.api.dto.UpdateParticipantStatusRequest
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
@@ -118,26 +117,6 @@ class AdminController(
         }
         if (response.affectedRows == 0) return ResponseEntity.notFound().build()
         return ResponseEntity.noContent().build()
-    }
-
-    @PostMapping("/points")
-    fun addPoints(@RequestBody points: Points): ResponseEntity<Any> {
-        if (!validate.isValidEmail(points.email) or !validate.isValidNumber(points.points.toString())) {
-            logger.warn(
-                "Attempt to add points for user failed due to invalid email format, " +
-                    "request made by user ${SecurityContextHolder.getContext().authentication?.name}"
-            )
-            return ResponseEntity.status(HttpStatus.ACCEPTED).build()
-        }
-        val user = repo.getMemberByEmail(points.email)
-        if (!user.isOk) {
-            logger.warn("Failed to find user then updating the points")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-        val newAmount = points.points + user.queryResult!!.first().points
-        val level = validate.calculateLevel(newAmount)
-        repo.addPoints(points.email, newAmount, level)
-        return ResponseEntity("Points where added for user", HttpStatus.ACCEPTED)
     }
 
     @PostMapping("/events")

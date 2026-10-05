@@ -10,6 +10,9 @@ Participation is managed in the application: employees can self-enroll, and admi
 active status. The scheduled Teamkatalogen sync refreshes profiles for existing participants without
 creating, deactivating, or restoring participation.
 
+Scores come from season-specific activity credits and signed administrator adjustments. Season resets
+use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
+
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
 sequenceDiagram
@@ -17,9 +20,8 @@ sequenceDiagram
     participant BE as Backend
     participant DB as Database
     participant TK as Teamkatalogen
-    participant Slack as Slack
     participant BES as Backend scheduler
-    participant Scoring as Slack scoring job
+    participant Season as Season reset job
 
     FE->>BE: Request one of the endpoints (e.g. get security champion stats)
     BE->>DB: Query for data related to the request (e.g. security champion stats)
@@ -32,13 +34,7 @@ sequenceDiagram
     DB-->>BES: [participant, participant, …]
     BES-->>BES: Match profile details by NAVident and email
     BES->>DB: Update profile details without changing participation
-    loop paginated
-        Scoring->>DB: Fetch active members eligible for point calculation
-        DB-->>Scoring: [member, member, …]
-        Scoring->>Slack: Get Slack activity for each member
-        Slack-->>Scoring: [activity, activity, …]
-        Scoring->>DB: Update points for qualifying activity
-    end    
+    Season->>DB: Start a new season when its reset date is due
 ```
 
 ## How to run
@@ -103,10 +99,10 @@ src/main/kotlin/.../
 │   │   ├── Controller.kt           # Public API endpoints (/api/*)
 │   │   ├── AdminController.kt      # Admin-only endpoints (/api/admin/*)
 │   │   └── dto/                    # Request/response DTOs
+│   ├── scoring/                    # Season scoring rules and application service
 │   └── jobs/
 │       ├── SyncJob.kt              # Daily sync: updates profiles for existing participants
-│       ├── CalculatePointsJob.kt   # Daily job: calculates Slack activity points for all members
-│       └── ResetPointsSyncJob.kt   # Scheduled job: resets all points and levels
+│       └── ResetSeasonJob.kt       # Daily check for the next configured season start
 ├── config/                         # Spring configuration (Security, Swagger, Slack, TeamCatalog, Web)
 ├── integrations/
 │   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
@@ -114,12 +110,12 @@ src/main/kotlin/.../
 │   └── teamCatalog/                # Teamkatalogen client and DTOs
 ├── security/                       # Token introspection, auth filter, and principal DTOs
 └── utils/
-    └── Validate.kt                 # Input validation and level calculation
+    └── Validate.kt                 # Input validation
 
 src/main/resources/
 ├── application.yaml                # Main configuration
 ├── application-local.yaml          # Local dev overrides (mocked integrations)
-├── db/migration/                   # Flyway SQL migrations (V1–V11)
+├── db/migration/                   # Flyway SQL migrations (V1–V12)
 └── mock/                           # Static mock responses for Slack and Teamkatalogen (local profile)
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
@@ -135,6 +131,9 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | GET | `/api/validate` | Validate the current user and return participation status |
 | GET | `/api/membership` | Fetch the authenticated user's participation details |
 | POST | `/api/enroll` | Enroll the authenticated employee in the program |
+| GET | `/api/recognition` | List positive-score names and ranks without points |
+| GET | `/api/leaderboard` | Get exact scores for active participants and administrators |
+| GET | `/api/scoring/me` | Get the authenticated participant's current-season score |
 
 **Admin (`/api/admin`)** — requires admin role
 | Method | Path | Description |
@@ -144,15 +143,18 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | GET | `/api/admin/participants` | List program participants |
 | PUT | `/api/admin/participants/{id}/status` | Activate or deactivate a participant |
 | DELETE | `/api/admin/participants/{id}` | Permanently delete a participant after confirmation |
-| POST | `/api/admin/points` | Add points to a member |
+| GET | `/api/admin/scoring` | Get the current season and participant scores |
+| GET | `/api/admin/scoring/participants/{id}/credits` | List a participant's activities for corrections |
+| POST | `/api/admin/scoring/participants/{id}/adjustments` | Add a signed, reasoned point adjustment |
+| PUT | `/api/admin/scoring/season/reset-date` | Set the next scheduled season start |
+| POST | `/api/admin/scoring/season/reset` | Start a manually confirmed season |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs
 | Job | Schedule | Description |
 |-----|----------|-------------|
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
-| `CalculatePointsJob` | Daily at 13:00 | Fetches Slack activity and updates points/levels for all active members |
-| `ResetPointsSyncJob` | Configurable via `jobs.reset-points.cron` | Resets all points and levels |
+| `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |
 
 ## Contributing
 Contributions to the backend application are welcome! If you would like to contribute, please follow these steps:

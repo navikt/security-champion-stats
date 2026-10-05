@@ -1,5 +1,7 @@
 import {
 	AdminProgramParticipant,
+	ActivityCredit,
+	AdminScoringOverview,
 	Me,
 	ProgramParticipant,
 	ProgramParticipantSummary,
@@ -12,6 +14,26 @@ export const Apies = {
 		const res = await fetch("/api/admin/participants");
 		if (!res.ok) {
 			console.error("Failed to fetch program participants, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	getScoringOverview: async (): Promise<AdminScoringOverview | null> => {
+		const res = await fetch("/api/admin/scoring");
+		if (!res.ok) {
+			console.error("Failed to fetch scoring overview, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	getParticipantCredits: async (
+		id: string,
+	): Promise<ActivityCredit[] | null> => {
+		const res = await fetch(
+			`/api/admin/scoring/participants/${encodeURIComponent(id)}/credits`,
+		);
+		if (!res.ok) {
+			console.error("Failed to fetch participant credits, status: ", res.status);
 			return null;
 		}
 		return res.json();
@@ -70,14 +92,45 @@ export const Apies = {
 		}
 		return res.status;
 	},
-	addPoints: async (email: string, amount: number) => {
-		const res = await fetch("/api/admin/points", {
+	addPointAdjustment: async (
+		participantId: string,
+		pointsDelta: number,
+		reason: string,
+		sourceCreditId?: string,
+	): Promise<number> => {
+		const res = await fetch(
+			`/api/admin/scoring/participants/${encodeURIComponent(participantId)}/adjustments`,
+			{
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ email: email, amount: amount }),
+				body: JSON.stringify({ pointsDelta, reason, sourceCreditId }),
+			},
+		);
+		if (!res.ok) {
+			console.error("Failed to adjust points, with status code: ", res.status);
+		}
+		return res.status;
+	},
+	updateNextResetDate: async (nextResetDate: string): Promise<number> => {
+		const res = await fetch("/api/admin/scoring/season/reset-date", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ nextResetDate }),
 		});
-		if (!res.ok)
-			console.error("Failed to add points, with status code: ", res.status);
+		if (!res.ok) {
+			console.error("Failed to update reset date, status: ", res.status);
+		}
+		return res.status;
+	},
+	resetSeason: async (reason: string): Promise<number> => {
+		const res = await fetch("/api/admin/scoring/season/reset", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ confirmed: true, reason }),
+		});
+		if (!res.ok) {
+			console.error("Failed to reset season, status: ", res.status);
+		}
 		return res.status;
 	},
 	joinProgram: async (): Promise<boolean> => {

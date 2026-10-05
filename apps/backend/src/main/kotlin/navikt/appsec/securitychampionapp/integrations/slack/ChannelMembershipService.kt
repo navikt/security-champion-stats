@@ -16,8 +16,8 @@ import org.springframework.stereotype.Service
 class ChannelMembershipService(
     private val slackApiService: SlackApiService,
     private val repo: MemberRepository,
-    @Value($$"${slack.appsec-activity-channel-id") private val scChannelId: String,
-    @Value($$"${slack.userGroupId") private val userGrouping: String
+    @Value($$"${slack.appsec-activity-channel-id}") private val scChannelId: String,
+    @Value($$"${slack.userGroupId}") private val userGrouping: String
 ) {
 
     private val logger = LoggerFactory.getLogger(ChannelMembershipService::class.java)

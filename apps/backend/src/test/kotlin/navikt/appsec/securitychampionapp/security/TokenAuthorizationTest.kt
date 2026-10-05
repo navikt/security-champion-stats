@@ -19,6 +19,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.security.web.FilterChainProxy
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
@@ -33,6 +34,7 @@ import java.util.Base64
     properties = ["spring.security.token-validation.groups=test-admin-group"],
 )
 @Import(SecurityConfig::class, TokenIntrospection::class)
+@ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 class TokenAuthorizationTest {
     @Autowired

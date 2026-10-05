@@ -12,6 +12,7 @@ creating, deactivating, or restoring participation.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
+Legacy per-message Slack scoring has been removed; weekly Slack credit integration remains pending.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
@@ -44,6 +45,9 @@ To run the backend application, follow these steps:
 3. Run the application with the local profile: `./gradlew bootRun --args='--spring.profiles.active=local'`
 4. To run tests, use the command: `./gradlew test`
 5. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
+
+Tests inherit the main configuration and apply `application-test.yaml` overrides.
+`ApplicationStartupTest` boots the production profile with main configuration and Testcontainers PostgreSQL.
 
 Swagger documentation is publicly accessible. In production, API operations require an Entra ID bearer token;
 administrator access requires membership in the configured Entra group. Basic Authentication is not supported.
@@ -106,7 +110,7 @@ src/main/kotlin/.../
 ├── config/                         # Spring configuration (Security, Swagger, Slack, TeamCatalog, Web)
 ├── integrations/
 │   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
-│   ├── slack/                      # Slack API service, activity and channel membership services
+│   ├── slack/                      # Slack API and channel membership services
 │   └── teamCatalog/                # Teamkatalogen client and DTOs
 ├── security/                       # Token introspection, auth filter, and principal DTOs
 └── utils/

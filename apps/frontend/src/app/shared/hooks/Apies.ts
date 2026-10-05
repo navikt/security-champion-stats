@@ -22,6 +22,20 @@ export const Apies = {
 		}
 		return res.json();
 	},
+	triggerSlackSync: async (): Promise<number> => {
+		const res = await fetch("/api/admin/slack/sync", { method: "POST" });
+		if (!res.ok) {
+			console.error("Failed to trigger Slack sync, status: ", res.status);
+		}
+		return res.status;
+	},
+	triggerDeltaSync: async (): Promise<number> => {
+		const res = await fetch("/api/admin/delta/sync", { method: "POST" });
+		if (!res.ok) {
+			console.error("Failed to trigger Delta sync, status: ", res.status);
+		}
+		return res.status;
+	},
 	getAdminParticipants: async (): Promise<AdminProgramParticipant[] | null> => {
 		const res = await fetch("/api/admin/participants");
 		if (!res.ok) {

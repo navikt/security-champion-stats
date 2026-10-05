@@ -6,7 +6,8 @@ program and view participant names and teams. AppSec administrators can manage p
 correct season scores, schedule or start a new season, map Slack accounts, and map program events to
 owner-confirmed Delta event UUIDs and Delta categories. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
-The admin program dashboard summarizes active participants, season activity, and Slack/Delta sync health.
+The admin program dashboard summarizes active participants and season activity, shows Slack/Delta sync
+health, and lets administrators trigger enabled syncs.
 The user interface is English-only.
 
 ## Getting Started

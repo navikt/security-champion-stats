@@ -4,6 +4,8 @@ import navikt.appsec.securitychampionapp.app.scoring.AddSlackAccountMappingReque
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.SlackMappingOverview
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
+import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
+import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
@@ -22,10 +24,20 @@ import java.util.UUID
 @RequestMapping("/api/admin/slack")
 class AdminSlackScoringController(
     private val slackScoringService: SlackScoringService,
+    private val slackScoringSyncJob: SlackScoringSyncJob,
 ) {
     @GetMapping
     fun overview(): ResponseEntity<SlackMappingOverview> =
         ResponseEntity.ok(slackScoringService.mappingOverview())
+
+    @PostMapping("/sync")
+    fun triggerSync(): ResponseEntity<Void> =
+        when (slackScoringSyncJob.triggerManualSync()) {
+            SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
+            SyncTriggerResult.ALREADY_RUNNING -> ResponseEntity.status(HttpStatus.CONFLICT).build()
+            SyncTriggerResult.UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
+            SyncTriggerResult.DISABLED -> ResponseEntity.status(HttpStatus.CONFLICT).build()
+        }
 
     @PostMapping("/mappings")
     fun addMapping(@RequestBody request: AddSlackAccountMappingRequest): ResponseEntity<Any> {

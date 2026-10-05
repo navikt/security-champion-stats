@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import type { AdminDashboardOverview } from "@/app/utils/Variables";
 import { AdminDashboardView } from "./AdminDashboardView";
 
@@ -55,7 +56,14 @@ const overview: AdminDashboardOverview = {
 
 describe("AdminDashboardView", () => {
 	it("should show aggregate metrics, integration health, and admin operation links", () => {
-		render(<AdminDashboardView overview={overview} />);
+		render(
+			<AdminDashboardView
+				overview={overview}
+				onTriggerSync={vi.fn()}
+				triggeringSync={null}
+				triggerError={null}
+			/>,
+		);
 
 		expect(
 			screen.getByRole("heading", { name: "Program dashboard" }),
@@ -79,5 +87,25 @@ describe("AdminDashboardView", () => {
 			"href",
 			"/appsec/events",
 		);
+	});
+
+	it("should allow admins to trigger enabled integrations only", async () => {
+		const onTriggerSync = vi.fn();
+		const user = userEvent.setup();
+		render(
+			<AdminDashboardView
+				overview={overview}
+				onTriggerSync={onTriggerSync}
+				triggeringSync={null}
+				triggerError={null}
+			/>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Run Slack sync now" }));
+
+		expect(onTriggerSync).toHaveBeenCalledWith("slack");
+		expect(
+			screen.getByRole("button", { name: "Run Delta sync now" }),
+		).toBeDisabled();
 	});
 });

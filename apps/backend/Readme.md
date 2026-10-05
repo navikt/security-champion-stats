@@ -15,6 +15,8 @@ use Europe/Oslo dates and keep previous seasons intact; legacy point balances ar
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 Administrators explicitly map Slack account IDs to participants and review unmapped authors.
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
+Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
+the background and use the same locks as scheduled syncs.
 Administrators can also map program events to owner-confirmed Delta event UUIDs. Delta registration sync
 stores a Delta category with each mapping and finds registrations through the participant-specific lookup
 for public events in the current calendar year. The sync is disabled by default until Delta read access,
@@ -163,6 +165,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | PUT | `/api/admin/scoring/season/reset-date` | Set the next scheduled season start |
 | POST | `/api/admin/scoring/season/reset` | Start a manually confirmed season |
 | GET | `/api/admin/slack` | List approved Slack mappings and unmapped authors |
+| POST | `/api/admin/slack/sync` | Trigger a Slack scoring sync |
 | POST | `/api/admin/slack/mappings` | Explicitly map a Slack account to a participant |
 | DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
 | GET | `/api/admin/delta/event-mappings` | List explicit program-event-to-Delta UUID mappings |
@@ -171,6 +174,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | DELETE | `/api/admin/delta/event-mappings/{id}` | Remove a Delta mapping with no awarded credits |
 | GET | `/api/admin/delta/categories` | List Delta categories for eligible event mappings |
 | GET | `/api/admin/delta/sync-status` | View the latest Delta registration sync outcome |
+| POST | `/api/admin/delta/sync` | Trigger an enabled Delta registration sync |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs

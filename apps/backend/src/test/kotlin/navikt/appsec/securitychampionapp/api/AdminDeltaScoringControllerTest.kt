@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminDeltaScoringController
+import navikt.appsec.securitychampionapp.app.jobs.DeltaScoringSyncJob
+import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
@@ -41,6 +43,9 @@ class AdminDeltaScoringControllerTest {
     lateinit var service: DeltaScoringStatusService
 
     @MockitoBean
+    lateinit var syncJob: DeltaScoringSyncJob
+
+    @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
 
     @Test
@@ -74,6 +79,32 @@ class AdminDeltaScoringControllerTest {
         mockAuthenticatedUser(USER_ROLE)
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/delta/sync-status"))
+            .andExpect(status().isForbidden)
+    }
+
+    @Test
+    fun `should queue Delta sync as an admin`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.STARTED)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/sync"))
+            .andExpect(status().isAccepted)
+    }
+
+    @Test
+    fun `should reject manual Delta sync triggers when disabled`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.DISABLED)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/sync"))
+            .andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `should reject manual Delta sync triggers from non-admins`() {
+        mockAuthenticatedUser(USER_ROLE)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/sync"))
             .andExpect(status().isForbidden)
     }
 

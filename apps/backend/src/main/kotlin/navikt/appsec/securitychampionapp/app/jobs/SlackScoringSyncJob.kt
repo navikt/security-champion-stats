@@ -17,6 +17,7 @@ private const val SLACK_SCORING_JOB_LOCK_KEY = 1_002L
 @Component
 class SlackScoringSyncJob(
     private val jobLock: PostgresJobLock,
+    private val syncTrigger: ScoringSyncTrigger,
     private val slackScoringService: SlackScoringService,
     private val statusRepository: SlackScoringStatusRepository,
     @Value($$"${slack.sc-channel-id}") private val channelId: String,
@@ -26,29 +27,34 @@ class SlackScoringSyncJob(
 
     @Scheduled(cron = "0 0 */6 * * *")
     fun syncSlackScoring() {
-        jobLock.runWithLock(SLACK_SCORING_JOB_LOCK_KEY, "syncSlackScoring") {
-            val attemptAt = clock.instant()
-            statusRepository.recordStarted(attemptAt)
-            try {
-                val summary = slackScoringService.sync(channelId, attemptAt)
-                statusRepository.recordSucceeded(clock.instant(), summary)
-                logger.info(
-                    "Slack scoring sync completed: scanned={}, awarded={}, duplicates={}, unmapped={}",
-                    summary.messagesScanned,
-                    summary.creditsAwarded,
-                    summary.duplicateCredits,
-                    summary.unmappedAuthors,
-                )
-            } catch (_: SlackIntegrationException) {
-                recordFailure(
-                    clock.instant(),
-                    "Slack activity could not be synchronized; check API access and channel configuration",
-                )
-            } catch (_: IllegalStateException) {
-                recordFailure(clock.instant(), "Slack scoring configuration is incomplete")
-            } catch (_: DataAccessException) {
-                recordFailure(clock.instant(), "Slack scoring could not persist sync results")
-            }
+        jobLock.runWithLock(SLACK_SCORING_JOB_LOCK_KEY, "syncSlackScoring", ::runSync)
+    }
+
+    fun triggerManualSync(): SyncTriggerResult =
+        syncTrigger.trigger(SLACK_SCORING_JOB_LOCK_KEY, "syncSlackScoring", ::runSync)
+
+    private fun runSync() {
+        val attemptAt = clock.instant()
+        statusRepository.recordStarted(attemptAt)
+        try {
+            val summary = slackScoringService.sync(channelId, attemptAt)
+            statusRepository.recordSucceeded(clock.instant(), summary)
+            logger.info(
+                "Slack scoring sync completed: scanned={}, awarded={}, duplicates={}, unmapped={}",
+                summary.messagesScanned,
+                summary.creditsAwarded,
+                summary.duplicateCredits,
+                summary.unmappedAuthors,
+            )
+        } catch (_: SlackIntegrationException) {
+            recordFailure(
+                clock.instant(),
+                "Slack activity could not be synchronized; check API access and channel configuration",
+            )
+        } catch (_: IllegalStateException) {
+            recordFailure(clock.instant(), "Slack scoring configuration is incomplete")
+        } catch (_: DataAccessException) {
+            recordFailure(clock.instant(), "Slack scoring could not persist sync results")
         }
     }
 

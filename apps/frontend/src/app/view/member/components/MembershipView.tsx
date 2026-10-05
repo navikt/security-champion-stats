@@ -1,6 +1,5 @@
 import { BodyShort } from "@navikt/ds-react";
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { Me, ProgramParticipant } from "@/app/utils/Variables";
 import Loading from "@/app/view/Loading";
 import { Apies } from "@/app/shared/hooks/Apies";
@@ -9,7 +8,6 @@ import { JoinProgramView } from "@/app/view/member/components/JoinProgramView";
 import "../../../style/home/MembershipView.css";
 
 export function MembershipView({ me }: { me: Me }) {
-	const t = useTranslations("home.membership");
 	const [userData, setMe] = useState(me);
 	const [loading, setLoading] = useState(me.isParticipant);
 	const [participant, setParticipant] = useState<ProgramParticipant | null>(null);
@@ -52,7 +50,11 @@ export function MembershipView({ me }: { me: Me }) {
 	if (loading) return <Loading />;
 	if (!userData.isParticipant) return <JoinProgramView onEnroll={enroll} />;
 	if (fetchFailed || !participant) {
-		return <BodyShort>{t("fetchError")}</BodyShort>;
+		return (
+			<BodyShort>
+				We couldn't fetch your participant details. Try again later.
+			</BodyShort>
+		);
 	}
 
 	return <JoinedMembershipView participant={participant} />;

@@ -20,10 +20,10 @@ describe("ManageParticipantsView", () => {
 		const updateStatus = vi.spyOn(Apies, "updateParticipantStatus").mockResolvedValue(204);
 		render(<ManageParticipantsView participants={participants} />);
 
-		fireEvent.click(screen.getByRole("button", { name: "deactivate" }));
+		fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
 
 		expect(updateStatus).toHaveBeenCalledWith("participant-1", false);
-		expect(await screen.findByText("deactivated")).toBeInTheDocument();
+		expect(await screen.findByText("Deactivated")).toBeInTheDocument();
 
 		updateStatus.mockRestore();
 	});
@@ -32,15 +32,15 @@ describe("ManageParticipantsView", () => {
 		const deleteParticipant = vi.spyOn(Apies, "deleteParticipant").mockResolvedValue(204);
 		render(<ManageParticipantsView participants={participants} />);
 
-		fireEvent.click(screen.getByRole("button", { name: "delete" }));
-		fireEvent.click(screen.getByRole("button", { name: "confirmDelete" }));
-		expect(await screen.findByText("reasonRequired")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Delete permanently" }));
+		fireEvent.click(screen.getByRole("button", { name: "Delete participant" }));
+		expect(await screen.findByText("Enter a reason.")).toBeInTheDocument();
 		expect(deleteParticipant).not.toHaveBeenCalled();
 
-		fireEvent.change(screen.getByRole("textbox", { name: "reason" }), {
+		fireEvent.change(screen.getByRole("textbox", { name: "Reason for deletion" }), {
 			target: { value: "Requested by employee" },
 		});
-		fireEvent.click(screen.getByRole("button", { name: "confirmDelete" }));
+		fireEvent.click(screen.getByRole("button", { name: "Delete participant" }));
 
 		await waitFor(() =>
 			expect(deleteParticipant).toHaveBeenCalledWith(

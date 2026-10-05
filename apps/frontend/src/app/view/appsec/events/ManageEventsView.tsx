@@ -2,7 +2,6 @@
 
 import { SecurityEvent } from "@/app/utils/Variables";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
 import { BodyShort, Button, Heading, VStack } from "@navikt/ds-react";
 import { EventList } from "@/app/view/events/EventList";
 import { AddEventModal } from "@/app/view/appsec/events/AddEventModal";
@@ -16,8 +15,6 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 	const [eventsList, setEventsList] = useState<SecurityEvent[]>(events);
 	const [mods, setMods] = useState(false);
 	const [create, setCreate] = useState(false);
-	const t = useTranslations("appsec.events");
-
 	const handleCreate = async (event: Omit<SecurityEvent, "id">) => {
 		setCreate(true);
 		try {
@@ -41,19 +38,21 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 		<VStack gap={"space-24"}>
 			<VStack gap={"space-4"}>
 				<Heading level={"1"} size={"xlarge"}>
-					{t("title")}
+					Manage events
 				</Heading>
-				<BodyShort>{t("description")}</BodyShort>
+				<BodyShort>
+					Add and review meetings, workshops and external events.
+				</BodyShort>
 			</VStack>
 
 			<Button onClick={() => setMods(true)} style={{ alignSelf: "flex-start" }}>
-				{t("addEvent")}
+				Add event
 			</Button>
 
 			<EventList
-				title={t("allEvents")}
+				title="All events"
 				events={eventsList}
-				emptyMessage={t("noEvents")}
+				emptyMessage="No events yet. Add one to get started."
 			/>
 
 			<AddEventModal

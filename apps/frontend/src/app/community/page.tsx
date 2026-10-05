@@ -6,7 +6,7 @@ import { Apies } from "@/app/shared/hooks/Apies";
 import { CommunityView } from "@/app/view/community/CommunityView";
 import Loading from "@/app/view/Loading";
 
-export default function CommunityPage() {
+export default function Page() {
 	const [members, setMembers] = useState<ProgramParticipantSummary[] | null>(null);
 
 	useEffect(() => {

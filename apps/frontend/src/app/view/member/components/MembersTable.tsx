@@ -1,7 +1,6 @@
 "use client";
 
 import { Member } from "@/app/utils/Variables";
-import { useTranslations } from "next-intl";
 
 function MembersTable({
 	members,
@@ -14,22 +13,21 @@ function MembersTable({
 	canEdit: boolean;
 	canViewScores?: boolean;
 }) {
-	const t = useTranslations();
 	const showScores = canViewScores ?? canEdit;
 	const columnCount = 1 + (showScores ? 2 : 0) + (canEdit ? 1 : 0);
 
 	const handleLevelNames = (member: Member): string => {
 		switch (member.level) {
 			case "1":
-				return t("main.table.levels.1");
+				return "Novice";
 			case "2":
-				return t("main.table.levels.2");
+				return "Apprentice";
 			case "3":
-				return t("main.table.levels.3");
+				return "Adept";
 			case "4":
-				return t("main.table.levels.4");
+				return "Expert";
 			default:
-				return t("main.table.levels.1");
+				return "Novice";
 		}
 	};
 
@@ -44,12 +42,12 @@ function MembersTable({
 				</colgroup>
 				<thead>
 					<tr>
-						<th> {t("main.table.member.fullname")} </th>
-						{showScores && <th>{t("main.table.member.points")}</th>}
-						{showScores && <th>{t("main.table.member.level")}</th>}
+						<th>Full name</th>
+						{showScores && <th>Points</th>}
+						{showScores && <th>Level</th>}
 						{canEdit && (
 							<th className={"membersTable__actionsHeader"}>
-								{t("main.table.adminActions")}
+								Actions
 							</th>
 						)}
 					</tr>
@@ -60,7 +58,7 @@ function MembersTable({
 							<td>{m.fullname}</td>
 							{showScores && (
 								<>
-									<td className={"td-num"}>{m.points.toLocaleString()}</td>
+									<td className={"td-num"}>{m.points.toLocaleString("en")}</td>
 									<td>{handleLevelNames(m)}</td>
 								</>
 							)}
@@ -71,7 +69,7 @@ function MembersTable({
 										className={"btn danger"}
 										onClick={() => onDelete(m.id)}
 									>
-										{t("main.table.buttons.admin.deleteMember")}
+										Delete member
 									</button>
 								</td>
 							)}
@@ -79,7 +77,7 @@ function MembersTable({
 					))}
 					{members.length === 0 && (
 						<tr>
-							<td colSpan={columnCount}>{t("main.table.noMembers")}</td>
+							<td colSpan={columnCount}>No members found.</td>
 						</tr>
 					)}
 				</tbody>

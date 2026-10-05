@@ -1,5 +1,4 @@
 import { BodyLong, Button, Heading, Modal } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import "../../../style/home/LeaveModal.css";
 
 interface LeaveGamificationModalProps {
@@ -15,7 +14,6 @@ export function LeaveGamificationModal({
 	onConfirm,
 	loading = false,
 }: LeaveGamificationModalProps) {
-	const t = useTranslations("home.membership.member.leaveGamificationModal");
 	return (
 		<Modal
 			open={open}
@@ -25,42 +23,45 @@ export function LeaveGamificationModal({
 		>
 			<Modal.Header>
 				<Heading size={"medium"} id={"leave-gamification-title"} level={"2"}>
-					{t("question")}
+					Are you sure you want to leave gamification?
 				</Heading>
 			</Modal.Header>
 			<Modal.Body>
 				<div className={"leaveGameModal"}>
-					<BodyLong>{t("description")}</BodyLong>
+					<BodyLong>
+						You will no longer be able to earn XP and unlock levels and
+						achievements.
+					</BodyLong>
 
 					<section className={"leaveGameModal__section"}>
 						<Heading size={"small"} level={"3"}>
-							{t("loseList.title")}
+							What changes
 						</Heading>
 
 						<ul className={"leaveGameModal__list"}>
-							<li>{t("loseList.li1")}</li>
-							<li>{t("loseList.li2")}</li>
+							<li>XP progression will stop</li>
+							<li>Your champion level will no longer be active</li>
 						</ul>
 					</section>
 
 					<section className={"leaveGameModal__section"}>
 						<Heading size={"small"} level={"3"}>
 							{" "}
-							{t("keepList.title")}{" "}
+							What stays the same
 						</Heading>
 						<ul className={"leaveGameModal__list"}>
-							<li>{t("keepList.l1")}</li>
-							<li>{t("keepList.l2")}</li>
+							<li>You remain a Security Champion</li>
+							<li>You can still see all events and people in the community</li>
 						</ul>
 					</section>
 				</div>
 			</Modal.Body>
 			<Modal.Footer>
 				<Button variant={"danger"} loading={loading} onClick={onConfirm}>
-					{t("confirm")}
+					Confirm
 				</Button>
 				<Button variant={"secondary"} onClick={onClose} disabled={loading}>
-					{t("cancel")}
+					Cancel
 				</Button>
 			</Modal.Footer>
 		</Modal>

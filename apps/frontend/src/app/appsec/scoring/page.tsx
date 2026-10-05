@@ -7,12 +7,10 @@ import { MainView } from "@/app/view/HomeView";
 import Loading from "@/app/view/Loading";
 import { ScoringManagementView } from "@/app/view/appsec/scoring/ScoringManagementView";
 import { BodyShort } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 export default function Page() {
 	const { me, loading } = useMe();
-	const t = useTranslations("appsec.scoring");
 	const [overview, setOverview] = useState<AdminScoringOverview | null>(null);
 	const [failed, setFailed] = useState(false);
 
@@ -36,7 +34,11 @@ export default function Page() {
 	}
 	if (!me.isAdmin) return <MainView info={me} />;
 	if (failed || overview === null) {
-		return <BodyShort role="alert">{t("loadError")}</BodyShort>;
+		return (
+			<BodyShort role="alert">
+				We couldn't fetch the scoring overview. Try again later.
+			</BodyShort>
+		);
 	}
 	return (
 		<ScoringManagementView

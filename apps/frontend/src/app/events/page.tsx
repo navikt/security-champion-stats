@@ -6,7 +6,7 @@ import { Apies } from "@/app/shared/hooks/Apies";
 import { EventsView } from "@/app/view/events/EventsView";
 import Loading from "@/app/view/Loading";
 
-export default function EventsPage() {
+export default function Page() {
 	const [events, updateEvents] = useState<SecurityEvent[] | null>(null);
 
 	useEffect(() => {

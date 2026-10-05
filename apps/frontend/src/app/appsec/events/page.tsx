@@ -8,7 +8,7 @@ import { SecurityEvent } from "@/app/utils/Variables";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { ManageEventsView } from "@/app/view/appsec/events/ManageEventsView";
 
-export default function Page() {
+export default function EventsPage() {
 	const { me, loading } = useMe();
 	const [events, updateEvents] = useState<SecurityEvent[] | null>(null);
 

@@ -7,11 +7,11 @@ describe("JoinProgramView", () => {
 		const onEnroll = vi.fn().mockResolvedValue(true);
 		render(<JoinProgramView onEnroll={onEnroll} />);
 
-		fireEvent.click(screen.getByRole("button", { name: "enroll" }));
+		fireEvent.click(screen.getByRole("button", { name: "Enroll" }));
 
 		expect(onEnroll).toHaveBeenCalledOnce();
 		await waitFor(() =>
-			expect(screen.getByRole("button", { name: "enroll" })).toBeEnabled(),
+			expect(screen.getByRole("button", { name: "Enroll" })).toBeEnabled(),
 		);
 	});
 
@@ -19,8 +19,10 @@ describe("JoinProgramView", () => {
 		const onEnroll = vi.fn().mockResolvedValue(false);
 		render(<JoinProgramView onEnroll={onEnroll} />);
 
-		fireEvent.click(screen.getByRole("button", { name: "enroll" }));
+		fireEvent.click(screen.getByRole("button", { name: "Enroll" }));
 
-		expect(await screen.findByRole("alert")).toHaveTextContent("enrollError");
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"We couldn't enroll you. Try again.",
+		);
 	});
 });

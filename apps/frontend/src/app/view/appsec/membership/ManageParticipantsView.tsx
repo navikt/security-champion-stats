@@ -11,7 +11,6 @@ import {
 	TextField,
 	VStack,
 } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 
 export function ManageParticipantsView({
@@ -19,7 +18,6 @@ export function ManageParticipantsView({
 }: {
 	participants: AdminProgramParticipant[];
 }) {
-	const t = useTranslations("appsec.membership");
 	const [participantList, setParticipantList] = useState(participants);
 	const [selectedForDeletion, setSelectedForDeletion] =
 		useState<AdminProgramParticipant | null>(null);
@@ -38,7 +36,7 @@ export function ManageParticipantsView({
 				!participant.active,
 			);
 			if (status !== 204) {
-				setError(t("statusError"));
+				setError("We couldn't change the status. Try again.");
 				return;
 			}
 			setParticipantList((current) =>
@@ -49,7 +47,7 @@ export function ManageParticipantsView({
 				),
 			);
 		} catch {
-			setError(t("statusError"));
+			setError("We couldn't change the status. Try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -68,7 +66,7 @@ export function ManageParticipantsView({
 		try {
 			const status = await Apies.deleteParticipant(selectedForDeletion.id, reason);
 			if (status !== 204) {
-				setError(t("deleteError"));
+				setError("We couldn't delete the participant. Try again.");
 				return;
 			}
 			setParticipantList((current) =>
@@ -76,7 +74,7 @@ export function ManageParticipantsView({
 			);
 			setSelectedForDeletion(null);
 		} catch {
-			setError(t("deleteError"));
+			setError("We couldn't delete the participant. Try again.");
 		} finally {
 			setBusy(false);
 		}
@@ -98,31 +96,34 @@ export function ManageParticipantsView({
 		<VStack gap="space-24">
 			<VStack gap="space-4">
 				<Heading level="1" size="xlarge">
-					{t("title")}
+					Manage participants
 				</Heading>
-				<BodyShort>{t("description")}</BodyShort>
+				<BodyShort>
+					Deactivation keeps participant data. Permanent deletion removes all
+					information and history linked to the participant.
+				</BodyShort>
 			</VStack>
 			{error && !selectedForDeletion && <BodyShort role="alert">{error}</BodyShort>}
 			<Table>
 				<Table.Header>
 					<Table.Row>
-						<Table.HeaderCell scope="col">{t("name")}</Table.HeaderCell>
-						<Table.HeaderCell scope="col">{t("email")}</Table.HeaderCell>
-						<Table.HeaderCell scope="col">{t("teams")}</Table.HeaderCell>
-						<Table.HeaderCell scope="col">{t("status")}</Table.HeaderCell>
-						<Table.HeaderCell scope="col">{t("actions")}</Table.HeaderCell>
+						<Table.HeaderCell scope="col">Name</Table.HeaderCell>
+						<Table.HeaderCell scope="col">Email</Table.HeaderCell>
+						<Table.HeaderCell scope="col">Teams</Table.HeaderCell>
+						<Table.HeaderCell scope="col">Status</Table.HeaderCell>
+						<Table.HeaderCell scope="col">Actions</Table.HeaderCell>
 					</Table.Row>
 				</Table.Header>
 				<Table.Body>
 					{participantList.map((participant) => (
 						<Table.Row key={participant.id}>
 							<Table.HeaderCell scope="row">
-								{participant.fullname || t("nameUnavailable")}
+								{participant.fullname || "Name unavailable"}
 							</Table.HeaderCell>
 							<Table.DataCell>{participant.email}</Table.DataCell>
 							<Table.DataCell>{participant.teams.join(", ")}</Table.DataCell>
 							<Table.DataCell>
-								{participant.active ? t("active") : t("deactivated")}
+								{participant.active ? "Active" : "Deactivated"}
 							</Table.DataCell>
 							<Table.DataCell>
 								<Button
@@ -131,7 +132,7 @@ export function ManageParticipantsView({
 									variant="secondary"
 									onClick={() => changeStatus(participant)}
 								>
-									{participant.active ? t("deactivate") : t("reactivate")}
+									{participant.active ? "Deactivate" : "Reactivate"}
 								</Button>
 								<Button
 									size="small"
@@ -139,14 +140,14 @@ export function ManageParticipantsView({
 									variant="secondary"
 									onClick={() => openDeletionDialog(participant)}
 								>
-									{t("delete")}
+									Delete permanently
 								</Button>
 							</Table.DataCell>
 						</Table.Row>
 					))}
 					{participantList.length === 0 && (
 						<Table.Row>
-							<Table.DataCell colSpan={5}>{t("empty")}</Table.DataCell>
+							<Table.DataCell colSpan={5}>No participants.</Table.DataCell>
 						</Table.Row>
 					)}
 				</Table.Body>
@@ -155,16 +156,19 @@ export function ManageParticipantsView({
 			<Modal
 				open={selectedForDeletion !== null}
 				onClose={closeDeletionDialog}
-				header={{ heading: t("deleteTitle") }}
+				header={{ heading: "Delete participant" }}
 			>
 				<Modal.Body>
-					<BodyShort>{t("deleteDescription")}</BodyShort>
+					<BodyShort>
+						This cannot be undone. Enter a reason before deleting the
+						participant.
+					</BodyShort>
 					{error && <BodyShort role="alert">{error}</BodyShort>}
 					<TextField
-						label={t("reason")}
+						label="Reason for deletion"
 						size="small"
 						ref={reasonRef}
-						error={reasonError ? t("reasonRequired") : undefined}
+						error={reasonError ? "Enter a reason." : undefined}
 						onChange={() => setReasonError(false)}
 					/>
 				</Modal.Body>
@@ -174,7 +178,7 @@ export function ManageParticipantsView({
 						variant="tertiary"
 						onClick={closeDeletionDialog}
 					>
-						{t("cancel")}
+						Cancel
 					</Button>
 					<Button
 						type="button"
@@ -182,7 +186,7 @@ export function ManageParticipantsView({
 						variant="primary"
 						onClick={deleteParticipant}
 					>
-						{t("confirmDelete")}
+						Delete participant
 					</Button>
 				</Modal.Footer>
 			</Modal>

@@ -5,7 +5,6 @@ import {
 	getUpcomingEvents,
 } from "@/app/utils/eventUtils";
 import { BodyShort, Heading } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { NextEventCard } from "@/app/view/events/NextEventCard";
 import { EventList } from "@/app/view/events/EventList";
 import "../../style/events/EventsView.css";
@@ -25,8 +24,6 @@ export function EventsView({
 }: EventsViewProps) {
 	const nextEvent = getNextEvent(events);
 
-	const t = useTranslations("events");
-
 	const upcomingEvents: SecurityEvent[] = getUpcomingEvents(events).filter(
 		(event) => event.id !== nextEvent?.id,
 	);
@@ -42,27 +39,27 @@ export function EventsView({
 			{!compact && (
 				<header className={"eventsView__header"}>
 					<Heading level={"1"} size={"xlarge"}>
-						{t("title")}
+						Events
 					</Heading>
 
 					<BodyShort className={"eventsView__subtitle"}>
-						{t("description")}
+						Meetings, workshops and other Security Champion activities.
 					</BodyShort>
 				</header>
 			)}
 
 			{!compact && nextEvent && <NextEventCard event={nextEvent} />}
 			<EventList
-				title={t("upcomingEvents")}
+				title="Upcoming events"
 				events={upcomingEvents}
-				emptyMessage={t("noUpcomingEvents")}
+				emptyMessage="No other upcoming events."
 				limit={compact ? limit : undefined}
 				scrollAfter={scrollAfter}
 			/>
 			<EventList
-				title={t("pastEvents")}
+				title="Past events"
 				events={pastEvents}
-				emptyMessage={t("noPastEvents")}
+				emptyMessage="No previous events."
 				limit={compact ? limit : undefined}
 				scrollAfter={scrollAfter}
 			/>

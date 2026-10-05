@@ -25,8 +25,8 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 				<strong className={"eventListItem__title"}>{event.name}</strong>
 
 				<span className={"eventListItem__date"}>
-					{start.toLocaleDateString()} ·{" "}
-					{start.toLocaleDateString([], {
+					{start.toLocaleDateString("en")} ·{" "}
+					{start.toLocaleDateString("en", {
 						hour: "2-digit",
 						minute: "2-digit",
 					})}

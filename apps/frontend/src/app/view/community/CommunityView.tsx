@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { ProgramParticipantSummary } from "@/app/utils/Variables";
 import { BodyShort, Heading, Search } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { CommunityMemberRow } from "@/app/view/community/CommunityMemberRow";
 import "../../style/community/CommunityView.css";
 
@@ -12,7 +11,6 @@ interface CommunityViewProps {
 }
 
 export function CommunityView({ members }: CommunityViewProps) {
-	const t = useTranslations("community");
 	const [query, setQuery] = useState("");
 
 	const visibleMembers = useMemo(() => {
@@ -36,27 +34,29 @@ export function CommunityView({ members }: CommunityViewProps) {
 		<main className={"communityView"}>
 			<header className={"communityView__header"}>
 				<Heading level={"1"} size={"xlarge"}>
-					{t("title")}
+					Community
 				</Heading>
 
 				<BodyShort className={"communityView__subtitle"}>
-					{t("description")}
+					Program participants and their teams.
 				</BodyShort>
 			</header>
 
 			<div className={"communityView__search"}>
 				<Search
-					label={t("searchLabel")}
+					label="Search by name or team"
 					hideLabel
 					variant={"simple"}
-					placeholder={t("searchPlaceholder")}
+					placeholder="Search by name or team"
 					onChange={setQuery}
 				/>
 			</div>
 
 			<section className={"communitySection"}>
 				{visibleMembers.length === 0 ? (
-					<div className={"communitySection__empty"}>{t("noResults")}</div>
+					<div className={"communitySection__empty"}>
+						No participants match your search.
+					</div>
 				) : (
 					<div className={"communityList"}>
 						{visibleMembers.map((member) => (

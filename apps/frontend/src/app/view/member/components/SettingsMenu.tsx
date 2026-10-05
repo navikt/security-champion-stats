@@ -1,22 +1,14 @@
 "use client";
 
 import { BodyShort, Button, Popover, VStack } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { CogIcon } from "@navikt/aksel-icons";
-import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/app/shared/theme/ThemeProvider";
 import { useRef, useState, useId } from "react";
-import LanguageSwitcher from "./LanguageSwitcher";
-import { useMe } from "@/app/shared/hooks/UseMe";
 
-export default function SettingsMenu({ locale }: { locale: string }) {
+export default function SettingsMenu() {
 	const anchorRef = useRef<HTMLButtonElement>(null);
 	const [open, setOpen] = useState(false);
-	const t = useTranslations();
-	const router = useRouter();
 	const popoverId = useId();
-	const { me, loading } = useMe();
-	if (loading) return null;
 	return (
 		<div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
 			<Button
@@ -25,9 +17,9 @@ export default function SettingsMenu({ locale }: { locale: string }) {
 				variant={"tertiary"}
 				icon={<CogIcon aria-hidden />}
 				size={"small"}
-				aria-label={t("settings.title")}
+				aria-label="Settings"
 			>
-				<BodyShort size={"small"}>{t("settings.title")}</BodyShort>
+				<BodyShort size={"small"}>Settings</BodyShort>
 			</Button>
 			<Popover
 				anchorEl={anchorRef.current}
@@ -39,7 +31,6 @@ export default function SettingsMenu({ locale }: { locale: string }) {
 				<Popover.Content>
 					<VStack gap={"space-4"}>
 						<ThemeToggle />
-						<LanguageSwitcher />
 					</VStack>
 				</Popover.Content>
 			</Popover>

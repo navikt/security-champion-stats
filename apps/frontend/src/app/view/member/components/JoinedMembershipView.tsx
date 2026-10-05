@@ -1,5 +1,4 @@
 import { BodyShort, Heading } from "@navikt/ds-react";
-import { useTranslations } from "next-intl";
 import { ProgramParticipant } from "@/app/utils/Variables";
 
 export function JoinedMembershipView({
@@ -7,8 +6,6 @@ export function JoinedMembershipView({
 }: {
 	participant: ProgramParticipant;
 }) {
-	const t = useTranslations("home.membership.member");
-
 	return (
 		<section className="sc-membership-card sc-membership-card--joined">
 			<div className="sc-membership-card__content">
@@ -19,21 +16,23 @@ export function JoinedMembershipView({
 							: "sc-membership-card__status__inactive"
 					}
 				>
-					{participant.active ? t("active") : t("inactive")}
+					{participant.active ? "Active participant" : "Deactivated"}
 				</span>
 				<Heading
 					size="large"
 					level="2"
 					className="sc-membership-card__description"
 				>
-					{t("securityChampion")}
+					Program participation
 				</Heading>
 				<BodyShort className="sc-membership-card__description">
-					{participant.active ? t("description") : t("inactiveDescription")}
+					{participant.active
+						? "You are an active participant in the Security Champion program."
+						: "A program administrator has deactivated your participation."}
 				</BodyShort>
 				<dl className="sc-membership-card__facts">
-					<dt>{t("joinedProgram")}</dt>
-					<dd>{new Date(participant.joinedAt).toLocaleDateString()}</dd>
+					<dt>Participant since</dt>
+					<dd>{new Date(participant.joinedAt).toLocaleDateString("en")}</dd>
 				</dl>
 			</div>
 		</section>

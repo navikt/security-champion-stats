@@ -1,25 +1,19 @@
 import "./style/global.css";
-import { getLocale, getMessages } from "next-intl/server";
-import { NextIntlClientProvider } from "next-intl";
 import { FaroInitializer } from "@/app/view/member/components/FaroInitializer";
 import { ThemeProvider } from "./shared/theme/ThemeProvider";
+import AppLayout from "./AppLayout";
 
-export default async function RootLayout({
+export default function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const locale = await getLocale();
-	const messages = await getMessages();
-
 	return (
-		<html lang={locale} suppressHydrationWarning>
+		<html lang="en" suppressHydrationWarning>
 			<body>
 				<FaroInitializer />
 				<ThemeProvider>
-					<NextIntlClientProvider messages={messages}>
-						{children}
-					</NextIntlClientProvider>
+					<AppLayout>{children}</AppLayout>
 				</ThemeProvider>
 			</body>
 		</html>

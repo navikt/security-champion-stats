@@ -198,12 +198,12 @@ class ScoringRepositoryTest {
     @Test
     fun `should preserve GitHub last success on failure and identify interrupted runs`() {
         val status = GitHubScoringStatusRepository(jdbcTemplate)
-        val now = Instant.now()
+        val now = Instant.parse("2026-10-06T12:00:00.123456Z")
         status.recordStarted(now)
         status.recordSucceeded(now, GitHubSyncSummary(5, 2, 2, 1))
         status.recordStarted(now.plusSeconds(60))
         status.recordFailed("GitHub organization SAML identities are unavailable")
-        assertThat(status.find(true).lastSuccessAt).isEqualTo(now.truncatedTo(java.time.temporal.ChronoUnit.MICROS))
+        assertThat(status.find(true).lastSuccessAt).isEqualTo(now)
         assertThat(status.find(true).outcome).isEqualTo("FAILED")
         status.recordStarted(now.plusSeconds(120))
         val service = GitHubScoringStatusService(status, PostgresJobLock(dataSource), true)

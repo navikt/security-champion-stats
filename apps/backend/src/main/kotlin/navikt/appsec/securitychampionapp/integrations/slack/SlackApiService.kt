@@ -144,5 +144,5 @@ class SlackApiService(
     }
 
     private fun Instant.toSlackTimestamp(): String =
-        "$epochSecond.${nano.toString().padStart(9, '0')}"
+        "$epochSecond.${(nano / 1000).toString().padStart(6, '0')}"
 }

@@ -44,8 +44,8 @@ class SlackApiServiceTest {
         val historyRequest = argumentCaptor<ConversationsHistoryRequest>()
         verify(client).conversationsHistory(historyRequest.capture())
         assertThat(historyRequest.firstValue.channel).isEqualTo("scoring-channel")
-        assertThat(historyRequest.firstValue.oldest).isEqualTo("1788220800.000000000")
-        assertThat(historyRequest.firstValue.latest).isEqualTo("1791244800.123456789")
+        assertThat(historyRequest.firstValue.oldest).isEqualTo("1788220800.000000")
+        assertThat(historyRequest.firstValue.latest).isEqualTo("1791244800.123456")
         assertThat(historyRequest.firstValue.limit).isEqualTo(200)
         val replyRequest = argumentCaptor<ConversationsRepliesRequest>()
         verify(client).conversationsReplies(replyRequest.capture())
@@ -73,7 +73,7 @@ class SlackApiServiceTest {
         assertThat(historyRequests.allValues.map { it.cursor }).containsExactly(null, "history-next")
         assertThat(historyRequests.allValues).allSatisfy {
             assertThat(it.channel).isEqualTo("channel")
-            assertThat(it.latest).isEqualTo("1791244800.123456789")
+            assertThat(it.latest).isEqualTo("1791244800.123456")
         }
         val replyRequests = argumentCaptor<ConversationsRepliesRequest>()
         verify(client, times(2)).conversationsReplies(replyRequests.capture())

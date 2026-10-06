@@ -98,6 +98,11 @@ html.hacker .appBody {
 	background: transparent;
 }
 
+html.hacker body > .aksel-theme {
+	min-height: 100vh;
+	background: transparent;
+}
+
 html.hacker .appBody {
 	position: relative;
 	z-index: 1;

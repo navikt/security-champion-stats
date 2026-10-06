@@ -8,6 +8,7 @@ import type { Me } from "./utils/Variables";
 const state = vi.hoisted(() => ({
 	pathName: "/",
 	loading: false,
+	theme: "system",
 	me: {
 		username: "synthetic.user@nav.no",
 		displayName: "Ada Lovelace",
@@ -27,7 +28,7 @@ vi.mock("./shared/hooks/UseMe", () => ({
 
 vi.mock("next-themes", () => ({
 	useTheme: () => ({
-		theme: "system",
+		theme: state.theme,
 		resolvedTheme: "light",
 		setTheme: vi.fn(),
 	}),
@@ -36,6 +37,7 @@ vi.mock("next-themes", () => ({
 beforeEach(() => {
 	state.pathName = "/";
 	state.loading = false;
+	state.theme = "system";
 	state.me.isAdmin = false;
 	state.me.displayName = "Ada Lovelace";
 });
@@ -51,6 +53,24 @@ function renderLayout() {
 }
 
 describe("sidebar layout", () => {
+	it("applies Aksel dark colors to the full app only in Hacker mode", () => {
+		state.theme = "hacker";
+		const { container, rerender } = renderLayout();
+		expect(container.querySelector(".aksel-theme.dark")).toBeInTheDocument();
+
+		state.theme = "system";
+		rerender(
+			<HackerPreferencesProvider>
+				<AppLayout>
+					<p>Page content</p>
+				</AppLayout>
+			</HackerPreferencesProvider>,
+		);
+		expect(
+			container.querySelector(".aksel-theme.dark"),
+		).not.toBeInTheDocument();
+	});
+
 	it("shows shared navigation and bottom controls without a top bar or visible full name", () => {
 		renderLayout();
 

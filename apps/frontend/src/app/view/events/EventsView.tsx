@@ -24,9 +24,7 @@ export function EventsView({
 }: EventsViewProps) {
 	const nextEvent = getNextEvent(events);
 
-	const upcomingEvents: SecurityEvent[] = getUpcomingEvents(events).filter(
-		(event) => compact || event.id !== nextEvent?.id,
-	);
+	const upcomingEvents: SecurityEvent[] = getUpcomingEvents(events);
 
 	const pastEvents: SecurityEvent[] = getPastEvents(events);
 
@@ -52,7 +50,7 @@ export function EventsView({
 			<EventList
 				title="Upcoming events"
 				events={upcomingEvents}
-				emptyMessage="No other upcoming events."
+				emptyMessage="No upcoming events."
 				limit={compact ? limit : undefined}
 				scrollAfter={scrollAfter}
 			/>

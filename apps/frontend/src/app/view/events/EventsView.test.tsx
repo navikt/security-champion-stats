@@ -62,7 +62,7 @@ describe("EventsView", () => {
 		expect(
 			within(eventSection("Upcoming events")).getByText(nextEvent.name),
 		).toBeInTheDocument();
-		expect(screen.queryByText("No other upcoming events.")).not.toBeInTheDocument();
+		expect(screen.queryByText("No upcoming events.")).not.toBeInTheDocument();
 	});
 
 	it("keeps upcoming events nearest-first before applying the compact limit", () => {
@@ -74,14 +74,31 @@ describe("EventsView", () => {
 		expect(screen.queryByText(laterEvent.name)).not.toBeInTheDocument();
 	});
 
-	it("shows the next event only in its featured card on the full events page", () => {
+	it("includes the featured next event in the full upcoming list nearest-first", () => {
 		render(<EventsView events={[laterEvent, nextEvent]} />);
 
-		expect(screen.getAllByText(nextEvent.name)).toHaveLength(1);
 		expect(screen.getByRole("heading", { name: nextEvent.name })).toBeInTheDocument();
-		const upcoming = within(eventSection("Upcoming events"));
-		expect(upcoming.queryByText(nextEvent.name)).not.toBeInTheDocument();
-		expect(upcoming.getByText(laterEvent.name)).toBeInTheDocument();
+		const titles = within(eventSection("Upcoming events"))
+			.getAllByRole("article")
+			.map((article) => article.querySelector("strong")?.textContent);
+		expect(titles).toEqual([nextEvent.name, laterEvent.name]);
+	});
+
+	it("shows a single future event in both the featured card and upcoming list", () => {
+		render(<EventsView events={[nextEvent]} />);
+
+		expect(screen.getByRole("heading", { name: nextEvent.name })).toBeInTheDocument();
+		expect(
+			within(eventSection("Upcoming events")).getByText(nextEvent.name),
+		).toBeInTheDocument();
+	});
+
+	it("shows the empty upcoming message when there are no future events", () => {
+		render(<EventsView events={[recentEvent]} />);
+
+		expect(
+			within(eventSection("Upcoming events")).getByText("No upcoming events."),
+		).toBeInTheDocument();
 	});
 
 	it("shows past events most recent first on the full events page", () => {

@@ -11,7 +11,6 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 class DeltaApiClient(
@@ -39,24 +38,15 @@ class DeltaApiClient(
         return response
     }
 
-    override fun findRegisteredEvents(
-        categoryId: Int,
-        participantEmail: String,
-        from: LocalDateTime,
-        to: LocalDateTime,
-    ): List<DeltaEventMatch> {
-        if (categoryId <= 0 || participantEmail.isBlank() || !from.isBefore(to)) {
-            throw DeltaIntegrationException(DeltaFailure.CONFIGURATION)
-        }
+    override fun pastEventsInCategory(categoryId: Int): List<DeltaEventRegistrations> {
+        if (categoryId <= 0) throw DeltaIntegrationException(DeltaFailure.CONFIGURATION)
 
         val response = apiRequest { token ->
             apiClient.get()
                 .uri { uri ->
                     uri.path("/event")
                         .queryParam("categories", categoryId)
-                        .queryParam("participantEmail", participantEmail)
-                        .queryParam("from", from.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                        .queryParam("to", to.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                        .queryParam("onlyPast", true)
                         .build()
                 }
                 .headers { it.setBearerAuth(token) }
@@ -64,21 +54,29 @@ class DeltaApiClient(
                 .onStatus(HttpStatusCode::isError) {
                     Mono.error(DeltaIntegrationException(DeltaFailure.API))
                 }
-                .bodyToMono<List<DeltaEventResponse>>()
+                .bodyToMono<List<DeltaFullEventResponse>>()
                 .block()
                 ?: throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
         }
+        return response.map { it.toRegistrations() }
+    }
 
-        return response.map { event ->
-            DeltaEventMatch(
-                eventUuid = event.event.id,
-                startTime = try {
-                    LocalDateTime.parse(event.event.startTime)
-                } catch (_: RuntimeException) {
-                    throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
-                },
-            )
+    override fun event(eventId: UUID): DeltaEventRegistrations? {
+        val response = apiRequest { token ->
+            apiClient.get()
+                .uri("/event/{id}", eventId)
+                .headers { it.setBearerAuth(token) }
+                .exchangeToMono { response ->
+                    when {
+                        response.statusCode().value() == 404 -> response.releaseBody().then(Mono.empty())
+                        response.statusCode().isError ->
+                            response.releaseBody().then(Mono.error(DeltaIntegrationException(DeltaFailure.API)))
+                        else -> response.bodyToMono<DeltaFullEventResponse>()
+                    }
+                }
+                .block()
         }
+        return response?.toRegistrations()
     }
 
     private fun acquireToken(): String =
@@ -127,9 +125,10 @@ data class DeltaCategory(
     val name: String,
 )
 
-data class DeltaEventMatch(
+data class DeltaEventRegistrations(
     val eventUuid: UUID,
     val startTime: LocalDateTime,
+    val participantEmails: Set<String>,
 )
 
 enum class DeltaFailure(val summary: String) {
@@ -138,7 +137,7 @@ enum class DeltaFailure(val summary: String) {
     API("Delta registration request failed"),
     INVALID_RESPONSE("Delta returned an invalid registration response"),
     PARTICIPANT_LOOKUP("Program participant data could not be loaded"),
-    MAPPING_CATEGORY("A Delta event mapping has no category selected"),
+    EVENT_NOT_FOUND("A mapped Delta event was not found or is not public"),
 }
 
 class DeltaIntegrationException(
@@ -146,12 +145,9 @@ class DeltaIntegrationException(
 ) : RuntimeException(failure.summary)
 
 interface DeltaRegistrationSource {
-    fun findRegisteredEvents(
-        categoryId: Int,
-        participantEmail: String,
-        from: LocalDateTime,
-        to: LocalDateTime,
-    ): List<DeltaEventMatch>
+    fun pastEventsInCategory(categoryId: Int): List<DeltaEventRegistrations>
+
+    fun event(eventId: UUID): DeltaEventRegistrations?
 }
 
 interface DeltaCategorySource {
@@ -165,12 +161,28 @@ private data class NaisTokenResponse(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-private data class DeltaEventResponse(
+private data class DeltaFullEventResponse(
     val event: DeltaEventDetailsResponse,
-)
+    val participants: List<DeltaParticipantResponse> = emptyList(),
+) {
+    fun toRegistrations() = DeltaEventRegistrations(
+        eventUuid = event.id,
+        startTime = try {
+            LocalDateTime.parse(event.startTime)
+        } catch (_: RuntimeException) {
+            throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
+        },
+        participantEmails = participants.mapNotNull { it.email?.trim()?.takeIf(String::isNotEmpty) }.toSet(),
+    )
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 private data class DeltaEventDetailsResponse(
     val id: UUID,
     val startTime: String,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+private data class DeltaParticipantResponse(
+    val email: String?,
 )

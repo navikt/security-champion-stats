@@ -119,7 +119,11 @@ export type DeltaEventMapping = {
 	id: string;
 	programEventName: string;
 	deltaEventUuid: string;
-	deltaCategoryId: number | null;
+	createdAt: string;
+};
+export type DeltaEligibleCategory = {
+	categoryId: number;
+	categoryName: string;
 	createdAt: string;
 };
 export type DeltaCategory = {

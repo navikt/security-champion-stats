@@ -3,9 +3,10 @@ package navikt.appsec.securitychampionapp.api
 import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
-import navikt.appsec.securitychampionapp.app.api.AdminDeltaEventMappingController
-import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMapping
-import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingService
+import navikt.appsec.securitychampionapp.app.api.AdminDeltaEligibleCategoryController
+import navikt.appsec.securitychampionapp.app.scoring.DeltaCategoryNotFoundException
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEligibleCategory
+import navikt.appsec.securitychampionapp.app.scoring.DeltaEligibleCategoryService
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
@@ -13,7 +14,6 @@ import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
@@ -29,78 +29,68 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
-import java.util.UUID
 
-@WebMvcTest(AdminDeltaEventMappingController::class)
+@WebMvcTest(AdminDeltaEligibleCategoryController::class)
 @ActiveProfiles("test")
 @Import(SecurityConfig::class)
-class AdminDeltaEventMappingControllerTest {
+class AdminDeltaEligibleCategoryControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
 
     @MockitoBean
-    lateinit var service: DeltaEventMappingService
+    lateinit var service: DeltaEligibleCategoryService
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
 
     @Test
-    fun `should add an explicit Delta event mapping as an admin`() {
+    fun `should add an eligible Delta category as an admin`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        val mapping = DeltaEventMapping(
-            id = UUID.randomUUID(),
-            programEventName = "Security Champion meetup",
-            deltaEventUuid = UUID.randomUUID(),
-            createdAt = Instant.parse("2026-10-05T10:00:00Z"),
-        )
-        whenever(
-            service.addMapping(
-                "Security Champion meetup",
-                mapping.deltaEventUuid.toString(),
-                "admin@nav.no",
-            )
-        ).thenReturn(mapping)
+        whenever(service.addCategory(7, "admin@nav.no"))
+            .thenReturn(DeltaEligibleCategory(7, "Security Champions", Instant.parse("2026-10-05T10:00:00Z")))
 
-        mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(
-                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"${mapping.deltaEventUuid}"}"""
-                )
-        ).andExpect(status().isCreated)
+        mockMvc.perform(post(7)).andExpect(status().isCreated)
     }
 
     @Test
-    fun `should reject Delta mapping changes for non-admins`() {
+    fun `should reject an unknown Delta category`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(service.addCategory(7, "admin@nav.no")).thenThrow(DeltaCategoryNotFoundException())
+
+        mockMvc.perform(post(7)).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `should reject a Delta category that is already eligible`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(service.addCategory(7, "admin@nav.no")).thenThrow(DuplicateKeyException("conflict"))
+
+        mockMvc.perform(post(7)).andExpect(status().isConflict)
+    }
+
+    @Test
+    fun `should reject eligible category changes for non-admins`() {
         mockAuthenticatedUser(USER_ROLE)
 
-        mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(
-                    """{"programEventName":"Security Champion meetup","deltaEventUuid":"123e4567-e89b-12d3-a456-426614174000"}"""
-                )
-        ).andExpect(status().isForbidden)
+        mockMvc.perform(post(7)).andExpect(status().isForbidden)
     }
 
     @Test
-    fun `should reject a Delta event UUID that is already mapped`() {
+    fun `should remove an eligible Delta category and return not found when missing`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        val deltaEventUuid = UUID.randomUUID()
-        whenever(
-            service.addMapping(
-                eq("Security Champion meetup"),
-                eq(deltaEventUuid.toString()),
-                eq("admin@nav.no"),
-            )
-        ).thenThrow(DuplicateKeyException("mapping conflict"))
+        whenever(service.removeCategory(7, "admin@nav.no")).thenReturn(true)
+        whenever(service.removeCategory(8, "admin@nav.no")).thenReturn(false)
 
-        mockMvc.perform(
-            MockMvcRequestBuilders.post("/api/admin/delta/event-mappings")
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("""{"programEventName":"Security Champion meetup","deltaEventUuid":"$deltaEventUuid"}""")
-        ).andExpect(status().isConflict)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/delta/eligible-categories/7"))
+            .andExpect(status().isNoContent)
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/admin/delta/eligible-categories/8"))
+            .andExpect(status().isNotFound)
     }
+
+    private fun post(categoryId: Int) =
+        MockMvcRequestBuilders.post("/api/admin/delta/eligible-categories")
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .content("""{"deltaCategoryId":$categoryId}""")
 
     private fun mockAuthenticatedUser(role: String) {
         Mockito.doAnswer { invocation ->

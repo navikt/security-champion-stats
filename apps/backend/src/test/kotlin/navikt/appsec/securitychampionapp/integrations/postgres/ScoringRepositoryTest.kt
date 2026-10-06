@@ -10,6 +10,7 @@ import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCategoryRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaSyncOutcome
@@ -55,6 +56,7 @@ class ScoringRepositoryTest {
     private lateinit var slackScoringStatusRepository: SlackScoringStatusRepository
     private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
     private lateinit var deltaEventMappingRepository: DeltaEventMappingRepository
+    private lateinit var deltaEligibleCategoryRepository: DeltaEligibleCategoryRepository
     private lateinit var deltaScoringStatusRepository: DeltaScoringStatusRepository
     private lateinit var flyway: Flyway
 
@@ -73,6 +75,7 @@ class ScoringRepositoryTest {
         slackScoringStatusRepository = SlackScoringStatusRepository(jdbcTemplate)
         slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)
         deltaEventMappingRepository = DeltaEventMappingRepository(jdbcTemplate)
+        deltaEligibleCategoryRepository = DeltaEligibleCategoryRepository(jdbcTemplate)
         deltaScoringStatusRepository = DeltaScoringStatusRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)
@@ -355,17 +358,13 @@ class ScoringRepositoryTest {
             mappingId,
             "Security Champion meetup",
             deltaEventUuid,
-            7,
             "admin@nav.no",
         )
 
         assertThat(created.id).isEqualTo(mappingId)
         assertThat(created.programEventName).isEqualTo("Security Champion meetup")
         assertThat(created.deltaEventUuid).isEqualTo(deltaEventUuid)
-        assertThat(created.deltaCategoryId).isEqualTo(7)
         assertThat(deltaEventMappingRepository.findAll()).containsExactly(created)
-        assertThat(deltaEventMappingRepository.updateCategory(mappingId, 8, "admin@nav.no")).isTrue()
-        assertThat(deltaEventMappingRepository.findAll().single().deltaCategoryId).isEqualTo(8)
         assertThat(deltaEventMappingRepository.removeMapping(mappingId, "admin@nav.no")).isTrue()
         assertThat(deltaEventMappingRepository.findAll()).isEmpty()
         assertThat(
@@ -375,7 +374,6 @@ class ScoringRepositoryTest {
             )
         ).containsExactly(
             "DELTA_EVENT_MAPPING_ADDED",
-            "DELTA_EVENT_MAPPING_CATEGORY_UPDATED",
             "DELTA_EVENT_MAPPING_REMOVED",
         )
     }
@@ -387,7 +385,6 @@ class ScoringRepositoryTest {
             UUID.randomUUID(),
             "First program event",
             deltaEventUuid,
-            7,
             "admin@nav.no",
         )
 
@@ -396,29 +393,29 @@ class ScoringRepositoryTest {
                 UUID.randomUUID(),
                 "Second program event",
                 deltaEventUuid,
-                7,
                 "admin@nav.no",
             )
         }.isInstanceOf(DuplicateKeyException::class.java)
     }
 
     @Test
-    fun `should assign a category to an existing mapping that predates category support`() {
-        val mappingId = UUID.randomUUID()
-        val deltaEventUuid = UUID.randomUUID()
-        jdbcTemplate.update(
-            """
-                INSERT INTO program_delta_event_mappings (
-                    id, program_event_name, delta_event_uuid, created_by_nav_no_email
-                ) VALUES (?, 'Legacy event', ?, 'admin@nav.no')
-            """.trimIndent(),
-            mappingId,
-            deltaEventUuid,
-        )
+    fun `should add and remove an eligible Delta category with audit history`() {
+        val created = deltaEligibleCategoryRepository.add(7, "Security Champions", "admin@nav.no")
 
-        assertThat(deltaEventMappingRepository.updateCategory(mappingId, 7, "admin@nav.no")).isTrue()
-        assertThat(deltaEventMappingRepository.findAll().single().deltaCategoryId).isEqualTo(7)
-        assertThat(deltaEventMappingRepository.updateCategory(UUID.randomUUID(), 7, "admin@nav.no")).isFalse()
+        assertThat(created.categoryId).isEqualTo(7)
+        assertThat(created.categoryName).isEqualTo("Security Champions")
+        assertThat(deltaEligibleCategoryRepository.findAll()).containsExactly(created)
+        assertThatThrownBy { deltaEligibleCategoryRepository.add(7, "Duplicate", "admin@nav.no") }
+            .isInstanceOf(DuplicateKeyException::class.java)
+        assertThat(deltaEligibleCategoryRepository.remove(7, "admin@nav.no")).isTrue()
+        assertThat(deltaEligibleCategoryRepository.remove(7, "admin@nav.no")).isFalse()
+        assertThat(deltaEligibleCategoryRepository.findAll()).isEmpty()
+        assertThat(
+            jdbcTemplate.queryForList(
+                "SELECT action FROM program_scoring_audit ORDER BY id",
+                String::class.java,
+            )
+        ).containsExactly("DELTA_ELIGIBLE_CATEGORY_ADDED", "DELTA_ELIGIBLE_CATEGORY_REMOVED")
     }
 
     @Test
@@ -430,7 +427,6 @@ class ScoringRepositoryTest {
             mappingId,
             "Security Champion meetup",
             deltaEventUuid,
-            7,
             "admin@nav.no",
         )
         assertThat(

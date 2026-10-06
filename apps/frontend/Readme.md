@@ -3,8 +3,8 @@
 ## Overview
 The frontend application is built using React, TypeScript, and Next.js. Employees can enroll in the
 program and view participant names and teams. AppSec administrators can manage participant status,
-correct season scores, schedule or start a new season, map Slack accounts, and map program events to
-owner-confirmed Delta event UUIDs and Delta categories. Delta registration sync is disabled until
+correct season scores, schedule or start a new season, map Slack accounts, and choose eligible Delta
+categories or single owner-confirmed Delta event UUIDs. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
 The admin program dashboard summarizes active participants and season activity, shows Slack/Delta sync
 health, and lets administrators trigger enabled syncs.
@@ -37,7 +37,7 @@ To get started with the frontend application, follow these steps:
 - `app/view/appsec/scoring/`: Season score corrections and reset controls.
 - `app/view/appsec/dashboard/`: Aggregate program metrics and integration status.
 - `app/view/appsec/slack/`: Slack account mappings and unmapped author review.
-- `app/view/appsec/delta/`: Explicit program-event-to-Delta UUID and category mappings.
+- `app/view/appsec/delta/`: Eligible Delta categories and single Delta event mappings.
 
 ## Contributing
 Contributions to the frontend application are welcome! If you would like to contribute, please follow these steps:

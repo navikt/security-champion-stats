@@ -158,6 +158,7 @@ export interface SecurityEvent {
 	deltaEvent: boolean;
 	amountOfPeopleJoined?: number;
 	link?: string | null;
+	allDay?: boolean;
 }
 
-export type SecurityEventType = "meetup" | "workshop";
+export type SecurityEventType = "meetup" | "workshop" | "event";

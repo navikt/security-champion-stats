@@ -14,6 +14,8 @@ enforces score access.
 The user interface is English-only.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
+Event listings include cached playbook events, with date-only ranges shown without invented times.
+Delta and manual events take priority over same-day internal playbook entries; unrelated external entries remain visible.
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 

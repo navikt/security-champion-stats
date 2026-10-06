@@ -5,7 +5,7 @@ import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantSummary
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantView
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
-import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.app.events.EventCatalogService
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping(path = ["/api"])
 class Controller(
     private val participantRepository: ProgramParticipantRepository,
-    private val eventRepository: EventRepository,
+    private val eventCatalogService: EventCatalogService,
     private val teamCatalog: TeamCatalog,
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
@@ -163,7 +163,7 @@ class Controller(
 
     @GetMapping("/events")
     fun fetchEvents(): ResponseEntity<Any> {
-        val events = eventRepository.getAllEvents()
+        val events = eventCatalogService.getAllEvents()
         if (!events.isOk) {
             logger.warn("Failed to fetch events from database: ${events.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)

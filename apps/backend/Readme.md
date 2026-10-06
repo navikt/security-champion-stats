@@ -29,6 +29,12 @@ outbound network access, and eligible public event identifiers are confirmed. Ad
 its latest outcome at `/api/admin/delta/sync-status`.
 Delta event import upserts all events in `DELTA_EVENTS_CATEGORY_ID` (default 54) into `Events`, keyed by the Delta
 UUID and linked to `https://delta.nav.no/event/{id}`. It is disabled unless `DELTA_EVENTS_ENABLED=true`.
+Playbook events are cached from `https://sikkerhet.nav.no/events.json` at startup and every six hours when
+`PLAYBOOK_EVENTS_ENABLED=true` (enabled in Nais). Failed imports retain the previous snapshot.
+`/api/events` hides `playbook:*` entries when a Delta or manual event starts on the same Europe/Oslo date;
+`external:*` entries remain visible unless their Delta URL identifies an event already in our catalog.
+Date-only feed events do not affect scoring.
+Administrators can trigger an import with `POST /api/admin/playbook/events/sync`.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid

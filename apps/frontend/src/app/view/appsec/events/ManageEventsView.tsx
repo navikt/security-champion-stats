@@ -16,11 +16,13 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 	const [mods, setMods] = useState(false);
 	const [create, setCreate] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [refreshError, setRefreshError] = useState<string | null>(null);
 	const [formVersion, setFormVersion] = useState(0);
 	const handleCreate = async (event: Omit<SecurityEvent, "id">) => {
 		if (create) return;
 		setCreate(true);
 		setError(null);
+		setRefreshError(null);
 		try {
 			const created = await Apies.createEvent({
 				...event,
@@ -30,6 +32,20 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 			setEventsList((current) => [created, ...current]);
 			setMods(false);
 			setFormVersion((current) => current + 1);
+			try {
+				const refreshed = await Apies.fetchEvents();
+				if (!refreshed.some((item) => item.id === created.id)) {
+					throw new Error(
+						"The refreshed catalog did not include the saved event",
+					);
+				}
+				setEventsList(refreshed);
+			} catch (error) {
+				console.error("Event saved but catalog refresh failed:", error);
+				setRefreshError(
+					"Event saved, but the event list could not be refreshed. Reload the page to update playbook matches.",
+				);
+			}
 		} catch (error) {
 			console.error("Event creation failed:", error);
 			setError(
@@ -64,6 +80,8 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 			>
 				Add event
 			</Button>
+
+			{refreshError && <BodyShort role="alert">{refreshError}</BodyShort>}
 
 			<EventList
 				title="All events"

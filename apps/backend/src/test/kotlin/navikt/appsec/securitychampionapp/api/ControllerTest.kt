@@ -5,7 +5,7 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.Controller
 import navikt.appsec.securitychampionapp.config.SecurityConfig
-import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.app.events.EventCatalogService
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipant
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
@@ -44,7 +44,7 @@ class ControllerTest {
     lateinit var participantRepository: ProgramParticipantRepository
 
     @MockitoBean
-    lateinit var eventRepository: EventRepository
+    lateinit var eventCatalogService: EventCatalogService
 
     @MockitoBean
     lateinit var teamCatalog: TeamCatalog
@@ -66,6 +66,24 @@ class ControllerTest {
                 filterChain.doFilter(request, response)
             } finally {
                 SecurityContextHolder.clearContext()
+            }
+
+            @Test
+            fun `should return date only playbook events from the combined catalog`() {
+                mockAuthenticatedUser()
+                val event = navikt.appsec.securitychampionapp.app.api.dto.Event(
+                    id = "playbook:test", name = "Course", description = "Alle",
+                    startDate = "2026-10-20", endDate = "2026-10-22", location = "",
+                    type = "event", deltaEvent = false, allDay = true, link = "https://example.org",
+                )
+                whenever(eventCatalogService.getAllEvents()).thenReturn(
+                    navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse(true, listOf(event))
+                )
+                mockMvc.perform(MockMvcRequestBuilders.get("/api/events"))
+                    .andExpect(status().isOk)
+                    .andExpect(jsonPath("$[0].id").value("playbook:test"))
+                    .andExpect(jsonPath("$[0].allDay").value(true))
+                    .andExpect(jsonPath("$[0].startDate").value("2026-10-20"))
             }
             null
         }.`when`(introspectionFilter).doFilter(Mockito.any(), Mockito.any(), Mockito.any())

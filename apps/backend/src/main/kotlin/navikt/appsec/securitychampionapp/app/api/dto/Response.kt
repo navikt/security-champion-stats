@@ -64,4 +64,5 @@ data class Event(
     val deltaEvent: Boolean = true,
     val amountOfPeopleJoined: Int = 0,
     val link: String? = null,
+    val allDay: Boolean = false,
 )

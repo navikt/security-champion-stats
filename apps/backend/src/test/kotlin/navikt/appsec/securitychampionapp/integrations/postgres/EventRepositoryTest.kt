@@ -3,6 +3,8 @@ package navikt.appsec.securitychampionapp.integrations.postgres
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.PlaybookEventRepository
+import navikt.appsec.securitychampionapp.integrations.playbook.PlaybookEvent
 import org.assertj.core.api.Assertions
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.api.FlywayException
@@ -12,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.dao.DuplicateKeyException
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -214,6 +218,32 @@ class EventRepositoryTest {
 
         Assertions.assertThat(response.isOk).isTrue()
         Assertions.assertThat(response.queryResult).isEmpty()
+    }
+
+    @Test
+    fun `should replace playbook snapshots without altering own events and roll back failed replacements`() {
+        val playbook = PlaybookEventRepository(jdbcTemplate)
+        val transaction = TransactionTemplate(DataSourceTransactionManager(dataSource))
+        val original = PlaybookEvent(
+            "playbook:course", "Course", "2026-10-20", "2026-10-22", "Alle", "https://example.org",
+        )
+        repository.addEvent(testEvent())
+        transaction.executeWithoutResult { playbook.replaceSnapshot(listOf(original)) }
+        Assertions.assertThat(playbook.findAll()).containsExactly(original)
+
+        Assertions.assertThatThrownBy {
+            transaction.executeWithoutResult {
+                playbook.replaceSnapshot(listOf(original.copy(endDate = "2026-10-19")))
+            }
+        }.isInstanceOf(org.springframework.dao.DataIntegrityViolationException::class.java)
+        Assertions.assertThat(playbook.findAll()).containsExactly(original)
+
+        val updated = original.copy(title = "Renamed", startDate = "2026-10-21")
+        transaction.executeWithoutResult { playbook.replaceSnapshot(listOf(updated)) }
+        Assertions.assertThat(playbook.findAll()).containsExactly(updated)
+        transaction.executeWithoutResult { playbook.replaceSnapshot(emptyList()) }
+        Assertions.assertThat(playbook.findAll()).isEmpty()
+        Assertions.assertThat(repository.getAllEvents().queryResult).hasSize(1)
     }
 
     private fun insertEvent(

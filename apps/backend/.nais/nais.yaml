@@ -17,6 +17,8 @@ spec:
       value: "true"
     - name: DELTA_EVENTS_CATEGORY_ID
       value: "54"
+    - name: PLAYBOOK_EVENTS_ENABLED
+      value: "true"
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:
@@ -28,6 +30,7 @@ spec:
         - host: slack.com
         - host: api.slack.com
         - host: graph.microsoft.com
+        - host: sikkerhet.nav.no
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

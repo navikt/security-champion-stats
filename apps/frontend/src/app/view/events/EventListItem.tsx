@@ -1,4 +1,5 @@
 import { SecurityEvent } from "@/app/utils/Variables";
+import { formatEventDate } from "@/app/utils/eventUtils";
 import { CalendarIcon, ChevronRightIcon } from "@navikt/aksel-icons";
 import { Link, Tag } from "@navikt/ds-react";
 import "../../style/events/EventsView.css";
@@ -23,16 +24,25 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 
 			<div className={"eventListItem__content"}>
 				<strong className={"eventListItem__title"}>
-					{event.link ? <Link href={event.link}>{event.name}</Link> : event.name}
+					{event.link ? (
+						<Link href={event.link}>{event.name}</Link>
+					) : (
+						event.name
+					)}
 				</strong>
 
 				<span className={"eventListItem__date"}>
-					{start.toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })} ·{" "}
-					{start.toLocaleTimeString("nb-NO", {
-						hour: "2-digit",
-						minute: "2-digit",
-						timeZone: "Europe/Oslo",
-					})}
+					{formatEventDate(event)}
+					{!event.allDay && (
+						<>
+							{" · "}
+							{start.toLocaleTimeString("nb-NO", {
+								hour: "2-digit",
+								minute: "2-digit",
+								timeZone: "Europe/Oslo",
+							})}
+						</>
+					)}
 				</span>
 			</div>
 

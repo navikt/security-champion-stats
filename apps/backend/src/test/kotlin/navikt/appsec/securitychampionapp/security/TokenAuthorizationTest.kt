@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.security
 
 import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.app.api.Controller
+import navikt.appsec.securitychampionapp.app.events.EventCatalogService
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
@@ -67,6 +68,9 @@ class TokenAuthorizationTest {
 
     @MockitoBean
     lateinit var eventRepository: EventRepository
+
+    @MockitoBean
+    lateinit var eventCatalogService: EventCatalogService
 
     @MockitoBean
     lateinit var validate: Validate
@@ -176,14 +180,14 @@ class TokenAuthorizationTest {
     @Test
     fun `should allow event requests when preferred username exists without nav no email`() {
         whenever(tokenClient.validate(any(), any(), any())).thenReturn(validToken())
-        whenever(eventRepository.getAllEvents())
+        whenever(eventCatalogService.getAllEvents())
             .thenReturn(EventQueryResponse(isOk = true, queryResult = emptyList()))
 
         mockMvc.perform(
             get("/api/events").header("Authorization", "Bearer test-token")
         ).andExpect(status().isOk)
 
-        verify(eventRepository).getAllEvents()
+        verify(eventCatalogService).getAllEvents()
     }
 
     private fun validToken() = TokenResponse(

@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ManageEventsView } from "./ManageEventsView";
+import { SecurityEvent } from "@/app/utils/Variables";
 
 beforeAll(() => {
 	Object.defineProperties(HTMLDialogElement.prototype, {
@@ -48,6 +49,26 @@ async function fillEvent() {
 		fireEvent.change(input, { target: { value: "01.11.2099" } });
 		fireEvent.blur(input);
 	}
+}
+
+const savedEvent: SecurityEvent = {
+	id: "saved-event",
+	name: "Saved security meetup",
+	description: "",
+	location: "",
+	type: "meetup",
+	startDate: "2099-11-01T09:00:00Z",
+	endDate: "2099-11-01T10:00:00Z",
+	externalEvent: false,
+	deltaEvent: false,
+	amountOfPeopleJoined: 0,
+};
+
+function jsonResponse(value: unknown, status = 200) {
+	return new Response(JSON.stringify(value), {
+		status,
+		headers: { "Content-Type": "application/json" },
+	});
 }
 
 describe("ManageEventsView", () => {
@@ -108,23 +129,10 @@ describe("ManageEventsView", () => {
 	it("should display the saved event and reset the form after successful creation", async () => {
 		vi.stubGlobal(
 			"fetch",
-			vi.fn().mockResolvedValue(
-				new Response(
-					JSON.stringify({
-						id: "saved-event",
-						name: "Saved security meetup",
-						description: "",
-						location: "",
-						type: "meetup",
-						startDate: "2099-11-01T09:00:00Z",
-						endDate: "2099-11-01T10:00:00Z",
-						externalEvent: false,
-						deltaEvent: false,
-						amountOfPeopleJoined: 0,
-					}),
-					{ status: 201, headers: { "Content-Type": "application/json" } },
-				),
-			),
+			vi
+				.fn()
+				.mockResolvedValueOnce(jsonResponse(savedEvent, 201))
+				.mockResolvedValueOnce(jsonResponse([savedEvent])),
 		);
 		render(<ManageEventsView events={[]} />);
 		await fillEvent();
@@ -139,6 +147,59 @@ describe("ManageEventsView", () => {
 		await openForm();
 		expect(screen.getByLabelText("Name")).toHaveValue("");
 		expect(screen.getByLabelText("Start date")).toHaveValue("");
+	});
+
+	it("should replace stale playbook entries with the server catalog after creating an own event", async () => {
+		const playbook: SecurityEvent = {
+			...savedEvent,
+			id: "playbook:meetup",
+			name: "Playbook meetup",
+			startDate: "2099-11-01",
+			endDate: "2099-11-01",
+			allDay: true,
+		};
+		const external = {
+			...playbook,
+			id: "external:conference",
+			name: "Conference",
+			externalEvent: true,
+		};
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValueOnce(jsonResponse(savedEvent, 201))
+				.mockResolvedValueOnce(jsonResponse([savedEvent, external])),
+		);
+		render(<ManageEventsView events={[playbook, external]} />);
+		await fillEvent();
+		fireEvent.click(screen.getByRole("button", { name: "Create event" }));
+
+		await waitFor(() =>
+			expect(screen.queryByText("Playbook meetup")).not.toBeInTheDocument(),
+		);
+		expect(screen.getByText(savedEvent.name)).toBeInTheDocument();
+		expect(screen.getByText("Conference")).toBeInTheDocument();
+	});
+
+	it("should report refresh failures without treating a saved event as a failed creation", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi
+				.fn()
+				.mockResolvedValueOnce(jsonResponse(savedEvent, 201))
+				.mockResolvedValueOnce(new Response("Unavailable", { status: 503 })),
+		);
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		render(<ManageEventsView events={[]} />);
+		await fillEvent();
+		fireEvent.click(screen.getByRole("button", { name: "Create event" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"Event saved, but the event list",
+		);
+		expect(screen.getByText(savedEvent.name)).toBeInTheDocument();
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 	});
 
 	it("should show a duplicate error without discarding the event draft", async () => {

@@ -1,5 +1,6 @@
 import { BodyShort, Button, Heading, Tag } from "@navikt/ds-react";
 import { SecurityEvent } from "@/app/utils/Variables";
+import { formatEventDate } from "@/app/utils/eventUtils";
 import "../../style/events/EventsView.css";
 import { CalendarIcon, ClockIcon, LocationPinIcon } from "@navikt/aksel-icons";
 
@@ -43,15 +44,15 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			<div className={"nextEventCard__metadata"}>
 				<div className={"eventMeta"}>
 					<CalendarIcon aria-hidden />
-					<span>
-						{start.toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })}
-					</span>
+					<span>{formatEventDate(event)}</span>
 				</div>
 
-				<div className={"eventMeta"}>
-					<ClockIcon aria-hidden />
-					<span>{formatEventTime(start, end)}</span>
-				</div>
+				{!event.allDay && (
+					<div className={"eventMeta"}>
+						<ClockIcon aria-hidden />
+						<span>{formatEventTime(start, end)}</span>
+					</div>
+				)}
 
 				{event.location && (
 					<div className={"eventMeta"}>
@@ -64,7 +65,7 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			{event.link && (
 				<div className={"nextEventCard__actions"}>
 					<Button as={"a"} href={event.link} variant={"secondary"}>
-						View in Delta
+						{event.deltaEvent ? "View in Delta" : "View event"}
 					</Button>
 				</div>
 			)}

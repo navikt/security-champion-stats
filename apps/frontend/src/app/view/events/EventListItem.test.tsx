@@ -21,12 +21,15 @@ const event: SecurityEvent = {
 
 describe("EventListItem", () => {
 	it("links the event name to Delta when a link exists", () => {
-		render(<EventListItem event={{ ...event, link: "https://delta.nav.no/event/1" }} />);
-
-		expect(screen.getByRole("link", { name: "Security meetup" })).toHaveAttribute(
-			"href",
-			"https://delta.nav.no/event/1",
+		render(
+			<EventListItem
+				event={{ ...event, link: "https://delta.nav.no/event/1" }}
+			/>,
 		);
+
+		expect(
+			screen.getByRole("link", { name: "Security meetup" }),
+		).toHaveAttribute("href", "https://delta.nav.no/event/1");
 	});
 
 	it("renders the event name without a link when none exists", () => {
@@ -34,5 +37,28 @@ describe("EventListItem", () => {
 
 		expect(screen.getByText("Security meetup")).toBeInTheDocument();
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
+	});
+
+	it("shows date-only ranges without a clock time and links to the playbook", () => {
+		render(
+			<EventListItem
+				event={{
+					...event,
+					id: "playbook:course",
+					startDate: "2026-10-20",
+					endDate: "2026-10-22",
+					allDay: true,
+					deltaEvent: false,
+					link: "https://sikkerhet.nav.no/docs/events/course",
+				}}
+			/>,
+		);
+
+		expect(screen.getByText("20.10.2026 - 22.10.2026")).toBeInTheDocument();
+		expect(screen.queryByText(/00:00|02:00/)).not.toBeInTheDocument();
+		expect(screen.getByRole("link")).toHaveAttribute(
+			"href",
+			"https://sikkerhet.nav.no/docs/events/course",
+		);
 	});
 });

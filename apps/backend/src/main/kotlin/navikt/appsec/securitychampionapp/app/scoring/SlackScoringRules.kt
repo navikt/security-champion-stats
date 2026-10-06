@@ -7,11 +7,12 @@ import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 
 private val SLACK_SCORING_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
+private const val MIN_VISIBLE_CHARACTERS = 5
 
 object SlackScoringRules {
     fun qualifies(text: String): Boolean {
         val trimmed = visibleText(text).trim()
-        return trimmed.codePointCount(0, trimmed.length) >= 20 &&
+        return trimmed.codePointCount(0, trimmed.length) >= MIN_VISIBLE_CHARACTERS &&
             trimmed.codePoints().anyMatch { Character.isLetterOrDigit(it) }
     }
 

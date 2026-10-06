@@ -58,6 +58,14 @@ describe("sidebar layout", () => {
 		expect(screen.getByRole("main")).toHaveTextContent("Page content");
 	});
 
+	it("shows first-name-first initials for a surname-first Entra display name", () => {
+		state.me.displayName = "Lovelace, Ada";
+		render(<AppLayout><p>Page content</p></AppLayout>);
+
+		expect(screen.getByRole("img", { name: "Signed in as Lovelace, Ada" }))
+			.toHaveTextContent("AL");
+	});
+
 	it("lets admins expand Administration with the keyboard and reach every existing admin page", async () => {
 		state.me.isAdmin = true;
 		const user = userEvent.setup();

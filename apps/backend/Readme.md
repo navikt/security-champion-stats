@@ -22,7 +22,9 @@ the background and use the same locks as scheduled syncs.
 Administrators choose eligible Delta categories and can add single owner-confirmed Delta event UUIDs.
 Delta registration sync fetches past public events once per category (`GET /event?categories=<id>&onlyPast=true`)
 and each single event (`GET /event/{id}`), keeps events that started this calendar year, and matches only
-participant emails locally. Removing a category keeps awarded credits. The sync is disabled by default until Delta read access,
+participant and host emails locally. Active program participants receive 1 point per eligible event, including hosts;
+being listed in both rosters does not award extra credit. Removing a category keeps awarded credits.
+The sync is disabled by default until Delta read access,
 outbound network access, and eligible public event identifiers are confirmed. Administrators can inspect
 its latest outcome at `/api/admin/delta/sync-status`.
 

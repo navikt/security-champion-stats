@@ -85,6 +85,27 @@ class DeltaScoringServiceTest {
     }
 
     @Test
+    fun `should award one event credit when host and participant emails differ only in case`() {
+        val eventId = uuid(1)
+        whenever(categoryRepository.findAll()).thenReturn(listOf(category(7)))
+        whenever(mappingRepository.findAll()).thenReturn(emptyList())
+        activeParticipants(participant(participantId, "participant@nav.no"))
+        whenever(eventSource.pastEventsInCategory(7))
+            .thenReturn(listOf(event(eventId, "2026-10-03T10:00:00", "participant@nav.no", " PARTICIPANT@NAV.NO ")))
+        awardReturns(eventId, CreditAwardResult.AWARDED)
+
+        val summary = service.sync()
+
+        assertThat(summary.creditsAwarded).isEqualTo(1)
+        verify(scoringService).awardCredit(
+            participantId,
+            ActivityCreditType.DELTA_REGISTRATION,
+            eventId.toString(),
+            eventId.toString(),
+        )
+    }
+
+    @Test
     fun `should fetch single event mappings that are not already covered by a category`() {
         val categoryEventId = uuid(1)
         val singleEventId = uuid(2)

@@ -164,6 +164,7 @@ private data class NaisTokenResponse(
 private data class DeltaFullEventResponse(
     val event: DeltaEventDetailsResponse,
     val participants: List<DeltaParticipantResponse> = emptyList(),
+    val hosts: List<DeltaParticipantResponse> = emptyList(),
 ) {
     fun toRegistrations() = DeltaEventRegistrations(
         eventUuid = event.id,
@@ -172,7 +173,9 @@ private data class DeltaFullEventResponse(
         } catch (_: RuntimeException) {
             throw DeltaIntegrationException(DeltaFailure.INVALID_RESPONSE)
         },
-        participantEmails = participants.mapNotNull { it.email?.trim()?.takeIf(String::isNotEmpty) }.toSet(),
+        participantEmails = (participants + hosts)
+            .mapNotNull { it.email?.trim()?.takeIf(String::isNotEmpty) }
+            .toSet(),
     )
 }
 

@@ -17,6 +17,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 class DeltaApiClientTest {
     private lateinit var server: HttpServer
     private val requests = CopyOnWriteArrayList<CapturedRequest>()
+    private var eventJson = FULL_EVENT_JSON
 
     @BeforeEach
     fun startServer() {
@@ -36,9 +37,9 @@ class DeltaApiClientTest {
                 "/event" -> if (exchange.requestURI.rawQuery.orEmpty().contains("categories=13")) {
                     403 to """{"email":"private@nav.no","detail":"raw response"}"""
                 } else {
-                    200 to "[$FULL_EVENT_JSON]"
+                    200 to "[$eventJson]"
                 }
-                "/event/$EVENT_ID" -> 200 to FULL_EVENT_JSON
+                "/event/$EVENT_ID" -> 200 to eventJson
                 "/event/$MISSING_EVENT_ID" -> 404 to """{}"""
                 else -> 404 to """{}"""
             }
@@ -80,6 +81,53 @@ class DeltaApiClientTest {
 
         assertThat(result).isEqualTo(EXPECTED_REGISTRATIONS)
         assertThat(requests.map { it.path }).containsExactly("/token", "/event/$EVENT_ID")
+    }
+
+    @Test
+    fun `should include a host only event in credit eligibility`() {
+        eventJson = """
+            {
+              "event": {"id": "$EVENT_ID", "startTime": "2026-10-03T10:00:00"},
+              "hosts": [
+                {"email": " host@nav.no "},
+                {"email": ""},
+                {"email": null}
+              ]
+            }
+        """.trimIndent()
+
+        val result = client("http://localhost:${server.address.port}").event(EVENT_ID)
+
+        assertThat(result?.participantEmails).containsExactly("host@nav.no")
+    }
+
+    @Test
+    fun `should include an email only once when listed as both host and participant`() {
+        eventJson = """
+            {
+              "event": {"id": "$EVENT_ID", "startTime": "2026-10-03T10:00:00"},
+              "participants": [{"email": "participant@nav.no"}],
+              "hosts": [{"email": " participant@nav.no "}]
+            }
+        """.trimIndent()
+
+        val result = client("http://localhost:${server.address.port}").event(EVENT_ID)
+
+        assertThat(result?.participantEmails).containsExactly("participant@nav.no")
+    }
+
+    @Test
+    fun `should still include participants when the host roster is absent`() {
+        eventJson = """
+            {
+              "event": {"id": "$EVENT_ID", "startTime": "2026-10-03T10:00:00"},
+              "participants": [{"email": "participant@nav.no"}]
+            }
+        """.trimIndent()
+
+        val result = client("http://localhost:${server.address.port}").event(EVENT_ID)
+
+        assertThat(result?.participantEmails).containsExactly("participant@nav.no")
     }
 
     @Test
@@ -169,7 +217,7 @@ class DeltaApiClientTest {
         val EXPECTED_REGISTRATIONS = DeltaEventRegistrations(
             EVENT_ID,
             LocalDateTime.parse("2026-10-03T10:00:00"),
-            setOf("participant@nav.no"),
+            setOf("participant@nav.no", "host@nav.no"),
         )
     }
 }

@@ -16,6 +16,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
 import java.util.UUID
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
 
 private val DELTA_SCORING_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 
@@ -29,11 +30,11 @@ class DeltaScoringService(
     private val statusRepository: DeltaScoringStatusRepository,
     private val clock: Clock,
 ) {
-    fun sync(): DeltaSyncSummary {
+    fun sync(run: AuditRunContext? = null): DeltaSyncSummary {
         val attemptStartedAt = clock.instant()
         statusRepository.recordStarted(attemptStartedAt)
         return try {
-            val summary = syncMappedEvents()
+            val summary = syncMappedEvents(run?.correlationId)
             if (summary.failedEvents == 0) {
                 statusRepository.recordSucceeded(clock.instant(), summary)
             } else {
@@ -55,7 +56,7 @@ class DeltaScoringService(
         }
     }
 
-    private fun syncMappedEvents(): DeltaSyncSummary {
+    private fun syncMappedEvents(auditCorrelationId: UUID?): DeltaSyncSummary {
         val categories = categoryRepository.findAll()
         val mappings = mappingRepository.findAll()
         if (categories.isEmpty() && mappings.isEmpty()) return DeltaSyncSummary()
@@ -113,6 +114,7 @@ class DeltaScoringService(
                         creditType = ActivityCreditType.DELTA_REGISTRATION,
                         uniquenessKey = event.eventUuid.toString(),
                         sourceReference = event.eventUuid.toString(),
+                        auditCorrelationId = auditCorrelationId,
                     )
                 ) {
                     CreditAwardResult.AWARDED -> creditsAwarded++

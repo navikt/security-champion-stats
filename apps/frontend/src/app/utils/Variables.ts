@@ -31,8 +31,50 @@ export type ProgramParticipant = ProgramParticipantSummary & {
 	email: string;
 	active: boolean;
 	joinedAt: string;
+	status: "ACTIVE" | "LEFT" | "DEACTIVATED";
 };
 export type AdminProgramParticipant = ProgramParticipant;
+export type HistoryEntry = {
+	id: string;
+	action: string;
+	outcome: string;
+	recordedAt: string;
+	occurredAt: string | null;
+	details: Record<string, string | number | boolean | null>;
+	actor?: string | null;
+	participantId?: string | null;
+	runId?: string | null;
+};
+export type HistoryPage = {
+	entries: HistoryEntry[];
+	nextCursor: string | null;
+};
+export type AuditResponse = {
+	items: {
+		id: string;
+		createdAt: string;
+		action: string;
+		outcome: "SUCCEEDED" | "FAILED" | "PARTIAL";
+		actorNavNoEmail: string | null;
+		targetParticipantId: string | null;
+		correlationId: string | null;
+		details: Record<string, string>;
+	}[];
+	total: number;
+	page: number;
+	size: number;
+};
+export type ParticipantHistoryEntry = {
+	id: string;
+	occurredAt: string;
+	type: "MEMBERSHIP" | "CREDIT" | "ADJUSTMENT";
+	action: string;
+	status: string | null;
+	creditType: string | null;
+	points: number | null;
+	sourceReference: string | null;
+	reason: string | null;
+};
 export type SeasonSummary = {
 	id: string;
 	startsOn: string;

@@ -12,6 +12,7 @@ const participants: AdminProgramParticipant[] = [
 		teams: ["Team A"],
 		active: true,
 		joinedAt: "2026-01-01T00:00:00Z",
+		status: "ACTIVE",
 	},
 ];
 

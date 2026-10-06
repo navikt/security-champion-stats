@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.security
 
 import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.app.api.Controller
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
@@ -62,6 +63,9 @@ class TokenAuthorizationTest {
 
     @MockitoBean
     lateinit var participantRepository: ProgramParticipantRepository
+
+    @MockitoBean
+    lateinit var auditService: ProgramAuditService
 
     @MockitoBean
     lateinit var memberRepository: MemberRepository

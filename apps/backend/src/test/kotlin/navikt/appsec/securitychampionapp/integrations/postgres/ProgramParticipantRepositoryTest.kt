@@ -117,6 +117,37 @@ class ProgramParticipantRepositoryTest {
     }
 
     @Test
+    fun `should retain credits through voluntary departure and rejoin without bypassing admin deactivation`() {
+        repository.enroll("user@nav.no", "A12345", "user@nav.no")
+        val id = UUID.fromString(repository.findByNavNoEmail("user@nav.no").queryResult.single().id)
+        jdbcTemplate.update(
+            """
+                INSERT INTO activity_credits (
+                    participant_id, season_id, credit_type, uniqueness_key, source_reference, points
+                )
+                SELECT ?, id, 'SLACK_WEEK', '2026-10-05', 'channel:timestamp', 1
+                FROM program_seasons WHERE ends_on IS NULL
+            """.trimIndent(),
+            id,
+        )
+
+        assertThat(repository.leave("user@nav.no").affectedRows).isEqualTo(1)
+        assertThat(repository.leave("user@nav.no").affectedRows).isZero()
+        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult.single().status).isEqualTo("LEFT")
+        assertThat(repository.findActiveParticipants().queryResult).isEmpty()
+        assertThat(repository.rejoin("user@nav.no").affectedRows).isEqualTo(1)
+        assertThat(repository.findActiveParticipants().queryResult).hasSize(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM activity_credits", Int::class.java))
+            .isEqualTo(1)
+
+        repository.updateStatus(id, false, "admin@nav.no")
+        assertThat(repository.rejoin("user@nav.no").affectedRows).isZero()
+        assertThat(repository.leave("user@nav.no").affectedRows).isZero()
+        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult.single().status)
+            .isEqualTo("DEACTIVATED")
+    }
+
+    @Test
     fun `should permanently delete only the selected participant`() {
         repository.enroll("first@nav.no", "A12345", "first@nav.no")
         repository.enroll("second@nav.no", "A12346", "second@nav.no")
@@ -140,6 +171,22 @@ class ProgramParticipantRepositoryTest {
         )
         val firstId = UUID.fromString(first.id)
         val secondId = UUID.fromString(second.id)
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_audit_events (
+                    id, action, outcome, actor_nav_no_email, target_participant_id, details
+                ) VALUES (?, 'PARTICIPANT_LEFT', 'SUCCEEDED', 'first@nav.no', ?, '{}'::jsonb)
+            """.trimIndent(),
+            UUID.randomUUID(), firstId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_audit_events (
+                    id, action, outcome, actor_nav_no_email, target_participant_id, details
+                ) VALUES (?, 'PARTICIPANT_REJOINED', 'SUCCEEDED', 'first@nav.no', ?, '{}'::jsonb)
+            """.trimIndent(),
+            UUID.randomUUID(), secondId,
+        )
         val creditId = UUID.randomUUID()
         val seasonId = jdbcTemplate.queryForObject(
             "SELECT id FROM program_seasons WHERE ends_on IS NULL",
@@ -191,6 +238,18 @@ class ProgramParticipantRepositoryTest {
 
         assertThat(deletion.isOk).isTrue()
         assertThat(deletion.affectedRows).isEqualTo(1)
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM program_audit_events WHERE target_participant_id = ?",
+                Int::class.java, firstId,
+            )
+        ).isZero()
+        assertThat(
+            jdbcTemplate.queryForMap(
+                "SELECT actor_nav_no_email FROM program_audit_events WHERE target_participant_id = ?",
+                secondId,
+            )["actor_nav_no_email"]
+        ).isNull()
         assertThat(repository.findByNavNoEmail("first@nav.no").queryResult).isEmpty()
         assertThat(repository.findByNavNoEmail("second@nav.no").queryResult).hasSize(1)
         assertThat(

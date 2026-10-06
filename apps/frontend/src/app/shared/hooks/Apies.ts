@@ -14,9 +14,56 @@ import type {
 	SCData,
 	SecurityEvent,
 	SlackMappingOverview,
+	HistoryPage,
+	AuditResponse,
+	ParticipantHistoryEntry,
 } from "../../utils/Variables";
 
 export const Apies = {
+	getHistory: async (admin: boolean, search: string, cursor: string | null): Promise<HistoryPage> => {
+		const query = new URLSearchParams({ size: "50", page: cursor || "0" });
+		if (search) query.set("q", search);
+		const res = await fetch(admin ? `/api/admin/audit?${query}` : "/api/history");
+		if (!res.ok) {
+			console.error("Failed to fetch history, status: ", res.status);
+			throw new Error("We couldn't fetch history. Try again.");
+		}
+		if (admin) {
+			const result: AuditResponse = await res.json();
+			return {
+				entries: result.items.map((entry) => ({
+					id: entry.id,
+					action: entry.action,
+					outcome: entry.outcome,
+					recordedAt: entry.createdAt,
+					occurredAt: null,
+					actor: entry.actorNavNoEmail,
+					participantId: entry.targetParticipantId,
+					runId: entry.correlationId,
+					details: entry.details,
+				})),
+				nextCursor: (result.page + 1) * result.size < result.total ? String(result.page + 1) : null,
+			};
+		}
+		const entries: ParticipantHistoryEntry[] = await res.json();
+		return {
+			entries: entries.map((entry) => ({
+				id: entry.id,
+				action: entry.action,
+				outcome: "SUCCEEDED",
+				recordedAt: entry.occurredAt,
+				occurredAt: entry.occurredAt,
+				details: {
+					status: entry.status,
+					creditType: entry.creditType,
+					points: entry.points,
+					sourceReference: entry.sourceReference,
+					reason: entry.reason,
+				},
+			})),
+			nextCursor: null,
+		};
+	},
 	getAdminDashboard: async (): Promise<AdminDashboardOverview | null> => {
 		const res = await fetch("/api/admin/dashboard/overview");
 		if (!res.ok) {
@@ -293,6 +340,13 @@ export const Apies = {
 			return false;
 		}
 		return true;
+	},
+	leaveProgram: async (): Promise<void> => {
+		const res = await fetch("/api/leave", { method: "POST" });
+		if (!res.ok) {
+			console.error("Failed to leave the program, status: ", res.status);
+			throw new Error("We couldn't leave the program. Try again.");
+		}
 	},
 	validatePerson: async (): Promise<Me> => {
 		const res = await fetch("/api/validate");

@@ -36,6 +36,7 @@ data class ProgramParticipantView(
     val active: Boolean,
     val joinedAt: String,
     val teams: List<String>,
+    val status: String = if (active) "ACTIVE" else "DEACTIVATED",
 )
 
 data class AdminProgramParticipantView(
@@ -45,6 +46,7 @@ data class AdminProgramParticipantView(
     val teams: List<String>,
     val active: Boolean,
     val joinedAt: String,
+    val status: String = if (active) "ACTIVE" else "DEACTIVATED",
 )
 
 data class UpdateParticipantStatusRequest(val active: Boolean)

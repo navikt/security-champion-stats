@@ -114,6 +114,7 @@ class ScoringRepository(
         creditType: ActivityCreditType,
         uniquenessKey: String,
         sourceReference: String,
+        auditCorrelationId: UUID? = null,
     ): CreditAwardResult {
         val seasonId = jdbcTemplate.queryForObject(
             "SELECT id FROM program_seasons WHERE ends_on IS NULL FOR SHARE",
@@ -122,9 +123,10 @@ class ScoringRepository(
         val inserted = jdbcTemplate.update(
             """
                 INSERT INTO activity_credits (
-                    id, participant_id, season_id, credit_type, uniqueness_key, source_reference, points
+                    id, participant_id, season_id, credit_type, uniqueness_key, source_reference, points,
+                    audit_correlation_id
                 )
-                SELECT ?, participant.id, ?, ?, ?, ?, ?
+                SELECT ?, participant.id, ?, ?, ?, ?, ?, ?
                 FROM program_participants AS participant
                 WHERE participant.id = ? AND participant.status = 'ACTIVE'
                 ON CONFLICT (participant_id, credit_type, uniqueness_key) DO NOTHING
@@ -135,6 +137,7 @@ class ScoringRepository(
             uniquenessKey,
             sourceReference,
             creditType.points,
+            auditCorrelationId,
             participantId,
         )
         if (inserted == 1) return CreditAwardResult.AWARDED

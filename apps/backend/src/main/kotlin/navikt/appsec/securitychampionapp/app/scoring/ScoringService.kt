@@ -1,5 +1,7 @@
 package navikt.appsec.securitychampionapp.app.scoring
 
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -11,6 +13,7 @@ private val PROGRAM_TIME_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 @Service
 class ScoringService(
     private val repository: ScoringRepository,
+    private val auditService: ProgramAuditService? = null,
 ) {
     fun adminOverview(): AdminScoringOverview {
         val season = repository.currentSeason()
@@ -64,11 +67,32 @@ class ScoringService(
         creditType: ActivityCreditType,
         uniquenessKey: String,
         sourceReference: String,
+        auditCorrelationId: UUID? = null,
     ): CreditAwardResult {
         if (uniquenessKey.isBlank() || sourceReference.isBlank()) {
             throw InvalidScoringRequestException("A source reference and uniqueness key are required")
         }
-        return repository.awardCredit(participantId, creditType, uniquenessKey, sourceReference)
+        val result = repository.awardCredit(
+            participantId,
+            creditType,
+            uniquenessKey,
+            sourceReference,
+            auditCorrelationId,
+        )
+        if (result == CreditAwardResult.AWARDED) {
+            auditService?.record(
+                action = "CREDIT_AWARDED",
+                outcome = AuditOutcome.SUCCEEDED,
+                targetParticipantId = participantId,
+                correlationId = auditCorrelationId,
+                details = mapOf(
+                    "creditType" to creditType.name,
+                    "points" to creditType.points,
+                    "sourceReference" to sourceReference,
+                ),
+            )
+        }
+        return result
     }
 
     fun addAdjustment(
@@ -81,13 +105,24 @@ class ScoringService(
         if (pointsDelta == 0) throw InvalidScoringRequestException("The adjustment must not be zero")
         if (reason.isBlank()) throw InvalidScoringRequestException("A reason is required")
         if (actorNavNoEmail.isBlank()) throw InvalidScoringRequestException("An administrator identity is required")
-        return repository.addAdjustment(
+        val adjustment = repository.addAdjustment(
             participantId,
             pointsDelta,
             reason.trim(),
             actorNavNoEmail,
             sourceCreditId,
         )
+        auditService?.record(
+            action = "POINTS_ADJUSTED",
+            outcome = AuditOutcome.SUCCEEDED,
+            actorNavNoEmail = actorNavNoEmail,
+            targetParticipantId = participantId,
+            details = mapOf(
+                "pointsDelta" to pointsDelta,
+                "reason" to reason.trim(),
+            ),
+        )
+        return adjustment
     }
 
     fun updateNextResetDate(newDate: LocalDate, actorNavNoEmail: String): SeasonSummary {
@@ -96,7 +131,14 @@ class ScoringService(
         if (!newDate.isAfter(today) || !newDate.isAfter(season.startsOn)) {
             throw InvalidScoringRequestException("The next reset date must be after today")
         }
-        return repository.updateNextResetDate(newDate, actorNavNoEmail)
+        val updatedSeason = repository.updateNextResetDate(newDate, actorNavNoEmail)
+        auditService?.record(
+            action = "SEASON_RESET_DATE_UPDATED",
+            outcome = AuditOutcome.SUCCEEDED,
+            actorNavNoEmail = actorNavNoEmail,
+            details = mapOf("nextResetDate" to newDate.toString()),
+        )
+        return updatedSeason
     }
 
     fun resetManually(confirmed: Boolean, reason: String, actorNavNoEmail: String): SeasonSummary {
@@ -106,10 +148,26 @@ class ScoringService(
         if (!today.isAfter(repository.currentSeason().startsOn)) {
             throw InvalidScoringRequestException("A season has already started today")
         }
-        return repository.resetManually(today, reason.trim(), actorNavNoEmail)
+        val newSeason = repository.resetManually(today, reason.trim(), actorNavNoEmail)
+        auditService?.record(
+            action = "SEASON_RESET_MANUAL",
+            outcome = AuditOutcome.SUCCEEDED,
+            actorNavNoEmail = actorNavNoEmail,
+            details = mapOf("seasonId" to newSeason.id.toString(), "startsOn" to newSeason.startsOn.toString()),
+        )
+        return newSeason
     }
 
-    fun resetIfDue(): Boolean = repository.resetIfDue(LocalDate.now(PROGRAM_TIME_ZONE))
+    fun resetIfDue(): Boolean {
+        val reset = repository.resetIfDue(LocalDate.now(PROGRAM_TIME_ZONE))
+        if (reset) {
+            auditService?.record(
+                action = "SEASON_RESET_SCHEDULED",
+                outcome = AuditOutcome.SUCCEEDED,
+            )
+        }
+        return reset
+    }
 
     private fun ranked(scores: List<ParticipantSeasonScore>): List<RankedScore> {
         val sorted = scores.sortedWith(

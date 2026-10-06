@@ -78,6 +78,7 @@ class AdminController(
                     teams = it.teams,
                     active = it.status == "ACTIVE",
                     joinedAt = it.createdAt,
+                    status = it.status,
                 )
             }
         )

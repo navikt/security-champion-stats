@@ -85,7 +85,7 @@ class AdminDeltaScoringControllerTest {
     @Test
     fun `should queue Delta sync as an admin`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.STARTED)
+        whenever(syncJob.triggerManualSync("admin@nav.no")).thenReturn(SyncTriggerResult.STARTED)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/sync"))
             .andExpect(status().isAccepted)
@@ -94,7 +94,7 @@ class AdminDeltaScoringControllerTest {
     @Test
     fun `should reject manual Delta sync triggers when disabled`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.DISABLED)
+        whenever(syncJob.triggerManualSync("admin@nav.no")).thenReturn(SyncTriggerResult.DISABLED)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/sync"))
             .andExpect(status().isConflict)

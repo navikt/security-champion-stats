@@ -85,6 +85,7 @@ describe("sidebar layout", () => {
 			["Manage scoring", "/appsec/scoring"],
 			["Manage Slack mappings", "/appsec/slack"],
 			["Manage Delta mappings", "/appsec/delta"],
+			["Audit trail", "/appsec/audit"],
 		]) {
 			expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
 		}

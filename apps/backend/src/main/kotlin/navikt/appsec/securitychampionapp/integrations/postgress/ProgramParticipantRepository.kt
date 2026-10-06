@@ -78,6 +78,24 @@ class ProgramParticipantRepository(
         navNoEmail,
     )
 
+    fun leave(navNoEmail: String): ProgramParticipantUpdateResponse = update(
+        """
+            UPDATE program_participants
+            SET status = 'LEFT', updated_at = NOW()
+            WHERE nav_no_email = ? AND status = 'ACTIVE'
+        """.trimIndent(),
+        navNoEmail,
+    )
+
+    fun rejoin(navNoEmail: String): ProgramParticipantUpdateResponse = update(
+        """
+            UPDATE program_participants
+            SET status = 'ACTIVE', updated_at = NOW()
+            WHERE nav_no_email = ? AND status = 'LEFT'
+        """.trimIndent(),
+        navNoEmail,
+    )
+
     fun updateProfile(
         navIdent: String,
         email: String,
@@ -150,6 +168,13 @@ class ProgramParticipantRepository(
             ),
             anonymized_scoring_actor_history AS (
                 UPDATE program_scoring_audit AS audit
+                SET actor_nav_no_email = NULL
+                FROM target
+                WHERE audit.actor_nav_no_email = target.nav_no_email
+                RETURNING audit.id
+            ),
+            anonymized_program_actor_history AS (
+                UPDATE program_audit_events AS audit
                 SET actor_nav_no_email = NULL
                 FROM target
                 WHERE audit.actor_nav_no_email = target.nav_no_email

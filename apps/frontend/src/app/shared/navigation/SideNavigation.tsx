@@ -93,9 +93,16 @@ export function SideNavigation({ me }: { me: Me }) {
 						</Link>
 					);
 				})}
-				{me.isAdmin && (
-					<AdministrationNavigation key={pathName} pathName={pathName} />
+				{me.isParticipant && (
+					<Link
+						href="/history"
+						className="sideNavigation__item"
+						aria-current={isActivePath(pathName, "/history") ? "page" : undefined}
+					>
+						My history
+					</Link>
 				)}
+				{me.isAdmin && <AdministrationNavigation key={pathName} pathName={pathName} />}
 			</nav>
 			<div className="sideNavigation__footer">
 				<ThemeToggle />

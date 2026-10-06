@@ -1,5 +1,8 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
@@ -14,24 +17,41 @@ class SyncJob(
     private val jobLock: PostgresJobLock,
     private val repo: ProgramParticipantRepository,
     private val catalog: TeamCatalog,
+    private val auditService: ProgramAuditService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(SyncJob::class.java)
 
     @Scheduled(cron = "0 0 12 */1 * *")
     fun syncDatabase() {
         jobLock.runWithLock(SYNC_JOB_LOCK_KEY, "syncDatabase") {
+            val run = AuditRunContext()
+            auditService?.recordRun("PARTICIPANT_PROFILE_SYNC_STARTED", AuditOutcome.SUCCEEDED, run)
             val catalogMembers = catalog.fetchAllMembersWithTeamData()
             if (catalogMembers.isEmpty()) {
+                auditService?.recordRun(
+                    "PARTICIPANT_PROFILE_SYNC_FAILED",
+                    AuditOutcome.FAILED,
+                    run,
+                    mapOf("failure" to "emptyCatalog"),
+                )
                 logger.warn("Skipping participant profile sync because Teamkatalogen returned no members")
                 return@runWithLock
             }
 
             val participants = repo.findAllParticipants()
             if (!participants.isOk) {
+                auditService?.recordRun(
+                    "PARTICIPANT_PROFILE_SYNC_FAILED",
+                    AuditOutcome.FAILED,
+                    run,
+                    mapOf("failure" to "participantLookup"),
+                )
                 logger.error("Failed to fetch program participants: ${participants.error}")
                 return@runWithLock
             }
 
+            var updated = 0
+            var failed = 0
             catalogMembers.forEach { catalogMember ->
                 val hasParticipant = participants.queryResult.any {
                     it.navIdent == catalogMember.navIdent && it.email == catalogMember.email
@@ -44,10 +64,19 @@ class SyncJob(
                         teams = catalogMember.teamName,
                     )
                     if (!response.isOk) {
+                        failed++
                         logger.error("Failed to update participant profile: ${response.error}")
+                    } else {
+                        updated += response.affectedRows
                     }
                 }
             }
+            auditService?.recordRun(
+                "PARTICIPANT_PROFILE_SYNC_COMPLETED",
+                if (failed == 0) AuditOutcome.SUCCEEDED else AuditOutcome.PARTIAL,
+                run,
+                mapOf("profilesUpdated" to updated, "failedProfiles" to failed),
+            )
         }
     }
 }

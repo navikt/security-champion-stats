@@ -1,5 +1,8 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.integrations.playbook.PlaybookEventClient
 import navikt.appsec.securitychampionapp.integrations.postgress.PlaybookEventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
@@ -17,26 +20,47 @@ class PlaybookEventImportJob(
     private val jobLock: PostgresJobLock,
     private val syncTrigger: ScoringSyncTrigger,
     @Value($$"${playbook.events.enabled:false}") private val enabled: Boolean,
+    private val auditService: ProgramAuditService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(PlaybookEventImportJob::class.java)
 
     @Scheduled(fixedDelay = 21_600_000, initialDelay = 10_000)
     fun importPlaybookEvents() {
         if (!enabled) return
-        jobLock.runWithLock(PLAYBOOK_EVENT_IMPORT_LOCK_KEY, "importPlaybookEvents", ::runImport)
+        jobLock.runWithLock(PLAYBOOK_EVENT_IMPORT_LOCK_KEY, "importPlaybookEvents") {
+            runImport(AuditRunContext())
+        }
     }
 
-    fun triggerManualImport(): SyncTriggerResult {
+    fun triggerManualImport(actorNavNoEmail: String? = null): SyncTriggerResult {
         if (!enabled) return SyncTriggerResult.DISABLED
-        return syncTrigger.trigger(PLAYBOOK_EVENT_IMPORT_LOCK_KEY, "importPlaybookEvents", ::runImport)
+        if (actorNavNoEmail == null) {
+            return syncTrigger.trigger(PLAYBOOK_EVENT_IMPORT_LOCK_KEY, "importPlaybookEvents") {
+                runImport(AuditRunContext())
+            }
+        }
+        return syncTrigger.trigger(PLAYBOOK_EVENT_IMPORT_LOCK_KEY, "importPlaybookEvents", actorNavNoEmail, ::runImport)
     }
 
-    private fun runImport() {
+    private fun runImport(run: AuditRunContext) {
+        auditService?.recordRun("PLAYBOOK_EVENT_IMPORT_STARTED", AuditOutcome.SUCCEEDED, run)
         try {
             val events = eventClient.fetchEvents()
             eventRepository.replaceSnapshot(events)
+            auditService?.recordRun(
+                "PLAYBOOK_EVENT_IMPORT_COMPLETED",
+                AuditOutcome.SUCCEEDED,
+                run,
+                mapOf("eventsSaved" to events.size),
+            )
             logger.info("Playbook event import completed: saved={}", events.size)
         } catch (e: Exception) {
+            auditService?.recordRun(
+                "PLAYBOOK_EVENT_IMPORT_FAILED",
+                AuditOutcome.FAILED,
+                run,
+                mapOf("failure" to "import"),
+            )
             logger.error("Playbook event import failed; retaining the previous snapshot", e)
         }
     }

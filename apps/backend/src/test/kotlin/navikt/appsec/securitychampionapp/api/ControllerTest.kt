@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.Controller
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
@@ -42,6 +43,9 @@ class ControllerTest {
 
     @MockitoBean
     lateinit var participantRepository: ProgramParticipantRepository
+
+    @MockitoBean
+    lateinit var auditService: ProgramAuditService
 
     @MockitoBean
     lateinit var eventCatalogService: EventCatalogService
@@ -92,8 +96,10 @@ class ControllerTest {
     @Test
     fun `should enroll an authenticated employee by nav no email`() {
         mockAuthenticatedUser()
+        mockParticipant("ACTIVE")
+        val enrolled = participantRepository.findByNavNoEmail("user@nav.no")
         whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(ProgramParticipantQueryResponse(isOk = true))
+            .thenReturn(ProgramParticipantQueryResponse(isOk = true), enrolled)
         whenever(teamCatalog.fetchAllMembersWithTeamData()).thenReturn(emptyList())
         whenever(participantRepository.enroll("user@nav.no", "A12345", "user@nav.no"))
             .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
@@ -106,6 +112,12 @@ class ControllerTest {
         ).andExpect(status().isCreated)
 
         verify(participantRepository).enroll("user@nav.no", "A12345", "user@nav.no")
+        verify(auditService).recordParticipantEvent(
+            java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            "PARTICIPANT_ENROLLED",
+            "user@nav.no",
+            details = mapOf("status" to "ACTIVE"),
+        )
     }
 
     @Test
@@ -136,6 +148,113 @@ class ControllerTest {
         ).andExpect(status().isConflict)
 
         verify(participantRepository, never()).enroll(any(), any(), any(), any(), any())
+    }
+
+    @Test
+    fun `should allow a voluntary leaver to rejoin without creating another participant`() {
+        mockAuthenticatedUser()
+        mockParticipant("LEFT")
+        whenever(participantRepository.rejoin("user@nav.no"))
+            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/enroll"))
+            .andExpect(status().isOk)
+
+        verify(participantRepository).rejoin("user@nav.no")
+        verify(participantRepository, never()).enroll(any(), any(), any(), any(), any())
+        verify(auditService).recordParticipantEvent(
+            java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            "PARTICIPANT_REJOINED",
+            "user@nav.no",
+            details = mapOf("status" to "ACTIVE"),
+        )
+    }
+
+    @Test
+    fun `should leave using the authenticated identity only`() {
+        mockAuthenticatedUser()
+        mockParticipant("ACTIVE")
+        whenever(participantRepository.leave("user@nav.no"))
+            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/leave")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"email":"other@nav.no"}""")
+        ).andExpect(status().isNoContent)
+
+        verify(participantRepository).leave("user@nav.no")
+        verify(auditService).recordParticipantEvent(
+            java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            "PARTICIPANT_LEFT",
+            "user@nav.no",
+            details = mapOf("status" to "LEFT"),
+        )
+    }
+
+    @Test
+    fun `should reject departure of an administrator deactivated participant`() {
+        mockAuthenticatedUser()
+        mockParticipant("DEACTIVATED")
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/leave"))
+            .andExpect(status().isConflict)
+        verify(participantRepository, never()).leave(any())
+        org.mockito.kotlin.verifyNoInteractions(auditService)
+    }
+
+    @Test
+    fun `should make repeated voluntary departure idempotent`() {
+        mockAuthenticatedUser()
+        mockParticipant("LEFT")
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/leave"))
+            .andExpect(status().isNoContent)
+        verify(participantRepository, never()).leave(any())
+        org.mockito.kotlin.verifyNoInteractions(auditService)
+    }
+
+    @Test
+    fun `should report a concurrent administrator deactivation during rejoin`() {
+        mockAuthenticatedUser()
+        mockParticipant("LEFT")
+        whenever(participantRepository.rejoin("user@nav.no"))
+            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 0))
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/enroll"))
+            .andExpect(status().isConflict)
+        org.mockito.kotlin.verifyNoInteractions(auditService)
+    }
+
+    @Test
+    fun `should surface a failed departure rather than report success`() {
+        mockAuthenticatedUser()
+        mockParticipant("ACTIVE")
+        whenever(participantRepository.leave("user@nav.no"))
+            .thenReturn(ProgramParticipantUpdateResponse(isOk = false, error = "Unavailable"))
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/leave"))
+            .andExpect(status().isInternalServerError)
+    }
+
+    private fun mockParticipant(participationStatus: String) {
+        whenever(participantRepository.findByNavNoEmail("user@nav.no")).thenReturn(
+            ProgramParticipantQueryResponse(
+                isOk = true,
+                queryResult = listOf(
+                    ProgramParticipant(
+                        id = "00000000-0000-0000-0000-000000000001",
+                        navNoEmail = "user@nav.no",
+                        navIdent = "A12345",
+                        email = "user@nav.no",
+                        fullname = "User",
+                        teams = emptyList(),
+                        status = participationStatus,
+                        createdAt = "2026-01-01T00:00:00Z",
+                    )
+                ),
+            )
+        )
     }
 
     @Test

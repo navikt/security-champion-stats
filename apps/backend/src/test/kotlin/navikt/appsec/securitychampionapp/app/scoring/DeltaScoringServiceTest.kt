@@ -14,6 +14,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -81,7 +82,7 @@ class DeltaScoringServiceTest {
         val summary = service.sync()
 
         assertThat(summary.eventsScanned).isZero()
-        verify(scoringService, never()).awardCredit(any(), any(), any(), any())
+        verify(scoringService, never()).awardCredit(any(), any(), any(), any(), anyOrNull())
     }
 
     @Test
@@ -142,7 +143,7 @@ class DeltaScoringServiceTest {
         val summary = service.sync()
 
         assertThat(summary.unmatchedRegistrations).isEqualTo(1)
-        verify(scoringService, never()).awardCredit(any(), any(), any(), any())
+        verify(scoringService, never()).awardCredit(any(), any(), any(), any(), anyOrNull())
     }
 
     @Test

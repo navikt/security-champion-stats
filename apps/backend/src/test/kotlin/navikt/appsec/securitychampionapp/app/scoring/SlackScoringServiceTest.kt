@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -72,6 +73,7 @@ class SlackScoringServiceTest {
                 eq(ActivityCreditType.SLACK_WEEK),
                 eq("2026-10-05"),
                 any(),
+                anyOrNull(),
             )
         ).thenReturn(
             CreditAwardResult.AWARDED,
@@ -110,7 +112,15 @@ class SlackScoringServiceTest {
         whenever(slackApiService.fetchUserEmail("U_EXTERNAL")).thenReturn("someone@nav.no.example.com")
         whenever(mappingRepository.addMappingByNavNoEmail("U_PERSON", "Person@NAV.no", "system:slack-email-match"))
             .thenReturn(true)
-        whenever(scoringService.awardCredit(eq(participantId), eq(ActivityCreditType.SLACK_WEEK), any(), any()))
+        whenever(
+            scoringService.awardCredit(
+                eq(participantId),
+                eq(ActivityCreditType.SLACK_WEEK),
+                any(),
+                any(),
+                anyOrNull(),
+            )
+        )
             .thenReturn(CreditAwardResult.AWARDED, CreditAwardResult.DUPLICATE)
 
         val summary = service.sync("channel", now)

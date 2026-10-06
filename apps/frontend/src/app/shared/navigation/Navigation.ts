@@ -29,6 +29,7 @@ export const administrationLinks: ModuleNavLink[] = [
 	{ label: "Manage scoring", path: "/appsec/scoring" },
 	{ label: "Manage Slack mappings", path: "/appsec/slack" },
 	{ label: "Manage Delta mappings", path: "/appsec/delta" },
+	{ label: "Audit trail", path: "/appsec/audit" },
 ];
 
 export function navigation(): NavigationItem[] {

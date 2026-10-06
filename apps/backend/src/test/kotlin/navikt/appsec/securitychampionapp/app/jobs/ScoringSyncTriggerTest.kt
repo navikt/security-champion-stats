@@ -1,5 +1,6 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -10,6 +11,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.core.task.TaskExecutor
+import java.util.UUID
 
 class ScoringSyncTriggerTest {
     @Test
@@ -42,5 +44,25 @@ class ScoringSyncTriggerTest {
 
         assertEquals(SyncTriggerResult.ALREADY_RUNNING, result)
         verifyNoInteractions(executor)
+    }
+
+    @Test
+    fun `should retain the manual requester when handing a sync to the executor`() {
+        val jobLock = mock<PostgresJobLock>()
+        val executor = mock<TaskExecutor>()
+        val lease = mock<PostgresJobLock.LockLease>()
+        whenever(jobLock.tryAcquireLock(7L, "testSync")).thenReturn(lease)
+        val taskCaptor = argumentCaptor<Runnable>()
+        var captured: AuditRunContext? = null
+        val trigger = ScoringSyncTrigger(jobLock, executor)
+
+        val result = trigger.trigger(7L, "testSync", "admin@nav.no") { captured = it }
+        verify(executor).execute(taskCaptor.capture())
+        taskCaptor.firstValue.run()
+
+        assertEquals(SyncTriggerResult.STARTED, result)
+        assertEquals("admin@nav.no", captured?.actorNavNoEmail)
+        assertTrue(captured?.correlationId is UUID)
+        verify(lease).close()
     }
 }

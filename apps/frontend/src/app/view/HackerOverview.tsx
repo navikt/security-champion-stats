@@ -162,6 +162,7 @@ function OpsListing({
 }) {
 	const upcoming = getUpcomingEvents(events);
 	const past = getPastEvents(events);
+	const archived = past.slice(0, 5);
 	return (
 		<TerminalPanel title={hackerCopy.events.title}>
 			{loading ? (
@@ -183,7 +184,7 @@ function OpsListing({
 						<span>{hackerCopy.events.pastCommand}</span>
 						<span>total {past.length}</span>
 					</div>
-					<EventRows events={past} past />
+					<EventRows events={archived} past />
 				</>
 			)}
 		</TerminalPanel>

@@ -46,6 +46,27 @@ const upcomingEvent: SecurityEvent = {
 	link: "https://example.test/events/security",
 };
 
+const archivedEvents: SecurityEvent[] = Array.from(
+	{ length: 7 },
+	(_, index) => {
+		const date = new Date();
+		date.setDate(date.getDate() - index - 1);
+		const day = date.toISOString().slice(0, 10);
+		return {
+			id: `event-archived-${index + 1}`,
+			name: `Archived ${index + 1}`,
+			description: "An archived event",
+			startDate: day,
+			endDate: day,
+			location: "Oslo",
+			type: "event",
+			externalEvent: false,
+			deltaEvent: false,
+			allDay: true,
+		};
+	},
+);
+
 const participant: ProgramParticipant = {
 	id: "participant-1",
 	email: me.username,
@@ -79,7 +100,10 @@ const leaderboard: LeaderboardEntry[] = [
 
 describe("HackerOverview", () => {
 	beforeEach(() => {
-		vi.mocked(Apies.fetchEvents).mockResolvedValue([upcomingEvent]);
+		vi.mocked(Apies.fetchEvents).mockResolvedValue([
+			upcomingEvent,
+			...archivedEvents,
+		]);
 		vi.mocked(Apies.fetchMembership).mockResolvedValue(participant);
 		vi.mocked(Apies.getParticipantSeasonScore).mockResolvedValue(score);
 		vi.mocked(Apies.getLeaderboard).mockResolvedValue(leaderboard);
@@ -99,6 +123,16 @@ describe("HackerOverview", () => {
 		expect(eventLink).toHaveAttribute("href", upcomingEvent.link);
 		expect(eventLink).toHaveAttribute("title", upcomingEvent.name);
 		expect(eventLink).toHaveTextContent("security_design_meetup.evt");
+		for (const event of archivedEvents.slice(0, 5)) {
+			expect(
+				screen.getByRole("link", { name: new RegExp(event.name) }),
+			).toBeInTheDocument();
+		}
+		for (const event of archivedEvents.slice(5)) {
+			expect(
+				screen.queryByRole("link", { name: new RegExp(event.name) }),
+			).not.toBeInTheDocument();
+		}
 		expect(screen.getByRole("img", { name: "9 points" })).toHaveTextContent(
 			"0x09",
 		);

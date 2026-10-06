@@ -8,6 +8,7 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCredits
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncSummary
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
@@ -229,6 +230,52 @@ class ScoringRepositoryTest {
         }
         assertThat(zeroScoreParticipant).isNotNull()
         assertThat(recognition.map { it.fullName }).doesNotContain("zero")
+    }
+
+    @Test
+    fun `should include all ties at fifth in recognition and exclude lower ranks and zero scores`() {
+        val scores = listOf(
+            "first" to 7,
+            "second" to 6,
+            "third" to 5,
+            "fourth" to 4,
+            "zebra" to 3,
+            "amber" to 3,
+            "below" to 2,
+            "zero" to 0,
+        )
+        scores.forEach { (name, points) ->
+            val participantId = createParticipant("$name@nav.no")
+            repeat(points) { week ->
+                assertThat(
+                    repository.awardCredit(
+                        participantId,
+                        ActivityCreditType.SLACK_WEEK,
+                        "week:$week",
+                        "Week $week",
+                    )
+                ).isEqualTo(CreditAwardResult.AWARDED)
+            }
+        }
+        val service = ScoringService(repository)
+
+        assertThat(service.recognition()).containsExactly(
+            RecognitionEntry("first", 1),
+            RecognitionEntry("second", 2),
+            RecognitionEntry("third", 3),
+            RecognitionEntry("fourth", 4),
+            RecognitionEntry("amber", 5),
+            RecognitionEntry("zebra", 5),
+        )
+        assertThat(service.leaderboard().map { it.fullName to it.rank }).containsExactly(
+            "first" to 1,
+            "second" to 2,
+            "third" to 3,
+            "fourth" to 4,
+            "amber" to 5,
+            "zebra" to 5,
+            "below" to 7,
+        )
     }
 
     @Test

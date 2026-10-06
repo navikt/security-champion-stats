@@ -1,8 +1,12 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
 import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import org.assertj.core.api.Assertions.assertThat
@@ -22,6 +26,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.util.UUID
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -129,6 +134,54 @@ class SyncJobTest {
         syncJob().syncDatabase()
 
         assertThat(repository.findAllParticipants().queryResult).isEmpty()
+    }
+
+    @Test
+    fun `should delete Slack mappings and credits without restoring a participant during sync`() {
+        runJobInsideLock()
+        assertThat(repository.enroll("deleted@nav.no", "A12345", "deleted@nav.no").isOk).isTrue()
+        val participantId = UUID.fromString(
+            repository.findByNavNoEmail("deleted@nav.no").queryResult.single().id
+        )
+        val mappings = SlackIdentityMappingRepository(jdbcTemplate)
+        val scoring = ScoringRepository(jdbcTemplate)
+        assertThat(mappings.addMapping("U_DELETED", participantId, "admin@nav.no")).isTrue()
+        assertThat(
+            scoring.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "2026-10-05", "U_DELETED:message")
+        ).isEqualTo(CreditAwardResult.AWARDED)
+        assertThat(mappings.mappedParticipants()).containsKey("U_DELETED")
+        assertThat(scoring.creditsForParticipant(participantId)).hasSize(1)
+        whenever(catalog.fetchAllMembersWithTeamData()).thenReturn(
+            listOf(
+                MemberWithTeamData(
+                    navIdent = "A12345",
+                    fullName = "Deleted Participant",
+                    email = "deleted@nav.no",
+                    teamName = mutableListOf("Updated team"),
+                    teamId = mutableListOf("team-id"),
+                )
+            )
+        )
+
+        assertThat(repository.permanentlyDelete(participantId).affectedRows).isEqualTo(1)
+        assertThat(mappings.mappingOverview().first).isEmpty()
+        assertThat(scoring.creditsForParticipant(participantId)).isEmpty()
+
+        syncJob().syncDatabase()
+
+        verify(catalog).fetchAllMembersWithTeamData()
+        assertThat(repository.findAllParticipants().queryResult).isEmpty()
+        assertThat(scoring.participantExists(participantId)).isFalse()
+        assertThat(mappings.mappingOverview().first).isEmpty()
+        assertThat(mappings.mappedParticipants()).isEmpty()
+        assertThat(scoring.creditsForParticipant(participantId)).isEmpty()
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM program_participant_audit WHERE participant_id = ?",
+                Int::class.javaObjectType,
+                participantId,
+            )
+        ).isZero()
     }
 
     @Test

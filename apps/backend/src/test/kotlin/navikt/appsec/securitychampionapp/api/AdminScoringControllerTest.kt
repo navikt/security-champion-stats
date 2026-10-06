@@ -6,17 +6,22 @@ import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminScoringController
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
+import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
@@ -33,11 +38,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.ObjectMapper
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 @WebMvcTest(AdminScoringController::class)
 @ActiveProfiles("test")
-@Import(SecurityConfig::class)
+@Import(SecurityConfig::class, ScoringService::class)
 class AdminScoringControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
@@ -46,7 +52,7 @@ class AdminScoringControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @MockitoBean
-    lateinit var scoringService: ScoringService
+    lateinit var scoringRepository: ScoringRepository
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
@@ -67,7 +73,7 @@ class AdminScoringControllerTest {
         mockAuthenticatedUser(ADMIN_ROLE)
         val participantId = UUID.fromString("00000000-0000-0000-0000-000000000001")
         whenever(
-            scoringService.addAdjustment(
+            scoringRepository.addAdjustment(
                 eq(participantId),
                 eq(-2),
                 eq("Correct a duplicate"),
@@ -102,7 +108,7 @@ class AdminScoringControllerTest {
             .andExpect(jsonPath("$.scoreAfter").value(2))
 
         verify(
-            scoringService
+            scoringRepository
         ).addAdjustment(participantId, -2, "Correct a duplicate", "admin@nav.no", null)
     }
 
@@ -116,7 +122,75 @@ class AdminScoringControllerTest {
                 .content("""{"nextResetDate":"not-a-date"}""")
         ).andExpect(status().isBadRequest)
 
-        verify(scoringService, org.mockito.kotlin.never()).updateNextResetDate(any(), any())
+        verify(scoringRepository, org.mockito.kotlin.never()).updateNextResetDate(any(), any())
+    }
+
+    @Test
+    fun `should reject a season reset without confirmation before changing stored state`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/scoring/season/reset")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("""{"reason":"Program reset"}""")
+        ).andExpect(status().isBadRequest)
+
+        verifyNoInteractions(scoringRepository)
+    }
+
+    @Test
+    fun `should reject an explicitly unconfirmed season reset before changing stored state`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/scoring/season/reset")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("""{"confirmed":false,"reason":"Program reset"}""")
+        ).andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.error").value("Confirmation is required"))
+
+        verifyNoInteractions(scoringRepository)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = [
+        """{"confirmed":true}""",
+        """{"confirmed":true,"reason":null}""",
+        """{"confirmed":true,"reason":""}""",
+        """{"confirmed":true,"reason":"   "}""",
+    ])
+    fun `should reject a season reset without a nonblank reason before changing stored state`(body: String) {
+        mockAuthenticatedUser(ADMIN_ROLE)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/scoring/season/reset")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(body)
+        ).andExpect(status().isBadRequest)
+
+        verifyNoInteractions(scoringRepository)
+    }
+
+    @Test
+    fun `should reset a season when an admin confirms with a reason`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val today = LocalDate.now(ZoneId.of("Europe/Oslo"))
+        val nextResetDate = today.plusMonths(3)
+        val previousSeason = SeasonSummary(UUID.randomUUID(), today.minusDays(1), null, nextResetDate)
+        val newSeason = SeasonSummary(UUID.randomUUID(), today, null, nextResetDate)
+        whenever(scoringRepository.currentSeason()).thenReturn(previousSeason)
+        whenever(scoringRepository.resetManually(today, "Program reset", "admin@nav.no")).thenReturn(newSeason)
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/scoring/season/reset")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("""{"confirmed":true,"reason":"  Program reset  "}""")
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(newSeason.id.toString()))
+            .andExpect(jsonPath("$.startsOn").value(today.toString()))
+            .andExpect(jsonPath("$.nextResetDate").value(nextResetDate.toString()))
+
+        verify(scoringRepository).resetManually(today, "Program reset", "admin@nav.no")
     }
 
     private fun mockAuthenticatedUser(role: String) {

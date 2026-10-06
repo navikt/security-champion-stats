@@ -5,6 +5,7 @@ import { Apies } from "./Apies";
 export function useMe() {
 	const [me, setMe] = useState<Me>({
 		username: "",
+		displayName: null,
 		isAdmin: false,
 		isParticipant: false,
 		isActive: false,

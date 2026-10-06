@@ -7,6 +7,7 @@ export const FAILED_TO_JOIN = "Failed to join member to program, backend error";
 
 export type Me = {
 	username: string;
+	displayName: string | null;
 	isAdmin: boolean;
 	isParticipant: boolean;
 	isActive: boolean;

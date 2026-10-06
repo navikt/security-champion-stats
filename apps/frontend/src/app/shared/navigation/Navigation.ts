@@ -22,6 +22,15 @@ export type NavigationItem = {
 	icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
+export const administrationLinks: ModuleNavLink[] = [
+	{ label: "Program dashboard", path: "/dashboard" },
+	{ label: "Manage events", path: "/appsec/events" },
+	{ label: "Manage participants", path: "/appsec/membership" },
+	{ label: "Manage scoring", path: "/appsec/scoring" },
+	{ label: "Manage Slack mappings", path: "/appsec/slack" },
+	{ label: "Manage Delta mappings", path: "/appsec/delta" },
+];
+
 export function navigation(): NavigationItem[] {
 	return [
 		{

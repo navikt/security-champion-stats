@@ -12,6 +12,8 @@ The home page shows active participants their current-season points, level progr
 the full current-season leaderboard. Administrators can view the leaderboard; backend authorization
 enforces score access.
 The user interface is English-only.
+The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
+the signed-in user's initials at the bottom.
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 

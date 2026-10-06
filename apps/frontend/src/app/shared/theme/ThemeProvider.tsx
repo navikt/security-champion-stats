@@ -3,7 +3,7 @@
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { ThemeIcon } from "@navikt/aksel-icons";
-import { ActionMenu, InternalHeader, Theme } from "@navikt/ds-react";
+import { ActionMenu, Button, Theme } from "@navikt/ds-react";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
 	return (
@@ -30,13 +30,17 @@ export function ThemeToggle() {
 	return (
 		<ActionMenu>
 			<ActionMenu.Trigger>
-				<InternalHeader.Button
+				<Button
+					variant="tertiary"
+					data-color="neutral"
+					size="small"
+					icon={<ThemeIcon aria-hidden />}
 					aria-label="Choose theme"
 					title="Choose theme"
 					disabled={!mounted}
 				>
-					<ThemeIcon aria-hidden fontSize="1.5rem" />
-				</InternalHeader.Button>
+					Theme
+				</Button>
 			</ActionMenu.Trigger>
 			<Theme theme={mounted && resolvedTheme === "dark" ? "dark" : "light"}>
 				<ActionMenu.Content align="end">

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		const backendResponse: Me = await response.json();
+		const backendResponse: Omit<Me, "displayName"> = await response.json();
 		const groups = parse.groups;
 
 		if (!groups) {
@@ -68,7 +68,10 @@ export async function GET(request: NextRequest) {
 				{ status: 401 },
 			);
 		}
-		return NextResponse.json(backendResponse);
+		return NextResponse.json({
+			...backendResponse,
+			displayName: parse.name?.trim() || null,
+		});
 	} catch (error) {
 		console.error("Validation error, then validating user," + error);
 		return NextResponse.json({ error: INTERNAL_ERROR }, { status: 500 });

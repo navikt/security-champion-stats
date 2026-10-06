@@ -1,10 +1,9 @@
 :root {
-	--app-header-height: 3rem;
 	--app-sidebar-width: 12rem;
 }
 
 .appLayout {
-	min-height: var(--app-header-height);
+	min-height: 100dvh;
 }
 
 .appBody {
@@ -12,7 +11,7 @@
 	grid-template-columns:
 		var(--app-sidebar-width)
 		minmax(0, 1fr);
-	min-height: calc(100dvh - var(--app-header-height));
+	min-height: 100dvh;
 	width: 100%;
 	min-width: 0;
 	background: var(--sc-bg);

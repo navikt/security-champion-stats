@@ -1,4 +1,3 @@
-import { InternalHeader } from "@navikt/ds-react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -11,13 +10,9 @@ vi.mock("next-themes", () => ({
 }));
 
 describe("ThemeToggle", () => {
-	it("shows an icon button instead of a labeled select and retains all theme options", async () => {
+	it("shows a sidebar button and retains all theme options", async () => {
 		const user = userEvent.setup();
-		render(
-			<InternalHeader>
-				<ThemeToggle />
-			</InternalHeader>,
-		);
+		render(<ThemeToggle />);
 
 		expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 		await user.click(screen.getByRole("button", { name: "Choose theme" }));
@@ -32,11 +27,7 @@ describe("ThemeToggle", () => {
 
 	it("opens the theme menu with the keyboard and restores focus on Escape", async () => {
 		const user = userEvent.setup();
-		render(
-			<InternalHeader>
-				<ThemeToggle />
-			</InternalHeader>,
-		);
+		render(<ThemeToggle />);
 
 		const button = screen.getByRole("button", { name: "Choose theme" });
 		button.focus();

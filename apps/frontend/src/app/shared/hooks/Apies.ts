@@ -291,7 +291,7 @@ export const Apies = {
 		const res = await fetch("/api/validate");
 		if (!res.ok) {
 			console.error("Failed to validate user, status: ", res.status);
-			return { username: "", isAdmin: false, isParticipant: false, isActive: false };
+			return { username: "", displayName: null, isAdmin: false, isParticipant: false, isActive: false };
 		}
 
 		return await res.json();

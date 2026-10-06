@@ -1,6 +1,11 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
 import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.app.jobs.ScoringJobLockKeys
+import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
+import navikt.appsec.securitychampionapp.app.scoring.INTERRUPTED_SYNC_SUMMARY
+import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
+import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncSummary
@@ -587,6 +592,36 @@ class ScoringRepositoryTest {
         assertThat(status.messagesScanned).isZero()
         assertThat(status.failureSummary)
             .isEqualTo("Slack activity could not be synchronized; check API access and channel configuration")
+    }
+
+    @Test
+    fun `should report a RUNNING Slack sync as interrupted when no instance holds the job lock`() {
+        val jobLock = PostgresJobLock(dataSource)
+        val statusService = SlackScoringStatusService(slackScoringStatusRepository, jobLock)
+        slackScoringStatusRepository.recordStarted(Instant.parse("2026-10-05T12:00:00Z"))
+
+        jobLock.tryAcquireLock(ScoringJobLockKeys.SLACK, "test")!!.use {
+            assertThat(statusService.status().outcome).isEqualTo("RUNNING")
+        }
+
+        val status = statusService.status()
+        assertThat(status.outcome).isEqualTo("FAILED")
+        assertThat(status.failureSummary).isEqualTo(INTERRUPTED_SYNC_SUMMARY)
+    }
+
+    @Test
+    fun `should report a RUNNING Delta sync as interrupted when no instance holds the job lock`() {
+        val jobLock = PostgresJobLock(dataSource)
+        val statusService = DeltaScoringStatusService(deltaScoringStatusRepository, jobLock, true)
+        deltaScoringStatusRepository.recordStarted(Instant.parse("2026-10-05T12:00:00Z"))
+
+        jobLock.tryAcquireLock(ScoringJobLockKeys.DELTA, "test")!!.use {
+            assertThat(statusService.status().outcome).isEqualTo("RUNNING")
+        }
+
+        val status = statusService.status()
+        assertThat(status.outcome).isEqualTo("FAILED")
+        assertThat(status.failureSummary).isEqualTo(INTERRUPTED_SYNC_SUMMARY)
     }
 
     private fun createParticipant(email: String): UUID {

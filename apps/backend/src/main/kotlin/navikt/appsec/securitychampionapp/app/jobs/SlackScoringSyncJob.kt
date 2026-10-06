@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.Instant
 
-private const val SLACK_SCORING_JOB_LOCK_KEY = 1_002L
+private const val SLACK_SCORING_JOB_LOCK_KEY = ScoringJobLockKeys.SLACK
 
 @Component
 class SlackScoringSyncJob(
@@ -52,6 +52,9 @@ class SlackScoringSyncJob(
             recordFailure(clock.instant(), "Slack scoring configuration is incomplete")
         } catch (_: DataAccessException) {
             recordFailure(clock.instant(), "Slack scoring could not persist sync results")
+        } catch (e: Exception) {
+            logger.error("Slack scoring sync failed unexpectedly", e)
+            statusRepository.recordFailed(clock.instant(), "Slack scoring sync failed unexpectedly")
         }
     }
 

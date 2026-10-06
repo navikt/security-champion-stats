@@ -85,6 +85,21 @@ class SlackScoringSyncJobTest {
     }
 
     @Test
+    fun `should record failure when the Slack sync throws an unexpected exception`() {
+        val jobLock = mock<PostgresJobLock>()
+        val syncTrigger = mock<ScoringSyncTrigger>()
+        val scoringService = mock<SlackScoringService>()
+        val statusRepository = mock<SlackScoringStatusRepository>()
+        runLocked(jobLock)
+        whenever(scoringService.sync("C123", attemptAt)).thenThrow(IllegalArgumentException("boom"))
+        val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
+
+        job.syncSlackScoring()
+
+        verify(statusRepository).recordFailed(attemptAt, "Slack scoring sync failed unexpectedly")
+    }
+
+    @Test
     fun `should delegate manual sync triggers to the guarded trigger service`() {
         val jobLock = mock<PostgresJobLock>()
         val syncTrigger = mock<ScoringSyncTrigger>()
@@ -96,13 +111,13 @@ class SlackScoringSyncJobTest {
             "C123",
             clock,
         )
-        whenever(syncTrigger.trigger(eq(1_002L), eq("syncSlackScoring"), any()))
+        whenever(syncTrigger.trigger(eq(1_004L), eq("syncSlackScoring"), any()))
             .thenReturn(SyncTriggerResult.STARTED)
 
         val result = job.triggerManualSync()
 
         org.junit.jupiter.api.Assertions.assertEquals(SyncTriggerResult.STARTED, result)
-        verify(syncTrigger).trigger(eq(1_002L), eq("syncSlackScoring"), any())
+        verify(syncTrigger).trigger(eq(1_004L), eq("syncSlackScoring"), any())
     }
 
     private fun runLocked(jobLock: PostgresJobLock) {

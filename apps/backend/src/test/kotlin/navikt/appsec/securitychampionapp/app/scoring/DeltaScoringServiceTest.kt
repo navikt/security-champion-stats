@@ -157,6 +157,14 @@ class DeltaScoringServiceTest {
     }
 
     @Test
+    fun `should record failure when the sync throws an unexpected exception`() {
+        whenever(categoryRepository.findAll()).thenThrow(IllegalArgumentException("boom"))
+
+        assertThatThrownBy { service.sync() }.isInstanceOf(IllegalArgumentException::class.java)
+        verify(statusRepository).recordFailed(now, "Delta registration sync failed unexpectedly")
+    }
+
+    @Test
     fun `should do nothing when no categories or events are eligible`() {
         whenever(categoryRepository.findAll()).thenReturn(emptyList())
         whenever(mappingRepository.findAll()).thenReturn(emptyList())

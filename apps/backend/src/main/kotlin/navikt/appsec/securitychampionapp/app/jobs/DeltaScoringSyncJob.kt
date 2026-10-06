@@ -9,7 +9,7 @@ import org.springframework.dao.DataAccessException
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 
-private const val DELTA_SCORING_JOB_LOCK_KEY = 1_003L
+private const val DELTA_SCORING_JOB_LOCK_KEY = ScoringJobLockKeys.DELTA
 
 @Component
 class DeltaScoringSyncJob(
@@ -55,6 +55,8 @@ class DeltaScoringSyncJob(
             logger.warn("Delta registration sync failed: {}", e.failure.summary)
         } catch (_: DataAccessException) {
             logger.error("Delta registration sync failed because scoring persistence is unavailable")
+        } catch (e: Exception) {
+            logger.error("Delta registration sync failed unexpectedly", e)
         }
     }
 }

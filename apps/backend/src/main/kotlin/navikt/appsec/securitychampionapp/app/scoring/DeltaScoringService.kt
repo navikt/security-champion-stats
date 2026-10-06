@@ -49,6 +49,9 @@ class DeltaScoringService(
                 "Delta registration sync failed because scoring persistence is unavailable",
             )
             throw e
+        } catch (e: Exception) {
+            statusRepository.recordFailed(clock.instant(), "Delta registration sync failed unexpectedly")
+            throw e
         }
     }
 

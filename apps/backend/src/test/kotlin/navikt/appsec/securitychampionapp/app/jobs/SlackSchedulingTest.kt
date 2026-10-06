@@ -47,7 +47,7 @@ class SlackSchedulingTest {
             val trigger = context.getBean(ScoringSyncTrigger::class.java)
             val scoring = context.getBean(SlackScoringService::class.java)
             whenever(scoring.sync(eq("C_LOCAL"), any())).thenReturn(SlackSyncSummary(0, 0, 0, 0))
-            whenever(trigger.trigger(eq(1_002L), eq("syncSlackScoring"), any())).thenAnswer {
+            whenever(trigger.trigger(eq(1_004L), eq("syncSlackScoring"), any())).thenAnswer {
                 it.getArgument<() -> Unit>(2).invoke()
                 SyncTriggerResult.STARTED
             }

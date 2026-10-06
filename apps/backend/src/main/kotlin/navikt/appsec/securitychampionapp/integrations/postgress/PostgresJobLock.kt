@@ -32,6 +32,27 @@ class PostgresJobLock(
         }
     }
 
+    fun isLocked(lockKey: Long): Boolean =
+        dataSource.connection.use { connection ->
+            connection.prepareStatement(
+                """
+                    SELECT EXISTS (
+                        SELECT 1 FROM pg_locks
+                        WHERE locktype = 'advisory'
+                            AND granted
+                            AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+                            AND classid = ((? >> 32) & 4294967295)::oid
+                            AND objid = (? & 4294967295)::oid
+                            AND objsubid = 1
+                    )
+                """.trimIndent(),
+            ).use { statement ->
+                statement.setLong(1, lockKey)
+                statement.setLong(2, lockKey)
+                statement.executeQuery().use { resultSet -> resultSet.next() && resultSet.getBoolean(1) }
+            }
+        }
+
     inner class LockLease internal constructor(
         private val connection: Connection,
         private val lockKey: Long,

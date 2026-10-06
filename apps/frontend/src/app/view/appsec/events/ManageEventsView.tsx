@@ -15,20 +15,30 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 	const [eventsList, setEventsList] = useState<SecurityEvent[]>(events);
 	const [mods, setMods] = useState(false);
 	const [create, setCreate] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [formVersion, setFormVersion] = useState(0);
 	const handleCreate = async (event: Omit<SecurityEvent, "id">) => {
+		if (create) return;
 		setCreate(true);
+		setError(null);
 		try {
-			const created: SecurityEvent = {
+			const created = await Apies.createEvent({
 				...event,
 				id: crypto.randomUUID(),
 				amountOfPeopleJoined: 0,
-			};
-			const status = await Apies.createEvent(created);
-
-			if (status === 200 || status === 201) {
-				setEventsList((current) => [created, ...current]);
-				setMods(false);
-			}
+			});
+			setEventsList((current) => [created, ...current]);
+			setMods(false);
+			setFormVersion((current) => current + 1);
+		} catch (error) {
+			console.error("Event creation failed:", error);
+			setError(
+				error instanceof Error &&
+					!(error instanceof TypeError) &&
+					!(error instanceof SyntaxError)
+					? error.message
+					: "We couldn't create the event. Try again.",
+			);
 		} finally {
 			setCreate(false);
 		}
@@ -45,7 +55,13 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 				</BodyShort>
 			</VStack>
 
-			<Button onClick={() => setMods(true)} style={{ alignSelf: "flex-start" }}>
+			<Button
+				onClick={() => {
+					setError(null);
+					setMods(true);
+				}}
+				style={{ alignSelf: "flex-start" }}
+			>
 				Add event
 			</Button>
 
@@ -56,10 +72,14 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 			/>
 
 			<AddEventModal
+				key={formVersion}
 				open={mods}
-				onClose={() => setMods(false)}
+				onClose={() => {
+					if (!create) setMods(false);
+				}}
 				onCreate={handleCreate}
 				loading={create}
+				error={error}
 			/>
 		</VStack>
 	);

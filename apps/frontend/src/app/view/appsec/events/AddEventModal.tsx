@@ -21,6 +21,7 @@ interface AddEventModalProps {
 	onClose: () => void;
 	onCreate: (event: Omit<SecurityEvent, "id">) => Promise<void> | void;
 	loading?: boolean;
+	error?: string | null;
 }
 
 export function AddEventModal({
@@ -28,6 +29,7 @@ export function AddEventModal({
 	onClose,
 	onCreate,
 	loading = false,
+	error,
 }: AddEventModalProps) {
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -36,7 +38,6 @@ export function AddEventModal({
 	const [startTime, setStartTime] = useState("09:00");
 	const [endTime, setEndTime] = useState("10:00");
 	const [externalEvent, setExternalEvent] = useState(false);
-	const [deltaEvent, setDeltaEvent] = useState(true);
 
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
@@ -46,29 +47,31 @@ export function AddEventModal({
 		fromDate: startDatepicker.selectedDay ?? today,
 	});
 
-	const startDate = startDatepicker.selectedDay
-		? combineDateAndTime(startDatepicker.selectedDay, startTime)
-		: undefined;
-	const endDate = endDatepicker.selectedDay
-		? combineDateAndTime(endDatepicker.selectedDay, endTime)
-		: undefined;
+	const startDate =
+		startDatepicker.selectedDay && startTime
+			? combineDateAndTime(startDatepicker.selectedDay, startTime)
+			: undefined;
+	const endDate =
+		endDatepicker.selectedDay && endTime
+			? combineDateAndTime(endDatepicker.selectedDay, endTime)
+			: undefined;
 
 	const isEndBeforeStart = !!startDate && !!endDate && endDate <= startDate;
 
 	const handleSubmit = async () => {
-		if (!name || !startDate || !endDate || isEndBeforeStart) {
+		if (loading || !name.trim() || !startDate || !endDate || isEndBeforeStart) {
 			return;
 		}
 
 		await onCreate({
-			name,
+			name: name.trim(),
 			description,
-			location,
+			location: location.trim(),
 			type,
 			startDate: startDate.toISOString(),
 			endDate: endDate.toISOString(),
 			externalEvent,
-			deltaEvent,
+			deltaEvent: false,
 		});
 	};
 
@@ -86,8 +89,11 @@ export function AddEventModal({
 			</Modal.Header>
 			<Modal.Body>
 				<VStack gap={"space-16"}>
+					{error && <ErrorMessage role="alert">{error}</ErrorMessage>}
 					<TextField
 						label="Name"
+						maxLength={100}
+						error={name && !name.trim() ? "Enter an event name" : undefined}
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 					/>
@@ -100,6 +106,7 @@ export function AddEventModal({
 
 					<TextField
 						label="Location"
+						maxLength={100}
 						value={location}
 						onChange={(e) => setLocation(e.target.value)}
 					/>
@@ -111,7 +118,6 @@ export function AddEventModal({
 					>
 						<option value={"meetup"}>Meeting</option>
 						<option value={"workshop"}>Workshop</option>
-						<option value={"course"}>Course</option>
 					</Select>
 
 					<DatePicker {...startDatepicker.datepickerProps}>
@@ -128,10 +134,7 @@ export function AddEventModal({
 					/>
 
 					<DatePicker {...endDatepicker.datepickerProps}>
-						<DatePicker.Input
-							{...endDatepicker.inputProps}
-							label="End date"
-						/>
+						<DatePicker.Input {...endDatepicker.inputProps} label="End date" />
 					</DatePicker>
 					<TextField
 						label="End time"
@@ -149,20 +152,19 @@ export function AddEventModal({
 					>
 						External event
 					</Switch>
-
-					<Switch
-						checked={deltaEvent}
-						onChange={(e) => setDeltaEvent(e.target.checked)}
-					>
-						delta Event
-					</Switch>
 				</VStack>
 			</Modal.Body>
 			<Modal.Footer>
 				<Button
 					onClick={handleSubmit}
 					loading={loading}
-					disabled={!name || !startDate || !endDate || isEndBeforeStart}
+					disabled={
+						loading ||
+						!name.trim() ||
+						!startDate ||
+						!endDate ||
+						isEndBeforeStart
+					}
 				>
 					Create event
 				</Button>

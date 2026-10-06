@@ -1,15 +1,18 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
 import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import org.assertj.core.api.Assertions
 import org.flywaydb.core.Flyway
+import org.flywaydb.core.api.FlywayException
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.dao.DuplicateKeyException
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -17,6 +20,9 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -64,6 +70,86 @@ class EventRepositoryTest {
     fun setup() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @Test
+    fun `should prevent duplicate events from concurrent submissions`() {
+        val ready = CountDownLatch(2)
+        val start = CountDownLatch(1)
+        Executors.newFixedThreadPool(2).use { executor ->
+            val attempts = (1..2).map {
+                executor.submit<Boolean> {
+                    ready.countDown()
+                    start.await()
+                    try {
+                        repository.addEvent(testEvent()).isOk
+                    } catch (_: DuplicateKeyException) {
+                        false
+                    }
+                }
+            }
+            val allReady = ready.await(10, TimeUnit.SECONDS)
+            start.countDown()
+            Assertions.assertThat(allReady).isTrue()
+            Assertions.assertThat(attempts.map { it.get(10, TimeUnit.SECONDS) })
+                .containsExactlyInAnyOrder(true, false)
+        }
+        Assertions.assertThat(repository.getAllEvents().queryResult).hasSize(1)
+    }
+
+    @Test
+    fun `should report legacy duplicates during migration without deleting events`() {
+        flyway.clean()
+        Flyway.configure()
+            .dataSource(dataSource)
+            .locations("classpath:db/migration")
+            .target("17.0")
+            .load()
+            .migrate()
+        insertEvent(name = "Security meetup", location = "Oslo")
+        insertEvent(name = " SECURITY MEETUP ", location = " OSLO ")
+
+        Assertions.assertThatThrownBy { flyway.migrate() }
+            .isInstanceOf(FlywayException::class.java)
+            .hasStackTraceContaining("Duplicate program events exist")
+            .hasStackTraceContaining("no events have been deleted")
+        Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM Events", Int::class.java))
+            .isEqualTo(2)
+    }
+
+    private fun testEvent() = Event(
+        id = UUID.randomUUID().toString(),
+        name = "Security meetup",
+        description = "Synthetic event",
+        startDate = "2026-11-01T09:00:00Z",
+        endDate = "2026-11-01T10:00:00Z",
+        location = "Oslo",
+        type = "meetup",
+    )
+
+    @Test
+    fun `should reject duplicate program events with normalized name start and location`() {
+        val event = testEvent()
+        Assertions.assertThat(repository.addEvent(event).isOk).isTrue()
+
+        val duplicate = event.copy(
+            id = UUID.randomUUID().toString(),
+            name = " SECURITY MEETUP ",
+            startDate = "2026-11-01T10:00:00+01:00",
+            location = " OSLO ",
+        )
+        Assertions.assertThatThrownBy { repository.addEvent(duplicate) }
+            .isInstanceOf(DuplicateKeyException::class.java)
+        Assertions.assertThat(repository.getAllEvents().queryResult).hasSize(1)
+        Assertions.assertThat(repository.addEvent(event.copy(
+            id = UUID.randomUUID().toString(),
+            location = "Bergen",
+        )).isOk).isTrue()
+        Assertions.assertThat(repository.addEvent(event.copy(
+            id = UUID.randomUUID().toString(),
+            startDate = "2026-11-02T09:00:00Z",
+            endDate = "2026-11-02T10:00:00Z",
+        )).isOk).isTrue()
     }
 
     @Test

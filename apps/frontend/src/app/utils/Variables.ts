@@ -142,4 +142,4 @@ export interface SecurityEvent {
 	amountOfPeopleJoined?: number;
 }
 
-export type SecurityEventType = "meetup" | "workshop" | "course";
+export type SecurityEventType = "meetup" | "workshop";

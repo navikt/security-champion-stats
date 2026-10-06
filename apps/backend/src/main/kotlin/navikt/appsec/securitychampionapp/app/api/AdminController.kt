@@ -13,8 +13,10 @@ import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.utils.Validate
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
+import java.util.Locale
 import java.util.UUID
 
 @RestController
@@ -120,24 +123,52 @@ class AdminController(
     }
 
     @PostMapping("/events")
-    fun addEvent(@RequestBody event: Event): ResponseEntity<String> {
-        if (!event.startDate.isValidTime() || !event.endDate.isValidTime()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid date format")
+    fun addEvent(@RequestBody event: Event): ResponseEntity<Any> {
+        val startDate = runCatching { Instant.parse(event.startDate) }.getOrNull()
+        val endDate = runCatching { Instant.parse(event.endDate) }.getOrNull()
+        val validationError = when {
+            event.id.toUuid() == null -> "Invalid event ID"
+            event.name.trim().isEmpty() || event.name.trim().length > 100 ->
+                "Event name must contain between 1 and 100 characters"
+            event.location.trim().length > 100 -> "Event location must not exceed 100 characters"
+            startDate == null || endDate == null -> "Invalid date format"
+            endDate <= startDate -> "End must be after start"
+            event.type.uppercase(Locale.ROOT) !in EventType.entries.map { it.name } -> "Invalid event type"
+            else -> null
         }
-
-        val validTypes = EventType.entries.map { it.name }
-        if (event.type.uppercase() !in validTypes) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid event type")
+        if (validationError != null) {
+            logger.warn("Rejected event creation: {}", validationError)
+            return ResponseEntity.badRequest().body(
+                ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, validationError)
+            )
         }
+        val created = event.copy(
+            name = event.name.trim(),
+            location = event.location.trim(),
+            type = event.type.lowercase(Locale.ROOT),
+            amountOfPeopleJoined = 0,
+        )
 
         logger.info("Adding event: ${event.id}")
-        val result = eventRepository.addEvent(event)
+        val result = try {
+            eventRepository.addEvent(created)
+        } catch (_: DuplicateKeyException) {
+            logger.warn("Rejected duplicate event creation")
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ProblemDetail.forStatusAndDetail(
+                    HttpStatus.CONFLICT,
+                    "An event with this name, start time and location already exists",
+                )
+            )
+        }
         if (!result.isOk) {
             logger.warn("Failed to add event due to error: ${result.error}")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to add event")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to add event")
+            )
         }
 
-        return ResponseEntity.ok("Event was added")
+        return ResponseEntity.status(HttpStatus.CREATED).body(created)
     }
 
     @GetMapping("/dashboard/members")
@@ -147,8 +178,6 @@ class AdminController(
     @PostMapping("/member/attended/{email}")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> =
         ResponseEntity.ok().build()
-
-    private fun String.isValidTime(): Boolean = runCatching { Instant.parse(this) }.isSuccess
 
     private fun String.toUuid(): UUID? = runCatching { UUID.fromString(this) }.getOrNull()
 

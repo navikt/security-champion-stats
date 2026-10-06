@@ -290,7 +290,7 @@ export const Apies = {
 		}
 		return res.json();
 	},
-	createEvent: async (event: SecurityEvent): Promise<Number> => {
+	createEvent: async (event: SecurityEvent): Promise<SecurityEvent> => {
 		const response = await fetch("/api/events", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -299,9 +299,20 @@ export const Apies = {
 
 		if (!response.ok) {
 			console.error("Failed to create event, with status: ", response.status);
-			return response.status;
+			const problem: unknown =
+				response.headers.get("content-type")?.includes("json")
+					? await response.json()
+					: null;
+			const message =
+				typeof problem === "object" &&
+				problem !== null &&
+				"detail" in problem &&
+				typeof problem.detail === "string"
+					? problem.detail
+					: "We couldn't create the event. Try again.";
+			throw new Error(message);
 		}
 
-		return response.status;
+		return response.json();
 	},
 };

@@ -2,8 +2,8 @@ package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
-import org.slf4j.LoggerFactory
+import org.springframework.dao.DataAccessException
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
@@ -43,7 +43,7 @@ class EventRepository(
                     jdbcTemplate.query(query, rowMapper, *args)
                 )
             }
-        } catch (e: Exception) {
+        } catch (e: DataAccessException) {
             EventQueryResponse(
                 isOk = false,
                 emptyList(),
@@ -58,7 +58,9 @@ class EventRepository(
             return EventQueryResponse(
                 isOk = true
             )
-        } catch (e: Exception) {
+        } catch (e: DuplicateKeyException) {
+            throw e
+        } catch (e: DataAccessException) {
             return EventQueryResponse(
                 isOk = false,
                 error = e.message

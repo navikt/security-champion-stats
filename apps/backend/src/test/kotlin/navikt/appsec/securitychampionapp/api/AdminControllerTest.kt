@@ -6,6 +6,7 @@ import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.DeleteParticipantRequest
+import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.UpdateParticipantStatusRequest
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
@@ -14,6 +15,7 @@ import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberUpdateResponse
+import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantUpdateResponse
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
@@ -28,6 +30,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
@@ -37,6 +40,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.ObjectMapper
 
@@ -84,6 +88,72 @@ class AdminControllerTest {
             null
         }.`when`(introspectionFilter).doFilter(Mockito.any(), Mockito.any(), Mockito.any())
     }
+
+    @Test
+    fun `should reject invalid event input before persistence`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(eventRepository.addEvent(any())).thenReturn(EventQueryResponse(isOk = true))
+        val event = testEvent()
+        val invalidEvents = listOf(
+            event.copy(name = "   "),
+            event.copy(name = "a".repeat(101)),
+            event.copy(location = "a".repeat(101)),
+            event.copy(id = "not-a-uuid"),
+            event.copy(startDate = "not-a-date"),
+            event.copy(endDate = event.startDate),
+            event.copy(endDate = "2026-11-01T08:00:00Z"),
+            event.copy(type = "course"),
+        )
+
+        invalidEvents.forEach { invalidEvent ->
+            mockMvc.perform(
+                MockMvcRequestBuilders.post("/api/admin/events")
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(invalidEvent))
+            ).andExpect(status().isBadRequest)
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+        }
+        verify(eventRepository, never()).addEvent(any())
+    }
+
+    @Test
+    fun `should return conflict for duplicate program events`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(eventRepository.addEvent(any())).thenThrow(DuplicateKeyException("Synthetic duplicate"))
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/events")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(testEvent()))
+        ).andExpect(status().isConflict)
+            .andExpect(jsonPath("$.detail").value("An event with this name, start time and location already exists"))
+    }
+
+    @Test
+    fun `should return created event as JSON after saving`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val event = testEvent()
+        whenever(eventRepository.addEvent(any())).thenReturn(EventQueryResponse(isOk = true))
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/events")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(event))
+        ).andExpect(status().isCreated)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(event.id))
+            .andExpect(jsonPath("$.name").value(event.name))
+    }
+
+    private fun testEvent() = Event(
+        id = "00000000-0000-0000-0000-000000000001",
+        name = "Security meetup",
+        description = "Synthetic event",
+        startDate = "2026-11-01T09:00:00Z",
+        endDate = "2026-11-01T10:00:00Z",
+        location = "Oslo",
+        type = "meetup",
+    )
 
     @Test
     fun `should return 403 when accessing admin endpoint without admin role`() {

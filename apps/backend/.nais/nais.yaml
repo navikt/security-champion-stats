@@ -19,6 +19,8 @@ spec:
       value: "54"
     - name: PLAYBOOK_EVENTS_ENABLED
       value: "true"
+    - name: GITHUB_SCORING_ENABLED
+      value: "true"
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:
@@ -31,6 +33,7 @@ spec:
         - host: api.slack.com
         - host: graph.microsoft.com
         - host: sikkerhet.nav.no
+        - host: api.github.com
       rules:
         - application: team-catalog-backend
           cluster: prod-gcp

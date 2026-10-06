@@ -21,7 +21,7 @@ const ADMIN_LINKS = [
 	{ href: "/appsec/delta", label: "Manage Delta mappings" },
 ];
 
-export type ScoringIntegration = "slack" | "delta";
+export type ScoringIntegration = "slack" | "delta" | "github";
 
 export function AdminDashboardView({
 	overview,
@@ -123,6 +123,20 @@ export function AdminDashboardView({
 						triggeringSync={triggeringSync}
 						triggerError={triggerError}
 					/>
+					<SyncStatus
+						name="GitHub"
+						integration="github"
+						status={overview.github}
+						details={[
+							["Contributions scanned", overview.github.contributionsScanned],
+							["Credits awarded", overview.github.creditsAwarded],
+							["Duplicate credits", overview.github.duplicateCredits],
+							["Unmapped authors", overview.github.unmappedAuthors],
+						]}
+						onTriggerSync={onTriggerSync}
+						triggeringSync={triggeringSync}
+						triggerError={triggerError}
+					/>
 				</div>
 			</section>
 
@@ -146,11 +160,13 @@ function SyncStatus({
 	name,
 	integration,
 	status,
+	details,
 	onTriggerSync,
 	triggeringSync,
 	triggerError,
 }: {
 	name: string;
+	details?: [string, number][];
 	integration: ScoringIntegration;
 	status: AdminDashboardIntegrationStatus;
 	onTriggerSync: (integration: ScoringIntegration) => void;
@@ -165,7 +181,7 @@ function SyncStatus({
 					SUCCEEDED: "Last sync succeeded",
 					PARTIAL_FAILURE: "Last sync partially failed",
 					FAILED: "Last sync failed",
-				}[status.outcome]
+				}[status.outcome] ?? "Last sync status unknown"
 			: "No sync recorded yet";
 
 	return (
@@ -180,6 +196,16 @@ function SyncStatus({
 			<BodyShort>
 				Last successful sync: <FormattedDate value={status.lastSuccessAt} />
 			</BodyShort>
+			{details && (
+				<dl>
+					{details.map(([label, value]) => (
+						<div key={label}>
+							<dt>{label}</dt>
+							<dd>{value}</dd>
+						</div>
+					))}
+				</dl>
+			)}
 			<Button
 				size="small"
 				variant="secondary"

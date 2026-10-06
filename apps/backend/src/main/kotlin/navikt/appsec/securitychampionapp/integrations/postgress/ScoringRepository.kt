@@ -13,6 +13,8 @@ import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.Instant
+import java.sql.Timestamp
 import java.util.UUID
 
 @Repository
@@ -115,21 +117,48 @@ class ScoringRepository(
         uniquenessKey: String,
         sourceReference: String,
         auditCorrelationId: UUID? = null,
+    ): CreditAwardResult = insertCredit(
+        participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, null, null,
+    )
+
+    @Transactional
+    fun awardGitHubCredit(
+        participantId: UUID,
+        creditType: ActivityCreditType,
+        uniquenessKey: String,
+        sourceReference: String,
+        auditCorrelationId: UUID?,
+        activityAt: Instant,
+        expectedSeasonId: UUID,
+    ): CreditAwardResult = insertCredit(
+        participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, activityAt, expectedSeasonId,
+    )
+
+    private fun insertCredit(
+        participantId: UUID,
+        creditType: ActivityCreditType,
+        uniquenessKey: String,
+        sourceReference: String,
+        auditCorrelationId: UUID?,
+        activityAt: Instant?,
+        expectedSeasonId: UUID?,
     ): CreditAwardResult {
         val seasonId = jdbcTemplate.queryForObject(
             "SELECT id FROM program_seasons WHERE ends_on IS NULL FOR SHARE",
             UUID::class.java,
         ) ?: error("No current program season exists")
+        check(expectedSeasonId == null || expectedSeasonId == seasonId) { "The scoring season changed during sync" }
         val inserted = jdbcTemplate.update(
             """
                 INSERT INTO activity_credits (
                     id, participant_id, season_id, credit_type, uniqueness_key, source_reference, points,
-                    audit_correlation_id
+                    audit_correlation_id, activity_at
                 )
-                SELECT ?, participant.id, ?, ?, ?, ?, ?, ?
+                SELECT ?, participant.id, ?, ?, ?, ?, ?, ?, ?
                 FROM program_participants AS participant
                 WHERE participant.id = ? AND participant.status = 'ACTIVE'
-                ON CONFLICT (participant_id, credit_type, uniqueness_key) DO NOTHING
+                    AND (?::timestamptz IS NULL OR participant.created_at < ?::timestamptz)
+                ON CONFLICT DO NOTHING
             """.trimIndent(),
             UUID.randomUUID(),
             seasonId,
@@ -138,7 +167,10 @@ class ScoringRepository(
             sourceReference,
             creditType.points,
             auditCorrelationId,
+            activityAt?.let(Timestamp::from),
             participantId,
+            activityAt?.let(Timestamp::from),
+            activityAt?.let(Timestamp::from),
         )
         if (inserted == 1) return CreditAwardResult.AWARDED
 
@@ -146,7 +178,8 @@ class ScoringRepository(
             """
                 SELECT EXISTS (
                     SELECT 1 FROM activity_credits
-                    WHERE participant_id = ? AND credit_type = ? AND uniqueness_key = ?
+                    WHERE (participant_id = ? OR credit_type IN ('GITHUB_COMMIT', 'GITHUB_PULL_REQUEST'))
+                        AND credit_type = ? AND uniqueness_key = ?
                 )
             """.trimIndent(),
             Boolean::class.javaObjectType,

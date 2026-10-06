@@ -3,6 +3,8 @@ package navikt.appsec.securitychampionapp.app.dashboard
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
+import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringStatusService
+import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncStatusView
@@ -36,6 +38,7 @@ data class AdminDashboardOverview(
     val weeklyTotals: List<WeeklyCreditTotals>,
     val slack: SlackSyncStatusView,
     val delta: DeltaSyncStatusView,
+    val github: GitHubSyncStatusView,
 )
 
 @Service
@@ -45,6 +48,7 @@ class AdminDashboardService(
     private val slackStatusService: SlackScoringStatusService,
     private val deltaStatusService: DeltaScoringStatusService,
     private val clock: Clock,
+    private val gitHubStatusService: GitHubScoringStatusService,
 ) {
     fun overview(): AdminDashboardOverview {
         val season = scoringRepository.currentSeason()
@@ -76,6 +80,7 @@ class AdminDashboardService(
             weeklyTotals = weeklyTotals,
             slack = slackStatusService.status(),
             delta = deltaStatusService.status(),
+            github = gitHubStatusService.status(),
         )
     }
 

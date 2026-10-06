@@ -19,10 +19,12 @@ export function getPastEvents(
 	events: SecurityEvent[],
 	now = new Date(),
 ): SecurityEvent[] {
-	return sortEventsByDate(events).filter(
-		(event) =>
-			new Date(event.endDate ?? event.startDate).getTime() < now.getTime(),
-	);
+	return sortEventsByDate(events)
+		.filter(
+			(event) =>
+				new Date(event.endDate ?? event.startDate).getTime() < now.getTime(),
+		)
+		.reverse();
 }
 
 export function getNextEvent(

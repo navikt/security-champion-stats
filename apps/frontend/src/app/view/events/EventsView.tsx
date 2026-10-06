@@ -25,7 +25,7 @@ export function EventsView({
 	const nextEvent = getNextEvent(events);
 
 	const upcomingEvents: SecurityEvent[] = getUpcomingEvents(events).filter(
-		(event) => event.id !== nextEvent?.id,
+		(event) => compact || event.id !== nextEvent?.id,
 	);
 
 	const pastEvents: SecurityEvent[] = getPastEvents(events);

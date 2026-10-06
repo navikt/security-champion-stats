@@ -3,8 +3,13 @@ package navikt.appsec.securitychampionapp.app.scoring
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
 import org.springframework.stereotype.Service
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+
+private val SLACK_FETCH_LOOKBACK: Duration = Duration.ofDays(90)
+private val NAV_NO_EMAIL = Regex("^[A-Za-z0-9+_.-]+@nav\\.no$", RegexOption.IGNORE_CASE)
+private const val EMAIL_MATCH_ACTOR = "system:slack-email-match"
 
 @Service
 class SlackScoringService(
@@ -43,9 +48,9 @@ class SlackScoringService(
     fun sync(channelId: String, now: Instant): SlackSyncSummary {
         if (channelId.isBlank()) throw IllegalStateException("Slack scoring channel is not configured")
         val cursor = mappingRepository.syncCursor(channelId, now)
-        val messages = slackApiService.fetchScoringMessages(channelId, now)
+        val messages = slackApiService.fetchScoringMessages(channelId, cursor.minus(SLACK_FETCH_LOOKBACK), now)
             .sortedBy { it.timestamp }
-        val mappedParticipants = mappingRepository.mappedParticipants()
+        val mappedParticipants = autoMapAuthors(messages, mappingRepository.mappedParticipants())
         val unmappedAuthors = mutableSetOf<String>()
         var creditsAwarded = 0
         var duplicateCredits = 0
@@ -90,6 +95,23 @@ class SlackScoringService(
             duplicateCredits = duplicateCredits,
             unmappedAuthors = unmappedAuthors.size,
         )
+    }
+
+    private fun autoMapAuthors(
+        messages: List<SlackActivityMessage>,
+        mapped: Map<String, MappedSlackParticipant>,
+    ): Map<String, MappedSlackParticipant> {
+        val newlyMapped = messages.asSequence()
+            .filter { it.botId == null && it.isAuthoredMessage() }
+            .mapNotNull { it.userId?.takeIf(String::isNotBlank) }
+            .distinct()
+            .filterNot(mapped::containsKey)
+            .count { userId ->
+                val email = slackApiService.fetchUserEmail(userId)?.trim()
+                email != null && NAV_NO_EMAIL.matches(email) &&
+                    mappingRepository.addMappingByNavNoEmail(userId, email, EMAIL_MATCH_ACTOR)
+            }
+        return if (newlyMapped > 0) mappingRepository.mappedParticipants() else mapped
     }
 
     private fun SlackActivityMessage.isAuthoredMessage(): Boolean =

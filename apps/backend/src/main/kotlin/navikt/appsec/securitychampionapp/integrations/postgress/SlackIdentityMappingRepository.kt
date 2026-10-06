@@ -133,6 +133,41 @@ class SlackIdentityMappingRepository(
         return true
     }
 
+    @Transactional
+    fun addMappingByNavNoEmail(
+        slackUserId: String,
+        navNoEmail: String,
+        actor: String,
+    ): Boolean {
+        val participantId = jdbcTemplate.query(
+            """
+                INSERT INTO slack_account_mappings (slack_user_id, participant_id, created_by_nav_no_email)
+                SELECT ?, participant.id, ?
+                FROM program_participants AS participant
+                WHERE LOWER(participant.nav_no_email) = LOWER(?)
+                ON CONFLICT DO NOTHING
+                RETURNING participant_id
+            """.trimIndent(),
+            { rs, _ -> rs.getObject("participant_id", UUID::class.java) },
+            slackUserId,
+            actor,
+            navNoEmail,
+        ).firstOrNull() ?: return false
+
+        jdbcTemplate.update("DELETE FROM slack_unmapped_authors WHERE slack_user_id = ?", slackUserId)
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_participant_audit (
+                    participant_id, actor_nav_no_email, action, before_values, after_values
+                ) VALUES (?, ?, 'SLACK_ACCOUNT_MAPPED', '{}'::jsonb, jsonb_build_object('slackUserId', ?))
+            """.trimIndent(),
+            participantId,
+            actor,
+            slackUserId,
+        )
+        return true
+    }
+
     fun recordUnmappedAuthor(slackUserId: String) {
         jdbcTemplate.update(
             """

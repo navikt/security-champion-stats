@@ -14,7 +14,8 @@ Scores come from season-specific activity credits and signed administrator adjus
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
-Administrators explicitly map Slack account IDs to participants and review unmapped authors.
+Sync maps unmapped authors automatically when their Slack profile email (`users.info`, needs `users:read.email`)
+is a `@nav.no` address matching a participant's `nav_no_email`; administrators map the rest and review unmapped authors.
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
 the background and use the same locks as scheduled syncs.
@@ -124,7 +125,7 @@ src/main/kotlin/.../
 ├── integrations/
 │   ├── postgress/                  # PostgreSQL repository, job lock, and DTOs
 │   ├── delta/                      # Delta API client and registration roster DTOs
-│   ├── slack/                      # Slack scoring history and thread-reply adapter
+│   ├── slack/                      # Slack scoring history, thread-reply and user-email adapter
 │   └── teamCatalog/                # Teamkatalogen client and DTOs
 ├── security/                       # Token introspection, auth filter, and principal DTOs
 └── utils/

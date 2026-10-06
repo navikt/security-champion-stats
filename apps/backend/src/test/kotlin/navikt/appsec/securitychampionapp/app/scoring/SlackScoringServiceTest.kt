@@ -8,8 +8,10 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
@@ -47,7 +49,7 @@ class SlackScoringServiceTest {
                 ),
             )
         )
-        whenever(slackApiService.fetchScoringMessages("channel", now)).thenReturn(
+        whenever(slackApiService.fetchScoringMessages("channel", cursor.minus(Duration.ofDays(90)), now)).thenReturn(
             listOf(
                 message("U_ACTIVE", "A qualifying root message with enough text", "2026-10-05T08:01:00Z"),
                 message("U_ACTIVE", "A qualifying reply message with enough text", "2026-10-05T08:02:00Z"),
@@ -86,6 +88,39 @@ class SlackScoringServiceTest {
         verify(mappingRepository, never()).recordUnmappedAuthor("U_BOT")
         verify(mappingRepository, never()).recordUnmappedAuthor("U_SYSTEM")
         verify(mappingRepository).advanceSyncCursor("channel", now)
+    }
+
+    @Test
+    fun `should map unmapped authors by nav no email and award credit in the same sync`() {
+        val participantId = UUID.randomUUID()
+        val cursor = Instant.parse("2026-10-05T08:00:00Z")
+        val now = cursor.plusSeconds(3600)
+        val mapped = MappedSlackParticipant("U_PERSON", participantId, true, cursor.minusSeconds(86_400))
+        whenever(mappingRepository.syncCursor("channel", now)).thenReturn(cursor)
+        whenever(slackApiService.fetchScoringMessages("channel", cursor.minus(Duration.ofDays(90)), now)).thenReturn(
+            listOf(
+                message("U_PERSON", "A qualifying root message with enough text", "2026-10-05T08:01:00Z"),
+                message("U_PERSON", "A qualifying reply message with enough text", "2026-10-05T08:02:00Z"),
+                message("U_EXTERNAL", "A qualifying external message with enough text", "2026-10-05T08:03:00Z"),
+                message("U_BOT", "A qualifying bot message with enough text", "2026-10-05T08:04:00Z", botId = "B1"),
+            )
+        )
+        whenever(mappingRepository.mappedParticipants()).thenReturn(emptyMap(), mapOf("U_PERSON" to mapped))
+        whenever(slackApiService.fetchUserEmail("U_PERSON")).thenReturn(" Person@NAV.no ")
+        whenever(slackApiService.fetchUserEmail("U_EXTERNAL")).thenReturn("someone@nav.no.example.com")
+        whenever(mappingRepository.addMappingByNavNoEmail("U_PERSON", "Person@NAV.no", "system:slack-email-match"))
+            .thenReturn(true)
+        whenever(scoringService.awardCredit(eq(participantId), eq(ActivityCreditType.SLACK_WEEK), any(), any()))
+            .thenReturn(CreditAwardResult.AWARDED, CreditAwardResult.DUPLICATE)
+
+        val summary = service.sync("channel", now)
+
+        assertThat(summary.creditsAwarded).isEqualTo(1)
+        assertThat(summary.unmappedAuthors).isEqualTo(1)
+        verify(slackApiService, times(1)).fetchUserEmail("U_PERSON")
+        verify(slackApiService, never()).fetchUserEmail("U_BOT")
+        verify(mappingRepository, never()).addMappingByNavNoEmail(eq("U_EXTERNAL"), any(), any())
+        verify(mappingRepository).recordUnmappedAuthor("U_EXTERNAL")
     }
 
     @Test

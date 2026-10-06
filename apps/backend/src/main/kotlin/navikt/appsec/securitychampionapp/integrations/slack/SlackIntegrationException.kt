@@ -5,6 +5,7 @@ class SlackIntegrationException(operation: Operation, errorCode: String?) :
     enum class Operation(val apiMethod: String) {
         HISTORY("conversations.history"),
         REPLIES("conversations.replies"),
+        USERS_INFO("users.info"),
     }
 
     companion object {

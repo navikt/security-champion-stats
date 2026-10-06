@@ -324,6 +324,29 @@ class ScoringRepositoryTest {
     }
 
     @Test
+    fun `should map a Slack author to the participant with a matching nav no email`() {
+        val participantId = createParticipant("person@nav.no")
+        slackIdentityMappingRepository.recordUnmappedAuthor("U_SLACK")
+
+        assertThat(
+            slackIdentityMappingRepository.addMappingByNavNoEmail("U_SLACK", "Person@NAV.no", "system:test")
+        ).isTrue()
+        assertThat(
+            slackIdentityMappingRepository.addMappingByNavNoEmail("U_OTHER", "person@nav.no", "system:test")
+        ).isFalse()
+        assertThat(
+            slackIdentityMappingRepository.addMappingByNavNoEmail("U_UNKNOWN", "unknown@nav.no", "system:test")
+        ).isFalse()
+
+        assertThat(slackIdentityMappingRepository.mappedParticipants()["U_SLACK"]?.participantId)
+            .isEqualTo(participantId)
+        assertThat(slackIdentityMappingRepository.mappingOverview().second).isEmpty()
+        assertThat(
+            jdbcTemplate.queryForList("SELECT actor_nav_no_email FROM program_participant_audit", String::class.java)
+        ).containsExactly("system:test")
+    }
+
+    @Test
     fun `should create and remove an explicitly named Delta event mapping with audit history`() {
         val mappingId = UUID.randomUUID()
         val deltaEventUuid = UUID.randomUUID()

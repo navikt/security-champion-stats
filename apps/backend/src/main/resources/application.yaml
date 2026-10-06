@@ -41,6 +41,7 @@ spring:
       auto-commit: true
       minimum-idle: 2
       maximum-pool-size: 10
+      leak-detection-threshold: 600000
       transaction-isolation: TRANSACTION_READ_COMMITTED
   jpa:
     hibernate:

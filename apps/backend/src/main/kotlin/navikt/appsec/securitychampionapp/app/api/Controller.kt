@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantSummary
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantView
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping(path = ["/api"])
@@ -24,6 +26,7 @@ class Controller(
     private val participantRepository: ProgramParticipantRepository,
     private val eventCatalogService: EventCatalogService,
     private val teamCatalog: TeamCatalog,
+    private val auditService: ProgramAuditService,
 ) {
     private val logger = LoggerFactory.getLogger(Controller::class.java)
 
@@ -97,6 +100,23 @@ class Controller(
             if (existingParticipant.status == "DEACTIVATED") {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("Program participation is deactivated")
             }
+            if (existingParticipant.status == "LEFT") {
+                val result = participantRepository.rejoin(principal.email)
+                if (!result.isOk) {
+                    logger.error("Failed to rejoin program: ${result.error}")
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+                }
+                if (result.affectedRows == 0) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body("Participation status has changed")
+                }
+                auditService.recordParticipantEvent(
+                    UUID.fromString(existingParticipant.id),
+                    "PARTICIPANT_REJOINED",
+                    principal.email,
+                    details = mapOf("status" to "ACTIVE"),
+                )
+                return ResponseEntity.ok("Rejoined the program")
+            }
             return ResponseEntity.ok("Already enrolled")
         }
 
@@ -114,6 +134,20 @@ class Controller(
             logger.error("Failed to enroll program participant: ${enrollmentResponse.error}")
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
+        if (enrollmentResponse.affectedRows == 1) {
+            val enrolled = participantRepository.findByNavNoEmail(principal.email)
+            val participant = enrolled.queryResult.firstOrNull()
+            if (!enrolled.isOk || participant == null) {
+                logger.error("Could not resolve participant for enrollment audit")
+            } else {
+                auditService.recordParticipantEvent(
+                    UUID.fromString(participant.id),
+                    "PARTICIPANT_ENROLLED",
+                    principal.email,
+                    details = mapOf("status" to "ACTIVE"),
+                )
+            }
+        }
 
         val identityUpdateResponse = participantRepository.updateAuthenticatedIdentity(
             navNoEmail = principal.email,
@@ -126,6 +160,36 @@ class Controller(
         }
 
         return ResponseEntity.status(HttpStatus.CREATED).body("Enrolled in the program")
+    }
+
+    @PostMapping("/leave")
+    fun leave(): ResponseEntity<String> {
+        val principal = currentPrincipal()
+        val response = participantRepository.findByNavNoEmail(principal.email)
+        if (!response.isOk) {
+            logger.error("Failed to find participant for departure: ${response.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+        val participant = response.queryResult.firstOrNull() ?: return ResponseEntity.notFound().build()
+        if (participant.status == "LEFT") return ResponseEntity.noContent().build()
+        if (participant.status != "ACTIVE") {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Program participation is deactivated")
+        }
+        val result = participantRepository.leave(principal.email)
+        if (!result.isOk) {
+            logger.error("Failed to leave program: ${result.error}")
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
+        }
+        if (result.affectedRows == 0) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Participation status has changed")
+        }
+        auditService.recordParticipantEvent(
+            UUID.fromString(participant.id),
+            "PARTICIPANT_LEFT",
+            principal.email,
+            details = mapOf("status" to "LEFT"),
+        )
+        return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/membership")
@@ -157,6 +221,7 @@ class Controller(
                 active = participant.status == "ACTIVE",
                 joinedAt = participant.createdAt,
                 teams = participant.teams,
+                status = participant.status,
             )
         )
     }

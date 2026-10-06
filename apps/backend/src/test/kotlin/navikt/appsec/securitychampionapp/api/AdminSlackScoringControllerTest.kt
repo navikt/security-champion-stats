@@ -92,7 +92,7 @@ class AdminSlackScoringControllerTest {
     @Test
     fun `should queue Slack sync as an admin`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.STARTED)
+        whenever(syncJob.triggerManualSync("admin@nav.no")).thenReturn(SyncTriggerResult.STARTED)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/slack/sync"))
             .andExpect(status().isAccepted)
@@ -101,7 +101,7 @@ class AdminSlackScoringControllerTest {
     @Test
     fun `should report when a Slack sync is already running`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(syncJob.triggerManualSync()).thenReturn(SyncTriggerResult.ALREADY_RUNNING)
+        whenever(syncJob.triggerManualSync("admin@nav.no")).thenReturn(SyncTriggerResult.ALREADY_RUNNING)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/slack/sync"))
             .andExpect(status().isConflict)

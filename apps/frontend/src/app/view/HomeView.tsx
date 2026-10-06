@@ -10,7 +10,7 @@ import { Apies } from "@/app/shared/hooks/Apies";
 import { ScoringOverview } from "./member/components/ScoringOverview";
 
 function View({ me }: { me: Me }) {
-	const [userData, _] = useState(me);
+	const [userData, setUserData] = useState(me);
 	const [events, updateEvents] = useState<SecurityEvent[]>([]);
 
 	useEffect(() => {
@@ -30,13 +30,14 @@ function View({ me }: { me: Me }) {
 
 			<div className={"homeView__body"}>
 				<section className={"homeView__primary"}>
-					<MembershipView me={userData} />
+					<MembershipView me={me} onMembershipChanged={setUserData} />
 				</section>
 				<section className={"homeView__secondary"}>
 					<EventsView events={events} compact limit={4} />
 				</section>
 			</div>
 			<ScoringOverview
+				key={`${userData.isParticipant}:${userData.isActive}`}
 				showPersonalProgress={userData.isParticipant && userData.isActive}
 				showLeaderboard={
 					userData.isAdmin ||

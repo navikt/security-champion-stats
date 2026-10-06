@@ -2,22 +2,10 @@
 
 import { AdminProgramParticipant } from "@/app/utils/Variables";
 import { Apies } from "@/app/shared/hooks/Apies";
-import {
-	BodyShort,
-	Button,
-	Heading,
-	Modal,
-	Table,
-	TextField,
-	VStack,
-} from "@navikt/ds-react";
+import { BodyShort, Button, Heading, Modal, Table, TextField, VStack } from "@navikt/ds-react";
 import { useRef, useState } from "react";
 
-export function ManageParticipantsView({
-	participants,
-}: {
-	participants: AdminProgramParticipant[];
-}) {
+export function ManageParticipantsView({ participants }: { participants: AdminProgramParticipant[] }) {
 	const [participantList, setParticipantList] = useState(participants);
 	const [selectedForDeletion, setSelectedForDeletion] =
 		useState<AdminProgramParticipant | null>(null);
@@ -26,24 +14,19 @@ export function ManageParticipantsView({
 	const [reasonError, setReasonError] = useState(false);
 	const reasonRef = useRef<HTMLInputElement>(null);
 
-	const changeStatus = async (participant: AdminProgramParticipant) => {
+	const changeStatus = async (participant: AdminProgramParticipant, active = !participant.active) => {
 		if (busy) return;
 		setBusy(true);
 		setError(null);
 		try {
-			const status = await Apies.updateParticipantStatus(
-				participant.id,
-				!participant.active,
-			);
+			const status = await Apies.updateParticipantStatus(participant.id, active);
 			if (status !== 204) {
 				setError("We couldn't change the status. Try again.");
 				return;
 			}
 			setParticipantList((current) =>
-				current.map((entry) =>
-					entry.id === participant.id
-						? { ...entry, active: !participant.active }
-						: entry,
+				current.map<AdminProgramParticipant>((entry) =>
+					entry.id === participant.id ? { ...entry, active, status: active ? "ACTIVE" : "DEACTIVATED" } : entry,
 				),
 			);
 		} catch {
@@ -123,7 +106,7 @@ export function ManageParticipantsView({
 							<Table.DataCell>{participant.email}</Table.DataCell>
 							<Table.DataCell>{participant.teams.join(", ")}</Table.DataCell>
 							<Table.DataCell>
-								{participant.active ? "Active" : "Deactivated"}
+								{participant.active ? "Active" : participant.status === "LEFT" ? "Left program" : "Deactivated"}
 							</Table.DataCell>
 							<Table.DataCell>
 								<Button
@@ -134,6 +117,11 @@ export function ManageParticipantsView({
 								>
 									{participant.active ? "Deactivate" : "Reactivate"}
 								</Button>
+								{participant.status === "LEFT" && (
+									<Button size="small" variant="secondary" onClick={() => changeStatus(participant, false)}>
+										Deactivate
+									</Button>
+								)}
 								<Button
 									size="small"
 									data-color="danger"

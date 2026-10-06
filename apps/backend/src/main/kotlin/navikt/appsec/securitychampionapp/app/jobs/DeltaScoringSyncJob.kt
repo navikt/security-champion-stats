@@ -1,5 +1,8 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringService
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
@@ -17,6 +20,7 @@ class DeltaScoringSyncJob(
     private val syncTrigger: ScoringSyncTrigger,
     private val deltaScoringService: DeltaScoringService,
     @Value($$"${delta.scoring.enabled:false}") private val enabled: Boolean,
+    private val auditService: ProgramAuditService? = null,
 ) {
     private val logger = LoggerFactory.getLogger(DeltaScoringSyncJob::class.java)
 
@@ -24,17 +28,38 @@ class DeltaScoringSyncJob(
     fun syncDeltaScoring() {
         if (!enabled) return
 
-        jobLock.runWithLock(DELTA_SCORING_JOB_LOCK_KEY, "syncDeltaScoring", ::runSync)
+        jobLock.runWithLock(DELTA_SCORING_JOB_LOCK_KEY, "syncDeltaScoring") {
+            runSync(AuditRunContext())
+        }
     }
 
-    fun triggerManualSync(): SyncTriggerResult {
+    fun triggerManualSync(actorNavNoEmail: String? = null): SyncTriggerResult {
         if (!enabled) return SyncTriggerResult.DISABLED
-        return syncTrigger.trigger(DELTA_SCORING_JOB_LOCK_KEY, "syncDeltaScoring", ::runSync)
+        if (actorNavNoEmail == null) {
+            return syncTrigger.trigger(DELTA_SCORING_JOB_LOCK_KEY, "syncDeltaScoring") {
+                runSync(AuditRunContext())
+            }
+        }
+        return syncTrigger.trigger(DELTA_SCORING_JOB_LOCK_KEY, "syncDeltaScoring", actorNavNoEmail, ::runSync)
     }
 
-    private fun runSync() {
+    private fun runSync(run: AuditRunContext) {
+        auditService?.recordRun("DELTA_SCORING_SYNC_STARTED", AuditOutcome.SUCCEEDED, run)
         try {
-            val summary = deltaScoringService.sync()
+            val summary = deltaScoringService.sync(run)
+            val outcome = if (summary.failedEvents > 0) AuditOutcome.PARTIAL else AuditOutcome.SUCCEEDED
+            auditService?.recordRun(
+                if (summary.failedEvents > 0) "DELTA_SCORING_SYNC_PARTIAL" else "DELTA_SCORING_SYNC_COMPLETED",
+                outcome,
+                run,
+                mapOf(
+                    "eventsScanned" to summary.eventsScanned,
+                    "creditsAwarded" to summary.creditsAwarded,
+                    "duplicateCredits" to summary.duplicateCredits,
+                    "unmatchedRegistrations" to summary.unmatchedRegistrations,
+                    "failedEvents" to summary.failedEvents,
+                ),
+            )
             if (summary.failedEvents > 0) {
                 logger.warn(
                     "Delta registration sync partially failed: events={}, failedEvents={}, reason={}",
@@ -52,10 +77,28 @@ class DeltaScoringSyncJob(
                 )
             }
         } catch (e: DeltaIntegrationException) {
+            auditService?.recordRun(
+                "DELTA_SCORING_SYNC_FAILED",
+                AuditOutcome.FAILED,
+                run,
+                mapOf("failure" to e.failure.name),
+            )
             logger.warn("Delta registration sync failed: {}", e.failure.summary)
         } catch (_: DataAccessException) {
+            auditService?.recordRun(
+                "DELTA_SCORING_SYNC_FAILED",
+                AuditOutcome.FAILED,
+                run,
+                mapOf("failure" to "persistence"),
+            )
             logger.error("Delta registration sync failed because scoring persistence is unavailable")
         } catch (e: Exception) {
+            auditService?.recordRun(
+                "DELTA_SCORING_SYNC_FAILED",
+                AuditOutcome.FAILED,
+                run,
+                mapOf("failure" to "unexpected"),
+            )
             logger.error("Delta registration sync failed unexpectedly", e)
         }
     }

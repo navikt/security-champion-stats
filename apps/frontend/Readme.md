@@ -16,6 +16,9 @@ The sidebar contains shared navigation, an admin-only Administration section, an
 the signed-in user's initials at the bottom.
 Event listings include cached playbook events, with date-only ranges shown without invented times.
 Delta and manual events take priority over same-day internal playbook entries; unrelated external entries remain visible.
+Participants can leave and rejoin without losing credits, unless an administrator has deactivated them.
+My history shows membership and score changes from rollout; administrators can search the audit trail.
+Audit capture is best-effort. Operational records expire after 12 months; participant history is erased on permanent deletion.
 
 ## Getting Started
 To get started with the frontend application, follow these steps: 

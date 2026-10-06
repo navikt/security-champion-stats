@@ -43,14 +43,14 @@ class AdminPlaybookEventImportControllerTest {
     @Test
     fun `should accept a manual import from an administrator`() {
         authenticate(ADMIN_ROLE)
-        whenever(importJob.triggerManualImport()).thenReturn(SyncTriggerResult.STARTED)
+        whenever(importJob.triggerManualImport("admin@nav.no")).thenReturn(SyncTriggerResult.STARTED)
         mockMvc.perform(post("/api/admin/playbook/events/sync")).andExpect(status().isAccepted)
     }
 
     @Test
     fun `should report disabled busy and unavailable manual imports`() {
         authenticate(ADMIN_ROLE)
-        whenever(importJob.triggerManualImport()).thenReturn(
+        whenever(importJob.triggerManualImport("admin@nav.no")).thenReturn(
             SyncTriggerResult.DISABLED, SyncTriggerResult.ALREADY_RUNNING, SyncTriggerResult.UNAVAILABLE,
         )
         mockMvc.perform(post("/api/admin/playbook/events/sync")).andExpect(status().isConflict)

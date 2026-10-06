@@ -32,7 +32,7 @@ class AdminSlackScoringController(
 
     @PostMapping("/sync")
     fun triggerSync(): ResponseEntity<Void> =
-        when (slackScoringSyncJob.triggerManualSync()) {
+        when (slackScoringSyncJob.triggerManualSync(currentPrincipal().email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
             SyncTriggerResult.ALREADY_RUNNING -> ResponseEntity.status(HttpStatus.CONFLICT).build()
             SyncTriggerResult.UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()

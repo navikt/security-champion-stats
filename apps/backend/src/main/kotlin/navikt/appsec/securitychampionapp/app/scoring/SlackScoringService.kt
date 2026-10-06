@@ -45,7 +45,7 @@ class SlackScoringService(
         return mappingRepository.removeMapping(slackUserId, actorNavNoEmail)
     }
 
-    fun sync(channelId: String, now: Instant): SlackSyncSummary {
+    fun sync(channelId: String, now: Instant, auditCorrelationId: UUID? = null): SlackSyncSummary {
         if (channelId.isBlank()) throw IllegalStateException("Slack scoring channel is not configured")
         val cursor = mappingRepository.syncCursor(channelId, now)
         val messages = slackApiService.fetchScoringMessages(channelId, cursor.minus(SLACK_FETCH_LOOKBACK), now)
@@ -81,6 +81,7 @@ class SlackScoringService(
                     creditType = ActivityCreditType.SLACK_WEEK,
                     uniquenessKey = weekStart.toString(),
                     sourceReference = "${message.channelId}:${message.timestamp}",
+                    auditCorrelationId = auditCorrelationId,
                 )
             ) {
                 CreditAwardResult.AWARDED -> creditsAwarded++

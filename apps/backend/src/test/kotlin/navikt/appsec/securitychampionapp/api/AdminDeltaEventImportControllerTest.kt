@@ -42,7 +42,7 @@ class AdminDeltaEventImportControllerTest {
     @Test
     fun `should queue Delta event import as an admin`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(importJob.triggerManualImport()).thenReturn(SyncTriggerResult.STARTED)
+        whenever(importJob.triggerManualImport("admin@nav.no")).thenReturn(SyncTriggerResult.STARTED)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/events/sync"))
             .andExpect(status().isAccepted)
@@ -51,7 +51,7 @@ class AdminDeltaEventImportControllerTest {
     @Test
     fun `should reject Delta event import when an import is already running`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(importJob.triggerManualImport()).thenReturn(SyncTriggerResult.ALREADY_RUNNING)
+        whenever(importJob.triggerManualImport("admin@nav.no")).thenReturn(SyncTriggerResult.ALREADY_RUNNING)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/delta/events/sync"))
             .andExpect(status().isConflict)

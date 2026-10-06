@@ -48,7 +48,7 @@ export async function proxyBackendRequest(
 			headers: responseHeaders,
 		});
 	} catch (error) {
-		console.error(`Failed to proxy ${backendPath}:`, error);
+		console.error(`Failed to proxy ${backendPath.split("?")[0]}:`, error);
 		return NextResponse.json(
 			{ error: INTERNAL_ERROR },
 			{ status: 500 },

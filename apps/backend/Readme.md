@@ -7,7 +7,9 @@ Security Champion program over time. The backend application is responsible for 
 and retrieval, and authentication and authorization for the frontend application.
 
 Participation is managed in the application: employees can self-enroll, and administrators can manage
-active status. The scheduled Teamkatalogen sync refreshes profiles for existing participants without
+active status. Participants can leave voluntarily (`LEFT`) and self-rejoin without losing their history;
+administrator deactivation cannot be reversed by self-enrollment. Activity credits require active participation
+when the sync awards them. The scheduled Teamkatalogen sync refreshes profiles for existing participants without
 creating, deactivating, or restoring participation.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
@@ -19,6 +21,10 @@ is a `@nav.no` address matching a participant's `nav_no_email`; administrators m
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
 the background and use the same locks as scheduled syncs.
+The audit timeline starts at rollout with no historical backfill. `/api/admin/audit` provides a searchable,
+paginated operational timeline; `/api/history` shows only the authenticated participant's membership and
+scoring history. Operational entries expire after 12 months, while successful participant history remains
+until permanent deletion. Audit writes are best-effort and do not change scoring outcomes.
 Administrators choose eligible Delta categories and can add single owner-confirmed Delta event UUIDs.
 Delta registration sync fetches past public events once per category (`GET /event?categories=<id>&onlyPast=true`)
 and each single event (`GET /event/{id}`), keeps events that started this calendar year, and matches only
@@ -164,6 +170,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | GET | `/api/recognition` | List positive-score names and ranks without points |
 | GET | `/api/leaderboard` | Get exact scores for active participants and administrators |
 | GET | `/api/scoring/me` | Get the active participant's current-season score, level, and rank (rank is null at zero points) |
+| GET | `/api/history` | View the authenticated participant's membership and scoring history |
 
 **Admin (`/api/admin`)** — requires admin role
 | Method | Path | Description |
@@ -194,6 +201,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | POST | `/api/admin/delta/sync` | Trigger an enabled Delta registration sync |
 | POST | `/api/admin/delta/events/sync` | Trigger an enabled Delta event import |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
+| GET | `/api/admin/audit` | Search and paginate programme-wide operational audit events |
 
 ### Scheduled Jobs
 | Job | Schedule | Description |

@@ -11,11 +11,24 @@ const participants: AdminProgramParticipant[] = [
 		fullname: "Example Person",
 		teams: ["Team A"],
 		active: true,
+		status: "ACTIVE",
 		joinedAt: "2026-01-01T00:00:00Z",
 	},
 ];
 
 describe("ManageParticipantsView", () => {
+	it("distinguishes voluntary departure and lets admins prevent self-rejoin", async () => {
+		const updateStatus = vi.spyOn(Apies, "updateParticipantStatus").mockResolvedValue(204);
+		render(<ManageParticipantsView participants={[{ ...participants[0], active: false, status: "LEFT" }]} />);
+
+		expect(screen.getByText("Left program")).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Deactivate" }));
+
+		expect(await screen.findByText("Deactivated")).toBeInTheDocument();
+		expect(updateStatus).toHaveBeenCalledWith("participant-1", false);
+		updateStatus.mockRestore();
+	});
+
 	it("should deactivate a participant through the admin operation", async () => {
 		const updateStatus = vi.spyOn(Apies, "updateParticipantStatus").mockResolvedValue(204);
 		render(<ManageParticipantsView participants={participants} />);

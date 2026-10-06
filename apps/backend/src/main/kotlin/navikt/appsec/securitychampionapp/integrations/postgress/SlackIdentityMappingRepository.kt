@@ -1,5 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.scoring.MappedSlackParticipant
 import navikt.appsec.securitychampionapp.app.scoring.SlackAccountMapping
 import navikt.appsec.securitychampionapp.app.scoring.UnmappedSlackAuthor
@@ -13,6 +15,7 @@ import java.util.UUID
 @Repository
 class SlackIdentityMappingRepository(
     private val jdbcTemplate: JdbcTemplate,
+    private val auditService: ProgramAuditService? = null,
 ) {
     fun mappingOverview(): Pair<List<SlackAccountMapping>, List<UnmappedSlackAuthor>> {
         val mappings = jdbcTemplate.query(
@@ -97,6 +100,12 @@ class SlackIdentityMappingRepository(
             actorNavNoEmail,
             slackUserId,
         )
+        auditService?.record(
+            "SLACK_ACCOUNT_MAPPED",
+            AuditOutcome.SUCCEEDED,
+            actorNavNoEmail,
+            participantId,
+        )
         return true
     }
 
@@ -129,6 +138,12 @@ class SlackIdentityMappingRepository(
             participantId,
             actorNavNoEmail,
             slackUserId,
+        )
+        auditService?.record(
+            "SLACK_ACCOUNT_UNMAPPED",
+            AuditOutcome.SUCCEEDED,
+            actorNavNoEmail,
+            participantId,
         )
         return true
     }
@@ -164,6 +179,11 @@ class SlackIdentityMappingRepository(
             participantId,
             actor,
             slackUserId,
+        )
+        auditService?.record(
+            "SLACK_ACCOUNT_AUTOMATICALLY_MAPPED",
+            AuditOutcome.SUCCEEDED,
+            targetParticipantId = participantId,
         )
         return true
     }

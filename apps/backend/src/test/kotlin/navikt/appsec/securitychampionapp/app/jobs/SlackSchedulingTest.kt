@@ -46,7 +46,7 @@ class SlackSchedulingTest {
             assertThat(context.environment.getProperty("slack.token")).isEqualTo("synthetic-slack-token")
             val trigger = context.getBean(ScoringSyncTrigger::class.java)
             val scoring = context.getBean(SlackScoringService::class.java)
-            whenever(scoring.sync(eq("C_LOCAL"), any())).thenReturn(SlackSyncSummary(0, 0, 0, 0))
+            whenever(scoring.sync(eq("C_LOCAL"), any(), anyOrNull())).thenReturn(SlackSyncSummary(0, 0, 0, 0))
             whenever(trigger.trigger(eq(1_004L), eq("syncSlackScoring"), any())).thenAnswer {
                 it.getArgument<() -> Unit>(2).invoke()
                 SyncTriggerResult.STARTED
@@ -55,7 +55,7 @@ class SlackSchedulingTest {
             assertThat(context.getBean(SlackScoringSyncJob::class.java).triggerManualSync())
                 .isEqualTo(SyncTriggerResult.STARTED)
 
-            verify(scoring).sync(eq("C_LOCAL"), any())
+            verify(scoring).sync(eq("C_LOCAL"), any(), anyOrNull())
         }
     }
 

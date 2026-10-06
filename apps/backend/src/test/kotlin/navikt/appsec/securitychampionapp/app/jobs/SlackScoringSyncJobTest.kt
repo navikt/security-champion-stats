@@ -7,6 +7,7 @@ import navikt.appsec.securitychampionapp.integrations.postgress.SlackScoringStat
 import navikt.appsec.securitychampionapp.integrations.slack.SlackIntegrationException
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
@@ -26,7 +27,7 @@ class SlackScoringSyncJobTest {
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
-        whenever(scoringService.sync("C123", attemptAt)).thenReturn(
+        whenever(scoringService.sync(eq("C123"), eq(attemptAt), anyOrNull())).thenReturn(
             SlackSyncSummary(messagesScanned = 12, creditsAwarded = 2, duplicateCredits = 1, unmappedAuthors = 3),
         )
         val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
@@ -47,7 +48,7 @@ class SlackScoringSyncJobTest {
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
-        whenever(scoringService.sync("C123", attemptAt))
+        whenever(scoringService.sync(eq("C123"), eq(attemptAt), anyOrNull()))
             .thenThrow(
                 SlackIntegrationException(
                     SlackIntegrationException.Operation.HISTORY,
@@ -71,7 +72,7 @@ class SlackScoringSyncJobTest {
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
-        whenever(scoringService.sync("C123", attemptAt)).thenThrow(
+        whenever(scoringService.sync(eq("C123"), eq(attemptAt), anyOrNull())).thenThrow(
             SlackIntegrationException(SlackIntegrationException.Operation.REPLIES, "missing_scope"),
         )
         val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
@@ -91,7 +92,8 @@ class SlackScoringSyncJobTest {
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
-        whenever(scoringService.sync("C123", attemptAt)).thenThrow(IllegalArgumentException("boom"))
+        whenever(scoringService.sync(eq("C123"), eq(attemptAt), anyOrNull()))
+            .thenThrow(IllegalArgumentException("boom"))
         val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
 
         job.syncSlackScoring()

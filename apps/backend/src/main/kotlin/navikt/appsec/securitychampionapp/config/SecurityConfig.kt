@@ -1,13 +1,18 @@
 package navikt.appsec.securitychampionapp.config
 
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
+import navikt.appsec.securitychampionapp.security.ProgramAuditRequestFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter
+import tools.jackson.databind.ObjectMapper
 
 
 const val ADMIN_ROLE = "ADMIN"
@@ -17,6 +22,9 @@ const val USER_ROLE = "USER"
 @EnableWebSecurity
 class SecurityConfig(
     private val introspectionFilter: AppAuthenticationFilter,
+    private val auditServiceProvider: ObjectProvider<ProgramAuditService>,
+    private val auditRepositoryProvider: ObjectProvider<ProgramAuditRepository>,
+    private val objectMapperProvider: ObjectProvider<ObjectMapper>,
 ) {
 
     @Bean
@@ -37,6 +45,14 @@ class SecurityConfig(
                 it.anyRequest().authenticated()
             }
             .addFilterBefore(introspectionFilter, BasicAuthenticationFilter::class.java )
+            .addFilterAfter(
+                ProgramAuditRequestFilter(
+                    auditServiceProvider,
+                    auditRepositoryProvider,
+                    objectMapperProvider,
+                ),
+                BasicAuthenticationFilter::class.java,
+            )
             .build()
     }
 }

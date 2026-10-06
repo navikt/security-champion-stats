@@ -1,0 +1,383 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=VT323&display=swap");
+
+html.hacker {
+	--bg: #030603;
+	--panel: rgba(3, 10, 4, 0.9);
+	--panel-head: #0a1c0e;
+	--line: #1d4a28;
+	--primary: #39ff6a;
+	--text: #b8f5c4;
+	--text-strong: #eaffef;
+	--muted: #5fbf78;
+	--warn: #ffcf4a;
+	--danger: #ff5f56;
+	--sc-bg: var(--bg);
+	--sc-surface: var(--panel);
+	--sc-surface-subtle: var(--panel-head);
+	--sc-surface-raised: var(--panel-head);
+	--sc-surface-accent: var(--panel-head);
+	--sc-text: var(--text-strong);
+	--sc-text-muted: var(--muted);
+	--sc-text-subtle: var(--muted);
+	--sc-border: var(--line);
+	--sc-border-strong: var(--primary);
+	--sc-primary: var(--primary);
+	--sc-primary-hover: var(--text-strong);
+	--sc-primary-active: var(--text-strong);
+	--sc-primary-soft: var(--panel-head);
+	--sc-primary-border: var(--primary);
+	--sc-success: var(--primary);
+	--sc-success-soft: var(--panel-head);
+	--sc-success-border: var(--line);
+	--sc-warning: var(--warn);
+	--sc-warning-soft: var(--panel-head);
+	--sc-warning-border: var(--warn);
+	--sc-info: var(--primary);
+	--sc-info-soft: var(--panel-head);
+	--sc-info-border: var(--line);
+	--sc-danger: #ff8a83;
+	--sc-danger-soft: var(--panel-head);
+	--sc-danger-border: #ff5f56;
+	--sc-divider: var(--line);
+	--sc-focus: var(--primary);
+	--sc-radius-sm: 0;
+	--sc-radius-md: 0;
+	--sc-radius-lg: 0;
+	--sc-radius-pill: 0;
+	background: var(--bg);
+	color: var(--text);
+	color-scheme: dark;
+	font-family: "JetBrains Mono", monospace;
+}
+
+html.hacker[data-phosphor="amber"] {
+	--primary: #ffbf47;
+	--text: #ffe7b0;
+	--text-strong: #fff4d6;
+	--muted: #c99b4c;
+	--line: #59441e;
+	--panel-head: #211907;
+}
+
+html.hacker[data-phosphor="swordfish"] {
+	--primary: #45e7ff;
+	--text: #b8f3ff;
+	--text-strong: #e8fbff;
+	--muted: #62baca;
+	--line: #1d4650;
+	--panel-head: #091c20;
+}
+
+html.hacker body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: "JetBrains Mono", monospace;
+	font-size: 14px;
+}
+
+html.hacker a {
+	color: var(--primary);
+}
+
+html.hacker a:hover {
+	color: var(--text-strong);
+}
+
+html.hacker :focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+html.hacker * {
+	border-radius: 0;
+}
+
+html.hacker .appLayout,
+html.hacker .appBody {
+	background: transparent;
+}
+
+html.hacker .appBody {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	align-items: stretch;
+	min-height: 100vh;
+}
+
+html.hacker .appMain {
+	flex: 1 1 600px;
+	min-width: 0;
+	padding: 28px clamp(16px, 3vw, 40px) 60px;
+	color: var(--text);
+}
+
+html.hacker .sideNavigation {
+	position: sticky;
+	top: 0;
+	flex: 0 0 230px;
+	width: 230px;
+	height: 100vh;
+	min-height: 100vh;
+	gap: 0;
+	padding: 22px 16px;
+	border-right: 1px solid var(--line);
+	border-radius: 0;
+	background: rgba(3, 10, 4, 0.88);
+	color: var(--text);
+	font-family: "JetBrains Mono", monospace;
+}
+
+html.hacker .sideNavigation__brand {
+	padding: 0;
+	color: var(--primary);
+	font-family: "VT323", monospace;
+	font-size: 34px;
+	font-weight: 400;
+	line-height: 1;
+	text-shadow: 0 0 8px color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+html.hacker .sideNavigation__version {
+	margin-top: 4px;
+	color: var(--muted);
+	font-size: 11px;
+}
+
+html.hacker .sideNavigation__nav {
+	gap: 4px;
+	margin-top: 22px;
+}
+
+html.hacker .sideNavigation__prompt {
+	padding: 0 8px 6px;
+	color: var(--muted);
+	font-size: 11px;
+}
+
+html.hacker .sideNavigation__item {
+	min-height: 0;
+	gap: 8px;
+	padding: 9px 10px;
+	border: 0;
+	border-radius: 0;
+	color: var(--text);
+	font-size: 13px;
+	font-weight: 400;
+	text-decoration: none;
+	transition: none;
+}
+
+html.hacker .sideNavigation__item:hover,
+html.hacker .sideNavigation__item--active,
+html.hacker .sideNavigation__item--active:hover {
+	background: #0d2412;
+	color: var(--primary);
+}
+
+html.hacker .sideNavigation__item--active,
+html.hacker .sideNavigation__item--active:hover {
+	background: var(--primary);
+	color: var(--bg);
+	font-weight: 800;
+}
+
+html.hacker .sideNavigation__administration {
+	margin-top: 0;
+	padding-top: 0;
+	border: 0;
+}
+
+html.hacker .sideNavigation__administrationTrigger {
+	background: transparent;
+	text-align: left;
+}
+
+html.hacker .sideNavigation__administrationTrigger:hover {
+	background: #0d2412;
+	color: var(--primary);
+}
+
+html.hacker .sideNavigation__chevron,
+html.hacker .sideNavigation__adminLabel {
+	display: none;
+}
+
+html.hacker .sideNavigation__adminLinks {
+	padding-left: 10px;
+}
+
+html.hacker .sideNavigation__hackerStatus {
+	margin-top: 22px;
+	padding: 12px;
+	border: 1px dashed var(--line);
+	color: var(--muted);
+	font-size: 12px;
+	line-height: 1.6;
+}
+
+html.hacker .sideNavigation__hackerStatusTitle,
+html.hacker .sideNavigation__hackerStatus strong {
+	color: var(--primary);
+}
+
+html.hacker
+	.sideNavigation__hackerStatus
+	> div:not(.sideNavigation__hackerStatusTitle) {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+html.hacker .sideNavigation__hackerStatus > div:nth-child(3) span {
+	color: var(--warn);
+}
+
+html.hacker .sideNavigation__hackerStatus > div:not(:nth-child(3)) span {
+	color: var(--primary);
+}
+
+html.hacker .sideNavigation__footer {
+	display: grid;
+	grid-template-columns: auto auto minmax(0, 1fr);
+	justify-content: start;
+	gap: 8px;
+	padding-top: 16px;
+	border-top: 1px solid var(--line);
+}
+
+html.hacker .sideNavigation__avatar {
+	width: 38px;
+	height: 38px;
+	border: 1px solid var(--primary);
+	border-radius: 0;
+	background: transparent;
+	color: var(--primary);
+	font-family: "JetBrains Mono", monospace;
+	font-size: 14px;
+}
+
+html.hacker .sideNavigation__identity {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	color: var(--muted);
+	font-size: 11px;
+	overflow-wrap: anywhere;
+}
+
+html.hacker .sideNavigation__identity span:first-child {
+	color: var(--text-strong);
+	font-size: 12px;
+}
+
+.hackerThemeSettings {
+	display: grid;
+	gap: 10px;
+	padding: 12px;
+	border-top: 1px solid var(--line);
+	color: var(--text);
+	font:
+		12px "JetBrains Mono",
+		monospace;
+}
+
+.hackerThemeSettings__field,
+.hackerThemeSettings__toggle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.hackerThemeSettings__field {
+	justify-content: space-between;
+}
+
+.hackerThemeSettings select {
+	max-width: 110px;
+	padding: 4px;
+	border: 1px solid var(--line);
+	border-radius: 0;
+	background: var(--bg);
+	color: var(--text);
+	font: inherit;
+}
+
+.hackerThemeSettings input {
+	accent-color: var(--primary);
+}
+
+.hackerCrt {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.hackerRain {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 0;
+	opacity: 0.22;
+	pointer-events: none;
+}
+
+.hackerRain__canvas {
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.hackerCrt {
+	z-index: 50;
+}
+
+.hackerCrt__scanlines,
+.hackerCrt__vignette {
+	position: absolute;
+	inset: 0;
+}
+
+.hackerCrt__scanlines {
+	background: repeating-linear-gradient(
+		0deg,
+		rgba(0, 0, 0, 0.28) 0 1px,
+		transparent 1px 3px
+	);
+}
+
+.hackerCrt__vignette {
+	background: radial-gradient(
+		ellipse at center,
+		transparent 55%,
+		rgba(0, 0, 0, 0.65) 100%
+	);
+}
+
+@media (max-width: 760px) {
+	html.hacker .appBody {
+		flex-direction: column;
+	}
+
+	html.hacker .sideNavigation {
+		position: relative;
+		width: 100%;
+		height: auto;
+		min-height: 0;
+		flex-basis: auto;
+		border-right: 0;
+		border-bottom: 1px solid var(--line);
+	}
+
+	html.hacker .sideNavigation__hackerStatus {
+		display: none;
+	}
+
+	html.hacker .sideNavigation__footer {
+		margin-top: 16px;
+	}
+}

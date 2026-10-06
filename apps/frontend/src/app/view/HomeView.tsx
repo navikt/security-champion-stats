@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Me, SecurityEvent } from "../utils/Variables";
+import type { Me, SecurityEvent } from "../utils/Variables";
 import { MembershipView } from "./member/components/MembershipView";
 import "../style/home/HomeView.css";
 import { BodyShort, Heading } from "@navikt/ds-react";
-import { EventsView } from "@/app/view/events/EventsView";
+import { useTheme } from "next-themes";
 import { Apies } from "@/app/shared/hooks/Apies";
+import { EventsView } from "@/app/view/events/EventsView";
+import { HackerOverview } from "./HackerOverview";
 import { ScoringOverview } from "./member/components/ScoringOverview";
 
 function View({ me }: { me: Me }) {
@@ -40,8 +42,7 @@ function View({ me }: { me: Me }) {
 				key={`${userData.isParticipant}:${userData.isActive}`}
 				showPersonalProgress={userData.isParticipant && userData.isActive}
 				showLeaderboard={
-					userData.isAdmin ||
-					(userData.isParticipant && userData.isActive)
+					userData.isAdmin || (userData.isParticipant && userData.isActive)
 				}
 			/>
 		</main>
@@ -49,5 +50,7 @@ function View({ me }: { me: Me }) {
 }
 
 export function MainView({ info }: { info: Me }) {
+	const { theme } = useTheme();
+	if (theme === "hacker") return <HackerOverview info={info} />;
 	return <View me={info} />;
 }

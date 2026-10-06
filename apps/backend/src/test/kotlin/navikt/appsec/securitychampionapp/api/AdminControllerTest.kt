@@ -112,6 +112,14 @@ class AdminControllerTest {
     }
 
     @Test
+    fun `should return 404 for the removed Slack test endpoint`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/test/member/add/slack/test@nav.no"))
+            .andExpect(status().isNotFound)
+    }
+
+    @Test
     fun `should update participant status for admins`() {
         mockAuthenticatedUser(ADMIN_ROLE)
         whenever(participantRepository.updateStatus(any(), eq(false), eq("admin@nav.no")))

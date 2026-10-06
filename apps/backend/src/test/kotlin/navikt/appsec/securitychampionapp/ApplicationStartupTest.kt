@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp
 
-import navikt.appsec.securitychampionapp.integrations.slack.ChannelMembershipService
+import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
+import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.boot.builder.SpringApplicationBuilder
@@ -38,16 +39,12 @@ class ApplicationStartupTest {
                 "--NAIS_TOKEN_INTROSPECTION_ENDPOINT=http://localhost/introspect",
                 "--SLACK_TOKEN=synthetic-slack-token",
                 "--SLACK_SC_CHANNEL_ID=test-sc-channel",
-                "--SLACK_APPSEC_CHANNEL_ID=test-appsec-channel",
-                "--SLACK_APPSEC_ACTIVITY_CHANNEL_ID=test-activity-channel",
-                "--SLACK_USER_GROUP_ID=test-user-group",
             ).use { context ->
                 assertThat(context.environment.activeProfiles).containsExactly("prod")
-                val membershipService = context.getBean(ChannelMembershipService::class.java)
-                assertThat(ReflectionTestUtils.getField(membershipService, "scChannelId"))
-                    .isEqualTo("test-activity-channel")
-                assertThat(ReflectionTestUtils.getField(membershipService, "userGrouping"))
-                    .isEqualTo("test-user-group")
+                assertThat(context.getBean(SlackApiService::class.java)).isNotNull()
+                val slackJob = context.getBean(SlackScoringSyncJob::class.java)
+                assertThat(ReflectionTestUtils.getField(slackJob, "channelId"))
+                    .isEqualTo("test-sc-channel")
 
                 val port = context.environment.getRequiredProperty("local.server.port")
                 HttpClient.newHttpClient().use { client ->

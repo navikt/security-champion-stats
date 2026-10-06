@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Me, ProgramParticipant } from "@/app/utils/Variables";
 import Loading from "@/app/view/Loading";
 import { Apies } from "@/app/shared/hooks/Apies";
+import { notifyMembershipChanged } from "@/app/shared/hooks/UseMe";
 import { JoinedMembershipView } from "@/app/view/member/components/JoinedMembershipView";
 import { JoinProgramView } from "@/app/view/member/components/JoinProgramView";
 import { LeaveProgramModal } from "@/app/view/member/modal/LeaveProgramModal";
@@ -17,13 +18,14 @@ export function MembershipView({ me, onMembershipChanged }: { me: Me; onMembersh
 	const [pending, setPending] = useState(false);
 	const [actionError, setActionError] = useState<string | null>(null);
 
-	const refreshMembership = useCallback(async () => {
+	const refreshMembership = useCallback(async (notify = false) => {
 		try {
 			const result = await Apies.fetchMembership();
 			if (!result) throw new Error("Failed to fetch membership");
 			const updatedMe = { ...me, isParticipant: true, isActive: result.active };
 			setMe(updatedMe);
 			onMembershipChanged?.(updatedMe);
+			if (notify) notifyMembershipChanged(updatedMe);
 			setParticipant(result);
 			setFetchFailed(false);
 			return true;
@@ -42,7 +44,7 @@ export function MembershipView({ me, onMembershipChanged }: { me: Me; onMembersh
 	const enroll = async () => {
 		const enrolled = await Apies.joinProgram();
 		if (!enrolled) return false;
-		return refreshMembership();
+		return refreshMembership(true);
 	};
 
 	const changeParticipation = async (leave: boolean) => {
@@ -55,6 +57,7 @@ export function MembershipView({ me, onMembershipChanged }: { me: Me; onMembersh
 			const updatedMe = { ...userData, isActive: !leave };
 			setMe(updatedMe);
 			onMembershipChanged?.(updatedMe);
+			notifyMembershipChanged(updatedMe);
 			setLeaveOpen(false);
 			await refreshMembership();
 		} catch (error) {

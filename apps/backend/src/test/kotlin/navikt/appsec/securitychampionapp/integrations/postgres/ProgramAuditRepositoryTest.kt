@@ -190,6 +190,47 @@ class ProgramAuditRepositoryTest {
     }
 
     @Test
+    fun `should expire legacy operations but retain participant status credits and adjustment history`() {
+        val participantId = createParticipant("person@nav.no")
+        participantRepository.updateStatus(participantId, false, "admin@nav.no")
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_participant_audit (
+                    participant_id, action, before_values, after_values, created_at
+                ) VALUES (?, 'SLACK_MAPPING_ADDED', '{}', '{}', NOW() - INTERVAL '13 months')
+            """.trimIndent(), participantId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_scoring_audit (action, before_values, after_values, created_at)
+                VALUES ('SEASON_RESET_DATE_UPDATED', '{}', '{}', NOW() - INTERVAL '13 months')
+            """.trimIndent(),
+        )
+        jdbcTemplate.update("UPDATE program_participant_audit SET created_at = NOW() - INTERVAL '13 months'")
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_scoring_audit (action, before_values, after_values)
+                VALUES ('DELTA_CATEGORY_ADDED', '{}', '{}')
+            """.trimIndent(),
+        )
+        jdbcTemplate.update("UPDATE program_participants SET status = 'ACTIVE' WHERE id = ?", participantId)
+        scoringRepository.awardCredit(participantId, ActivityCreditType.GITHUB_COMMIT, "commit:1", "Commit 1")
+        scoringRepository.addAdjustment(participantId, 1, "Correction", "admin@nav.no", null)
+        jdbcTemplate.update("UPDATE program_scoring_audit SET created_at = NOW() - INTERVAL '13 months' "
+            + "WHERE action = 'POINTS_ADJUSTED'")
+        jdbcTemplate.update("UPDATE activity_credits SET awarded_at = NOW() - INTERVAL '13 months'")
+        jdbcTemplate.update("UPDATE point_adjustments SET created_at = NOW() - INTERVAL '13 months'")
+
+        assertThat(repository.deleteExpiredOperationalEvents(Instant.now())).isEqualTo(3)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_participant_audit", Int::class.java))
+            .isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_scoring_audit", Int::class.java))
+            .isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM activity_credits", Int::class.java)).isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_adjustments", Int::class.java)).isEqualTo(1)
+    }
+
+    @Test
     fun `should not expose pre-rollout domain records as new participant history`() {
         val participantId = createParticipant("person@nav.no")
         scoringRepository.awardCredit(

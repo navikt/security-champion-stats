@@ -206,17 +206,39 @@ class ProgramAuditRepository(
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun deleteExpiredOperationalEvents(now: Instant): Int =
-        jdbcTemplate.update(
+        jdbcTemplate.queryForObject(
             """
+                WITH expired_participant_operations AS (
+                    DELETE FROM program_participant_audit
+                    WHERE created_at < ?::timestamptz - INTERVAL '12 months'
+                        AND action <> 'PARTICIPATION_STATUS_CHANGED'
+                    RETURNING id
+                ),
+                expired_scoring_operations AS (
+                    DELETE FROM program_scoring_audit
+                    WHERE created_at < ?::timestamptz - INTERVAL '12 months'
+                    RETURNING id
+                ),
+                expired_program_operations AS (
                 DELETE FROM program_audit_events
                 WHERE created_at < ?::timestamptz - INTERVAL '12 months'
                     AND NOT (
                         outcome = 'SUCCEEDED'
                         AND action IN ('PARTICIPANT_ENROLLED', 'PARTICIPANT_LEFT', 'PARTICIPANT_REJOINED')
                     )
+                RETURNING id
+                )
+                SELECT (
+                    (SELECT COUNT(*) FROM expired_participant_operations)
+                    + (SELECT COUNT(*) FROM expired_scoring_operations)
+                    + (SELECT COUNT(*) FROM expired_program_operations)
+                )::integer
             """.trimIndent(),
+            Int::class.java,
             Timestamp.from(now),
-        )
+            Timestamp.from(now),
+            Timestamp.from(now),
+        ) ?: 0
 
     private fun escapeLike(value: String): String =
         value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")

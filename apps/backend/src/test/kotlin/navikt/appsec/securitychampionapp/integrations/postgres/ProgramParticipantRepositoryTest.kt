@@ -148,6 +148,53 @@ class ProgramParticipantRepositoryTest {
     }
 
     @Test
+    fun `should anonymize deleted administrator in retained adjustments and integration configuration`() {
+        repository.enroll("admin@nav.no", "A12345", "admin@nav.no")
+        repository.enroll("other@nav.no", "A12346", "other@nav.no")
+        val adminId = UUID.fromString(repository.findByNavNoEmail("admin@nav.no").queryResult.single().id)
+        val otherId = UUID.fromString(repository.findByNavNoEmail("other@nav.no").queryResult.single().id)
+        jdbcTemplate.update(
+            """
+                INSERT INTO point_adjustments (
+                    participant_id, season_id, points_delta, reason, actor_nav_no_email, score_before, score_after
+                ) SELECT ?, id, 1, 'Correction', 'admin@nav.no', 0, 1
+                FROM program_seasons WHERE ends_on IS NULL
+            """.trimIndent(), otherId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO slack_account_mappings (slack_user_id, participant_id, created_by_nav_no_email)
+                VALUES ('U_OTHER', ?, 'admin@nav.no')
+            """.trimIndent(), otherId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_delta_event_mappings (
+                    program_event_name, delta_event_uuid, created_by_nav_no_email
+                ) VALUES ('Event', ?, 'admin@nav.no')
+            """.trimIndent(), UUID.randomUUID(),
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO delta_eligible_categories (category_id, category_name, created_by_nav_no_email)
+                VALUES (1, 'Security', 'admin@nav.no')
+            """.trimIndent(),
+        )
+
+        assertThat(repository.permanentlyDelete(adminId).isOk).isTrue()
+        for ((table, column) in listOf(
+            "point_adjustments" to "actor_nav_no_email",
+            "slack_account_mappings" to "created_by_nav_no_email",
+            "program_delta_event_mappings" to "created_by_nav_no_email",
+            "delta_eligible_categories" to "created_by_nav_no_email",
+        )) {
+            assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $table", Int::class.java)).isEqualTo(1)
+            assertThat(jdbcTemplate.queryForMap("SELECT $column FROM $table")[column]).isNull()
+        }
+        assertThat(repository.findByNavNoEmail("other@nav.no").queryResult).hasSize(1)
+    }
+
+    @Test
     fun `should permanently delete only the selected participant`() {
         repository.enroll("first@nav.no", "A12345", "first@nav.no")
         repository.enroll("second@nav.no", "A12346", "second@nav.no")

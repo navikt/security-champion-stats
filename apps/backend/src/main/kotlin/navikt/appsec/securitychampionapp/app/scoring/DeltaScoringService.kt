@@ -1,8 +1,10 @@
 package navikt.appsec.securitychampionapp.app.scoring
 
-import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaEventRegistrations
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
+import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaRegistrationSource
+import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCategoryRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
@@ -13,6 +15,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
+import java.util.UUID
 
 private val DELTA_SCORING_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 
@@ -20,6 +23,7 @@ private val DELTA_SCORING_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 class DeltaScoringService(
     private val eventSource: DeltaRegistrationSource,
     private val mappingRepository: DeltaEventMappingRepository,
+    private val categoryRepository: DeltaEligibleCategoryRepository,
     private val participantRepository: ProgramParticipantRepository,
     private val scoringService: ScoringService,
     private val statusRepository: DeltaScoringStatusRepository,
@@ -49,25 +53,12 @@ class DeltaScoringService(
     }
 
     private fun syncMappedEvents(): DeltaSyncSummary {
+        val categories = categoryRepository.findAll()
         val mappings = mappingRepository.findAll()
-        if (mappings.isEmpty()) return DeltaSyncSummary()
+        if (categories.isEmpty() && mappings.isEmpty()) return DeltaSyncSummary()
 
-        val currentYear = LocalDate.now(clock.withZone(DELTA_SCORING_ZONE)).year
-        val from = LocalDate.of(currentYear, 1, 1).atStartOfDay()
-        val to = LocalDate.of(currentYear + 1, 1, 1).atStartOfDay()
-        val mappingsByCategory = mappings.mapNotNull { mapping ->
-            mapping.deltaCategoryId?.let { categoryId -> categoryId to mapping }
-        }.groupBy({ it.first }, { it.second })
-        val mappingsByCategoryAndEvent = mappingsByCategory.mapValues { (_, categoryMappings) ->
-            categoryMappings.associateBy { it.deltaEventUuid }
-        }
-        val failedMappingIds = mappings.filter { it.deltaCategoryId == null }.mapTo(mutableSetOf()) { it.id }
-        if (mappingsByCategory.isEmpty()) {
-            return DeltaSyncSummary(
-                failedEvents = failedMappingIds.size,
-                failureSummary = DeltaFailure.MAPPING_CATEGORY.summary,
-            )
-        }
+        val now = LocalDateTime.now(clock.withZone(DELTA_SCORING_ZONE))
+        val from = LocalDate.of(now.year, 1, 1).atStartOfDay()
         val activeParticipants = participantRepository.findActiveParticipants()
         if (!activeParticipants.isOk) {
             throw DeltaIntegrationException(DeltaFailure.PARTICIPANT_LOOKUP)
@@ -75,65 +66,69 @@ class DeltaScoringService(
         val participantsByEmail = activeParticipants.queryResult
             .filter { it.email.isNotBlank() }
             .groupBy { it.email.normalizeEmail() }
-        var eventsScanned = 0
+
+        var failedSources = 0
+        val failureSummaries = linkedSetOf<String>()
+        val events = linkedMapOf<UUID, DeltaEventRegistrations>()
+
+        fun fetch(block: () -> List<DeltaEventRegistrations>) {
+            try {
+                block().forEach { events.putIfAbsent(it.eventUuid, it) }
+            } catch (e: DeltaIntegrationException) {
+                if (e.failure == DeltaFailure.TOKEN || e.failure == DeltaFailure.CONFIGURATION) throw e
+                failedSources++
+                failureSummaries += e.failure.summary
+            }
+        }
+
+        categories.forEach { category -> fetch { eventSource.pastEventsInCategory(category.categoryId) } }
+        mappings.filterNot { it.deltaEventUuid in events }.forEach { mapping ->
+            fetch {
+                listOf(
+                    eventSource.event(mapping.deltaEventUuid)
+                        ?: throw DeltaIntegrationException(DeltaFailure.EVENT_NOT_FOUND),
+                )
+            }
+        }
+
+        val eligibleEvents = events.values.filter { it.startTime >= from && it.startTime < now }
         var creditsAwarded = 0
         var duplicateCredits = 0
         var unmatchedRegistrations = 0
-        val failureSummaries = linkedSetOf<String>()
-        if (failedMappingIds.isNotEmpty()) failureSummaries += DeltaFailure.MAPPING_CATEGORY.summary
 
-        mappingsByCategory.forEach { (categoryId, categoryMappings) ->
-            var categoryFailed = false
-            participantsByEmail.forEach participantLoop@{ (email, participants) ->
-                val matchingEvents = try {
-                    eventSource.findRegisteredEvents(categoryId, email, from, to)
-                } catch (e: DeltaIntegrationException) {
-                    if (e.failure == DeltaFailure.TOKEN || e.failure == DeltaFailure.CONFIGURATION) throw e
-                    categoryFailed = true
-                    failureSummaries += e.failure.summary
-                    return@participantLoop
+        eligibleEvents.forEach { event ->
+            event.participantEmails.map { it.normalizeEmail() }.toSet().forEach emailLoop@{ email ->
+                val participants = participantsByEmail[email] ?: return@emailLoop
+                val participant = participants.singleOrNull()
+                if (participant == null) {
+                    unmatchedRegistrations++
+                    return@emailLoop
                 }
-
-                matchingEvents.distinctBy { it.eventUuid }
-                    .filter { it.startTime >= from && it.startTime < to }
-                    .forEach eventLoop@{ event ->
-                        val mapping = mappingsByCategoryAndEvent[categoryId]?.get(event.eventUuid) ?: return@eventLoop
-                        val participant = participants.singleOrNull()
-                        if (participant == null) {
-                            unmatchedRegistrations++
-                            return@eventLoop
-                        }
-                        when (
-                            scoringService.awardCredit(
-                                participantId = java.util.UUID.fromString(participant.id),
-                                creditType = ActivityCreditType.DELTA_REGISTRATION,
-                                uniquenessKey = mapping.deltaEventUuid.toString(),
-                                sourceReference = mapping.deltaEventUuid.toString(),
-                            )
-                        ) {
-                            CreditAwardResult.AWARDED -> creditsAwarded++
-                            CreditAwardResult.DUPLICATE -> duplicateCredits++
-                            CreditAwardResult.PARTICIPANT_INACTIVE_OR_MISSING -> unmatchedRegistrations++
-                        }
-                    }
-            }
-            if (categoryFailed) {
-                failedMappingIds += categoryMappings.map { it.id }
-            } else {
-                eventsScanned += categoryMappings.size
+                when (
+                    scoringService.awardCredit(
+                        participantId = UUID.fromString(participant.id),
+                        creditType = ActivityCreditType.DELTA_REGISTRATION,
+                        uniquenessKey = event.eventUuid.toString(),
+                        sourceReference = event.eventUuid.toString(),
+                    )
+                ) {
+                    CreditAwardResult.AWARDED -> creditsAwarded++
+                    CreditAwardResult.DUPLICATE -> duplicateCredits++
+                    CreditAwardResult.PARTICIPANT_INACTIVE_OR_MISSING -> unmatchedRegistrations++
+                }
             }
         }
 
         return DeltaSyncSummary(
-            eventsScanned = eventsScanned,
+            eventsScanned = eligibleEvents.size,
             creditsAwarded = creditsAwarded,
             duplicateCredits = duplicateCredits,
             unmatchedRegistrations = unmatchedRegistrations,
-            failedEvents = failedMappingIds.size,
+            failedEvents = failedSources,
             failureSummary = when (failureSummaries.size) {
                 0 -> null
                 1 -> failureSummaries.single()
-                else -> "Some mapped Delta events could not be synchronized"
+                else -> "Some Delta categories or events could not be synchronized"
             },
         )
     }

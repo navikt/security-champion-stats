@@ -33,21 +33,13 @@ class DeltaApiClientTest {
             val (status, response) = when (exchange.requestURI.path) {
                 "/token" -> 200 to """{"access_token":"delta-test-token","expires_in":3600,"token_type":"Bearer"}"""
                 "/category" -> 200 to """[{"id":7,"name":"Security"}]"""
-                "/event" -> if (
-                    exchange.requestURI.rawQuery.orEmpty().contains("participantEmail=private")
-                ) {
+                "/event" -> if (exchange.requestURI.rawQuery.orEmpty().contains("categories=13")) {
                     403 to """{"email":"private@nav.no","detail":"raw response"}"""
                 } else {
-                    200 to """
-                        [{
-                          "event": {
-                            "id": "$EVENT_ID",
-                            "startTime": "2026-10-03T10:00:00",
-                            "title": "Synthetic event"
-                          }
-                        }]
-                    """.trimIndent()
+                    200 to "[$FULL_EVENT_JSON]"
                 }
+                "/event/$EVENT_ID" -> 200 to FULL_EVENT_JSON
+                "/event/$MISSING_EVENT_ID" -> 404 to """{}"""
                 else -> 404 to """{}"""
             }
             val responseBytes = response.toByteArray()
@@ -64,29 +56,14 @@ class DeltaApiClientTest {
     }
 
     @Test
-    fun `should fetch participant-specific event matches using a Nais M2M token`() {
+    fun `should fetch past events in a category using a Nais M2M token`() {
         val baseUrl = "http://localhost:${server.address.port}"
-        val client = client(baseUrl)
 
-        val result = client.findRegisteredEvents(
-            categoryId = 7,
-            participantEmail = "participant@nav.no",
-            from = LocalDateTime.parse("2026-01-01T00:00:00"),
-            to = LocalDateTime.parse("2027-01-01T00:00:00"),
-        )
+        val result = client(baseUrl).pastEventsInCategory(7)
 
-        assertThat(result).containsExactly(
-            DeltaEventMatch(EVENT_ID, LocalDateTime.parse("2026-10-03T10:00:00"))
-        )
+        assertThat(result).containsExactly(EXPECTED_REGISTRATIONS)
         assertThat(requests.map { it.path }).containsExactly("/token", "/event")
-        assertThat(decodeQuery(requests[1].query)).isEqualTo(
-            mapOf(
-                "categories" to "7",
-                "participantEmail" to "participant@nav.no",
-                "from" to "2026-01-01T00:00:00",
-                "to" to "2027-01-01T00:00:00",
-            )
-        )
+        assertThat(decodeQuery(requests[1].query)).isEqualTo(mapOf("categories" to "7", "onlyPast" to "true"))
         assertThat(requests[0].method).isEqualTo("POST")
         assertThat(decodeForm(requests[0].body)).isEqualTo(
             mapOf(
@@ -95,6 +72,21 @@ class DeltaApiClientTest {
             )
         )
         assertThat(requests[1].authorization).startsWith("Bearer ")
+    }
+
+    @Test
+    fun `should fetch a single event by id`() {
+        val result = client("http://localhost:${server.address.port}").event(EVENT_ID)
+
+        assertThat(result).isEqualTo(EXPECTED_REGISTRATIONS)
+        assertThat(requests.map { it.path }).containsExactly("/token", "/event/$EVENT_ID")
+    }
+
+    @Test
+    fun `should return null when a single event is not found`() {
+        val result = client("http://localhost:${server.address.port}").event(MISSING_EVENT_ID)
+
+        assertThat(result).isNull()
     }
 
     @Test
@@ -110,12 +102,7 @@ class DeltaApiClientTest {
         val baseUrl = "http://localhost:${server.address.port}"
 
         assertThatThrownBy {
-            client(baseUrl).findRegisteredEvents(
-                7,
-                "private@nav.no",
-                LocalDateTime.parse("2026-01-01T00:00:00"),
-                LocalDateTime.parse("2027-01-01T00:00:00"),
-            )
+            client(baseUrl).pastEventsInCategory(13)
         }
             .isInstanceOf(DeltaIntegrationException::class.java)
             .hasMessage(DeltaFailure.API.summary)
@@ -167,5 +154,22 @@ class DeltaApiClientTest {
 
     private companion object {
         val EVENT_ID: UUID = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
+        val MISSING_EVENT_ID: UUID = UUID.fromString("923e4567-e89b-12d3-a456-426614174000")
+        val FULL_EVENT_JSON = """
+            {
+              "event": {"id": "$EVENT_ID", "startTime": "2026-10-03T10:00:00", "title": "Synthetic event"},
+              "participants": [
+                {"email": " participant@nav.no ", "name": "Synthetic Participant"},
+                {"email": "", "name": "No Email"}
+              ],
+              "hosts": [{"email": "host@nav.no", "name": "Synthetic Host"}],
+              "categories": []
+            }
+        """.trimIndent()
+        val EXPECTED_REGISTRATIONS = DeltaEventRegistrations(
+            EVENT_ID,
+            LocalDateTime.parse("2026-10-03T10:00:00"),
+            setOf("participant@nav.no"),
+        )
     }
 }

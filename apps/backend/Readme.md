@@ -19,9 +19,10 @@ is a `@nav.no` address matching a participant's `nav_no_email`; administrators m
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
 the background and use the same locks as scheduled syncs.
-Administrators can also map program events to owner-confirmed Delta event UUIDs. Delta registration sync
-stores a Delta category with each mapping and finds registrations through the participant-specific lookup
-for public events in the current calendar year. The sync is disabled by default until Delta read access,
+Administrators choose eligible Delta categories and can add single owner-confirmed Delta event UUIDs.
+Delta registration sync fetches past public events once per category (`GET /event?categories=<id>&onlyPast=true`)
+and each single event (`GET /event/{id}`), keeps events that started this calendar year, and matches only
+participant emails locally. Removing a category keeps awarded credits. The sync is disabled by default until Delta read access,
 outbound network access, and eligible public event identifiers are confirmed. Administrators can inspect
 its latest outcome at `/api/admin/delta/sync-status`.
 
@@ -174,9 +175,11 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
 | GET | `/api/admin/delta/event-mappings` | List explicit program-event-to-Delta UUID mappings |
 | POST | `/api/admin/delta/event-mappings` | Add an explicit Delta event mapping |
-| PUT | `/api/admin/delta/event-mappings/{id}/category` | Set or update the category for a Delta mapping |
 | DELETE | `/api/admin/delta/event-mappings/{id}` | Remove a Delta mapping with no awarded credits |
-| GET | `/api/admin/delta/categories` | List Delta categories for eligible event mappings |
+| GET | `/api/admin/delta/categories` | List Delta categories |
+| GET | `/api/admin/delta/eligible-categories` | List Delta categories that give points |
+| POST | `/api/admin/delta/eligible-categories` | Make a Delta category eligible |
+| DELETE | `/api/admin/delta/eligible-categories/{categoryId}` | Remove an eligible category, keeping credits |
 | GET | `/api/admin/delta/sync-status` | View the latest Delta registration sync outcome |
 | POST | `/api/admin/delta/sync` | Trigger an enabled Delta registration sync |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
@@ -186,7 +189,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 |-----|----------|-------------|
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
 | `SlackScoringSyncJob` | Every 6 hours | Awards qualifying Slack participation credits and queues unmapped authors |
-| `DeltaScoringSyncJob` | Every 6 hours | Finds active participant registrations for mapped, current-year public Delta events; disabled by default |
+| `DeltaScoringSyncJob` | Every 6 hours | Awards registrations for started, current-year public events in eligible categories or single events; disabled by default |
 | `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |
 
 ## Contributing

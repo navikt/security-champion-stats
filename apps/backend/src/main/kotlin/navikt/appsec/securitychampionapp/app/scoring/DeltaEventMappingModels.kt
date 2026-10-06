@@ -7,18 +7,24 @@ data class DeltaEventMapping(
     val id: UUID,
     val programEventName: String,
     val deltaEventUuid: UUID,
-    val deltaCategoryId: Int?,
     val createdAt: Instant,
 )
 
 data class AddDeltaEventMappingRequest(
     val programEventName: String,
     val deltaEventUuid: String,
-    val deltaCategoryId: Int,
 )
 
-data class UpdateDeltaEventMappingCategoryRequest(
+data class DeltaEligibleCategory(
+    val categoryId: Int,
+    val categoryName: String,
+    val createdAt: Instant,
+)
+
+data class AddDeltaEligibleCategoryRequest(
     val deltaCategoryId: Int,
 )
 
 class DeltaEventMappingHasCreditsException : RuntimeException()
+
+class DeltaCategoryNotFoundException : RuntimeException()

@@ -13,7 +13,6 @@ class DeltaEventMappingService(
     fun addMapping(
         programEventName: String,
         deltaEventUuid: String,
-        deltaCategoryId: Int,
         actorNavNoEmail: String,
     ): DeltaEventMapping {
         val normalizedName = programEventName.trim()
@@ -23,26 +22,13 @@ class DeltaEventMappingService(
         if (actorNavNoEmail.isBlank()) {
             throw InvalidScoringRequestException("An administrator identity is required")
         }
-        if (deltaCategoryId <= 0) {
-            throw InvalidScoringRequestException("A valid Delta category is required")
-        }
         val normalizedDeltaUuid = try {
             UUID.fromString(deltaEventUuid.trim())
         } catch (_: IllegalArgumentException) {
             throw InvalidScoringRequestException("A valid Delta event UUID is required")
         }
         val id = UUID.randomUUID()
-        return repository.addMapping(id, normalizedName, normalizedDeltaUuid, deltaCategoryId, actorNavNoEmail)
-    }
-
-    fun updateCategory(id: UUID, deltaCategoryId: Int, actorNavNoEmail: String): Boolean {
-        if (deltaCategoryId <= 0) {
-            throw InvalidScoringRequestException("A valid Delta category is required")
-        }
-        if (actorNavNoEmail.isBlank()) {
-            throw InvalidScoringRequestException("An administrator identity is required")
-        }
-        return repository.updateCategory(id, deltaCategoryId, actorNavNoEmail)
+        return repository.addMapping(id, normalizedName, normalizedDeltaUuid, actorNavNoEmail)
     }
 
     fun removeMapping(id: UUID, actorNavNoEmail: String): Boolean {

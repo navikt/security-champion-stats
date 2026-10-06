@@ -5,6 +5,7 @@ import type {
 	AdminDashboardOverview,
 	DeltaEventMapping,
 	DeltaCategory,
+	DeltaEligibleCategory,
 	Me,
 	ProgramParticipant,
 	ProgramParticipantSummary,
@@ -100,29 +101,43 @@ export const Apies = {
 	addDeltaEventMapping: async (
 		programEventName: string,
 		deltaEventUuid: string,
-		deltaCategoryId: number,
 	): Promise<number> => {
 		const res = await fetch("/api/admin/delta/event-mappings", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ programEventName, deltaEventUuid, deltaCategoryId }),
+			body: JSON.stringify({ programEventName, deltaEventUuid }),
 		});
 		if (!res.ok) {
 			console.error("Failed to add Delta event mapping, status: ", res.status);
 		}
 		return res.status;
 	},
-	updateDeltaEventMappingCategory: async (id: string, deltaCategoryId: number): Promise<number> => {
+	getDeltaEligibleCategories: async (): Promise<DeltaEligibleCategory[] | null> => {
+		const res = await fetch("/api/admin/delta/eligible-categories");
+		if (!res.ok) {
+			console.error("Failed to fetch eligible Delta categories, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	addDeltaEligibleCategory: async (deltaCategoryId: number): Promise<number> => {
+		const res = await fetch("/api/admin/delta/eligible-categories", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ deltaCategoryId }),
+		});
+		if (!res.ok) {
+			console.error("Failed to add eligible Delta category, status: ", res.status);
+		}
+		return res.status;
+	},
+	removeDeltaEligibleCategory: async (categoryId: number): Promise<number> => {
 		const res = await fetch(
-			`/api/admin/delta/event-mappings/${encodeURIComponent(id)}/category`,
-			{
-				method: "PUT",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ deltaCategoryId }),
-			},
+			`/api/admin/delta/eligible-categories/${encodeURIComponent(categoryId)}`,
+			{ method: "DELETE" },
 		);
 		if (!res.ok) {
-			console.error("Failed to update Delta mapping category, status: ", res.status);
+			console.error("Failed to remove eligible Delta category, status: ", res.status);
 		}
 		return res.status;
 	},

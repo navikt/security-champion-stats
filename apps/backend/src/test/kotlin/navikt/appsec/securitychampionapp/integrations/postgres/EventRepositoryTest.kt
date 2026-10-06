@@ -196,6 +196,19 @@ class EventRepositoryTest {
     }
 
     @Test
+    fun `should insert and then update a Delta event with its link`() {
+        val event = testEvent().copy(link = "https://delta.nav.no/event/abc")
+        repository.upsertDeltaEvent(event)
+        repository.upsertDeltaEvent(event.copy(name = "Renamed meetup", location = "Bergen"))
+
+        val stored = repository.getAllEvents().queryResult!!.single()
+        Assertions.assertThat(stored.name).isEqualTo("Renamed meetup")
+        Assertions.assertThat(stored.location).isEqualTo("Bergen")
+        Assertions.assertThat(stored.link).isEqualTo("https://delta.nav.no/event/abc")
+        Assertions.assertThat(stored.deltaEvent).isTrue()
+    }
+
+    @Test
     fun `should return empty result when no events exist`() {
         val response = repository.getAllEvents()
 

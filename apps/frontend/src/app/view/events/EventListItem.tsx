@@ -1,6 +1,6 @@
 import { SecurityEvent } from "@/app/utils/Variables";
 import { CalendarIcon, ChevronRightIcon } from "@navikt/aksel-icons";
-import { Tag } from "@navikt/ds-react";
+import { Link, Tag } from "@navikt/ds-react";
 import "../../style/events/EventsView.css";
 
 interface EventListItemProps {
@@ -22,7 +22,9 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 			</div>
 
 			<div className={"eventListItem__content"}>
-				<strong className={"eventListItem__title"}>{event.name}</strong>
+				<strong className={"eventListItem__title"}>
+					{event.link ? <Link href={event.link}>{event.name}</Link> : event.name}
+				</strong>
 
 				<span className={"eventListItem__date"}>
 					{start.toLocaleDateString("nb-NO", { timeZone: "Europe/Oslo" })} ·{" "}

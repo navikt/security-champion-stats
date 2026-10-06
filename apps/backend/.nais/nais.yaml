@@ -13,6 +13,10 @@ spec:
       value: CN8N938K1
     - name: DELTA_SCORING_ENABLED
       value: "true"
+    - name: DELTA_EVENTS_ENABLED
+      value: "true"
+    - name: DELTA_EVENTS_CATEGORY_ID
+      value: "54"
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:

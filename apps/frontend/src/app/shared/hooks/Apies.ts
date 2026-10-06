@@ -39,6 +39,13 @@ export const Apies = {
 		}
 		return res.status;
 	},
+	triggerDeltaEventImport: async (): Promise<number> => {
+		const res = await fetch("/api/admin/delta/events/sync", { method: "POST" });
+		if (!res.ok) {
+			console.error("Failed to trigger Delta event import, status: ", res.status);
+		}
+		return res.status;
+	},
 	getAdminParticipants: async (): Promise<AdminProgramParticipant[] | null> => {
 		const res = await fetch("/api/admin/participants");
 		if (!res.ok) {

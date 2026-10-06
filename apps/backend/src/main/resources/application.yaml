@@ -57,6 +57,9 @@ slack:
     sc-channel-id: ${SLACK_SC_CHANNEL_ID}
 
 delta:
+  events:
+    enabled: ${DELTA_EVENTS_ENABLED:false}
+    category-id: ${DELTA_EVENTS_CATEGORY_ID:54}
   scoring:
     enabled: ${DELTA_SCORING_ENABLED:false}
   api:

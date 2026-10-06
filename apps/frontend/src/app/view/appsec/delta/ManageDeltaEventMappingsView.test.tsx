@@ -22,6 +22,24 @@ function renderView(onRefresh = vi.fn().mockResolvedValue(undefined), currentMap
 }
 
 describe("ManageDeltaEventMappingsView", () => {
+	it("should start a Delta event import and confirm it", async () => {
+		const trigger = vi.spyOn(Apies, "triggerDeltaEventImport").mockResolvedValue(202);
+		renderView();
+
+		fireEvent.click(screen.getByRole("button", { name: "Import Delta events now" }));
+
+		await waitFor(() => expect(trigger).toHaveBeenCalledOnce());
+		expect(await screen.findByRole("status")).toHaveTextContent("Delta event import started");
+	});
+
+	it("should report when a Delta event import cannot start", async () => {
+		vi.spyOn(Apies, "triggerDeltaEventImport").mockResolvedValue(409);
+		renderView();
+
+		fireEvent.click(screen.getByRole("button", { name: "Import Delta events now" }));
+
+		expect(await screen.findByRole("alert")).toHaveTextContent("already running or is disabled");
+	});
 	it("should explicitly map a named program event to an owner-confirmed Delta UUID", async () => {
 		const addMapping = vi.spyOn(Apies, "addDeltaEventMapping").mockResolvedValue(201);
 		const onRefresh = vi.fn().mockResolvedValue(undefined);

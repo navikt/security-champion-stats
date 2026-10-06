@@ -147,6 +147,7 @@ class AdminController(
             location = event.location.trim(),
             type = event.type.lowercase(Locale.ROOT),
             amountOfPeopleJoined = 0,
+            link = null,
         )
 
         logger.info("Adding event: ${event.id}")

@@ -61,9 +61,13 @@ export function NextEventCard({ event }: NextEventCardProps) {
 				)}
 			</div>
 
-			<div className={"nextEventCard__actions"}>
-				<Button variant={"secondary"}>View details</Button>
-			</div>
+			{event.link && (
+				<div className={"nextEventCard__actions"}>
+					<Button as={"a"} href={event.link} variant={"secondary"}>
+						View in Delta
+					</Button>
+				</div>
+			)}
 		</article>
 	);
 }

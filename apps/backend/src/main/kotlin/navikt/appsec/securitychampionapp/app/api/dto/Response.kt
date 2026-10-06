@@ -62,5 +62,6 @@ data class Event(
     val type: String,
     val externalEvent: Boolean = false,
     val deltaEvent: Boolean = true,
-    val amountOfPeopleJoined: Int = 0
+    val amountOfPeopleJoined: Int = 0,
+    val link: String? = null,
 )

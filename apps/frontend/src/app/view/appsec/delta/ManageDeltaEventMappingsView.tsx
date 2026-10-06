@@ -31,6 +31,27 @@ export function ManageDeltaEventMappingsView({
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
 
+	const importEvents = async () => {
+		if (busy) return;
+		setBusy(true);
+		setError(null);
+		setNotice(null);
+		try {
+			const status = await Apies.triggerDeltaEventImport();
+			if (status === 202) {
+				setNotice("Delta event import started. New events will appear shortly.");
+			} else if (status === 409) {
+				setError("Delta event import is already running or is disabled.");
+			} else {
+				setError("Could not start Delta event import. Try again later.");
+			}
+		} catch {
+			setError("Could not start Delta event import. Try again later.");
+		} finally {
+			setBusy(false);
+		}
+	};
+
 	const addMapping = async () => {
 		if (busy) return;
 		if (!programEventName.trim() || !deltaEventUuid.trim()) {
@@ -149,6 +170,18 @@ export function ManageDeltaEventMappingsView({
 			</VStack>
 			{notice && <BodyShort role="status">{notice}</BodyShort>}
 			{error && <BodyShort role="alert">{error}</BodyShort>}
+
+			<section aria-labelledby="event-import-heading">
+				<VStack gap="space-8" align="start">
+					<Heading level="2" size="large" id="event-import-heading">Event import</Heading>
+					<BodyShort>
+						Events in the Security Champions category are imported from Delta every 6 hours.
+					</BodyShort>
+					<Button variant="secondary" loading={busy} disabled={busy} onClick={importEvents}>
+						Import Delta events now
+					</Button>
+				</VStack>
+			</section>
 
 			<section aria-labelledby="categories-heading">
 				<VStack gap="space-16">

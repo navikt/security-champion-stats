@@ -27,6 +27,8 @@ being listed in both rosters does not award extra credit. Removing a category ke
 The sync is disabled by default until Delta read access,
 outbound network access, and eligible public event identifiers are confirmed. Administrators can inspect
 its latest outcome at `/api/admin/delta/sync-status`.
+Delta event import upserts all events in `DELTA_EVENTS_CATEGORY_ID` (default 54) into `Events`, keyed by the Delta
+UUID and linked to `https://delta.nav.no/event/{id}`. It is disabled unless `DELTA_EVENTS_ENABLED=true`.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid
@@ -184,6 +186,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | DELETE | `/api/admin/delta/eligible-categories/{categoryId}` | Remove an eligible category, keeping credits |
 | GET | `/api/admin/delta/sync-status` | View the latest Delta registration sync outcome |
 | POST | `/api/admin/delta/sync` | Trigger an enabled Delta registration sync |
+| POST | `/api/admin/delta/events/sync` | Trigger an enabled Delta event import |
 | GET | `/api/admin/dashboard/members` | Get SC count over time |
 
 ### Scheduled Jobs
@@ -192,6 +195,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
 | `SlackScoringSyncJob` | Every 6 hours | Awards qualifying Slack participation credits and queues unmapped authors |
 | `DeltaScoringSyncJob` | Every 6 hours | Awards registrations for started, current-year public events in eligible categories or single events; disabled by default |
+| `DeltaEventImportJob` | Every 6 hours | Imports and updates Delta events in the configured category; disabled by default |
 | `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |
 
 ## Contributing

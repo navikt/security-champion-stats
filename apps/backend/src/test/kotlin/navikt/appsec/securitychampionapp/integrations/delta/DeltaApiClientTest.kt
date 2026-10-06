@@ -76,6 +76,43 @@ class DeltaApiClientTest {
     }
 
     @Test
+    fun `should fetch all events in a category with event details`() {
+        eventJson = """
+            {
+              "event": {
+                "id": "$EVENT_ID",
+                "title": " Security meetup ",
+                "description": "Synthetic description",
+                "startTime": "2026-10-03T10:00:00",
+                "endTime": "2026-10-03T11:00:00",
+                "location": " Oslo "
+              }
+            }
+        """.trimIndent()
+
+        val result = client("http://localhost:${server.address.port}").eventsInCategory(54)
+
+        assertThat(result).containsExactly(
+            DeltaEventDetails(
+                id = EVENT_ID,
+                title = "Security meetup",
+                description = "Synthetic description",
+                startTime = LocalDateTime.parse("2026-10-03T10:00:00"),
+                endTime = LocalDateTime.parse("2026-10-03T11:00:00"),
+                location = "Oslo",
+            )
+        )
+        assertThat(decodeQuery(requests[1].query)).isEqualTo(mapOf("categories" to "54"))
+    }
+
+    @Test
+    fun `should reject event details without an end time`() {
+        assertThatThrownBy { client("http://localhost:${server.address.port}").eventsInCategory(54) }
+            .isInstanceOf(DeltaIntegrationException::class.java)
+            .hasMessage(DeltaFailure.INVALID_RESPONSE.summary)
+    }
+
+    @Test
     fun `should fetch a single event by id`() {
         val result = client("http://localhost:${server.address.port}").event(EVENT_ID)
 

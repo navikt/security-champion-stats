@@ -28,7 +28,8 @@ class EventRepository(
                     deltaEvent = rs.getBoolean("delta_event"),
                     location = rs.getString("location"),
                     type = rs.getString("event_type").lowercase(),
-                    amountOfPeopleJoined = rs.getInt("amount_of_people_joined")
+                    amountOfPeopleJoined = rs.getInt("amount_of_people_joined"),
+                    link = rs.getString("link"),
                 )
             }
 
@@ -71,7 +72,7 @@ class EventRepository(
     fun getAllEvents(): EventQueryResponse {
         val query = "SELECT " +
                 "id, name, description, start_date, end_date, external_event, delta_event, location, " +
-                "event_type, amount_of_people_joined FROM Events"
+                "event_type, amount_of_people_joined, link FROM Events"
         return queryEvents(query)
     }
 
@@ -90,6 +91,32 @@ class EventRepository(
             event.location,
             event.type.uppercase(),
             0
+        )
+    }
+
+    fun upsertDeltaEvent(event: Event) {
+        val query = """
+            INSERT INTO Events (id, name, description, start_date, end_date, external_event,
+                delta_event, location, event_type, amount_of_people_joined, link)
+            VALUES (?, ?, ?, ?, ?, FALSE, TRUE, ?, ?, 0, ?)
+            ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                description = EXCLUDED.description,
+                start_date = EXCLUDED.start_date,
+                end_date = EXCLUDED.end_date,
+                location = EXCLUDED.location,
+                link = EXCLUDED.link
+        """.trimIndent()
+        jdbcTemplate.update(
+            query,
+            UUID.fromString(event.id),
+            event.name,
+            event.description,
+            Timestamp.from(Instant.parse(event.startDate)),
+            Timestamp.from(Instant.parse(event.endDate)),
+            event.location,
+            event.type.uppercase(),
+            event.link,
         )
     }
 }

@@ -7,6 +7,7 @@ import "../style/home/HomeView.css";
 import { BodyShort, Heading } from "@navikt/ds-react";
 import { EventsView } from "@/app/view/events/EventsView";
 import { Apies } from "@/app/shared/hooks/Apies";
+import { ScoringOverview } from "./member/components/ScoringOverview";
 
 function View({ me }: { me: Me }) {
 	const [userData, _] = useState(me);
@@ -35,6 +36,13 @@ function View({ me }: { me: Me }) {
 					<EventsView events={events} compact limit={4} />
 				</section>
 			</div>
+			<ScoringOverview
+				showPersonalProgress={userData.isParticipant && userData.isActive}
+				showLeaderboard={
+					userData.isAdmin ||
+					(userData.isParticipant && userData.isActive)
+				}
+			/>
 		</main>
 	);
 }

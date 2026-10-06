@@ -44,7 +44,14 @@ class ScoringService(
     fun ownScore(participantId: UUID): OwnSeasonScore {
         val season = repository.currentSeason()
         val points = repository.scoreForParticipant(participantId, season.id)
-        return OwnSeasonScore(season, points, levelFor(points))
+        val rank = if (points > 0) {
+            ranked(repository.scoresForSeason(season.id, activeOnly = true))
+                .firstOrNull { it.participantId == participantId }
+                ?.rank
+        } else {
+            null
+        }
+        return OwnSeasonScore(season, points, levelFor(points), rank)
     }
 
     fun creditsForParticipant(participantId: UUID): List<ActivityCredit> {
@@ -115,7 +122,7 @@ class ScoringService(
         return sorted.mapIndexed { index, score ->
             if (score.points != previousPoints) currentRank = index + 1
             previousPoints = score.points
-            RankedScore(score.fullName, score.points, currentRank)
+            RankedScore(score.participantId, score.fullName, score.points, currentRank)
         }
     }
 
@@ -128,6 +135,7 @@ class ScoringService(
         }
 
     private data class RankedScore(
+        val participantId: UUID,
         val fullName: String,
         val points: Long,
         val rank: Int,

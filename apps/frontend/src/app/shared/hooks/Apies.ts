@@ -6,7 +6,9 @@ import type {
 	DeltaEventMapping,
 	DeltaCategory,
 	DeltaEligibleCategory,
+	LeaderboardEntry,
 	Me,
+	ParticipantSeasonScore,
 	ProgramParticipant,
 	ProgramParticipantSummary,
 	SCData,
@@ -49,6 +51,22 @@ export const Apies = {
 		const res = await fetch("/api/admin/scoring");
 		if (!res.ok) {
 			console.error("Failed to fetch scoring overview, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	getParticipantSeasonScore: async (): Promise<ParticipantSeasonScore | null> => {
+		const res = await fetch("/api/scoring/me");
+		if (!res.ok) {
+			console.error("Failed to fetch participant season score, status: ", res.status);
+			return null;
+		}
+		return res.json();
+	},
+	getLeaderboard: async (): Promise<LeaderboardEntry[] | null> => {
+		const res = await fetch("/api/leaderboard");
+		if (!res.ok) {
+			console.error("Failed to fetch leaderboard, status: ", res.status);
 			return null;
 		}
 		return res.json();

@@ -153,7 +153,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | POST | `/api/enroll` | Enroll the authenticated employee in the program |
 | GET | `/api/recognition` | List positive-score names and ranks without points |
 | GET | `/api/leaderboard` | Get exact scores for active participants and administrators |
-| GET | `/api/scoring/me` | Get the authenticated participant's current-season score |
+| GET | `/api/scoring/me` | Get the active participant's current-season score, level, and rank (rank is null at zero points) |
 
 **Admin (`/api/admin`)** — requires admin role
 | Method | Path | Description |

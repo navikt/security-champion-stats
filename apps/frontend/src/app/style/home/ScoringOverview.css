@@ -1,0 +1,22 @@
+.sc-scoring-overview {
+	display: grid;
+	gap: var(--ax-space-16);
+	width: 100%;
+	margin-top: var(--ax-space-24);
+}
+
+.sc-scoring-overview__section {
+	min-width: 0;
+}
+
+.sc-scoring-overview__progress {
+	max-width: 32rem;
+}
+
+.sc-scoring-overview__table {
+	overflow-x: auto;
+}
+
+.sc-scoring-overview__table table {
+	min-width: 32rem;
+}

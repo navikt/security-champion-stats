@@ -5,7 +5,9 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.ScoringController
 import navikt.appsec.securitychampionapp.app.scoring.LeaderboardEntry
+import navikt.appsec.securitychampionapp.app.scoring.OwnSeasonScore
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
+import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
@@ -31,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.LocalDate
 import java.util.UUID
 
 @WebMvcTest(ScoringController::class)
@@ -109,6 +112,49 @@ class ScoringControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/leaderboard"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].points").value(25))
+    }
+
+    @Test
+    fun `should expose current season score and personal rank to an active participant`() {
+        val participantId = UUID.randomUUID()
+        mockAuthenticatedUser(USER_ROLE)
+        whenever(participantRepository.findByNavNoEmail("user@nav.no"))
+            .thenReturn(
+                ProgramParticipantQueryResponse(
+                    isOk = true,
+                    queryResult = listOf(
+                        ProgramParticipant(
+                            id = participantId.toString(),
+                            navNoEmail = "user@nav.no",
+                            navIdent = "A12345",
+                            email = "user@nav.no",
+                            fullname = "Person",
+                            teams = emptyList(),
+                            status = "ACTIVE",
+                            createdAt = "2026-01-01T00:00:00Z",
+                        )
+                    ),
+                )
+            )
+        whenever(scoringService.ownScore(participantId)).thenReturn(
+            OwnSeasonScore(
+                season = SeasonSummary(
+                    id = UUID.randomUUID(),
+                    startsOn = LocalDate.parse("2026-01-01"),
+                    endsOn = null,
+                    nextResetDate = LocalDate.parse("2027-01-01"),
+                ),
+                points = 25,
+                level = "Novice",
+                rank = 4,
+            )
+        )
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/scoring/me"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.points").value(25))
+            .andExpect(jsonPath("$.level").value("Novice"))
+            .andExpect(jsonPath("$.rank").value(4))
     }
 
     private fun mockAuthenticatedUser(role: String) {

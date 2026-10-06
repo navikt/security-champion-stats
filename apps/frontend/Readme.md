@@ -8,6 +8,9 @@ categories or single owner-confirmed Delta event UUIDs. Delta registration sync 
 production access and eligible public event identifiers are confirmed.
 The admin program dashboard summarizes active participants and season activity, shows Slack/Delta sync
 health, and lets administrators trigger enabled syncs.
+The home page shows active participants their current-season points, level progress, and rank, followed by
+the full current-season leaderboard. Administrators can view the leaderboard; backend authorization
+enforces score access.
 The user interface is English-only.
 
 ## Getting Started

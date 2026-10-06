@@ -38,6 +38,18 @@ export type SeasonSummary = {
 	endsOn: string | null;
 	nextResetDate: string;
 };
+export type ParticipantSeasonScore = {
+	season: SeasonSummary;
+	points: number;
+	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+	rank: number | null;
+};
+export type LeaderboardEntry = {
+	fullName: string;
+	rank: number;
+	points: number;
+	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+};
 export type ActivityCredit = {
 	id: string;
 	creditType:

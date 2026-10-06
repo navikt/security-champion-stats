@@ -57,6 +57,7 @@ data class OwnSeasonScore(
     val season: SeasonSummary,
     val points: Long,
     val level: String,
+    val rank: Int?,
 )
 
 data class ActivityCredit(

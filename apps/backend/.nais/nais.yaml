@@ -11,6 +11,8 @@ spec:
   env:
     - name: SLACK_SC_CHANNEL_ID
       value: CN8N938K1
+    - name: DELTA_SCORING_ENABLED
+      value: "true"
   ingresses:
     - https://security-champion-levels-backend.intern.nav.no
   accessPolicy:

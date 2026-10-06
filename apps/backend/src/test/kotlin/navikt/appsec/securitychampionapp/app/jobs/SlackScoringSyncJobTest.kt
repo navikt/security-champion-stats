@@ -41,21 +41,46 @@ class SlackScoringSyncJobTest {
     }
 
     @Test
-    fun `should store only a sanitized failure summary when Slack fails`() {
+    fun `should preserve an unfamiliar Slack error code in the failure summary`() {
         val jobLock = mock<PostgresJobLock>()
         val syncTrigger = mock<ScoringSyncTrigger>()
         val scoringService = mock<SlackScoringService>()
         val statusRepository = mock<SlackScoringStatusRepository>()
         runLocked(jobLock)
         whenever(scoringService.sync("C123", attemptAt))
-            .thenThrow(SlackIntegrationException("raw provider error with sensitive payload"))
+            .thenThrow(
+                SlackIntegrationException(
+                    SlackIntegrationException.Operation.HISTORY,
+                    "request_timeout",
+                ),
+            )
         val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
 
         job.syncSlackScoring()
 
         verify(statusRepository).recordFailed(
             attemptAt,
-            "Slack activity could not be synchronized; check API access and channel configuration",
+            "Slack conversations.history failed: request_timeout; check Slack availability and API access",
+        )
+    }
+
+    @Test
+    fun `should persist the Slack operation and actionable error code when access fails`() {
+        val jobLock = mock<PostgresJobLock>()
+        val syncTrigger = mock<ScoringSyncTrigger>()
+        val scoringService = mock<SlackScoringService>()
+        val statusRepository = mock<SlackScoringStatusRepository>()
+        runLocked(jobLock)
+        whenever(scoringService.sync("C123", attemptAt)).thenThrow(
+            SlackIntegrationException(SlackIntegrationException.Operation.REPLIES, "missing_scope"),
+        )
+        val job = SlackScoringSyncJob(jobLock, syncTrigger, scoringService, statusRepository, "C123", clock)
+
+        job.syncSlackScoring()
+
+        verify(statusRepository).recordFailed(
+            attemptAt,
+            "Slack conversations.replies failed: missing_scope; check token scopes for this method and channel type",
         )
     }
 

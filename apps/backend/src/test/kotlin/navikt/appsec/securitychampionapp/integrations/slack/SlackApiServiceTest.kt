@@ -114,7 +114,7 @@ class SlackApiServiceTest {
 
         assertThatThrownBy { service.fetchScoringMessages("channel", latest) }
             .isInstanceOf(SlackIntegrationException::class.java)
-            .hasMessageContaining("not_in_channel")
+            .hasMessage("Slack conversations.history failed: not_in_channel; invite the app to the configured channel")
     }
 
     @Test
@@ -132,6 +132,21 @@ class SlackApiServiceTest {
         assertThatThrownBy { service.fetchScoringMessages("channel", latest) }
             .isInstanceOf(SlackIntegrationException::class.java)
             .hasMessageContaining("missing_scope")
+    }
+
+    @Test
+    fun `should preserve an unfamiliar error field without including the full Slack response`() {
+        whenever(client.conversationsHistory(any<ConversationsHistoryRequest>())).thenReturn(
+            ConversationsHistoryResponse().apply {
+                isOk = false
+                error = "request_timeout"
+                messages = listOf(message("1791187200.000001", "U_ROOT"))
+            },
+        )
+
+        assertThatThrownBy { service.fetchScoringMessages("channel", latest) }
+            .isInstanceOf(SlackIntegrationException::class.java)
+            .hasMessage("Slack conversations.history failed: request_timeout; check Slack availability and API access")
     }
 
     @Test

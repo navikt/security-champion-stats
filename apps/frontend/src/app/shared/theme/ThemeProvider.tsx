@@ -2,7 +2,8 @@
 
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Select } from "@navikt/ds-react";
+import { ThemeIcon } from "@navikt/aksel-icons";
+import { ActionMenu, InternalHeader, Theme } from "@navikt/ds-react";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
 	return (
@@ -13,26 +14,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function ThemeToggle() {
-	const { theme, setTheme } = useTheme();
+	const { theme, resolvedTheme, setTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
 		setMounted(true);
 	}, []);
-
-	if (!mounted) {
-		return (
-			<Select
-				label="Theme"
-				size={"small"}
-				value={"system"}
-				onChange={() => {}}
-				disabled
-			>
-				<option value={"system"}>System</option>
-			</Select>
-		);
-	}
 
 	const themes = [
 		{ value: "light", label: "Light" },
@@ -41,17 +28,31 @@ export function ThemeToggle() {
 	];
 
 	return (
-		<Select
-			label="Theme"
-			size={"small"}
-			value={theme}
-			onChange={(e) => setTheme(e.target.value)}
-		>
-			{themes.map((themeOption) => (
-				<option key={themeOption.value} value={themeOption.value}>
-					{themeOption.label}
-				</option>
-			))}
-		</Select>
+		<ActionMenu>
+			<ActionMenu.Trigger>
+				<InternalHeader.Button
+					aria-label="Choose theme"
+					title="Choose theme"
+					disabled={!mounted}
+				>
+					<ThemeIcon aria-hidden fontSize="1.5rem" />
+				</InternalHeader.Button>
+			</ActionMenu.Trigger>
+			<Theme theme={mounted && resolvedTheme === "dark" ? "dark" : "light"}>
+				<ActionMenu.Content align="end">
+					<ActionMenu.RadioGroup
+						label="Theme"
+						value={mounted ? theme ?? "system" : "system"}
+						onValueChange={setTheme}
+					>
+						{themes.map((themeOption) => (
+							<ActionMenu.RadioItem key={themeOption.value} value={themeOption.value}>
+								{themeOption.label}
+							</ActionMenu.RadioItem>
+						))}
+					</ActionMenu.RadioGroup>
+				</ActionMenu.Content>
+			</Theme>
+		</ActionMenu>
 	);
 }

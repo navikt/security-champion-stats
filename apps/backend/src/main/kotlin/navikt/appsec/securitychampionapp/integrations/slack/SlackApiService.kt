@@ -28,7 +28,7 @@ class SlackApiService(
                 .build()
             val response = client.conversationsHistory(request)
             if (response == null || !response.isOk) {
-                throw SlackIntegrationException("Failed to fetch Slack channel history: ${response?.error ?: "no response"}")
+                throw SlackIntegrationException(SlackIntegrationException.Operation.HISTORY, response?.error)
             }
 
             val roots = response.messages ?: emptyList()
@@ -58,7 +58,7 @@ class SlackApiService(
                 .build()
             val response = client.conversationsReplies(request)
             if (response == null || !response.isOk) {
-                throw SlackIntegrationException("Failed to fetch Slack thread replies: ${response?.error ?: "no response"}")
+                throw SlackIntegrationException(SlackIntegrationException.Operation.REPLIES, response?.error)
             }
 
             response.messages.orEmpty()

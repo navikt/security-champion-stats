@@ -46,11 +46,8 @@ class SlackScoringSyncJob(
                 summary.duplicateCredits,
                 summary.unmappedAuthors,
             )
-        } catch (_: SlackIntegrationException) {
-            recordFailure(
-                clock.instant(),
-                "Slack activity could not be synchronized; check API access and channel configuration",
-            )
+        } catch (e: SlackIntegrationException) {
+            recordFailure(clock.instant(), requireNotNull(e.message))
         } catch (_: IllegalStateException) {
             recordFailure(clock.instant(), "Slack scoring configuration is incomplete")
         } catch (_: DataAccessException) {

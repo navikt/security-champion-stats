@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 
 private const val SLACK_MEMBERSHIP_LOCK_KEY = 1_008L
+data class SlackMembershipConfiguration(val enabled: Boolean, val dryRun: Boolean)
 
 @Component
 class SlackMembershipSyncJob(
@@ -36,6 +37,8 @@ class SlackMembershipSyncJob(
             trigger.trigger(SLACK_MEMBERSHIP_LOCK_KEY, "syncSlackMembership", actor, ::runSync)
 
     fun preview(): SlackMembershipPreview = service.sync(dryRun = true)
+
+    fun configuration() = SlackMembershipConfiguration(properties.enabled, properties.dryRun)
 
     fun announcements(): List<MembershipAnnouncement> = repository.announcements(properties.usergroupId)
 

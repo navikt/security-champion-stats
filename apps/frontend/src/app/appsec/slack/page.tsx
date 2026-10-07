@@ -6,7 +6,8 @@ import { AdminProgramParticipant, SlackMappingOverview } from "@/app/utils/Varia
 import { MainView } from "@/app/view/HomeView";
 import Loading from "@/app/view/Loading";
 import { ManageSlackMappingsView } from "@/app/view/appsec/slack/ManageSlackMappingsView";
-import { BodyShort } from "@navikt/ds-react";
+import { ManageSlackMembershipView } from "@/app/view/appsec/slack/ManageSlackMembershipView";
+import { BodyShort, VStack } from "@navikt/ds-react";
 import { useCallback, useEffect, useState } from "react";
 
 export default function Page() {
@@ -46,10 +47,13 @@ export default function Page() {
 		);
 	}
 	return (
-		<ManageSlackMappingsView
-			participants={participants}
-			overview={overview}
-			onRefresh={refresh}
-		/>
+		<VStack gap="space-32">
+			<ManageSlackMappingsView
+				participants={participants}
+				overview={overview}
+				onRefresh={refresh}
+			/>
+			<ManageSlackMembershipView participants={participants} onRefresh={refresh} />
+		</VStack>
 	);
 }

@@ -176,6 +176,23 @@ export type SlackMappingOverview = {
 	mappings: SlackAccountMapping[];
 	unmappedAuthors: UnmappedSlackAuthor[];
 };
+export type SlackMembershipConfiguration = {
+	enabled: boolean;
+	dryRun: boolean;
+};
+export type SlackMembershipPreview = {
+	addedUserIds: string[];
+	removedUserIds: string[];
+	unresolvedParticipantIds: string[];
+	activeParticipants: number;
+};
+export type SlackMembershipAnnouncement = {
+	id: string;
+	participantId: string;
+	slackUserId: string;
+	kind: "WELCOME" | "REMOVAL";
+	status: "PENDING" | "SENDING" | "SENT" | "SUPPRESSED" | "CANCELLED" | "UNCERTAIN";
+};
 export type DeltaEventMapping = {
 	id: string;
 	programEventName: string;

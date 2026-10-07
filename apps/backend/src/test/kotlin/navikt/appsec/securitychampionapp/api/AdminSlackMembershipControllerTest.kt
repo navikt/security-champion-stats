@@ -5,6 +5,7 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminSlackMembershipController
 import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipSyncJob
+import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipConfiguration
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.membership.MembershipSyncBusyException
 import navikt.appsec.securitychampionapp.app.membership.SlackMembershipPreview
@@ -42,6 +43,27 @@ class AdminSlackMembershipControllerTest {
     lateinit var job: SlackMembershipSyncJob
     @MockitoBean
     lateinit var filter: AppAuthenticationFilter
+
+    @Test
+    fun `admin can read sync mode without calling Slack`() {
+        authenticated(ADMIN_ROLE)
+        whenever(job.configuration()).thenReturn(SlackMembershipConfiguration(false, true))
+
+        mvc.perform(get("/api/admin/slack/membership"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.enabled").value(false))
+            .andExpect(jsonPath("$.dryRun").value(true))
+        verify(job).configuration()
+        verifyNoMoreInteractions(job)
+    }
+
+    @Test
+    fun `non-admin cannot inspect sync configuration`() {
+        authenticated(USER_ROLE)
+
+        mvc.perform(get("/api/admin/slack/membership")).andExpect(status().isForbidden)
+        verifyNoInteractions(job)
+    }
 
     @Test
     fun `admin can inspect a read-only membership preview`() {

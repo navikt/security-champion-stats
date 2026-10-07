@@ -25,6 +25,7 @@ class SlackMembershipSyncJobTest {
         job.scheduledSync()
 
         assertThat(job.triggerManualSync("admin@nav.no")).isEqualTo(SyncTriggerResult.DISABLED)
+        assertThat(job.configuration()).isEqualTo(SlackMembershipConfiguration(false, true))
         verifyNoInteractions(lock, trigger, service, repository, audit)
     }
 

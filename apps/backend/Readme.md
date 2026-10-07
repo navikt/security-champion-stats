@@ -46,21 +46,26 @@ and `chat:write`, with access to both announcement channels. Verify workspace us
 Slack permits bot-token group updates only when group management is allowed for everyone;
 otherwise a supported token from an authorized user is required. Never store tokens in the manifest.
 
-Use `GET /api/admin/slack/membership/preview` to review proposed additions/removals and unresolved participant IDs.
+Sign in as an administrator and open the frontend Slack administration page (`/appsec/slack`).
+Use **Preview membership changes** to review proposed additions/removals and unresolved participants.
+The frontend exchanges the session token and proxies all membership requests; operators do not need backend tokens.
 Approved Slack mappings take precedence; otherwise accounts are looked up by verified participant email.
 Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
-Resolve mapping problems through the existing admin Slack mapping API before cutover.
+Resolve mapping problems in the same page: review approved mappings and enter verified Slack IDs for unresolved participants.
 Compare the preview with the existing group (128 members at planning time), stop the old bot,
 then enable sync with `SLACK_MEMBERSHIP_DRY_RUN=false`. Only one writer may manage the group.
 The group-update API replaces the entire membership list. Zero active participants throws an exception and
 leaves Slack and membership state unchanged; the group is never automatically disabled.
 
-`POST /api/admin/slack/membership/sync` queues a locked background sync and honors the configured dry-run mode.
-Runs and failures appear in the audit timeline. `GET /api/admin/slack/membership/announcements` lists outstanding
-deliveries. Unknown roles remain `PENDING`; interrupted or ambiguous Slack deliveries become `UNCERTAIN`
-and are not automatically resent. Inspect Slack (delivery IDs are included in message metadata), then call
-`POST /api/admin/slack/membership/announcements/{id}/resolve` with `{"retry":false}` to suppress a delivered
-or unwanted message, or `{"retry":true}` to authorize another attempt. Explicit retries can produce duplicates.
+The page shows whether sync is enabled and whether it runs in dry-run or write mode.
+Use **Run membership dry run** or **Sync membership** to queue a locked background sync in the configured mode.
+Write-enabled manual sync requires a preview without unresolved identities and explicit confirmation.
+Runs and failures appear in the audit timeline; an accepted request is not a completed sync.
+Use **Refresh operations** after reviewing the audit outcome to reload outstanding deliveries.
+Unknown roles remain `PENDING`; interrupted or ambiguous Slack deliveries become `UNCERTAIN`
+and are not automatically resent. Inspect Slack (delivery IDs are included in message metadata), then use
+**Suppress** for a delivered or unwanted announcement, or **Retry** to authorize another attempt on a later sync.
+Both actions require confirmation. Explicit retries can produce duplicates.
 Known Slack rejections remain pending for a later run. Completed delivery records expire after 12 months.
 
 ### Other integrations
@@ -243,6 +248,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | POST | `/api/admin/scoring/season/reset` | Start a manually confirmed season |
 | GET | `/api/admin/slack` | List approved Slack mappings and unmapped authors |
 | POST | `/api/admin/slack/sync` | Trigger a Slack scoring sync |
+| GET | `/api/admin/slack/membership` | Read enabled and dry-run configuration without Slack calls |
 | GET | `/api/admin/slack/membership/preview` | Preview group reconciliation without writes |
 | POST | `/api/admin/slack/membership/sync` | Trigger membership sync in the configured dry-run mode |
 | GET | `/api/admin/slack/membership/announcements` | List pending and uncertain membership announcements |

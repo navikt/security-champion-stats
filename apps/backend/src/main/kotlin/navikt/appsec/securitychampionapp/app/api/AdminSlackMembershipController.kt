@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipSyncJob
+import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipConfiguration
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.membership.MembershipAnnouncement
 import navikt.appsec.securitychampionapp.app.membership.MembershipSyncBusyException
@@ -17,6 +18,9 @@ data class ResolveMembershipDeliveryRequest(val retry: Boolean)
 @RestController
 @RequestMapping("/api/admin/slack/membership")
 class AdminSlackMembershipController(private val job: SlackMembershipSyncJob) {
+    @GetMapping
+    fun configuration(): SlackMembershipConfiguration = job.configuration()
+
     @GetMapping("/preview")
     fun preview(): SlackMembershipPreview = job.preview()
 

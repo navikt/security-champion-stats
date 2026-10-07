@@ -8,8 +8,12 @@ import navikt.appsec.securitychampionapp.integrations.postgress.*
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.spy
+import org.mockito.Mockito.clearInvocations
+import org.mockito.Mockito.mockingDetails
 import org.flywaydb.core.Flyway
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import org.testcontainers.containers.PostgreSQLContainer
@@ -237,5 +241,78 @@ class EventClaimIntegrationTest {
         tx.executeWithoutResult { participants.permanentlyDelete(host) }
         assertThat(store.list()).isEmpty()
         assertThat(EventRepository(jdbc).getAllEvents()).hasSize(1)
+    }
+
+    @Test
+    fun `maximum length claim link can be approved and published without truncation`() {
+        val prefix = "https://example.org/"
+        val link = prefix + "a".repeat(1000 - prefix.length)
+        val claim = review(submit(request().copy(links = listOf(link))), host)
+        assertThat(claim.published).isTrue()
+        assertThat(EventRepository(jdbc).getAllEvents().single().link).isEqualTo(link)
+        assertThat(ledger.scoreForParticipant(host, season)).isEqualTo(3)
+        assertThrows<EventClaimException> { submit(request().copy(links = listOf(link + "a"))) }
+    }
+
+    @Test
+    fun `claim loading uses three queries regardless of claim count and keeps histories separated`() {
+        val observedJdbc = spy(jdbc)
+        val observedStore = PostgresEventClaimStore(observedJdbc, ObjectMapper())
+        val submitted = mutableListOf<EventClaim>()
+        val outsider = participant("outsider@nav.no")
+        for (index in 1..10) {
+            val claim = submit(request().copy(
+                name = "Security workshop $index",
+                links = listOf("https://example.org/event-$index"),
+            ))
+            submitted += review(claim, cohost, ContributionStatus.REJECTED)
+            if (index in setOf(1, 5, 10)) {
+                for (participantId in listOf(null, host, cohost)) {
+                    clearInvocations(observedJdbc)
+                    val loaded = observedStore.list(participantId)
+                    val queryCount = mockingDetails(observedJdbc).invocations.count {
+                        it.method.name == "query" && it.method.parameterTypes.getOrNull(1) == RowMapper::class.java
+                    }
+                    assertThat(queryCount).isEqualTo(3)
+                    assertThat(loaded.map { it.id }).containsExactlyElementsOf(submitted.asReversed().map { it.id })
+                    assertThat(loaded).hasSize(index)
+                    assertThat(loaded.first().id).isEqualTo(claim.id)
+                    loaded.forEach { hydrated ->
+                        assertThat(hydrated).isEqualTo(submitted.single { it.id == hydrated.id })
+                        assertThat(hydrated.contributors).hasSize(2)
+                        assertThat(hydrated.reviews.single().participantId).isEqualTo(cohost)
+                    }
+                }
+            }
+        }
+        assertThat(observedStore.list(outsider)).isEmpty()
+    }
+
+    @Test
+    fun `removed inactive contributors remain named in retained reviews until permanent deletion`() {
+        val rejected = review(submit(), cohost, ContributionStatus.REJECTED)
+        val revised = requireNotNull(tx.execute {
+            service.submit("host@nav.no", request().copy(
+                contributors = listOf(request().contributors.first()), expectedVersion = rejected.version,
+            ), rejected.id)
+        })
+        tx.executeWithoutResult { participants.updateStatus(cohost, false, "admin@nav.no") }
+        val overview = service.overview("host@nav.no", false)
+        assertThat(overview.participants).noneMatch { it.id == cohost }
+        val claim = overview.claims.single()
+        assertThat(claim.contributors).hasSize(1)
+        assertThat(claim.reviews.single().fullName).isEqualTo("cohost")
+        assertThat(store.find(revised.id)?.reviews?.single()?.fullName).isEqualTo("cohost")
+        tx.executeWithoutResult { participants.permanentlyDelete(cohost) }
+        assertThat(store.find(revised.id)?.reviews).isEmpty()
+    }
+
+    @Test
+    fun `review history has a matching lookup and ordering index`() {
+        val definition = jdbc.queryForObject(
+            "SELECT indexdef FROM pg_indexes WHERE tablename = 'event_claim_reviews' AND indexname = 'event_claim_reviews_claim_created_idx'",
+            String::class.java,
+        )
+        assertThat(definition).contains("(claim_id, created_at, id)")
     }
 }

@@ -37,6 +37,7 @@ export type EventClaim = Omit<EventClaimRequest, "contributors"> & {
 	})[];
 	reviews: {
 		participantId: string;
+		fullName: string;
 		decision: ContributionStatus;
 		reason: string;
 		createdAt: string;

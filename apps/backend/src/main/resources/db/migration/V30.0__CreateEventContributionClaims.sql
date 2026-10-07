@@ -1,4 +1,5 @@
 ALTER TABLE activity_credits ADD COLUMN revoked_at TIMESTAMPTZ;
+ALTER TABLE Events ALTER COLUMN link TYPE VARCHAR(1000);
 
 CREATE TABLE event_contribution_claims (
     id UUID PRIMARY KEY,
@@ -43,3 +44,6 @@ CREATE TABLE event_claim_reviews (
     reason TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX event_claim_reviews_claim_created_idx
+    ON event_claim_reviews (claim_id, created_at, id);

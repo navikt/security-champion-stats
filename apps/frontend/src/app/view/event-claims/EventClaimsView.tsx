@@ -165,10 +165,7 @@ function ClaimCard({
 					<ul>
 						{claim.reviews.map((entry, index) => (
 							<li key={index}>
-								{claim.contributors.find(
-									(contributor) =>
-										contributor.participantId === entry.participantId,
-								)?.fullName || "Contributor"}
+								{entry.fullName || "Contributor"}
 								: {entry.decision.toLowerCase()} - {entry.reason} (
 								{new Date(entry.createdAt).toLocaleString()})
 							</li>

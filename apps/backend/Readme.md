@@ -33,6 +33,8 @@ Approved claims are locked. Revocation appends a source-linked correction for th
 repricing, without undoing manual corrections; revoked credits are excluded from subsequent repricing.
 The event remains in Past events. Awards, publication and durable claim reviews share a transaction.
 Claim identity, existing event IDs and shared links at the same start time prevent duplicate submissions.
+Catalog links support the claim's 1,000-character limit. Claim overviews batch-load contributors and
+indexed review history; review subjects remain named after removal from a claim or deactivation.
 Configuration saves are transactional and reject stale previews with HTTP 409.
 Credit awards and capture of their awarded point values share a transaction, preventing concurrent
 participant deletion from interrupting the lookup. Best-effort operational audit writes run after commit.

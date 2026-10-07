@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.events.*
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
 import tools.jackson.databind.ObjectMapper
 import java.sql.Timestamp
@@ -24,51 +25,65 @@ class PostgresEventClaimStore(
     ))
 
     override fun list(participantId: UUID?): List<EventClaim> {
-        val ids = if (participantId == null) {
-            jdbc.query("SELECT id FROM event_contribution_claims ORDER BY created_at DESC", { rs, _ -> rs.getObject("id", UUID::class.java) })
+        val claims = if (participantId == null) {
+            jdbc.query("$claimQuery ORDER BY c.created_at DESC, c.id", claimMapper)
         } else {
             jdbc.query(
-                """SELECT id FROM event_contribution_claims c WHERE submitter_id = ? OR EXISTS
+                """$claimQuery WHERE submitter_id = ? OR EXISTS
                     (SELECT 1 FROM event_claim_contributors h WHERE h.claim_id = c.id AND h.participant_id = ?)
-                    ORDER BY created_at DESC""",
-                { rs, _ -> rs.getObject("id", UUID::class.java) }, participantId, participantId,
+                    ORDER BY c.created_at DESC, c.id""",
+                claimMapper, participantId, participantId,
             )
         }
-        return ids.mapNotNull { find(it) }
+        return hydrate(claims)
     }
 
-    override fun find(id: UUID, lock: Boolean): EventClaim? {
+    override fun find(id: UUID, lock: Boolean): EventClaim? =
+        hydrate(jdbc.query(
+            "$claimQuery WHERE c.id = ?" + if (lock) " FOR UPDATE OF c" else "",
+            claimMapper, id,
+        )).singleOrNull()
+
+    private val claimQuery = """SELECT c.*, s.starts_on FROM event_contribution_claims c
+        JOIN program_seasons s ON s.id = c.season_id"""
+
+    private val claimMapper = RowMapper { rs, _ -> EventClaim(
+        rs.getObject("id", UUID::class.java), rs.getObject("submitter_id", UUID::class.java),
+        rs.getObject("season_id", UUID::class.java), rs.getObject("starts_on", LocalDate::class.java),
+        rs.getLong("version"), rs.getObject("event_id", UUID::class.java), rs.getBoolean("published"),
+        rs.getString("name"), rs.getString("description"), rs.getTimestamp("start_date").toInstant(),
+        rs.getTimestamp("end_date").toInstant(), rs.getString("location"),
+        rs.getString("event_type").lowercase(), rs.getBoolean("external_event"),
+        mapper.readValue(rs.getString("links"), Array<String>::class.java).toList(),
+        rs.getString("invitation_evidence"), emptyList(), emptyList(),
+    ) }
+
+    private fun hydrate(claims: List<EventClaim>): List<EventClaim> {
+        if (claims.isEmpty()) return claims
+        val ids = claims.map { it.id }.toTypedArray()
         val contributors = jdbc.query(
             """SELECT h.*, p.fullname FROM event_claim_contributors h
-                JOIN program_participants p ON p.id = h.participant_id WHERE claim_id = ? ORDER BY p.fullname, p.id""",
-            { rs, _ -> EventClaimContributor(
+                JOIN program_participants p ON p.id = h.participant_id
+                WHERE claim_id = ANY (?::uuid[]) ORDER BY claim_id, p.fullname, p.id""",
+            { rs, _ -> rs.getObject("claim_id", UUID::class.java) to EventClaimContributor(
                 rs.getObject("participant_id", UUID::class.java), rs.getString("fullname"),
                 rs.getString("contribution"), ContributionStatus.valueOf(rs.getString("status")),
                 rs.getObject("credit_id", UUID::class.java),
-            ) }, id,
-        )
+            ) }, ids as Any,
+        ).groupBy({ it.first }, { it.second })
         val reviews = jdbc.query(
-            "SELECT * FROM event_claim_reviews WHERE claim_id = ? ORDER BY created_at, id",
-            { rs, _ -> EventClaimReview(
-                rs.getObject("participant_id", UUID::class.java), ContributionStatus.valueOf(rs.getString("decision")),
+            """SELECT r.*, p.fullname FROM event_claim_reviews r
+                JOIN program_participants p ON p.id = r.participant_id
+                WHERE claim_id = ANY (?::uuid[]) ORDER BY claim_id, r.created_at, r.id""",
+            { rs, _ -> rs.getObject("claim_id", UUID::class.java) to EventClaimReview(
+                rs.getObject("participant_id", UUID::class.java), rs.getString("fullname"),
+                ContributionStatus.valueOf(rs.getString("decision")),
                 rs.getString("reason"), rs.getTimestamp("created_at").toInstant(),
-            ) }, id,
-        )
-        return jdbc.query(
-            """SELECT c.*, s.starts_on FROM event_contribution_claims c
-                JOIN program_seasons s ON s.id = c.season_id WHERE c.id = ?""" +
-                if (lock) " FOR UPDATE OF c" else "",
-            { rs, _ -> EventClaim(
-                id, rs.getObject("submitter_id", UUID::class.java), rs.getObject("season_id", UUID::class.java),
-                rs.getObject("starts_on", LocalDate::class.java), rs.getLong("version"),
-                rs.getObject("event_id", UUID::class.java), rs.getBoolean("published"),
-                rs.getString("name"), rs.getString("description"), rs.getTimestamp("start_date").toInstant(),
-                rs.getTimestamp("end_date").toInstant(), rs.getString("location"),
-                rs.getString("event_type").lowercase(), rs.getBoolean("external_event"),
-                mapper.readValue(rs.getString("links"), Array<String>::class.java).toList(),
-                rs.getString("invitation_evidence"), contributors, reviews,
-            ) }, id,
-        ).singleOrNull()
+            ) }, ids as Any,
+        ).groupBy({ it.first }, { it.second })
+        return claims.map {
+            it.copy(contributors = contributors[it.id].orEmpty(), reviews = reviews[it.id].orEmpty())
+        }
     }
 
     override fun eligible(participantId: UUID, eventAt: Instant): Boolean {

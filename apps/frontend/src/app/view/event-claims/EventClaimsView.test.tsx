@@ -92,6 +92,34 @@ afterEach(() => {
 });
 
 describe("Event claims", () => {
+	it("names retained reviews when the contributor is removed and no longer active", async () => {
+		vi.mocked(EventClaimsApi.overview).mockResolvedValue({
+			...overview,
+			participants: [overview.participants[0]],
+			claims: [
+				{
+					...claim,
+					contributors: [claim.contributors[0]],
+					reviews: [
+						{
+							participantId: "cohost",
+							fullName: "Co-host",
+							decision: "REJECTED",
+							reason: "Describe the presentation delivered",
+							createdAt: "2026-10-01T10:00:00Z",
+						},
+					],
+				},
+			],
+		});
+		render(<EventClaimsView />);
+		expect(
+			await screen.findByText(
+				/Co-host: rejected - Describe the presentation delivered/,
+			),
+		).toBeInTheDocument();
+	});
+
 	it("shows invitation evidence and co-host contributions to participants", async () => {
 		render(<EventClaimsView />);
 		expect(

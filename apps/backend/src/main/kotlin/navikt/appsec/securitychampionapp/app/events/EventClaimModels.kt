@@ -37,6 +37,7 @@ data class EventClaimContributor(
 
 data class EventClaimReview(
     val participantId: UUID,
+    val fullName: String,
     val decision: ContributionStatus,
     val reason: String,
     val createdAt: Instant,

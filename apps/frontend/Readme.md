@@ -38,7 +38,8 @@ Administrators use **Review event claims** (`/appsec/event-claims`) to approve o
 with a reason; their own credit requires another administrator. Each approval grants the full configured
 contribution value in the event's season and the first approval publishes the event in Past events.
 Approved claims are locked; administrators can revoke credit with a reason and confirmation without
-removing the public event. Review history remains visible to contributors and administrators.
+removing the public event. Review history remains visible to contributors and administrators, with
+subject names retained when a contributor is removed from a revised claim or becomes inactive.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
 The favicon is a locally bundled copy of the Security Champion logo from

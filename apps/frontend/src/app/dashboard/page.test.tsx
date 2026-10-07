@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Apies } from "@/app/shared/hooks/Apies";
@@ -56,7 +56,9 @@ function overview(
 }
 
 const syncButton = () =>
-	screen.findByRole("button", { name: "Run GitHub sync now" });
+	screen.findByRole("button", { name: "Run GitHub sync" });
+const githubCard = () =>
+	within(screen.getByRole("heading", { name: "GitHub" }).closest("article") as HTMLElement);
 
 describe("Admin dashboard page GitHub sync", () => {
 	beforeEach(() => {
@@ -85,15 +87,15 @@ describe("Admin dashboard page GitHub sync", () => {
 		render(<Page />);
 		await user.click(await syncButton());
 		expect(trigger).toHaveBeenCalledTimes(1);
-		expect(await screen.findByText("Sync in progress")).toBeInTheDocument();
+		expect(await screen.findByText("Syncing…")).toBeInTheDocument();
 		expect(get).toHaveBeenCalledTimes(2);
 		expect(await syncButton()).toBeDisabled();
 
 		await waitFor(() => expect(get.mock.calls.length).toBeGreaterThanOrEqual(3), {
 			timeout: 5000,
 		});
-		expect(await screen.findByText("Last sync succeeded")).toBeInTheDocument();
-		expect(screen.getByText("Credits awarded").nextElementSibling).toHaveTextContent("3");
+		expect(await githubCard().findByText("Healthy")).toBeInTheDocument();
+		expect(githubCard().getByText("Credits awarded").nextElementSibling).toHaveTextContent("3");
 		expect(await syncButton()).toBeEnabled();
 	}, 15000);
 
@@ -105,13 +107,13 @@ describe("Admin dashboard page GitHub sync", () => {
 			.mockResolvedValue(overview({ outcome: "FAILED", lastAttemptAt: "2026-10-05T11:00:00Z", failureSummary: "GitHub could not be reached" }));
 
 		render(<Page />);
-		expect(await screen.findByText("Sync in progress")).toBeInTheDocument();
+		expect(await screen.findByText("Syncing…")).toBeInTheDocument();
 		await act(async () => {
 			await vi.advanceTimersByTimeAsync(3000);
 		});
 		expect(get).toHaveBeenCalledTimes(2);
-		expect(await screen.findByText("Last sync failed")).toBeInTheDocument();
-		expect(screen.getByText("GitHub could not be reached")).toBeInTheDocument();
+		expect(await githubCard().findByText("Failing")).toBeInTheDocument();
+		expect(githubCard().getByText("GitHub could not be reached")).toBeInTheDocument();
 	});
 
 	it("should show busy/disabled message and refresh on 409", async () => {

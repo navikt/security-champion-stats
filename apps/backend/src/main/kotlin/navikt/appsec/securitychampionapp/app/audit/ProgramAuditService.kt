@@ -151,8 +151,8 @@ class ProgramAuditService(
         }
     }
 
-    fun adminPage(query: String?, page: Int, size: Int): ProgramAuditPage {
-        val (items, total) = repository.adminPage(query, page, size)
+    fun adminPage(query: String?, category: String?, page: Int, size: Int): ProgramAuditPage {
+        val (items, total) = repository.adminPage(query, page, size, category)
         return ProgramAuditPage(items, total, page, size)
     }
 

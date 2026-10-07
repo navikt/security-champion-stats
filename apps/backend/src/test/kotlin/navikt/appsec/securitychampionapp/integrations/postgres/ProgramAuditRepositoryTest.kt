@@ -84,10 +84,14 @@ class ProgramAuditRepositoryTest {
 
     @Test
     fun `should search and paginate admin audit events`() {
+        val participantId = createParticipant("participant@nav.no")
+        val runId = UUID.randomUUID()
         auditService.record(
             action = "SLACK_SCORING_SYNC_COMPLETED",
             outcome = AuditOutcome.SUCCEEDED,
             actorNavNoEmail = "admin@nav.no",
+            targetParticipantId = participantId,
+            correlationId = runId,
             details = mapOf("creditsAwarded" to 4),
         )
         auditService.record(
@@ -97,12 +101,31 @@ class ProgramAuditRepositoryTest {
             details = mapOf("route" to "/api/admin/participants/{id}/status"),
         )
 
-        val (page, total) = repository.adminPage("creditsAwarded", page = 0, size = 1)
+        val (page, total) = repository.adminPage("creditsAwarded", page = 0, size = 1, category = "syncs")
 
         assertThat(total).isEqualTo(1)
         assertThat(page).hasSize(1)
         assertThat(page.single().action).isEqualTo("SLACK_SCORING_SYNC_COMPLETED")
         assertThat(page.single().details).containsEntry("creditsAwarded", "4")
+
+        val (adminPage, adminTotal) = repository.adminPage(null, page = 0, size = 10, category = "admin")
+        assertThat(adminTotal).isEqualTo(1)
+        assertThat(adminPage.single().action).isEqualTo("ADMIN_MUTATION")
+
+        val (searchedByRun, matchingRunTotal) =
+            repository.adminPage(runId.toString(), page = 0, size = 10, category = "syncs")
+        assertThat(matchingRunTotal).isEqualTo(1)
+        assertThat(searchedByRun.single().correlationId).isEqualTo(runId)
+
+        val (searchedByParticipant, matchingParticipantTotal) =
+            repository.adminPage(participantId.toString(), page = 0, size = 10, category = "syncs")
+        assertThat(matchingParticipantTotal).isEqualTo(1)
+        assertThat(searchedByParticipant.single().targetParticipantId).isEqualTo(participantId)
+
+        val (searchedByActor, matchingActorTotal) =
+            repository.adminPage("admin@nav.no", page = 0, size = 10, category = "syncs")
+        assertThat(matchingActorTotal).isEqualTo(1)
+        assertThat(searchedByActor.single().action).isEqualTo("SLACK_SCORING_SYNC_COMPLETED")
     }
 
     @Test

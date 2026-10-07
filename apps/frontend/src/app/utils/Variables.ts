@@ -64,6 +64,7 @@ export type AuditResponse = {
 	page: number;
 	size: number;
 };
+export type AuditCategory = "all" | "syncs" | "credits" | "admin";
 export type ParticipantHistoryEntry = {
 	id: string;
 	occurredAt: string;

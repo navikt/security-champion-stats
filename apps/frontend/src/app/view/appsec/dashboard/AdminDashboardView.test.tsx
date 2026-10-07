@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { AdminDashboardOverview } from "@/app/utils/Variables";
@@ -48,7 +48,7 @@ const overview: AdminDashboardOverview = {
 		eventsScanned: 0,
 		creditsAwarded: 0,
 		duplicateCredits: 0,
-		unmatchedRegistrations: 0,
+		unmatchedRegistrations: 2,
 		failedEvents: 1,
 		failureSummary: "Delta service could not be reached",
 	},
@@ -66,7 +66,7 @@ const overview: AdminDashboardOverview = {
 };
 
 describe("AdminDashboardView", () => {
-	it("should show aggregate metrics, integration health, and admin operation links", () => {
+	it("shows dashboard KPIs, activity categories, attention items, and integration health", () => {
 		render(
 			<AdminDashboardView
 				overview={overview}
@@ -79,25 +79,16 @@ describe("AdminDashboardView", () => {
 		expect(
 			screen.getByRole("heading", { name: "Program dashboard" }),
 		).toBeInTheDocument();
-		expect(screen.getByText("7")).toBeInTheDocument();
-		expect(screen.getByText("3")).toBeInTheDocument();
+		expect(screen.getByText("Active participants").nextElementSibling).toHaveTextContent("7");
+		expect(screen.getByText("Event registrations").nextElementSibling).toHaveTextContent("3");
 		expect(screen.getByText("Slack participation")).toBeInTheDocument();
-		expect(screen.getByText("Event registration")).toBeInTheDocument();
+		expect(screen.getAllByText("Event registration")).toHaveLength(2);
 		expect(screen.getByText("Administrator adjustments")).toBeInTheDocument();
-		expect(screen.getAllByText("Sync is disabled")).toHaveLength(2);
-		expect(
-			screen.getByText("Delta service could not be reached"),
-		).toBeInTheDocument();
-		expect(
-			screen.getByRole("link", { name: "Manage participants" }),
-		).toHaveAttribute("href", "/appsec/membership");
-		expect(
-			screen.getByRole("link", { name: "Manage scoring" }),
-		).toHaveAttribute("href", "/appsec/scoring");
-		expect(screen.getByRole("link", { name: "Manage events" })).toHaveAttribute(
-			"href",
-			"/appsec/events",
-		);
+		expect(screen.getAllByText("Disabled")).toHaveLength(2);
+		expect(screen.getByText("Delta sync failed")).toBeInTheDocument();
+		expect(screen.getAllByText("Delta service could not be reached")).toHaveLength(2);
+		expect(screen.getByRole("link", { name: "Review Delta mappings →" })).toHaveAttribute("href", "/appsec/delta");
+		expect(screen.queryByRole("heading", { name: "Program administration" })).not.toBeInTheDocument();
 	});
 
 	it("should allow admins to trigger enabled integrations only", async () => {
@@ -112,12 +103,10 @@ describe("AdminDashboardView", () => {
 			/>,
 		);
 
-		await user.click(screen.getByRole("button", { name: "Run Slack sync now" }));
+		await user.click(screen.getByRole("button", { name: "Run Slack sync" }));
 
 		expect(onTriggerSync).toHaveBeenCalledWith("slack");
-		expect(
-			screen.getByRole("button", { name: "Run Delta sync now" }),
-		).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Run Delta sync" })).toBeDisabled();
 	});
 
 	it("should show GitHub as disabled with sync unavailable", () => {
@@ -132,7 +121,7 @@ describe("AdminDashboardView", () => {
 
 		expect(screen.getByRole("heading", { name: "GitHub" })).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Run GitHub sync now" }),
+			screen.getByRole("button", { name: "Run GitHub sync" }),
 		).toBeDisabled();
 	});
 
@@ -153,7 +142,7 @@ describe("AdminDashboardView", () => {
 		);
 
 		await user.click(
-			screen.getByRole("button", { name: "Run GitHub sync now" }),
+			screen.getByRole("button", { name: "Run GitHub sync" }),
 		);
 		expect(onTriggerSync).toHaveBeenCalledWith("github");
 
@@ -168,9 +157,9 @@ describe("AdminDashboardView", () => {
 				triggerError={null}
 			/>,
 		);
-		expect(screen.getByText("Sync in progress")).toBeInTheDocument();
+		expect(screen.getByText("Syncing…")).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Run GitHub sync now" }),
+			screen.getByRole("button", { name: "Run GitHub sync" }),
 		).toBeDisabled();
 	});
 
@@ -194,8 +183,10 @@ describe("AdminDashboardView", () => {
 			/>,
 		);
 
-		const counter = (label: string) =>
-			screen.getByText(label).nextElementSibling;
+		const githubArticle = screen.getByRole("heading", { name: "GitHub" }).closest("article");
+		expect(githubArticle).not.toBeNull();
+		const githubCard = within(githubArticle as HTMLElement);
+		const counter = (label: string) => githubCard.getByText(label).nextElementSibling;
 		expect(counter("Contributions scanned")).toHaveTextContent("41");
 		expect(counter("Credits awarded")).toHaveTextContent("6");
 		expect(counter("Duplicate credits")).toHaveTextContent("2");
@@ -223,8 +214,10 @@ describe("AdminDashboardView", () => {
 			/>,
 		);
 
-		expect(screen.getByText("Last sync failed")).toBeInTheDocument();
-		expect(screen.getByText("GitHub could not be reached")).toBeInTheDocument();
+		expect(screen.getByText("Failing")).toBeInTheDocument();
+		const githubArticle = screen.getByRole("heading", { name: "GitHub" }).closest("article");
+		expect(githubArticle).not.toBeNull();
+		expect(within(githubArticle as HTMLElement).getByText("GitHub could not be reached")).toBeInTheDocument();
 		expect(
 			screen.getByText("We couldn't start the sync. Try again later."),
 		).toBeInTheDocument();

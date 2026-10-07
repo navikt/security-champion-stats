@@ -17,16 +17,30 @@ class AdminAuditController(
     @GetMapping
     fun audit(
         @RequestParam(required = false) q: String?,
+        @RequestParam(required = false) category: String?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "50") size: Int,
     ): ResponseEntity<ProgramAuditPage> {
-        if (page < 0 || page > 100_000 || size !in 1..100 || q != null && q.length > 100) {
+        if (
+            page < 0 ||
+            page > 100_000 ||
+            size !in 1..100 ||
+            q != null && q.length > 100 ||
+            category != null && category !in setOf("all", "syncs", "credits", "admin")
+        ) {
             throw ApiRequestException(
                 HttpStatus.BAD_REQUEST,
                 "Invalid audit query",
                 "The page, size, or search query is invalid",
             )
         }
-        return ResponseEntity.ok(auditService.adminPage(q?.takeIf(String::isNotBlank), page, size))
+        return ResponseEntity.ok(
+            auditService.adminPage(
+                q?.takeIf(String::isNotBlank),
+                category?.takeUnless { it == "all" },
+                page,
+                size,
+            ),
+        )
     }
 }

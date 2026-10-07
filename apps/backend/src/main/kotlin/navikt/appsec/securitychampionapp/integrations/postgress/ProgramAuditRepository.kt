@@ -56,17 +56,30 @@ class ProgramAuditRepository(
         )
     }
 
-    fun adminPage(query: String?, page: Int, size: Int): Pair<List<ProgramAuditEntry>, Long> {
+    fun adminPage(
+        query: String?,
+        page: Int,
+        size: Int,
+        category: String? = null,
+    ): Pair<List<ProgramAuditEntry>, Long> {
         val pattern = query?.let { "%${escapeLike(it)}%" }
         val total = jdbcTemplate.queryForObject(
             """
                 SELECT COUNT(*)
                 FROM program_audit_events
-                WHERE CAST(? AS text) IS NULL OR (
+                WHERE (CAST(? AS text) IS NULL OR (
                     action ILIKE ? ESCAPE '\'
                     OR outcome ILIKE ? ESCAPE '\'
                     OR COALESCE(actor_nav_no_email, '') ILIKE ? ESCAPE '\'
                     OR details::text ILIKE ? ESCAPE '\'
+                    OR COALESCE(correlation_id::text, '') ILIKE ? ESCAPE '\'
+                    OR COALESCE(target_participant_id::text, '') ILIKE ? ESCAPE '\'
+                ))
+                AND (
+                    CAST(? AS text) IS NULL
+                    OR (? = 'syncs' AND action ILIKE '%SYNC%')
+                    OR (? = 'credits' AND action ILIKE '%CREDIT%')
+                    OR (? = 'admin' AND action NOT ILIKE '%SYNC%' AND action NOT ILIKE '%CREDIT%')
                 )
             """.trimIndent(),
             Long::class.javaObjectType,
@@ -75,17 +88,31 @@ class ProgramAuditRepository(
             pattern,
             pattern,
             pattern,
+            pattern,
+            pattern,
+            category,
+            category,
+            category,
+            category,
         ) ?: 0L
         val rows = jdbcTemplate.query(
             """
                 SELECT id, created_at, action, outcome, actor_nav_no_email,
                     target_participant_id, correlation_id, details
                 FROM program_audit_events
-                WHERE CAST(? AS text) IS NULL OR (
+                WHERE (CAST(? AS text) IS NULL OR (
                     action ILIKE ? ESCAPE '\'
                     OR outcome ILIKE ? ESCAPE '\'
                     OR COALESCE(actor_nav_no_email, '') ILIKE ? ESCAPE '\'
                     OR details::text ILIKE ? ESCAPE '\'
+                    OR COALESCE(correlation_id::text, '') ILIKE ? ESCAPE '\'
+                    OR COALESCE(target_participant_id::text, '') ILIKE ? ESCAPE '\'
+                ))
+                AND (
+                    CAST(? AS text) IS NULL
+                    OR (? = 'syncs' AND action ILIKE '%SYNC%')
+                    OR (? = 'credits' AND action ILIKE '%CREDIT%')
+                    OR (? = 'admin' AND action NOT ILIKE '%SYNC%' AND action NOT ILIKE '%CREDIT%')
                 )
                 ORDER BY created_at DESC, id DESC
                 LIMIT ? OFFSET ?
@@ -96,6 +123,12 @@ class ProgramAuditRepository(
             pattern,
             pattern,
             pattern,
+            pattern,
+            pattern,
+            category,
+            category,
+            category,
+            category,
             size,
             page.toLong() * size,
         )

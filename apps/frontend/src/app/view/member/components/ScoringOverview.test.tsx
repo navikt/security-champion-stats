@@ -38,7 +38,7 @@ describe("ScoringOverview", () => {
 		expect(screen.getByText("#2")).toBeInTheDocument();
 		expect(screen.getByText("1 point to Adept")).toBeInTheDocument();
 		expect(
-			screen.getByRole("heading", { name: "Full current-season leaderboard" }),
+			screen.getByRole("heading", { name: "Season leaderboard" }),
 		).toBeInTheDocument();
 		expect(screen.getByText("Alex")).toBeInTheDocument();
 		expect(screen.getByText("Sam")).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe("ScoringOverview", () => {
 
 		expect(
 			await screen.findByRole("heading", {
-				name: "Full current-season leaderboard",
+				name: "Season leaderboard",
 			}),
 		).toBeInTheDocument();
 		expect(screen.queryByText("Your season")).not.toBeInTheDocument();

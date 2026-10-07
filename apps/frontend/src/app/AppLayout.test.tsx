@@ -101,7 +101,7 @@ describe("sidebar layout", () => {
 		await user.keyboard("{Enter}");
 
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(screen.getByText("Admin only")).toBeVisible();
+		expect(screen.queryByText("Admin only")).not.toBeInTheDocument();
 		for (const [name, href] of [
 			["Program dashboard", "/dashboard"],
 			["Manage events", "/appsec/events"],

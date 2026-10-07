@@ -7,41 +7,20 @@ import {
 	Heading,
 	HGrid,
 	ProgressBar,
-	Table,
+	Tag,
 } from "@navikt/ds-react";
 import { Apies } from "@/app/shared/hooks/Apies";
 import {
 	LeaderboardEntry,
 	ParticipantSeasonScore,
 } from "@/app/utils/Variables";
+import { scoringProgress } from "@/app/utils/scoringUtils";
 import "../../../style/home/ScoringOverview.css";
-
-const levelThresholds = [
-	{ level: "Novice", points: 0 },
-	{ level: "Apprentice", points: 100 },
-	{ level: "Adept", points: 250 },
-	{ level: "Expert", points: 500 },
-] as const;
 
 function ScoringProgress({ score }: { score: ParticipantSeasonScore }) {
 	const progressLabelId = useId();
-	const levelIndex = levelThresholds.findIndex(
-		(threshold) => threshold.level === score.level,
-	);
-	const currentLevel = levelThresholds[levelIndex];
-	const nextLevel = levelThresholds[levelIndex + 1];
-
-	if (!currentLevel) return null;
-
-	const currentProgress = nextLevel
-		? Math.min(
-				Math.max(score.points - currentLevel.points, 0),
-				nextLevel.points - currentLevel.points,
-			)
-		: 0;
-	const pointsToNextLevel = nextLevel
-		? nextLevel.points - score.points
-		: null;
+	const progress = scoringProgress(score);
+	if (!progress) return null;
 
 	return (
 		<Box
@@ -76,20 +55,20 @@ function ScoringProgress({ score }: { score: ParticipantSeasonScore }) {
 					</Heading>
 				</div>
 			</HGrid>
-			{nextLevel ? (
+			{progress.nextLevel ? (
 				<div className="sc-scoring-overview__progress">
 					<BodyShort id={progressLabelId}>
-						{pointsToNextLevel}{" "}
-						{pointsToNextLevel === 1 ? "point" : "points"} to {nextLevel.level}
+						{progress.pointsToNextLevel}{" "}
+						{progress.pointsToNextLevel === 1 ? "point" : "points"} to {progress.nextLevel.level}
 					</BodyShort>
 					<ProgressBar
 						aria-labelledby={progressLabelId}
-						value={currentProgress}
-						valueMax={nextLevel.points - currentLevel.points}
+						value={progress.value}
+						valueMax={progress.valueMax}
 					/>
 				</div>
 			) : (
-				<BodyShort>Expert is the highest level this season.</BodyShort>
+				<BodyShort>Top level reached.</BodyShort>
 			)}
 		</Box>
 	);
@@ -97,9 +76,20 @@ function ScoringProgress({ score }: { score: ParticipantSeasonScore }) {
 
 function Leaderboard({
 	entries,
+	currentUserName,
 }: {
 	entries: LeaderboardEntry[];
+	currentUserName?: string | null;
 }) {
+	const sorted = [...entries].sort((a, b) => a.rank - b.rank);
+	const top = sorted.slice(0, 10);
+	const self = currentUserName
+		? sorted.find((entry) => entry.fullName === currentUserName)
+		: undefined;
+	const selfOutsideTop = self && !top.includes(self) ? self : undefined;
+	const visible = selfOutsideTop ? [...top, selfOutsideTop] : top;
+	const leaderPoints = Math.max(sorted[0]?.points ?? 0, 1);
+
 	return (
 		<Box
 			as="section"
@@ -111,37 +101,44 @@ function Leaderboard({
 			padding="space-16"
 		>
 			<Heading level="2" size="medium">
-				Full current-season leaderboard
+				Season leaderboard
 			</Heading>
-			{entries.length === 0 ? (
+			{visible.length === 0 ? (
 				<BodyShort>No participants have earned points this season yet.</BodyShort>
 			) : (
-				<div className="sc-scoring-overview__table">
-					<Table size="small">
-						<Table.Header>
-							<Table.Row>
-								<Table.HeaderCell scope="col">Rank</Table.HeaderCell>
-								<Table.HeaderCell scope="col">Participant</Table.HeaderCell>
-								<Table.HeaderCell scope="col">Points</Table.HeaderCell>
-								<Table.HeaderCell scope="col">Level</Table.HeaderCell>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{entries.map((entry, index) => (
-								<Table.Row
-									key={`${entry.rank}-${entry.fullName}-${index}`}
-								>
-									<Table.DataCell>{entry.rank}</Table.DataCell>
-									<Table.HeaderCell scope="row">
+				<ol className="sc-scoring-overview__leaderboard">
+					{visible.map((entry, index) => {
+						const isCurrentUser = entry === self;
+						return (
+							<li
+								className={[
+									"sc-scoring-overview__leaderboardRow",
+									isCurrentUser ? "sc-scoring-overview__leaderboardRow--self" : "",
+									selfOutsideTop && index === top.length ? "sc-scoring-overview__leaderboardRow--separated" : "",
+								].filter(Boolean).join(" ")}
+								key={`${entry.rank}-${entry.fullName}-${index}`}
+							>
+								<span className="sc-scoring-overview__rank">{entry.rank}</span>
+								<div className="sc-scoring-overview__person">
+									<span className="sc-scoring-overview__name">
 										{entry.fullName}
-									</Table.HeaderCell>
-									<Table.DataCell>{entry.points}</Table.DataCell>
-									<Table.DataCell>{entry.level}</Table.DataCell>
-								</Table.Row>
-							))}
-						</Table.Body>
-					</Table>
-				</div>
+										{isCurrentUser && <Tag size="xsmall" variant="moderate" data-color="success">You</Tag>}
+									</span>
+									<span
+										className="sc-scoring-overview__bar"
+										aria-hidden="true"
+									>
+										<span style={{ width: `${Math.max(0, Math.min(100, entry.points / leaderPoints * 100))}%` }} />
+									</span>
+								</div>
+								<span className="sc-scoring-overview__score">
+									<strong>{entry.points}</strong>
+									<span>{entry.level}</span>
+								</span>
+							</li>
+						);
+					})}
+				</ol>
 			)}
 		</Box>
 	);
@@ -150,9 +147,11 @@ function Leaderboard({
 export function ScoringOverview({
 	showPersonalProgress,
 	showLeaderboard,
+	currentUserName,
 }: {
 	showPersonalProgress: boolean;
 	showLeaderboard: boolean;
+	currentUserName?: string | null;
 }) {
 	const [score, setScore] = useState<ParticipantSeasonScore | null>(null);
 	const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
@@ -223,7 +222,7 @@ export function ScoringOverview({
 						We couldn't load the leaderboard. Try again later.
 					</BodyShort>
 				) : (
-					<Leaderboard entries={entries} />
+					<Leaderboard entries={entries} currentUserName={currentUserName} />
 				))}
 		</div>
 	);

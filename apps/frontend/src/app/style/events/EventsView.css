@@ -71,12 +71,7 @@
 
 	color: var(--sc-primary);
 
-	font-size: 0.75rem;
-	font-weight: 700;
-
 	letter-spacing: 0.06em;
-
-	text-transform: uppercase;
 }
 
 .nextEventCard__heading {
@@ -113,8 +108,6 @@
 	gap: 0.45rem;
 
 	color: var(--sc-text-muted);
-
-	font-size: 0.875rem;
 }
 
 .eventMeta svg {
@@ -159,9 +152,6 @@
 	background: var(--sc-surface-subtle);
 
 	color: var(--sc-text-muted);
-
-	font-size: 0.8rem;
-	font-weight: 600;
 }
 
 .eventSection__empty {
@@ -260,8 +250,6 @@
 
 .eventListItem__date {
 	color: var(--sc-text-muted);
-
-	font-size: 0.8rem;
 }
 
 .eventListItem__type {

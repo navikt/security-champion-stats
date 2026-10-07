@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BodyShort, Box, Button, Heading, HStack, TextField, ToggleGroup } from "@navikt/ds-react";
+import {
+	BodyShort,
+	Box,
+	Button,
+	Heading,
+	HStack,
+	TextField,
+	ToggleGroup,
+} from "@navikt/ds-react";
 import { Apies } from "@/app/shared/hooks/Apies";
 import type { AuditCategory, AuditResponse } from "@/app/utils/Variables";
 
@@ -61,7 +69,10 @@ function summary(details: Record<string, string>): string {
 }
 
 function initialQuery() {
-	return (new URLSearchParams(window.location.search).get("q") ?? "").slice(0, 100);
+	return (new URLSearchParams(window.location.search).get("q") ?? "").slice(
+		0,
+		100,
+	);
 }
 
 function initialCategory(): AuditCategory {
@@ -124,7 +135,9 @@ export function AdminAuditView() {
 			.then((response) => {
 				if (!current) return;
 				setResult(response);
-				setOpenItems(response.items[0] ? new Set([response.items[0].id]) : new Set());
+				setOpenItems(
+					response.items[0] ? new Set([response.items[0].id]) : new Set(),
+				);
 			})
 			.catch((error) => {
 				console.error("Failed to load admin audit events:", error);
@@ -139,7 +152,9 @@ export function AdminAuditView() {
 	}, [search, category, pageNumber]);
 
 	const start = result && result.total > 0 ? result.page * result.size + 1 : 0;
-	const end = result ? Math.min((result.page + 1) * result.size, result.total) : 0;
+	const end = result
+		? Math.min((result.page + 1) * result.size, result.total)
+		: 0;
 
 	const chooseCategory = (next: AuditCategory) => {
 		setCategory(next);
@@ -157,10 +172,15 @@ export function AdminAuditView() {
 	return (
 		<div className="hubRedesign auditView">
 			<header className="hubRedesign__header">
-				<BodyShort className="hubRedesign__eyebrow">Admin only</BodyShort>
-				<Heading level="1" size="xlarge">Audit trail</Heading>
+				<BodyShort size="small" className="hubRedesign__eyebrow">
+					Admin only
+				</BodyShort>
+				<Heading level="1" size="xlarge">
+					Audit trail
+				</Heading>
 				<BodyShort>
-					History starts when audit logging was introduced; capture is best-effort. Operational records are retained for 12 months.
+					History starts when audit logging was introduced; capture is
+					best-effort. Operational records are retained for 12 months.
 				</BodyShort>
 			</header>
 
@@ -213,11 +233,17 @@ export function AdminAuditView() {
 				borderRadius="8"
 			>
 				{loading ? (
-					<BodyShort className="auditView__message" role="status">Loading audit events…</BodyShort>
+					<BodyShort className="auditView__message" role="status">
+						Loading audit events…
+					</BodyShort>
 				) : failed ? (
-					<BodyShort className="auditView__message" role="alert">We couldn't fetch audit events. Try again later.</BodyShort>
+					<BodyShort className="auditView__message" role="alert">
+						We couldn't fetch audit events. Try again later.
+					</BodyShort>
 				) : !result || result.items.length === 0 ? (
-					<BodyShort className="auditView__message">No events match your search.</BodyShort>
+					<BodyShort className="auditView__message">
+						No events match your search.
+					</BodyShort>
 				) : (
 					<>
 						<ol className="auditView__list">
@@ -228,11 +254,12 @@ export function AdminAuditView() {
 									([key, value]) =>
 										WARNING_METRICS.has(key) && numericValue(value) !== 0,
 								);
-								const status = item.outcome === "FAILED"
-									? "danger"
-									: hasWarning || item.outcome === "PARTIAL"
-										? "warning"
-										: "success";
+								const status =
+									item.outcome === "FAILED"
+										? "danger"
+										: hasWarning || item.outcome === "PARTIAL"
+											? "warning"
+											: "success";
 								const expanded = openItems.has(item.id);
 								const panelId = `audit-panel-${item.id}`;
 								return (
@@ -252,35 +279,61 @@ export function AdminAuditView() {
 											}
 										>
 											<span className="auditView__date">
-												<time className="hubRedesign__mono" dateTime={item.createdAt}>{time}</time>
+												<time
+													className="hubRedesign__mono"
+													dateTime={item.createdAt}
+												>
+													{time}
+												</time>
 												<span>{date}</span>
 											</span>
 											<span className="auditView__summary">
-												<span className={`auditView__statusDot auditView__statusDot--${status}`} aria-hidden="true" />
-												<span className="auditView__title">{readable(item.action)}</span>
-												<span className="hubRedesign__muted">{summary(item.details)}</span>
+												<span
+													className={`auditView__statusDot auditView__statusDot--${status}`}
+													aria-hidden="true"
+												/>
+												<span className="auditView__title">
+													{readable(item.action)}
+												</span>
+												<span className="hubRedesign__muted">
+													{summary(item.details)}
+												</span>
 												<span className="auditView__subline">
 													{item.actorNavNoEmail || "System / erased identity"}
 													{item.correlationId && (
-														<code className="hubRedesign__mono">run {item.correlationId.slice(0, 8)}</code>
+														<code className="hubRedesign__mono">
+															run {item.correlationId.slice(0, 8)}
+														</code>
 													)}
 												</span>
 											</span>
-											<span className="auditView__chevron" aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+											<span className="auditView__chevron" aria-hidden="true">
+												{expanded ? "▾" : "▸"}
+											</span>
 										</button>
 										{expanded && (
 											<div className="auditView__panel" id={panelId}>
 												{metrics.length > 0 && (
 													<dl className="auditView__metrics">
 														{metrics.map(([key, value]) => {
-															const warning = WARNING_METRICS.has(key) && numericValue(value) !== 0;
+															const warning =
+																WARNING_METRICS.has(key) &&
+																numericValue(value) !== 0;
 															return (
 																<div
 																	className={`auditView__metric${warning ? " auditView__metric--warning" : ""}`}
 																	key={key}
 																>
 																	<dt>{readable(key)}</dt>
-																	<dd>{value}</dd>
+																	<dd>
+																		<BodyShort
+																			as="span"
+																			size="large"
+																			weight="semibold"
+																		>
+																			{value}
+																		</BodyShort>
+																	</dd>
 																</div>
 															);
 														})}
@@ -288,20 +341,29 @@ export function AdminAuditView() {
 												)}
 												<dl className="auditView__details">
 													<dt>Status</dt>
-													<dd className={`auditView__statusText auditView__statusText--${status}`}>
+													<dd
+														className={`auditView__statusText auditView__statusText--${status}`}
+													>
 														{readable(item.outcome)}
 													</dd>
 													<dt>Actor</dt>
-													<dd>{item.actorNavNoEmail || "System / erased identity"}</dd>
+													<dd>
+														{item.actorNavNoEmail || "System / erased identity"}
+													</dd>
 													{item.correlationId && (
 														<>
 															<dt>Run ID</dt>
 															<dd>
-																<code className="hubRedesign__mono">{item.correlationId}</code>
+																<code className="hubRedesign__mono">
+																	{item.correlationId}
+																</code>
 																<Button
 																	variant="tertiary"
 																	size="small"
-																	onClick={() => item.correlationId && filterRun(item.correlationId)}
+																	onClick={() =>
+																		item.correlationId &&
+																		filterRun(item.correlationId)
+																	}
 																>
 																	Show all events in this run
 																</Button>
@@ -311,7 +373,11 @@ export function AdminAuditView() {
 													{item.targetParticipantId && (
 														<>
 															<dt>Participant</dt>
-															<dd><code className="hubRedesign__mono">{item.targetParticipantId}</code></dd>
+															<dd>
+																<code className="hubRedesign__mono">
+																	{item.targetParticipantId}
+																</code>
+															</dd>
 														</>
 													)}
 												</dl>
@@ -322,13 +388,17 @@ export function AdminAuditView() {
 							})}
 						</ol>
 						<footer className="auditView__footer">
-							<BodyShort>Showing {start}–{end} of {result.total} events</BodyShort>
+							<BodyShort>
+								Showing {start}–{end} of {result.total} events
+							</BodyShort>
 							<HStack gap="space-8">
 								<Button
 									variant="secondary"
 									size="small"
 									disabled={pageNumber === 0}
-									onClick={() => setPageNumber((current) => Math.max(current - 1, 0))}
+									onClick={() =>
+										setPageNumber((current) => Math.max(current - 1, 0))
+									}
 								>
 									← Newer
 								</Button>

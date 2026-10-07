@@ -36,7 +36,6 @@
 
 .hubRedesign__eyebrow {
 	color: var(--hub-warning);
-	font-size: var(--ax-font-size-small);
 	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
@@ -71,7 +70,6 @@
 
 .hubRedesign__statLabel {
 	color: var(--hub-text-secondary);
-	font-size: var(--ax-font-size-small);
 }
 
 .hubRedesign__statValue {
@@ -446,8 +444,6 @@ html.hacker .hubRedesign {
 
 .auditView__metric dd {
 	margin: 0;
-	font-size: 1.25rem;
-	font-weight: 700;
 	font-variant-numeric: tabular-nums;
 	overflow-wrap: anywhere;
 }
@@ -662,8 +658,6 @@ html.hacker .hubRedesign {
 }
 
 .dashboardView__attentionCount {
-	font-size: 1.375rem;
-	line-height: 1;
 	font-variant-numeric: tabular-nums;
 }
 
@@ -776,15 +770,13 @@ html.hacker .hubRedesign {
 .dashboardView__integrationMetrics p {
 	margin: 0;
 	color: var(--hub-text-secondary);
-	font-size: var(--ax-font-size-small);
 }
 
-.dashboardView__integrationMetrics strong {
-	font-size: 1.0625rem;
+.dashboardView__integrationValue {
 	font-variant-numeric: tabular-nums;
 }
 
-.dashboardView__integrationMetric--warning strong {
+.dashboardView__integrationMetric--warning .dashboardView__integrationValue {
 	color: var(--sc-warning);
 }
 

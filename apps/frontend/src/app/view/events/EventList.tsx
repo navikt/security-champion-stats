@@ -1,6 +1,6 @@
 import "../../style/events/EventsView.css";
 import { SecurityEvent } from "@/app/utils/Variables";
-import { Heading } from "@navikt/ds-react";
+import { Detail, Heading } from "@navikt/ds-react";
 import { EventListItem } from "@/app/view/events/EventListItem";
 
 interface EventListProps {
@@ -32,7 +32,9 @@ export function EventList({
 				</Heading>
 
 				{visibleEvents.length > 0 && (
-					<span className={"eventSection__count"}>{visibleEvents.length}</span>
+					<Detail weight="semibold" className={"eventSection__count"}>
+						{visibleEvents.length}
+					</Detail>
 				)}
 			</div>
 			{visibleEvents.length === 0 ? (

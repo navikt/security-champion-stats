@@ -1,4 +1,4 @@
-import { BodyShort, Button, Heading, Tag } from "@navikt/ds-react";
+import { BodyShort, Button, Detail, Heading, Tag } from "@navikt/ds-react";
 import { SecurityEvent } from "@/app/utils/Variables";
 import { formatEventDate } from "@/app/utils/eventUtils";
 import "../../style/events/EventsView.css";
@@ -15,7 +15,11 @@ export function NextEventCard({ event }: NextEventCardProps) {
 
 	return (
 		<article className={"nextEventCard"}>
-			<div className={"nextEventCard__eyebrow"}>Next event</div>
+			<div className={"nextEventCard__eyebrow"}>
+				<Detail uppercase weight="semibold">
+					Next event
+				</Detail>
+			</div>
 
 			<div className={"nextEventCard__heading"}>
 				<div>
@@ -44,20 +48,20 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			<div className={"nextEventCard__metadata"}>
 				<div className={"eventMeta"}>
 					<CalendarIcon aria-hidden />
-					<span>{formatEventDate(event)}</span>
+					<Detail>{formatEventDate(event)}</Detail>
 				</div>
 
 				{!event.allDay && (
 					<div className={"eventMeta"}>
 						<ClockIcon aria-hidden />
-						<span>{formatEventTime(start, end)}</span>
+						<Detail>{formatEventTime(start, end)}</Detail>
 					</div>
 				)}
 
 				{event.location && (
 					<div className={"eventMeta"}>
 						<LocationPinIcon aria-hidden />
-						<span>{event.location}</span>
+						<Detail>{event.location}</Detail>
 					</div>
 				)}
 			</div>

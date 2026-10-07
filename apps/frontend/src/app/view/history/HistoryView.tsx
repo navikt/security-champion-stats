@@ -69,7 +69,7 @@ function entryDetail(entry: HistoryEntry): string {
 	const eventName = entry.details.eventName;
 	const values = [
 		typeof creditType === "string"
-			? CREDIT_LABELS[creditType] ?? readable(creditType)
+			? (CREDIT_LABELS[creditType] ?? readable(creditType))
 			: null,
 		typeof eventName === "string" ? eventName : null,
 		typeof reason === "string" ? reason : null,
@@ -106,7 +106,9 @@ function dayLabel(value: string): string {
 	if (localDayKey(date.toISOString()) === localDayKey(today.toISOString())) {
 		return `Today · ${format(date)}`;
 	}
-	if (localDayKey(date.toISOString()) === localDayKey(yesterday.toISOString())) {
+	if (
+		localDayKey(date.toISOString()) === localDayKey(yesterday.toISOString())
+	) {
 		return `Yesterday · ${format(date)}`;
 	}
 	return format(date);
@@ -128,7 +130,9 @@ function dateTime(value: string): string {
 
 function getFilterFromUrl(): HistoryFilter {
 	const value = new URLSearchParams(window.location.search).get("type");
-	return HISTORY_FILTERS.find((filter) => filter.value === value)?.value ?? "all";
+	return (
+		HISTORY_FILTERS.find((filter) => filter.value === value)?.value ?? "all"
+	);
 }
 
 function updateFilterInUrl(filter: HistoryFilter) {
@@ -146,7 +150,9 @@ function updateFilterInUrl(filter: HistoryFilter) {
 export function HistoryView() {
 	const [page, setPage] = useState<HistoryPage | null>(null);
 	const [score, setScore] = useState<ParticipantSeasonScore | null>(null);
-	const [participant, setParticipant] = useState<ProgramParticipant | null>(null);
+	const [participant, setParticipant] = useState<ProgramParticipant | null>(
+		null,
+	);
 	const [filter, setFilter] = useState<HistoryFilter>("all");
 	const [visibleCount, setVisibleCount] = useState(50);
 	const [loading, setLoading] = useState(true);
@@ -176,11 +182,19 @@ export function HistoryView() {
 				const seasonScore =
 					scoreResult.status === "fulfilled" ? scoreResult.value : null;
 				const membership =
-					membershipResult.status === "fulfilled" ? membershipResult.value : null;
+					membershipResult.status === "fulfilled"
+						? membershipResult.value
+						: null;
 				if (scoreResult.status === "rejected")
-					console.error("Failed to load participant season score:", scoreResult.reason);
+					console.error(
+						"Failed to load participant season score:",
+						scoreResult.reason,
+					);
 				if (membershipResult.status === "rejected")
-					console.error("Failed to load participant membership:", membershipResult.reason);
+					console.error(
+						"Failed to load participant membership:",
+						membershipResult.reason,
+					);
 				setScore(seasonScore);
 				setParticipant(membership);
 			})
@@ -205,7 +219,8 @@ export function HistoryView() {
 	);
 	const visibleEntries = filteredEntries.slice(0, visibleCount);
 	const groups = useMemo(() => {
-		const result: { key: string; label: string; entries: HistoryEntry[] }[] = [];
+		const result: { key: string; label: string; entries: HistoryEntry[] }[] =
+			[];
 		for (const entry of visibleEntries) {
 			const key = localDayKey(entry.recordedAt);
 			let group = result.find((candidate) => candidate.key === key);
@@ -236,7 +251,10 @@ export function HistoryView() {
 			await navigator.clipboard.writeText(reference);
 			setCopied(entryId);
 			setCopyFailed(false);
-			window.setTimeout(() => setCopied((current) => current === entryId ? null : current), 1400);
+			window.setTimeout(
+				() => setCopied((current) => (current === entryId ? null : current)),
+				1400,
+			);
 		} catch (error) {
 			console.error("Failed to copy source reference:", error);
 			setCopyFailed(true);
@@ -246,9 +264,13 @@ export function HistoryView() {
 	return (
 		<div className="hubRedesign historyView">
 			<header className="hubRedesign__header">
-				<Heading level="1" size="xlarge">My history</Heading>
+				<Heading level="1" size="xlarge">
+					My history
+				</Heading>
 				<BodyShort>
-					Everything recorded about your participation. History starts when audit logging was introduced and capture is best-effort, so some changes may be missing.
+					Everything recorded about your participation. History starts when
+					audit logging was introduced and capture is best-effort, so some
+					changes may be missing.
 				</BodyShort>
 			</header>
 
@@ -294,14 +316,20 @@ export function HistoryView() {
 			{loading ? (
 				<BodyShort role="status">Loading history…</BodyShort>
 			) : failed ? (
-				<BodyShort role="alert">We couldn't fetch history. Try again later.</BodyShort>
+				<BodyShort role="alert">
+					We couldn't fetch history. Try again later.
+				</BodyShort>
 			) : filteredEntries.length === 0 ? (
-				<BodyShort>No {filter === "all" ? "history" : filter} entries yet.</BodyShort>
+				<BodyShort>
+					No {filter === "all" ? "history" : filter} entries yet.
+				</BodyShort>
 			) : (
 				<VStack gap="space-24">
 					{groups.map((group) => (
 						<section key={group.key} className="historyView__day">
-							<BodyShort className="hubRedesign__eyebrow">{group.label}</BodyShort>
+							<BodyShort size="small" className="hubRedesign__eyebrow">
+								{group.label}
+							</BodyShort>
 							<Box
 								as="ol"
 								className="hubRedesign__card historyView__entries"
@@ -314,7 +342,8 @@ export function HistoryView() {
 									const category = classify(entry);
 									const points = entryPoints(entry);
 									const reference = entry.details.sourceReference;
-									const source = typeof reference === "string" ? reference : null;
+									const source =
+										typeof reference === "string" ? reference : null;
 									const link = source ? sourceLink(source) : null;
 									return (
 										<li className="historyView__entry" key={entry.id}>
@@ -322,28 +351,72 @@ export function HistoryView() {
 												className={`historyView__kind historyView__kind--${category}`}
 												aria-hidden="true"
 											>
-												{category === "credits" ? "+" : category === "adjustments" ? "±" : "★"}
+												{category === "credits"
+													? "+"
+													: category === "adjustments"
+														? "±"
+														: "★"}
 											</div>
 											<div className="historyView__entryContent">
 												<div className="historyView__entryHeading">
-													<Heading level="2" size="small">{entryTitle(entry)}</Heading>
-													<BodyShort className="hubRedesign__muted">
-														<time dateTime={entry.recordedAt}>{dateTime(entry.recordedAt)}</time>
+													<Heading level="2" size="small">
+														{entryTitle(entry)}
+													</Heading>
+													<BodyShort
+														size="small"
+														className="hubRedesign__muted"
+													>
+														<time dateTime={entry.recordedAt}>
+															{dateTime(entry.recordedAt)}
+														</time>
 														{" · "}
-														<span className={entry.outcome === "SUCCEEDED" ? "historyView__success" : "historyView__failure"}>
-															{entry.outcome === "SUCCEEDED" ? "Succeeded" : readable(entry.outcome)}
+														<span
+															className={
+																entry.outcome === "SUCCEEDED"
+																	? "historyView__success"
+																	: "historyView__failure"
+															}
+														>
+															{entry.outcome === "SUCCEEDED"
+																? "Succeeded"
+																: readable(entry.outcome)}
 														</span>
 													</BodyShort>
 												</div>
 												{entryDetail(entry) && (
-													<BodyShort className="hubRedesign__muted">{entryDetail(entry)}</BodyShort>
+													<BodyShort
+														size="small"
+														className="hubRedesign__muted"
+													>
+														{entryDetail(entry)}
+													</BodyShort>
 												)}
 												{source && (
-													<HStack className="historyView__source" gap="space-8" align="center">
-														<Tag size="xsmall" variant="outline" data-color="neutral">Source</Tag>
-														<code className="hubRedesign__mono historyView__code" title={source}>{source}</code>
+													<HStack
+														className="historyView__source"
+														gap="space-8"
+														align="center"
+													>
+														<Tag
+															size="xsmall"
+															variant="outline"
+															data-color="neutral"
+														>
+															Source
+														</Tag>
+														<code
+															className="hubRedesign__mono historyView__code"
+															title={source}
+														>
+															{source}
+														</code>
 														{link && (
-															<a className="hubRedesign__buttonLink" href={link} target="_blank" rel="noreferrer">
+															<a
+																className="hubRedesign__buttonLink"
+																href={link}
+																target="_blank"
+																rel="noreferrer"
+															>
 																View commit
 															</a>
 														)}
@@ -351,7 +424,9 @@ export function HistoryView() {
 															size="xsmall"
 															variant="tertiary"
 															data-color="neutral"
-															onClick={() => void copyReference(entry.id, source)}
+															onClick={() =>
+																void copyReference(entry.id, source)
+															}
 														>
 															{copied === entry.id ? "Copied" : "Copy"}
 														</Button>
@@ -372,14 +447,19 @@ export function HistoryView() {
 						</section>
 					))}
 					{copyFailed && (
-						<BodyShort role="alert">We couldn't copy that source reference.</BodyShort>
+						<BodyShort role="alert">
+							We couldn't copy that source reference.
+						</BodyShort>
 					)}
 					<div className="historyView__live" aria-live="polite">
 						{copied ? "Source reference copied." : ""}
 					</div>
 					{visibleCount < filteredEntries.length && (
 						<div className="historyView__loadMore">
-							<Button variant="secondary" onClick={() => setVisibleCount((count) => count + 50)}>
+							<Button
+								variant="secondary"
+								onClick={() => setVisibleCount((count) => count + 50)}
+							>
 								Load older
 							</Button>
 						</div>
@@ -393,8 +473,12 @@ export function HistoryView() {
 function SummaryStat({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="hubRedesign__stat">
-			<BodyShort className="hubRedesign__statLabel">{label}</BodyShort>
-			<Heading level="2" size="medium" className="hubRedesign__statValue">{value}</Heading>
+			<BodyShort size="small" className="hubRedesign__statLabel">
+				{label}
+			</BodyShort>
+			<Heading level="2" size="small" className="hubRedesign__statValue">
+				{value}
+			</Heading>
 		</div>
 	);
 }

@@ -1,7 +1,7 @@
 import { SecurityEvent } from "@/app/utils/Variables";
 import { formatEventDate } from "@/app/utils/eventUtils";
 import { CalendarIcon, ChevronRightIcon } from "@navikt/aksel-icons";
-import { Link, Tag } from "@navikt/ds-react";
+import { Detail, Link, Tag } from "@navikt/ds-react";
 import "../../style/events/EventsView.css";
 
 interface EventListItemProps {
@@ -31,7 +31,7 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 					)}
 				</strong>
 
-				<span className={"eventListItem__date"}>
+				<Detail className={"eventListItem__date"}>
 					{formatEventDate(event)}
 					{!event.allDay && (
 						<>
@@ -43,7 +43,7 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 							})}
 						</>
 					)}
-				</span>
+				</Detail>
 			</div>
 
 			{event.type && (

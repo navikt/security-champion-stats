@@ -22,7 +22,11 @@ const CATEGORIES = [
 	{ key: "DELTA_REGISTRATION", label: "Event registration", color: "event" },
 	{ key: "GITHUB_COMMIT", label: "Commit", color: "commit" },
 	{ key: "GITHUB_PULL_REQUEST", label: "Pull request", color: "pullRequest" },
-	{ key: "SECURITY_EVENT_CONTRIBUTION", label: "Sec. event", color: "securityEvent" },
+	{
+		key: "SECURITY_EVENT_CONTRIBUTION",
+		label: "Sec. event",
+		color: "securityEvent",
+	},
 	{ key: "POINT_ADJUSTMENT", label: "Admin adj.", color: "adjustment" },
 ] as const;
 
@@ -47,7 +51,10 @@ type AttentionItem = {
 };
 
 function totalPoints(overview: AdminDashboardOverview): number {
-	return overview.pointsByCreditType.reduce((total, entry) => total + entry.points, 0);
+	return overview.pointsByCreditType.reduce(
+		(total, entry) => total + entry.points,
+		0,
+	);
 }
 
 function integrationLabel(status: AdminDashboardIntegrationStatus): string {
@@ -90,7 +97,10 @@ function weekHasActivity(week: AdminDashboardWeeklyTotals): boolean {
 }
 
 function weekTotal(week: AdminDashboardWeeklyTotals): number {
-	return Object.values(week.pointsByCreditType).reduce((total, value) => total + value, 0);
+	return Object.values(week.pointsByCreditType).reduce(
+		(total, value) => total + value,
+		0,
+	);
 }
 
 function makeAttentionItems(overview: AdminDashboardOverview): AttentionItem[] {
@@ -99,7 +109,8 @@ function makeAttentionItems(overview: AdminDashboardOverview): AttentionItem[] {
 		items.push({
 			count: overview.github.unmappedAuthors,
 			title: "Unmapped GitHub authors",
-			description: "Contributions from these authors aren't credited to anyone.",
+			description:
+				"Contributions from these authors aren't credited to anyone.",
 			href: "/appsec/audit?category=syncs&q=unmappedAuthors",
 			linkLabel: "Review in audit →",
 			variant: "warning",
@@ -129,7 +140,8 @@ function makeAttentionItems(overview: AdminDashboardOverview): AttentionItem[] {
 		items.push({
 			count: overview.delta.unmatchedRegistrations,
 			title: "Unmatched event registrations",
-			description: "Registrations could not be matched to one active participant.",
+			description:
+				"Registrations could not be matched to one active participant.",
 			href: "/appsec/audit?category=syncs&q=unmatchedRegistrations",
 			linkLabel: "Review participant matches →",
 			variant: "warning",
@@ -138,7 +150,10 @@ function makeAttentionItems(overview: AdminDashboardOverview): AttentionItem[] {
 	for (const integration of ["slack", "delta", "github"] as const) {
 		const status = overview[integration];
 		if (status.outcome !== "FAILED") continue;
-		const name = integration === "github" ? "GitHub" : integration[0].toUpperCase() + integration.slice(1);
+		const name =
+			integration === "github"
+				? "GitHub"
+				: integration[0].toUpperCase() + integration.slice(1);
 		items.push({
 			count: 1,
 			title: `${name} sync failed`,
@@ -185,7 +200,9 @@ export function AdminDashboardView({
 			),
 		[overview.weeklyTotals],
 	);
-	const emptyWeekCount = sortedWeeks.filter((week) => !weekHasActivity(week)).length;
+	const emptyWeekCount = sortedWeeks.filter(
+		(week) => !weekHasActivity(week),
+	).length;
 	const shownWeeks = sortedWeeks.filter(
 		(week) => !hideEmpty || weekHasActivity(week),
 	);
@@ -196,23 +213,48 @@ export function AdminDashboardView({
 		<div className="hubRedesign dashboardView">
 			<header className="hubRedesign__header dashboardView__header">
 				<div>
-					<BodyShort className="hubRedesign__eyebrow">Admin only</BodyShort>
-					<Heading level="1" size="xlarge">Program dashboard</Heading>
+					<BodyShort size="small" className="hubRedesign__eyebrow">
+						Admin only
+					</BodyShort>
+					<Heading level="1" size="xlarge">
+						Program dashboard
+					</Heading>
 				</div>
 				<BodyShort className="hubRedesign__muted">
-					Season {new Date(`${overview.season.startsOn}T00:00:00`).getFullYear()} · since {weekDate(overview.season.startsOn)}
+					Season{" "}
+					{new Date(`${overview.season.startsOn}T00:00:00`).getFullYear()} ·
+					since {weekDate(overview.season.startsOn)}
 				</BodyShort>
 			</header>
 
-			<HGrid className="dashboardView__kpis" columns={{ xs: 1, sm: 2, lg: 4 }} gap="space-12">
-				<StatTile label="Active participants" value={String(overview.activeParticipantCount)} />
-				<StatTile label="Event registrations" value={String(overview.eventRegistrationCount)} />
-				<StatTile label="Points awarded" value={String(totalPoints(overview))} />
+			<HGrid
+				className="dashboardView__kpis"
+				columns={{ xs: 1, sm: 2, lg: 4 }}
+				gap="space-12"
+			>
+				<StatTile
+					label="Active participants"
+					value={String(overview.activeParticipantCount)}
+				/>
+				<StatTile
+					label="Event registrations"
+					value={String(overview.eventRegistrationCount)}
+				/>
+				<StatTile
+					label="Points awarded"
+					value={String(totalPoints(overview))}
+				/>
 				<StatTile
 					label="Integrations"
 					value={`${healthyCount} / ${integrations.length}`}
 					detail="healthy"
-					variant={failedIntegration ? "danger" : healthyCount < integrations.length ? "warning" : "success"}
+					variant={
+						failedIntegration
+							? "danger"
+							: healthyCount < integrations.length
+								? "warning"
+								: "success"
+					}
 				/>
 			</HGrid>
 
@@ -227,21 +269,34 @@ export function AdminDashboardView({
 					borderRadius="8"
 					padding="space-20"
 				>
-					<Heading level="2" size="medium" id="points-activity-heading">Points by activity</Heading>
+					<Heading level="2" size="medium" id="points-activity-heading">
+						Points by activity
+					</Heading>
 					<VStack gap="space-12">
 						{CATEGORIES.map((category) => {
 							const value = points.get(category.key) ?? 0;
-							const width = maxPoints > 0 ? Math.max(0, value / maxPoints * 100) : 0;
+							const width =
+								maxPoints > 0 ? Math.max(0, (value / maxPoints) * 100) : 0;
 							return (
 								<div className="dashboardView__activityRow" key={category.key}>
-									<span className={`dashboardView__activityLabel dashboardView__activityLabel--${category.color}`}>
+									<span
+										className={`dashboardView__activityLabel dashboardView__activityLabel--${category.color}`}
+									>
 										<span aria-hidden="true" />
 										{CREDIT_TYPE_LABELS[category.key] ?? category.label}
 									</span>
-									<span className="dashboardView__activityTrack" aria-hidden="true">
-										<span className={`dashboardView__activityBar dashboardView__activityBar--${category.color}`} style={{ width: `${width}%` }} />
+									<span
+										className="dashboardView__activityTrack"
+										aria-hidden="true"
+									>
+										<span
+											className={`dashboardView__activityBar dashboardView__activityBar--${category.color}`}
+											style={{ width: `${width}%` }}
+										/>
 									</span>
-									<strong className={value === 0 ? "hubRedesign__dim" : ""}>{value}</strong>
+									<strong className={value === 0 ? "hubRedesign__dim" : ""}>
+										{value}
+									</strong>
 								</div>
 							);
 						})}
@@ -258,21 +313,32 @@ export function AdminDashboardView({
 					borderRadius="8"
 					padding="space-20"
 				>
-					<Heading level="2" size="medium" id="attention-heading">Needs attention</Heading>
+					<Heading level="2" size="medium" id="attention-heading">
+						Needs attention
+					</Heading>
 					{attention.length === 0 ? (
 						<BodyShort>All clear — nothing needs attention.</BodyShort>
 					) : (
 						<VStack gap="space-8">
 							{attention.map((item) => (
-								<AttentionCard item={item} key={`${item.title}-${item.count}`} />
+								<AttentionCard
+									item={item}
+									key={`${item.title}-${item.count}`}
+								/>
 							))}
 						</VStack>
 					)}
 					<BodyShort className="dashboardView__checks">
-						{overview.delta.unmatchedRegistrations === 0 && "No unmatched registrations"}
-						{overview.delta.unmatchedRegistrations === 0 && overview.delta.failedEvents === 0 && " or "}
+						{overview.delta.unmatchedRegistrations === 0 &&
+							"No unmatched registrations"}
+						{overview.delta.unmatchedRegistrations === 0 &&
+							overview.delta.failedEvents === 0 &&
+							" or "}
 						{overview.delta.failedEvents === 0 && "no failed events"}
-						{overview.delta.unmatchedRegistrations === 0 || overview.delta.failedEvents === 0 ? "." : ""}
+						{overview.delta.unmatchedRegistrations === 0 ||
+						overview.delta.failedEvents === 0
+							? "."
+							: ""}
 					</BodyShort>
 				</Box>
 			</div>
@@ -289,9 +355,13 @@ export function AdminDashboardView({
 			>
 				<div className="hubRedesign__cardHeader">
 					<div>
-						<Heading level="2" size="medium" id="weekly-points-heading">Weekly points</Heading>
+						<Heading level="2" size="medium" id="weekly-points-heading">
+							Weekly points
+						</Heading>
 						<BodyShort className="hubRedesign__muted">
-							Newest first · weeks starting {firstWeek ? weekDate(firstWeek) : "—"} – {lastWeek ? weekDate(lastWeek) : "—"}
+							Newest first · weeks starting{" "}
+							{firstWeek ? weekDate(firstWeek) : "—"} –{" "}
+							{lastWeek ? weekDate(lastWeek) : "—"}
 						</BodyShort>
 					</div>
 				</div>
@@ -308,9 +378,13 @@ export function AdminDashboardView({
 							<Table.Row>
 								<Table.HeaderCell scope="col">Week of</Table.HeaderCell>
 								{CATEGORIES.map((category) => (
-									<Table.HeaderCell key={category.key} scope="col">{category.label}</Table.HeaderCell>
+									<Table.HeaderCell key={category.key} scope="col">
+										{category.label}
+									</Table.HeaderCell>
 								))}
-								<Table.HeaderCell className="dashboardView__total" scope="col">Total</Table.HeaderCell>
+								<Table.HeaderCell className="dashboardView__total" scope="col">
+									Total
+								</Table.HeaderCell>
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
@@ -318,7 +392,9 @@ export function AdminDashboardView({
 								const total = weekTotal(week);
 								return (
 									<Table.Row key={week.weekStarting}>
-										<Table.HeaderCell scope="row" className="hubRedesign__mono">{weekDate(week.weekStarting)}</Table.HeaderCell>
+										<Table.HeaderCell scope="row" className="hubRedesign__mono">
+											{weekDate(week.weekStarting)}
+										</Table.HeaderCell>
 										{CATEGORIES.map((category) => {
 											const value = week.pointsByCreditType[category.key] ?? 0;
 											return (
@@ -330,7 +406,9 @@ export function AdminDashboardView({
 												</Table.DataCell>
 											);
 										})}
-										<Table.DataCell className="dashboardView__total">{total}</Table.DataCell>
+										<Table.DataCell className="dashboardView__total">
+											{total}
+										</Table.DataCell>
 									</Table.Row>
 								);
 							})}
@@ -339,8 +417,13 @@ export function AdminDashboardView({
 				</div>
 			</Box>
 
-			<section className="dashboardView__integrations" aria-labelledby="integration-health-heading">
-				<Heading level="2" size="large" id="integration-health-heading">Integration health</Heading>
+			<section
+				className="dashboardView__integrations"
+				aria-labelledby="integration-health-heading"
+			>
+				<Heading level="2" size="large" id="integration-health-heading">
+					Integration health
+				</Heading>
 				<HGrid columns={{ xs: 1, md: 2, xl: 3 }} gap="space-12">
 					<IntegrationCard
 						name="Slack"
@@ -364,7 +447,10 @@ export function AdminDashboardView({
 							["Events scanned", overview.delta.eventsScanned],
 							["Credits awarded", overview.delta.creditsAwarded],
 							["Duplicate credits", overview.delta.duplicateCredits],
-							["Unmatched registrations", overview.delta.unmatchedRegistrations],
+							[
+								"Unmatched registrations",
+								overview.delta.unmatchedRegistrations,
+							],
 							["Failed events", overview.delta.failedEvents],
 						]}
 						onTriggerSync={onTriggerSync}
@@ -411,9 +497,12 @@ function StatTile({
 			borderRadius="8"
 			padding="space-16"
 		>
-			<BodyShort className="hubRedesign__statLabel">{label}</BodyShort>
-			<Heading level="2" size="large" className="hubRedesign__statValue">
-				{value}{detail && <span className="dashboardView__statDetail"> {detail}</span>}
+			<BodyShort size="small" className="hubRedesign__statLabel">
+				{label}
+			</BodyShort>
+			<Heading level="2" size="medium" className="hubRedesign__statValue">
+				{value}
+				{detail && <span className="dashboardView__statDetail"> {detail}</span>}
 			</Heading>
 		</Box>
 	);
@@ -421,13 +510,26 @@ function StatTile({
 
 function AttentionCard({ item }: { item: AttentionItem }) {
 	return (
-		<div className={`hubRedesign__attention${item.variant === "neutral" ? "" : ` hubRedesign__attention--${item.variant}`}`}>
-			<strong className={`dashboardView__attentionCount dashboardView__attentionCount--${item.variant}`}>{item.count}</strong>
+		<div
+			className={`hubRedesign__attention${item.variant === "neutral" ? "" : ` hubRedesign__attention--${item.variant}`}`}
+		>
+			<BodyShort
+				as="span"
+				size="large"
+				weight="semibold"
+				className={`dashboardView__attentionCount dashboardView__attentionCount--${item.variant}`}
+			>
+				{item.count}
+			</BodyShort>
 			<div className="dashboardView__attentionContent">
-				<BodyShort><strong>{item.title}</strong></BodyShort>
+				<BodyShort>
+					<strong>{item.title}</strong>
+				</BodyShort>
 				<BodyShort className="hubRedesign__muted">{item.description}</BodyShort>
 			</div>
-			<Link href={item.href} className="hubRedesign__buttonLink">{item.linkLabel}</Link>
+			<Link href={item.href} className="hubRedesign__buttonLink">
+				{item.linkLabel}
+			</Link>
 		</div>
 	);
 }
@@ -462,25 +564,48 @@ function IntegrationCard({
 			padding="space-16"
 		>
 			<div className="hubRedesign__cardHeader">
-				<Heading level="3" size="small">{name}</Heading>
+				<Heading level="3" size="small">
+					{name}
+				</Heading>
 				<Tag size="xsmall" variant="moderate" data-color={tone}>
-					<span className={`dashboardView__statusDot dashboardView__statusDot--${tone}`} aria-hidden="true" />
+					<span
+						className={`dashboardView__statusDot dashboardView__statusDot--${tone}`}
+						aria-hidden="true"
+					/>
 					{integrationLabel(status)}
 				</Tag>
 			</div>
 			<dl className="dashboardView__integrationDates">
-				<dt>Last success</dt><dd className="hubRedesign__mono">{dateTime(status.lastSuccessAt)}</dd>
-				<dt>Last attempt</dt><dd className="hubRedesign__mono">{dateTime(status.lastAttemptAt)}</dd>
+				<dt>Last success</dt>
+				<dd className="hubRedesign__mono">{dateTime(status.lastSuccessAt)}</dd>
+				<dt>Last attempt</dt>
+				<dd className="hubRedesign__mono">{dateTime(status.lastAttemptAt)}</dd>
 			</dl>
 			<div className="dashboardView__integrationMetrics">
 				{details.map(([label, value]) => (
-					<div key={label} className={label.toLowerCase().includes("unmapped") && value > 0 ? "dashboardView__integrationMetric--warning" : ""}>
-						<BodyShort>{label}</BodyShort>
-						<strong>{value}</strong>
+					<div
+						key={label}
+						className={
+							label.toLowerCase().includes("unmapped") && value > 0
+								? "dashboardView__integrationMetric--warning"
+								: ""
+						}
+					>
+						<BodyShort size="small">{label}</BodyShort>
+						<BodyShort
+							as="span"
+							size="medium"
+							weight="semibold"
+							className="dashboardView__integrationValue"
+						>
+							{value}
+						</BodyShort>
 					</div>
 				))}
 			</div>
-			{status.failureSummary && <BodyShort role="alert">{status.failureSummary}</BodyShort>}
+			{status.failureSummary && (
+				<BodyShort role="alert">{status.failureSummary}</BodyShort>
+			)}
 			{triggerError?.integration === integration && (
 				<BodyShort role="alert">{triggerError.message}</BodyShort>
 			)}

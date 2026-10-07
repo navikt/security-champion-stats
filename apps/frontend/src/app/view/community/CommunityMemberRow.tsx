@@ -1,5 +1,5 @@
 import { ProgramParticipantSummary } from "@/app/utils/Variables";
-import { Tag } from "@navikt/ds-react";
+import { Detail, Tag } from "@navikt/ds-react";
 import { getInitials } from "@/app/utils/GetInitials";
 import "../../style/community/CommunityView.css";
 
@@ -17,9 +17,7 @@ export function CommunityMemberRow({ member }: CommunityMemberRowProps) {
 			</div>
 
 			<div className={"communityMemberRow__content"}>
-				<strong className={"communityMemberRow__name"}>
-					{fullname}
-				</strong>
+				<strong className={"communityMemberRow__name"}>{fullname}</strong>
 
 				<div className={"communityMemberRow__teams"}>
 					{member.teams.length > 0 ? (
@@ -29,7 +27,7 @@ export function CommunityMemberRow({ member }: CommunityMemberRowProps) {
 							</Tag>
 						))
 					) : (
-						<span className={"communityMemberRow__noTeam"}>No team</span>
+						<Detail className={"communityMemberRow__noTeam"}>No team</Detail>
 					)}
 				</div>
 			</div>

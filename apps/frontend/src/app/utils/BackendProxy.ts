@@ -79,7 +79,10 @@ export async function proxyBackendRequest(
 		});
 		return forwardBackendResponse(response);
 	} catch (error) {
-		console.error(`Failed to proxy ${backendPath.split("?")[0]}:`, error);
+		console.error("Failed to proxy backend request", {
+			path: backendPath.split("?")[0],
+			error,
+		});
 		return problemResponse(
 			500,
 			"Internal server error",

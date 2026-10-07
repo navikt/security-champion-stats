@@ -1,6 +1,11 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
 import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
@@ -20,10 +25,12 @@ import org.junit.jupiter.api.TestInstance
 import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.dao.DataAccessResourceFailureException
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -202,4 +209,55 @@ class SyncJobTest {
         verify(catalog, Mockito.never()).fetchAllMembersWithTeamData()
     }
 
+    @Test
+    fun `should continue profile sync and record partial completion after a persistence failure`() {
+        runJobInsideLock()
+        val participantRepository = mock<ParticipantStore>()
+        val auditService = mock<ProgramAuditService>()
+        val first = member("A11111", "first@nav.no", "First User")
+        val second = member("A22222", "second@nav.no", "Second User")
+        whenever(participantRepository.findAllParticipants()).thenReturn(
+            listOf(
+                participant("first@nav.no", "A11111"),
+                participant("second@nav.no", "A22222"),
+            )
+        )
+        whenever(catalog.fetchAllMembersWithTeamData()).thenReturn(listOf(first, second))
+        whenever(
+            participantRepository.updateProfile("A11111", "first@nav.no", "First User", listOf("Team")),
+        ).thenThrow(DataAccessResourceFailureException("Synthetic database failure"))
+        whenever(
+            participantRepository.updateProfile("A22222", "second@nav.no", "Second User", listOf("Team")),
+        ).thenReturn(1)
+
+        SyncJob(jobLock, participantRepository, catalog, auditService).syncDatabase()
+
+        verify(participantRepository).updateProfile("A11111", "first@nav.no", "First User", listOf("Team"))
+        verify(participantRepository).updateProfile("A22222", "second@nav.no", "Second User", listOf("Team"))
+        verify(auditService).recordRun(
+            eq("PARTICIPANT_PROFILE_SYNC_COMPLETED"),
+            eq(AuditOutcome.PARTIAL),
+            any<AuditRunContext>(),
+            eq(mapOf("profilesUpdated" to 1, "failedProfiles" to 1)),
+        )
+    }
+
+    private fun member(navIdent: String, email: String, fullName: String) = MemberWithTeamData(
+        navIdent = navIdent,
+        fullName = fullName,
+        email = email,
+        teamName = mutableListOf("Team"),
+        teamId = mutableListOf("team-id"),
+    )
+
+    private fun participant(email: String, navIdent: String) = ProgramParticipant(
+        id = UUID.randomUUID(),
+        navNoEmail = email,
+        navIdent = navIdent,
+        email = email,
+        fullname = email,
+        teams = emptyList(),
+        status = ParticipationStatus.ACTIVE,
+        createdAt = "2026-10-07T00:00:00Z",
+    )
 }

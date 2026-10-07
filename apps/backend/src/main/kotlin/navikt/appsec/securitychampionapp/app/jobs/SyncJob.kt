@@ -46,13 +46,20 @@ class SyncJob(
                     it.navIdent == catalogMember.navIdent && it.email == catalogMember.email
                 }
                 if (hasParticipant) {
-                    val response = repo.updateProfile(
-                        navIdent = catalogMember.navIdent,
-                        email = catalogMember.email,
-                        fullname = catalogMember.fullName,
-                        teams = catalogMember.teamName,
-                    )
-                    updated += response
+                    try {
+                        updated += repo.updateProfile(
+                            navIdent = catalogMember.navIdent,
+                            email = catalogMember.email,
+                            fullname = catalogMember.fullName,
+                            teams = catalogMember.teamName,
+                        )
+                    } catch (e: Exception) {
+                        failed++
+                        logger.error(
+                            "Failed to update participant profile during Teamkatalogen sync; continuing (cause={})",
+                            e.javaClass.simpleName,
+                        )
+                    }
                 }
             }
             auditService?.recordRun(

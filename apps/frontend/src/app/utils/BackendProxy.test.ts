@@ -86,13 +86,17 @@ describe("backend proxy", () => {
 
 	it("returns a sanitized Problem Details response when the backend is unreachable", async () => {
 		vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Synthetic network detail")));
-		vi.spyOn(console, "error").mockImplementation(() => {});
+		const logError = vi.spyOn(console, "error").mockImplementation(() => {});
 
 		const response = await proxyBackendRequest(
 			new NextRequest("https://frontend.invalid/api/events"),
-			"/api/events",
+			"/api/events/%s?bypassCache=true",
 		);
 
+		expect(logError).toHaveBeenCalledWith("Failed to proxy backend request", {
+			path: "/api/events/%s",
+			error: expect.any(Error),
+		});
 		expect(response.status).toBe(500);
 		expect(response.headers.get("content-type")).toBe("application/problem+json");
 		expect(await response.json()).toMatchObject({

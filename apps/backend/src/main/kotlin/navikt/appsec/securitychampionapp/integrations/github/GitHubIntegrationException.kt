@@ -10,4 +10,7 @@ enum class GitHubFailure(val summary: String) {
     IDENTITY("GitHub organization SAML identities are unavailable or ambiguous; no credits were awarded"),
 }
 
-class GitHubIntegrationException(val failure: GitHubFailure) : RuntimeException(failure.summary)
+class GitHubIntegrationException(
+    val failure: GitHubFailure,
+    val reason: String? = null,
+) : RuntimeException(failure.summary)

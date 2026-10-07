@@ -24,7 +24,7 @@ class GitHubIdentityMappingRepository(private val jdbcTemplate: JdbcTemplate) {
         if (identities.groupBy { it.accountId }.any { it.value.size > 1 } ||
             identities.groupBy { it.email.lowercase() }.any { it.value.size > 1 }
         ) {
-            throw GitHubIntegrationException(GitHubFailure.IDENTITY)
+            throw GitHubIntegrationException(GitHubFailure.IDENTITY, "duplicateIdentity")
         }
         val participants = jdbcTemplate.query(
             "SELECT id, nav_no_email, status, created_at FROM program_participants FOR SHARE",
@@ -38,7 +38,7 @@ class GitHubIdentityMappingRepository(private val jdbcTemplate: JdbcTemplate) {
             },
         )
         if (participants.groupBy { it.first }.any { it.value.size > 1 }) {
-            throw GitHubIntegrationException(GitHubFailure.IDENTITY)
+            throw GitHubIntegrationException(GitHubFailure.IDENTITY, "duplicateParticipantEmail")
         }
         val byEmail = participants.toMap()
         val desired = identities.mapNotNull { identity ->

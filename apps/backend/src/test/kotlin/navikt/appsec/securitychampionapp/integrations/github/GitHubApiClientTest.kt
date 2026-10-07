@@ -262,6 +262,25 @@ class GitHubApiClientTest {
                 {"user":{"databaseId":11,"login":"other"},"samlIdentity":{"nameId":"person@nav.no"}}""",
         )
         assertThatThrownBy { client.identities() }.hasMessage(GitHubFailure.IDENTITY.summary)
+            .hasFieldOrPropertyWithValue("reason", "duplicateEmail")
+    }
+
+    @Test
+    fun `should expose sanitized identity failure reasons without GraphQL messages`() {
+        mapOf(
+            """{"errors":[{"type":"FORBIDDEN","path":["organization","samlIdentityProvider"],
+                "message":"person@nav.no denied"}]}""" to
+                "graphqlErrors type=FORBIDDEN path=organization.samlIdentityProvider",
+            """{"errors":[{"message":"private data"}]}""" to "graphqlErrors type=unknown path=unknown",
+            """{"data":{"organization":null}}""" to "organizationNull",
+            """{"data":{"organization":{"samlIdentityProvider":null}}}""" to "samlProviderNull",
+            """{"data":{"organization":{"samlIdentityProvider":{"externalIdentities":{}}}}}""" to "nodesMissing",
+        ).forEach { (body, reason) ->
+            routes["/graphql"] = body
+            assertThatThrownBy { client.identities() }
+                .hasMessage(GitHubFailure.IDENTITY.summary)
+                .hasFieldOrPropertyWithValue("reason", reason)
+        }
     }
 
     @Test

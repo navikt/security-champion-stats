@@ -2,7 +2,6 @@ package navikt.appsec.securitychampionapp.app.audit
 
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
@@ -160,7 +159,6 @@ class ProgramAuditService(
     fun participantHistory(participantId: UUID): List<ParticipantHistoryEntry> =
         repository.participantHistory(participantId)
 
-    @Scheduled(cron = "0 20 0 * * *")
     fun purgeExpiredOperationalEvents() {
         try {
             val deleted = repository.deleteExpiredOperationalEvents(clock.instant())

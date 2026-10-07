@@ -10,8 +10,11 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
+import java.time.Duration
 
 private const val PLAYBOOK_EVENT_IMPORT_LOCK_KEY = 1_006L
+private const val PLAYBOOK_EVENT_IMPORT_INTERVAL_MILLIS = 21_600_000L
+private val PLAYBOOK_EVENT_IMPORT_INTERVAL = Duration.ofMillis(PLAYBOOK_EVENT_IMPORT_INTERVAL_MILLIS)
 
 @Component
 class PlaybookEventImportJob(
@@ -24,10 +27,14 @@ class PlaybookEventImportJob(
 ) {
     private val logger = LoggerFactory.getLogger(PlaybookEventImportJob::class.java)
 
-    @Scheduled(fixedDelay = 21_600_000, initialDelay = 10_000)
+    @Scheduled(fixedDelay = PLAYBOOK_EVENT_IMPORT_INTERVAL_MILLIS, initialDelay = 10_000)
     fun importPlaybookEvents() {
         if (!enabled) return
-        jobLock.runWithLock(PLAYBOOK_EVENT_IMPORT_LOCK_KEY, "importPlaybookEvents") {
+        jobLock.runWithLockAtMostOncePerInterval(
+            PLAYBOOK_EVENT_IMPORT_LOCK_KEY,
+            "importPlaybookEvents",
+            PLAYBOOK_EVENT_IMPORT_INTERVAL,
+        ) {
             runImport(AuditRunContext())
         }
     }

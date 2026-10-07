@@ -57,7 +57,7 @@ class GitHubScoringSyncJob(
                 summary.contributionsScanned, summary.creditsAwarded, summary.duplicateCredits, summary.unmappedAuthors,
             )
         } catch (e: GitHubIntegrationException) {
-            recordFailure(run, e.failure.summary)
+            recordFailure(run, e.failure.summary, e.reason)
         } catch (_: DataAccessException) {
             recordFailure(run, "GitHub scoring could not persist sync results")
         } catch (_: IllegalStateException) {
@@ -68,8 +68,12 @@ class GitHubScoringSyncJob(
         }
     }
 
-    private fun recordFailure(run: AuditRunContext, summary: String) {
-        logger.warn("GitHub scoring sync failed: {}", summary)
+    private fun recordFailure(run: AuditRunContext, summary: String, reason: String? = null) {
+        if (reason == null) {
+            logger.warn("GitHub scoring sync failed: {}", summary)
+        } else {
+            logger.warn("GitHub scoring sync failed: {} (reason={})", summary, reason)
+        }
         audit.recordRun("GITHUB_SCORING_SYNC_FAILED", AuditOutcome.FAILED, run, mapOf("failure" to summary))
         status.recordFailed(summary)
     }

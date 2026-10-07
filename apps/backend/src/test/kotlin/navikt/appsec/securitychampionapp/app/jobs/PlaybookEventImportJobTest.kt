@@ -29,7 +29,7 @@ class PlaybookEventImportJobTest {
     }
 
     @Test
-    fun `should replace snapshot only after a successful fetch under the job lock`() {
+    fun `should replace snapshot only after a successful fetch under the scheduled interval lock`() {
         executeUnderLock()
         val events = listOf(PlaybookEvent(
             "playbook:test", "Test", "2026-10-21", "2026-10-21", "Alle", "https://example.org",
@@ -61,8 +61,13 @@ class PlaybookEventImportJobTest {
 
     private fun executeUnderLock() {
         doAnswer { invocation ->
-            invocation.getArgument<() -> Unit>(2).invoke()
+            invocation.getArgument<() -> Unit>(3).invoke()
             null
-        }.whenever(lock).runWithLock(eq(1_006L), eq("importPlaybookEvents"), any())
+        }.whenever(lock).runWithLockAtMostOncePerInterval(
+            eq(1_006L),
+            eq("importPlaybookEvents"),
+            eq(java.time.Duration.ofHours(6)),
+            any(),
+        )
     }
 }

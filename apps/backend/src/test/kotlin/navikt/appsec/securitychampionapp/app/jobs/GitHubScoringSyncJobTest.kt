@@ -44,7 +44,7 @@ class GitHubScoringSyncJobTest {
     fun `should persist sanitized SAML access failures`() {
         runLocked()
         whenever(service.sync(eq(now), anyOrNull()))
-            .thenThrow(GitHubIntegrationException(GitHubFailure.IDENTITY))
+            .thenThrow(GitHubIntegrationException(GitHubFailure.IDENTITY, "samlProviderNull"))
         job().syncGitHubScoring()
         verify(status).recordFailed(GitHubFailure.IDENTITY.summary)
     }

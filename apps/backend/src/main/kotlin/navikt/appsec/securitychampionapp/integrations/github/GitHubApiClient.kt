@@ -29,19 +29,20 @@ class GitHubApiClient(
                     ),
                 )
             }
-            if (response.has("errors")) throw GitHubIntegrationException(GitHubFailure.IDENTITY)
-            val connection = response.path("data").path("organization").path("samlIdentityProvider")
-                .path("externalIdentities")
+            if (response.has("errors")) throw identityFailure(graphQlErrorReason(response.path("errors")))
+            val organization = response.path("data").path("organization")
+            if (organization.isNull || organization.isMissingNode) throw identityFailure("organizationNull")
+            val provider = organization.path("samlIdentityProvider")
+            if (provider.isNull || provider.isMissingNode) throw identityFailure("samlProviderNull")
+            val connection = provider.path("externalIdentities")
             val nodes = connection.path("nodes")
-            if (!nodes.isArray) throw GitHubIntegrationException(GitHubFailure.IDENTITY)
+            if (!nodes.isArray) throw identityFailure("nodesMissing")
             nodes.forEach { node ->
                 val user = node.path("user")
                 val saml = node.path("samlIdentity")
                 if (!user.isNull && !user.isMissingNode && !saml.isNull && !saml.isMissingNode) {
                     val email = requiredText(saml.path("nameId")).trim()
-                    if (!email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))) {
-                        throw GitHubIntegrationException(GitHubFailure.IDENTITY)
-                    }
+                    if (!email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))) throw identityFailure("invalidNameId")
                     identities += GitHubIdentity(
                         accountId = positiveId(user.path("databaseId")),
                         login = requiredText(user.path("login")),
@@ -50,21 +51,34 @@ class GitHubApiClient(
                 }
             }
             val pageInfo = connection.path("pageInfo")
-            if (!pageInfo.path("hasNextPage").isBoolean) throw GitHubIntegrationException(GitHubFailure.IDENTITY)
+            if (!pageInfo.path("hasNextPage").isBoolean) throw identityFailure("pageInfoInvalid")
             cursor = if (pageInfo.path("hasNextPage").asBoolean()) {
                 requiredText(pageInfo.path("endCursor")).also {
-                    if (!seenCursors.add(it)) throw GitHubIntegrationException(GitHubFailure.IDENTITY)
+                    if (!seenCursors.add(it)) throw identityFailure("cursorRepeated")
                 }
             } else {
                 null
             }
         } while (cursor != null)
-        if (identities.groupBy { it.accountId }.any { it.value.size > 1 } ||
-            identities.groupBy { it.email }.any { it.value.size > 1 }
-        ) {
-            throw GitHubIntegrationException(GitHubFailure.IDENTITY)
-        }
+        if (identities.groupBy { it.accountId }.any { it.value.size > 1 }) throw identityFailure("duplicateAccountId")
+        if (identities.groupBy { it.email }.any { it.value.size > 1 }) throw identityFailure("duplicateEmail")
         return identities
+    }
+
+    private fun identityFailure(reason: String) = GitHubIntegrationException(GitHubFailure.IDENTITY, reason)
+
+    private fun graphQlErrorReason(errors: JsonNode): String {
+        val safe = Regex("[^A-Za-z0-9_.]")
+        val types = errors.mapNotNull { error ->
+            error.path("type").takeIf { it.isString }?.asString()?.replace(safe, "")?.take(40)
+        }.distinct().take(5)
+        val paths = errors.mapNotNull { error ->
+            error.path("path").takeIf { it.isArray }?.joinToString(".") { segment ->
+                if (segment.isString) segment.asString().replace(safe, "").take(40) else segment.asLong(0).toString()
+            }
+        }.distinct().take(5)
+        return "graphqlErrors type=${types.joinToString(",").ifEmpty { "unknown" }} " +
+            "path=${paths.joinToString(",").ifEmpty { "unknown" }}"
     }
 
     override fun contributions(since: Instant, until: Instant): List<GitHubContribution> {

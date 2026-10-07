@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionapp.integrations.postgress
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.sql.Connection
+import java.time.Duration
 import javax.sql.DataSource
 
 @Component
@@ -14,6 +15,23 @@ class PostgresJobLock(
     fun runWithLock(lockKey: Long, jobName: String, block: () -> Unit) {
         val lease = tryAcquireLock(lockKey, jobName) ?: return
         lease.use { block() }
+    }
+
+    fun runWithLockAtMostOncePerInterval(
+        lockKey: Long,
+        jobName: String,
+        interval: Duration,
+        block: () -> Unit,
+    ) {
+        require(!interval.isNegative && !interval.isZero) { "interval must be positive" }
+        val lease = tryAcquireLock(lockKey, jobName) ?: return
+        lease.use {
+            if (claimRun(lease.connection, jobName, interval)) {
+                block()
+            } else {
+                log.info("Skipping $jobName because it already ran within the configured interval")
+            }
+        }
     }
 
     fun tryAcquireLock(lockKey: Long, jobName: String): LockLease? {
@@ -54,7 +72,7 @@ class PostgresJobLock(
         }
 
     inner class LockLease internal constructor(
-        private val connection: Connection,
+        internal val connection: Connection,
         private val lockKey: Long,
         private val jobName: String,
     ) : AutoCloseable {
@@ -86,4 +104,21 @@ class PostgresJobLock(
             }
         }
     }
+
+    private fun claimRun(connection: Connection, jobName: String, interval: Duration): Boolean =
+        connection.prepareStatement(
+            """
+                INSERT INTO scheduled_job_runs (job_name, last_started_at)
+                VALUES (?, clock_timestamp())
+                ON CONFLICT (job_name) DO UPDATE
+                SET last_started_at = EXCLUDED.last_started_at
+                WHERE scheduled_job_runs.last_started_at
+                    <= EXCLUDED.last_started_at - (? * INTERVAL '1 millisecond')
+                RETURNING job_name
+            """.trimIndent(),
+        ).use { statement ->
+            statement.setString(1, jobName)
+            statement.setLong(2, interval.toMillis())
+            statement.executeQuery().use { resultSet -> resultSet.next() }
+        }
 }

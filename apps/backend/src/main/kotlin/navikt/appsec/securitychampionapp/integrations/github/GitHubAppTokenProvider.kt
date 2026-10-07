@@ -33,12 +33,6 @@ class GitHubAppTokenProvider(
             client.post()
                 .uri("/app/installations/{id}/access_tokens", installationId)
                 .headers { it.setBearerAuth(jwt) }
-                .bodyValue(
-                    mapOf(
-                        "repositories" to listOf("security-playbook"),
-                        "permissions" to mapOf("contents" to "read", "pull_requests" to "read", "members" to "read"),
-                    ),
-                )
                 .retrieve()
                 .onStatus(HttpStatusCode::isError) {
                     Mono.error(GitHubIntegrationException(GitHubFailure.TOKEN))

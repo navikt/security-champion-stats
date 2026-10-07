@@ -173,12 +173,11 @@ class GitHubApiClientTest {
     }
 
     @Test
-    fun `should sign the App JWT scope tokens and cache until invalidated`() {
+    fun `should sign the App JWT request unscoped tokens and cache until invalidated`() {
         assertThat(tokens.token()).isEqualTo("installation-token")
         assertThat(tokens.token()).isEqualTo("installation-token")
         assertThat(tokenRequests).isEqualTo(1)
-        assertThat(mapper.readTree(tokenBody).path("permissions").path("members").asString()).isEqualTo("read")
-        assertThat(mapper.readTree(tokenBody).path("repositories").first().asString()).isEqualTo("security-playbook")
+        assertThat(tokenBody).isEmpty()
         val parts = jwt.split(".")
         val signature = Signature.getInstance("SHA256withRSA").apply {
             initVerify(keyPair.public)

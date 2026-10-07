@@ -95,7 +95,7 @@ class SlackApiService(
         return response.user?.profile?.email?.takeIf { it.isNotBlank() }
     }
 
-    private fun <T> call(operation: SlackIntegrationException.Operation, request: () -> T): T {
+    internal fun <T> call(operation: SlackIntegrationException.Operation, request: () -> T): T {
         var attempt = 0
         while (true) {
             try {

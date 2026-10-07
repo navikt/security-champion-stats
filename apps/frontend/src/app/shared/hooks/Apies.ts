@@ -14,12 +14,46 @@ import type {
 	SCData,
 	SecurityEvent,
 	SlackMappingOverview,
+	SlackMembershipConfiguration,
+	SlackMembershipPreview,
+	SlackMembershipAnnouncement,
 	HistoryPage,
 	AuditResponse,
 	ParticipantHistoryEntry,
 } from "../../utils/Variables";
 
 export const Apies = {
+	getSlackMembershipConfiguration: async (): Promise<SlackMembershipConfiguration> => {
+		const res = await fetch("/api/admin/slack/membership");
+		if (!res.ok) throw new Error("We couldn't load membership sync configuration. Try again.");
+		return res.json();
+	},
+	getSlackMembershipPreview: async (): Promise<SlackMembershipPreview> => {
+		const res = await fetch("/api/admin/slack/membership/preview");
+		if (!res.ok) throw new Error("We couldn't preview membership changes. Check the configuration and audit trail.");
+		return res.json();
+	},
+	getSlackMembershipAnnouncements: async (): Promise<SlackMembershipAnnouncement[]> => {
+		const res = await fetch("/api/admin/slack/membership/announcements");
+		if (!res.ok) throw new Error("We couldn't load membership announcements. Try again.");
+		return res.json();
+	},
+	triggerSlackMembershipSync: async (expectedVersion?: string): Promise<number> => {
+		const res = await fetch("/api/admin/slack/membership/sync", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ expectedVersion }),
+		});
+		return res.status;
+	},
+	resolveSlackMembershipDelivery: async (id: string, retry: boolean): Promise<number> => {
+		const res = await fetch(`/api/admin/slack/membership/announcements/${encodeURIComponent(id)}/resolve`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ retry }),
+		});
+		return res.status;
+	},
 	getHistory: async (admin: boolean, search: string, cursor: string | null): Promise<HistoryPage> => {
 		const query = new URLSearchParams({ size: "50", page: cursor || "0" });
 		if (search) query.set("q", search);

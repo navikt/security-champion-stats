@@ -71,6 +71,9 @@ class ProgramParticipantRepositoryTest {
         assertThat(first).isEqualTo(1)
         assertThat(duplicate).isZero()
         assertThat(repository.findByNavNoEmail("user@nav.no")).isNotNull
+        val participant = requireNotNull(repository.findByNavNoEmail("user@nav.no"))
+        assertThat(repository.findById(participant.id)).isEqualTo(participant)
+        assertThat(repository.findById(UUID.randomUUID())).isNull()
     }
 
     @Test

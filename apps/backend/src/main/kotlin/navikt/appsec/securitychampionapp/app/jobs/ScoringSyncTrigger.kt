@@ -28,7 +28,7 @@ class ScoringSyncTrigger(
     private val logger = LoggerFactory.getLogger(ScoringSyncTrigger::class.java)
 
     fun trigger(lockKey: Long, jobName: String, operation: () -> Unit): SyncTriggerResult {
-        return triggerInternal(lockKey, jobName, AuditRunContext()) { operation() }
+        return triggerInternal(lockKey, jobName, AuditRunContext(), operation = { operation() })
     }
 
     fun trigger(
@@ -49,6 +49,7 @@ class ScoringSyncTrigger(
         jobName: String,
         context: AuditRunContext,
         operation: (AuditRunContext) -> Unit,
+        validate: () -> Unit = {},
     ): SyncTriggerResult {
         auditService?.recordRun(
             "SYNC_REQUESTED",
@@ -67,6 +68,16 @@ class ScoringSyncTrigger(
             return SyncTriggerResult.ALREADY_RUNNING
         }
 
+        try {
+            validate()
+        } catch (e: Exception) {
+            lease.close()
+            auditService?.recordRun(
+                "SYNC_REQUEST_REJECTED", AuditOutcome.FAILED, context,
+                mapOf("job" to jobName, "failure" to e.javaClass.simpleName),
+            )
+            throw e
+        }
         return try {
             executor.execute { lease.use { operation(context) } }
             SyncTriggerResult.STARTED
@@ -82,4 +93,16 @@ class ScoringSyncTrigger(
             SyncTriggerResult.UNAVAILABLE
         }
     }
+
+    fun triggerValidated(
+        lockKey: Long,
+        jobName: String,
+        actorNavNoEmail: String,
+        validate: () -> Unit,
+        operation: (AuditRunContext) -> Unit,
+    ): SyncTriggerResult = triggerInternal(
+        lockKey, jobName,
+        auditService?.captureRunContext(actorNavNoEmail) ?: AuditRunContext(UUID.randomUUID(), actorNavNoEmail),
+        operation, validate,
+    )
 }

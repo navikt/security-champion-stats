@@ -11,6 +11,16 @@ spec:
   env:
     - name: SLACK_SC_CHANNEL_ID
       value: CN8N938K1
+    - name: SLACK_MEMBERSHIP_ENABLED
+      value: "true"
+    - name: SLACK_MEMBERSHIP_DRY_RUN
+      value: "true"
+    - name: SLACK_MEMBERSHIP_WELCOME_CHANNEL_ID
+      value: CN8N938K1
+    - name: SLACK_MEMBERSHIP_ADMIN_CHANNEL_ID
+      value: C0314EZ719S
+    - name: SLACK_MEMBERSHIP_USERGROUP_ID
+      value: S01MX7W3LB0
     - name: DELTA_SCORING_ENABLED
       value: "true"
     - name: DELTA_EVENTS_ENABLED

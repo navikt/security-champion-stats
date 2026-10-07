@@ -31,6 +31,9 @@ spring:
 graph:
   apiUrl: http://localhost:8081/mock/graph
 slack:
+  membership:
+    enabled: false
+    cron: "-"
   token: ${SLACK_TOKEN:}
   sc-channel-id: ${SLACK_SC_CHANNEL_ID:}
   scoring:

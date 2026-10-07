@@ -34,6 +34,8 @@ sealed interface ParticipantProfileLookup {
 }
 
 interface ParticipantStore {
+    fun findById(id: UUID): ProgramParticipant?
+
     fun findByNavNoEmail(navNoEmail: String): ProgramParticipant?
 
     fun findActiveParticipants(): List<ProgramParticipant>

@@ -9,6 +9,17 @@ production access and eligible public event identifiers are confirmed.
 API proxies preserve backend status, response body, and content type; proxy-local errors use RFC 9457 Problem Details.
 The admin program dashboard summarizes active participants and season activity, shows Slack/Delta/GitHub sync
 health, and lets administrators trigger enabled syncs.
+The Slack administration page (`/appsec/slack`) also manages group membership operations.
+All operations go through authenticated frontend API proxies; no manually obtained backend token is needed.
+It shows enabled/dry-run configuration, previews group additions/removals and unresolved participants,
+and lets administrators save verified Slack account mappings for participants who have not posted messages.
+Preview is read-only and available while sync is disabled once backend Slack destinations are configured.
+Manual write-enabled sync requires a resolved preview and confirmation; queued sync outcomes appear in the audit trail.
+The frontend submits the reviewed preview version. The backend rejects stale previews with HTTP 409;
+refresh operations and preview again if enrollment, account mappings or Slack membership changed.
+Use **Refresh operations** to reload outstanding announcements. Only uncertain deliveries have retry/suppress controls,
+and both require confirmation after checking Slack. Retrying authorizes a later sync and may produce duplicate messages.
+Membership sync remains disabled by default; follow the backend README cutover procedure before enabling writes.
 The home page shows active participants their current-season points, level progress, and rank, followed by
 the full current-season leaderboard. Administrators can view the leaderboard; backend authorization
 enforces score access.

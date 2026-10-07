@@ -19,6 +19,64 @@ Slack scoring awards one weekly credit for qualifying messages in the configured
 The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
 Sync maps unmapped authors automatically when their Slack profile email (`users.info`, needs `users:read.email`)
 is a `@nav.no` address matching a participant's `nav_no_email`; administrators map the rest and review unmapped authors.
+Slack membership sync replaces the standalone `security-champion-slackbot`: all active application participants
+belong to the configured user group, regardless of their Teamkatalogen role. Welcome announcements go to the
+configured welcome channel; departure/deactivation notices go to the admin channel. Both are suppressed when
+the participant has `SECURITY_CHAMPION` in any active Teamkatalogen team. Unmatched or unavailable role data
+defers announcements without blocking group reconciliation. Role changes alone do not create announcements.
+The first non-dry-run sync establishes a silent baseline. Rejoins count as new active membership.
+Permanent deletion erases membership snapshots and deliveries; the next sync removes the Slack account without a notice.
+
+### Slack membership cutover
+
+Membership sync is disabled by default. Configure the following `spec.env` values in `.nais/nais.yaml`;
+announcement channels are independent of `SLACK_SC_CHANNEL_ID`, which controls scoring.
+
+| Variable | Purpose / default |
+|----------|-------------------|
+| `SLACK_MEMBERSHIP_ENABLED` | Enable scheduled and manual sync; `false` |
+| `SLACK_MEMBERSHIP_DRY_RUN` | Preview only, without changing membership, delivery state, or Slack; `true` |
+| `SLACK_MEMBERSHIP_WELCOME_CHANNEL_ID` | Welcome channel ID |
+| `SLACK_MEMBERSHIP_ADMIN_CHANNEL_ID` | Removal-notice channel ID; fill in before enabling |
+| `SLACK_MEMBERSHIP_USERGROUP_ID` | Managed user group ID; fill in before enabling |
+| `SLACK_MEMBERSHIP_CRON` | Every six hours at minute 30, Europe/Oslo; `-` disables scheduling |
+
+The existing `SLACK_TOKEN` needs `users:read`, `users:read.email`, `usergroups:read`, `usergroups:write`,
+and `chat:write`, with access to both announcement channels. Verify workspace user-group permissions:
+Slack permits bot-token group updates only when group management is allowed for everyone;
+otherwise a supported token from an authorized user is required. Never store tokens in the manifest.
+
+Sign in as an administrator and open the frontend Slack administration page (`/appsec/slack`).
+Use **Preview membership changes** to review proposed additions/removals and unresolved participants.
+The frontend exchanges the session token and proxies all membership requests; operators do not need backend tokens.
+Accounts are resolved from a complete, paginated Slack `users.list` snapshot; failed or incomplete reads abort the sync.
+Approved Slack mappings take precedence; otherwise accounts are matched by verified participant email.
+Role verification uses Teamkatalogen's unpaged `/team?status=ACTIVE` endpoint and rejects incomplete or paged responses.
+Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
+Resolve mapping problems in the same page: review approved mappings and enter verified Slack IDs for unresolved participants.
+Compare the preview with the existing group (128 members at planning time), stop the old bot,
+then enable sync with `SLACK_MEMBERSHIP_DRY_RUN=false`. Only one writer may manage the group.
+The group-update API replaces the entire membership list. Zero active participants throws an exception and
+leaves Slack and membership state unchanged; the group is never automatically disabled.
+
+The page shows whether sync is enabled and whether it runs in dry-run or write mode.
+Use **Run membership dry run** or **Sync membership** to queue a locked background sync in the configured mode.
+Write-enabled manual sync requires a preview without unresolved identities and explicit confirmation.
+The preview version binds the request to enrollment, resolved identities, existing group membership and destination IDs.
+It is checked under the sync lock before queueing and again before writes; a stale preview returns HTTP 409.
+Changes after queueing fail the run without writes and are recorded in the audit trail.
+Runs and failures appear in the audit timeline; an accepted request is not a completed sync.
+Use **Refresh operations** after reviewing the audit outcome to reload outstanding deliveries.
+Unknown roles remain `PENDING`; interrupted or ambiguous Slack deliveries become `UNCERTAIN`
+and are not automatically resent. Inspect Slack (delivery IDs are included in message metadata), then use
+**Suppress** for a delivered or unwanted announcement, or **Retry** to authorize another attempt on a later sync.
+Both actions require confirmation. Explicit retries can produce duplicates.
+Known Slack rejections remain pending with a persisted retry time (15 minutes by default; HTTP rate limits honor
+`Retry-After`). Recipient-specific rejections do not block later announcements; shared configuration/rate-limit
+failures stop the batch. Completed delivery records expire after 12 months.
+
+### Other integrations
+
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
 the background and use the same locks as scheduled syncs.
@@ -197,6 +255,11 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | POST | `/api/admin/scoring/season/reset` | Start a manually confirmed season |
 | GET | `/api/admin/slack` | List approved Slack mappings and unmapped authors |
 | POST | `/api/admin/slack/sync` | Trigger a Slack scoring sync |
+| GET | `/api/admin/slack/membership` | Read enabled and dry-run configuration without Slack calls |
+| GET | `/api/admin/slack/membership/preview` | Preview group reconciliation without writes |
+| POST | `/api/admin/slack/membership/sync` | Trigger membership sync in the configured dry-run mode |
+| GET | `/api/admin/slack/membership/announcements` | List pending and uncertain membership announcements |
+| POST | `/api/admin/slack/membership/announcements/{id}/resolve` | Explicitly retry or suppress uncertain delivery |
 | POST | `/api/admin/slack/mappings` | Explicitly map a Slack account to a participant |
 | DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
 | GET | `/api/admin/delta/event-mappings` | List explicit program-event-to-Delta UUID mappings |
@@ -217,6 +280,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 |-----|----------|-------------|
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
 | `SlackScoringSyncJob` | Every 6 hours | Awards qualifying Slack participation credits and queues unmapped authors |
+| `SlackMembershipSyncJob` | Every 6 hours at minute 30, Europe/Oslo | Reconciles active app participants and role-filtered announcements; disabled by default |
 | `DeltaScoringSyncJob` | Every 6 hours | Awards registrations for started, current-year public events in eligible categories or single events; disabled by default |
 | `DeltaEventImportJob` | Every 6 hours | Imports and updates Delta events in the configured category; disabled by default |
 | `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |

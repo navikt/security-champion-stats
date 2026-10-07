@@ -86,6 +86,13 @@ export const Apies = {
 		}
 		return res.status;
 	},
+	triggerGithubSync: async (): Promise<number> => {
+		const res = await fetch("/api/admin/github/sync", { method: "POST" });
+		if (!res.ok) {
+			console.error("Failed to trigger GitHub sync, status: ", res.status);
+		}
+		return res.status;
+	},
 	triggerDeltaEventImport: async (): Promise<number> => {
 		const res = await fetch("/api/admin/delta/events/sync", { method: "POST" });
 		if (!res.ok) {

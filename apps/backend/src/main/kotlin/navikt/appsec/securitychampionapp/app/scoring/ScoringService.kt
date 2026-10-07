@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDate
+import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
 
@@ -79,6 +80,38 @@ class ScoringService(
             sourceReference,
             auditCorrelationId,
         )
+        recordAward(participantId, creditType, sourceReference, auditCorrelationId, result)
+        return result
+    }
+
+    fun awardGitHubCredit(
+        participantId: UUID,
+        creditType: ActivityCreditType,
+        uniquenessKey: String,
+        sourceReference: String,
+        auditCorrelationId: UUID?,
+        activityAt: Instant,
+        expectedSeasonId: UUID,
+    ): CreditAwardResult {
+        if (creditType !in setOf(ActivityCreditType.GITHUB_COMMIT, ActivityCreditType.GITHUB_PULL_REQUEST) ||
+            uniquenessKey.isBlank() || sourceReference.isBlank()
+        ) {
+            throw InvalidScoringRequestException("A qualifying GitHub activity and source identity are required")
+        }
+        val result = repository.awardGitHubCredit(
+            participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, activityAt, expectedSeasonId,
+        )
+        recordAward(participantId, creditType, sourceReference, auditCorrelationId, result)
+        return result
+    }
+
+    private fun recordAward(
+        participantId: UUID,
+        creditType: ActivityCreditType,
+        sourceReference: String,
+        auditCorrelationId: UUID?,
+        result: CreditAwardResult,
+    ) {
         if (result == CreditAwardResult.AWARDED) {
             auditService?.record(
                 action = "CREDIT_AWARDED",
@@ -92,7 +125,6 @@ class ScoringService(
                 ),
             )
         }
-        return result
     }
 
     fun addAdjustment(

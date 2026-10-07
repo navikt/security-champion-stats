@@ -74,6 +74,14 @@ playbook:
     enabled: ${PLAYBOOK_EVENTS_ENABLED:false}
     feed-url: ${PLAYBOOK_EVENTS_FEED_URL:https://sikkerhet.nav.no/events.json}
 
+github:
+  app-id: ${GITHUB_APP_ID:}
+  installation-id: ${GITHUB_APP_INSTALLATION_ID:}
+  private-key: ${GITHUB_APP_PRIVATE_KEY:}
+  scoring:
+    enabled: ${GITHUB_SCORING_ENABLED:false}
+    cron: "0 15 */6 * * *"
+
 springdoc:
   api-docs:
     enabled: true

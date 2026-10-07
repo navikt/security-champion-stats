@@ -41,6 +41,13 @@ Playbook events are cached from `https://sikkerhet.nav.no/events.json` at startu
 `external:*` entries remain visible unless their Delta URL identifies an event already in our catalog.
 Date-only feed events do not affect scoring.
 Administrators can trigger an import with `POST /api/admin/playbook/events/sync`.
+GitHub scoring awards 3 points per merged playbook PR or 1 per standalone default-branch commit,
+strictly after enrollment and within the current season. It requires organization-level SAML identities
+(`Members: read`) and `Contents: read` / `Pull requests: read` on `navikt/security-playbook`.
+Set `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, `GITHUB_APP_PRIVATE_KEY` (PEM), and
+`GITHUB_SCORING_ENABLED=true`; it is disabled by default. The admin dashboard exposes sync health and
+`POST /api/admin/github/sync` triggers a locked background sync. Missing or ambiguous SAML mappings never earn points.
+Commit-to-PR lookups are batched; rate-limit failures stop the sync without immediate retry and show retry guidance.
 
 ### Data flow ([mermaid](https://github.blog/2022-02-14-include-diagrams-markdown-files-mermaid/) syntax)
 ```mermaid

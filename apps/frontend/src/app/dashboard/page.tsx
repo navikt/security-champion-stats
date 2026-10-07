@@ -51,7 +51,8 @@ export default function Page() {
 			!overview ||
 			(!pendingSync &&
 				overview.slack.outcome !== "RUNNING" &&
-				overview.delta.outcome !== "RUNNING")
+				overview.delta.outcome !== "RUNNING" &&
+				overview.github.outcome !== "RUNNING")
 		) {
 			return;
 		}
@@ -87,7 +88,9 @@ export default function Page() {
 			const status =
 				integration === "slack"
 					? await Apies.triggerSlackSync()
-					: await Apies.triggerDeltaSync();
+					: integration === "github"
+						? await Apies.triggerGithubSync()
+						: await Apies.triggerDeltaSync();
 			if (status === 202) {
 				setPendingSync({
 					integration,

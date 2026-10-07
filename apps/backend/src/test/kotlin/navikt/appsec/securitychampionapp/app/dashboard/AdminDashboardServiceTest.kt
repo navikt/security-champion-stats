@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.app.dashboard
 
 import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
+import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringStatusService
+import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncStatusView
@@ -32,6 +34,7 @@ class AdminDashboardServiceTest {
         val dashboardRepository = mock<AdminDashboardRepository>()
         val slackStatusService = mock<SlackScoringStatusService>()
         val deltaStatusService = mock<DeltaScoringStatusService>()
+        val gitHubStatusService = mock<GitHubScoringStatusService>()
         whenever(scoringRepository.currentSeason()).thenReturn(season)
         whenever(
             dashboardRepository.metrics(season.id, season.startsOn, LocalDate.parse("2026-01-14")),
@@ -47,6 +50,7 @@ class AdminDashboardServiceTest {
         )
         whenever(slackStatusService.status()).thenReturn(emptySlackStatus())
         whenever(deltaStatusService.status()).thenReturn(emptyDeltaStatus())
+        whenever(gitHubStatusService.status()).thenReturn(GitHubSyncStatusView(false, null, null, null, 0, 0, 0, 0, null))
         val clock = Clock.fixed(
             Instant.parse("2026-01-14T12:00:00Z"),
             ZoneId.of("Europe/Oslo"),
@@ -57,6 +61,7 @@ class AdminDashboardServiceTest {
             slackStatusService,
             deltaStatusService,
             clock,
+            gitHubStatusService,
         )
 
         val overview = service.overview()

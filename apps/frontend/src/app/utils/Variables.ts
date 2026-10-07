@@ -153,6 +153,12 @@ export type AdminDashboardOverview = {
 		unmatchedRegistrations: number;
 		failedEvents: number;
 	};
+	github: AdminDashboardIntegrationStatus & {
+		contributionsScanned: number;
+		creditsAwarded: number;
+		duplicateCredits: number;
+		unmappedAuthors: number;
+	};
 };
 export type SlackAccountMapping = {
 	slackUserId: string;

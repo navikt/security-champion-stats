@@ -23,6 +23,16 @@ import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepositor
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackScoringStatusRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackSyncOutcome
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.GitHubIdentityMappingRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.GitHubScoringStatusRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringService
+import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringStatusService
+import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncSummary
+import navikt.appsec.securitychampionapp.integrations.github.GitHubContribution
+import navikt.appsec.securitychampionapp.integrations.github.GitHubContributionSource
+import navikt.appsec.securitychampionapp.integrations.github.GitHubIdentity
+import navikt.appsec.securitychampionapp.integrations.github.GitHubIntegrationException
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.assertj.core.api.Assertions.assertThat
 import org.flywaydb.core.Flyway
@@ -98,6 +108,107 @@ class ScoringRepositoryTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @Test
+    fun `should persist GitHub credits once and remove mappings source facts and history on deletion`() {
+        val id = createParticipant("github@nav.no")
+        val now = Instant.now()
+        jdbcTemplate.update(
+            "UPDATE program_participants SET created_at = ? WHERE id = ?",
+            java.sql.Timestamp.from(now.minusSeconds(3600)), id,
+        )
+        val mapping = GitHubIdentityMappingRepository(jdbcTemplate)
+        val originalContributions = listOf(
+            GitHubContribution(10, ActivityCreditType.GITHUB_PULL_REQUEST, "navikt/security-playbook:pr:1", now),
+            GitHubContribution(10, ActivityCreditType.GITHUB_COMMIT, "navikt/security-playbook:commit:a", now),
+        )
+        var contributions = originalContributions
+        val source = object : GitHubContributionSource {
+            override fun identities() = listOf(GitHubIdentity(10, "person", "github@nav.no"))
+            override fun contributions(since: Instant, until: Instant) = contributions
+        }
+        val service = GitHubScoringService(source, mapping, repository, ScoringService(repository))
+        assertThat(service.sync(now)).isEqualTo(GitHubSyncSummary(2, 2, 0, 0))
+        assertThat(service.sync(now)).isEqualTo(GitHubSyncSummary(2, 0, 2, 0))
+        contributions = emptyList()
+        assertThat(service.sync(now).creditsAwarded).isZero()
+        assertThat(repository.scoreForParticipant(id, repository.currentSeason().id)).isEqualTo(4)
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM activity_credits WHERE activity_at IS NOT NULL", Int::class.java,
+            ),
+        ).isEqualTo(2)
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM program_participant_audit WHERE participant_id = ?", Int::class.java, id,
+            ),
+        ).isEqualTo(1)
+        assertThat(ProgramParticipantRepository(jdbcTemplate).permanentlyDelete(id).isOk).isTrue()
+        listOf("github_account_mappings", "activity_credits", "program_participant_audit").forEach { table ->
+            assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $table", Int::class.java)).isZero()
+        }
+        contributions = originalContributions
+        assertThat(service.sync(now).unmappedAuthors).isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_participants", Int::class.java)).isZero()
+        val reenrolledId = createParticipant("github@nav.no")
+        assertThat(service.sync(Instant.now()).creditsAwarded).isZero()
+        assertThat(repository.scoreForParticipant(reenrolledId, repository.currentSeason().id)).isZero()
+    }
+
+    @Test
+    fun `should match canonical email reverify identity and reject ambiguous mappings`() {
+        val id = createParticipant("canonical@nav.no")
+        jdbcTemplate.update("UPDATE program_participants SET email = 'profile@nav.no' WHERE id = ?", id)
+        val mapping = GitHubIdentityMappingRepository(jdbcTemplate)
+        val now = Instant.now()
+        assertThat(mapping.refresh(listOf(GitHubIdentity(10, "person", "CANONICAL@nav.no")), now)[10]?.participantId)
+            .isEqualTo(id)
+        assertThatThrownBy {
+            mapping.refresh(
+                listOf(GitHubIdentity(10, "person", "canonical@nav.no"), GitHubIdentity(11, "other", "canonical@nav.no")),
+                now,
+            )
+        }.isInstanceOf(GitHubIntegrationException::class.java)
+        assertThat(mapping.refresh(listOf(GitHubIdentity(10, "person", "profile@nav.no")), now)).isEmpty()
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM github_account_mappings", Int::class.java)).isZero()
+    }
+
+    @Test
+    fun `should enforce GitHub uniqueness across participants and reject stale season or enrollment evidence`() {
+        val id = createParticipant("one@nav.no")
+        val other = createParticipant("two@nav.no")
+        val now = Instant.now()
+        val season = repository.currentSeason()
+        jdbcTemplate.update(
+            "UPDATE program_participants SET created_at = ? WHERE id IN (?, ?)",
+            java.sql.Timestamp.from(now.minusSeconds(60)), id, other,
+        )
+        fun award(participant: UUID, at: Instant = now, seasonId: UUID = season.id) =
+            repository.awardGitHubCredit(
+                participant, ActivityCreditType.GITHUB_PULL_REQUEST, "pr:unique", "pr:unique", null, at, seasonId,
+            )
+        assertThat(award(id, now.minusSeconds(61))).isEqualTo(CreditAwardResult.PARTICIPANT_INACTIVE_OR_MISSING)
+        assertThatThrownBy { award(id, seasonId = UUID.randomUUID()) }.isInstanceOf(IllegalStateException::class.java)
+        assertThat(award(id)).isEqualTo(CreditAwardResult.AWARDED)
+        assertThat(award(other)).isEqualTo(CreditAwardResult.DUPLICATE)
+        assertThat(repository.scoreForParticipant(other, season.id)).isZero()
+    }
+
+    @Test
+    fun `should preserve GitHub last success on failure and identify interrupted runs`() {
+        val status = GitHubScoringStatusRepository(jdbcTemplate)
+        val now = Instant.parse("2026-10-06T12:00:00.123456Z")
+        status.recordStarted(now)
+        status.recordSucceeded(now, GitHubSyncSummary(5, 2, 2, 1))
+        status.recordStarted(now.plusSeconds(60))
+        status.recordFailed("GitHub organization SAML identities are unavailable")
+        assertThat(status.find(true).lastSuccessAt).isEqualTo(now)
+        assertThat(status.find(true).outcome).isEqualTo("FAILED")
+        status.recordStarted(now.plusSeconds(120))
+        val service = GitHubScoringStatusService(status, PostgresJobLock(dataSource), true)
+        assertThat(service.status().outcome).isEqualTo("FAILED")
+        assertThat(service.status().failureSummary).isEqualTo(INTERRUPTED_SYNC_SUMMARY)
     }
 
     @Test

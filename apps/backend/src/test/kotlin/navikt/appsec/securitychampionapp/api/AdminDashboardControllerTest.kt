@@ -9,6 +9,7 @@ import navikt.appsec.securitychampionapp.app.dashboard.AdminDashboardService
 import navikt.appsec.securitychampionapp.app.dashboard.CreditTypeTotal
 import navikt.appsec.securitychampionapp.app.dashboard.WeeklyCreditTotals
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
+import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncStatusView
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
@@ -95,6 +96,7 @@ class AdminDashboardControllerTest {
                     failedEvents = 1,
                     failureSummary = "Delta registration sync failed; verify service connectivity",
                 ),
+                github = GitHubSyncStatusView(false, null, null, null, 0, 0, 0, 0, null),
             ),
         )
 
@@ -118,6 +120,7 @@ class AdminDashboardControllerTest {
                 ),
             )
             .andExpect(jsonPath("$.participants").doesNotExist())
+            .andExpect(jsonPath("$.github.enabled").value(false))
             .andExpect(jsonPath("$.slack.rawPayload").doesNotExist())
     }
 

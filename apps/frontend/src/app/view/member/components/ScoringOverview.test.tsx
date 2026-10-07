@@ -21,8 +21,8 @@ describe("ScoringOverview", () => {
 			rank: 2,
 		});
 		vi.spyOn(Apies, "getLeaderboard").mockResolvedValue([
-			{ fullName: "Alex", rank: 1, points: 300, level: "Adept" },
-			{ fullName: "Sam", rank: 2, points: 249, level: "Apprentice" },
+			{ fullName: "Alex", rank: 1, points: 300, level: "Adept", isCurrentUser: false },
+			{ fullName: "Sam", rank: 2, points: 249, level: "Apprentice", isCurrentUser: true },
 		]);
 
 		render(
@@ -89,7 +89,7 @@ describe("ScoringOverview", () => {
 	it("shows admins the leaderboard without requesting personal scores", async () => {
 		const getScore = vi.spyOn(Apies, "getParticipantSeasonScore");
 		const getLeaderboard = vi.spyOn(Apies, "getLeaderboard").mockResolvedValue([
-			{ fullName: "Alex", rank: 1, points: 300, level: "Adept" },
+			{ fullName: "Alex", rank: 1, points: 300, level: "Adept", isCurrentUser: false },
 		]);
 
 		render(
@@ -107,5 +107,23 @@ describe("ScoringOverview", () => {
 		expect(screen.queryByText("Your season")).not.toBeInTheDocument();
 		expect(getScore).not.toHaveBeenCalled();
 		expect(getLeaderboard).toHaveBeenCalledOnce();
+	});
+
+	it("marks the current participant by identity and includes them outside the top ten", async () => {
+		const entries = Array.from({ length: 12 }, (_, index) => ({
+			fullName: "Alex",
+			rank: index + 1,
+			points: 300 - index,
+			level: "Adept" as const,
+			isCurrentUser: index === 11,
+		}));
+		vi.spyOn(Apies, "getLeaderboard").mockResolvedValue(entries);
+
+		render(<ScoringOverview showPersonalProgress={false} showLeaderboard />);
+
+		const youTags = await screen.findAllByText("You");
+		expect(youTags).toHaveLength(1);
+		expect(youTags[0].closest("li")).toHaveTextContent("12");
+		expect(screen.getAllByText("Alex")).toHaveLength(11);
 	});
 });

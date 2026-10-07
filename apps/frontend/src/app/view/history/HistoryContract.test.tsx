@@ -84,12 +84,24 @@ it("renders participant adjustments and membership changes from the real backend
 					sourceReference: null,
 					reason: null,
 				},
+				{
+					id: "membership-2",
+					occurredAt: "2026-10-06T08:00:00Z",
+					type: "MEMBERSHIP",
+					action: "PARTICIPATION_STATUS_CHANGED",
+					status: "DEACTIVATED",
+					creditType: null,
+					points: null,
+					sourceReference: null,
+					reason: null,
+				},
 			]),
 		),
 	);
 	render(<HistoryView />);
 
 	expect(await screen.findByText("Duplicate credit corrected")).toBeInTheDocument();
-	expect(screen.getAllByText("−2")).toHaveLength(2);
+	expect(screen.getAllByText("−2")).toHaveLength(1);
 	expect(screen.getByRole("heading", { name: "Left program" })).toBeInTheDocument();
+	expect(screen.getByRole("heading", { name: "Membership deactivated" })).toBeInTheDocument();
 });

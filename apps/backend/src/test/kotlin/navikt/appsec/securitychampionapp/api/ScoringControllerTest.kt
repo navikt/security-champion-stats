@@ -77,25 +77,31 @@ class ScoringControllerTest {
     @Test
     fun `should allow admins to view exact leaderboard scores`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(scoringService.leaderboard())
-            .thenReturn(listOf(LeaderboardEntry("Person", 1, 25, "Novice")))
+        val participantId = UUID.randomUUID()
+        whenever(participantRepository.findByNavNoEmail("user@nav.no"))
+            .thenReturn(participant(participantId))
+        whenever(scoringService.leaderboard(participantId))
+            .thenReturn(listOf(LeaderboardEntry("Person", 1, 25, "Novice", true)))
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/leaderboard"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].points").value(25))
+            .andExpect(jsonPath("$[0].isCurrentUser").value(true))
     }
 
     @Test
     fun `should allow an active participant to view exact leaderboard scores`() {
         mockAuthenticatedUser(USER_ROLE)
+        val participantId = UUID.randomUUID()
         whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(participant(UUID.randomUUID()))
-        whenever(scoringService.leaderboard())
-            .thenReturn(listOf(LeaderboardEntry("Person", 1, 25, "Novice")))
+            .thenReturn(participant(participantId))
+        whenever(scoringService.leaderboard(participantId))
+            .thenReturn(listOf(LeaderboardEntry("Person", 1, 25, "Novice", true)))
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/leaderboard"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$[0].points").value(25))
+            .andExpect(jsonPath("$[0].isCurrentUser").value(true))
     }
 
     @Test

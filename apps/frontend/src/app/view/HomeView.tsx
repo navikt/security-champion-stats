@@ -23,6 +23,7 @@ function View({ me }: { me: Me }) {
 	const [scoreLoading, setScoreLoading] = useState(me.isParticipant && me.isActive);
 	const [activities, setActivities] = useState<HistoryEntry[]>([]);
 	const [activitiesLoading, setActivitiesLoading] = useState(me.isParticipant);
+	const [activitiesFailed, setActivitiesFailed] = useState(false);
 	const [eventsLoading, setEventsLoading] = useState(true);
 
 	useEffect(() => {
@@ -46,12 +47,14 @@ function View({ me }: { me: Me }) {
 		if (!userData.isParticipant) {
 			setActivities([]);
 			setActivitiesLoading(false);
+			setActivitiesFailed(false);
 			setScore(null);
 			setScoreLoading(false);
 			return;
 		}
 		let current = true;
 		setActivitiesLoading(true);
+		setActivitiesFailed(false);
 		setScoreLoading(userData.isActive);
 		const historyRequest = Apies.getHistory(false, "", null);
 		const scoreRequest = userData.isActive
@@ -64,6 +67,7 @@ function View({ me }: { me: Me }) {
 					setActivities(historyResult.value.entries);
 				} else {
 					console.error("Failed to load recent activity:", historyResult.reason);
+					setActivitiesFailed(true);
 				}
 				if (scoreResult.status === "fulfilled") setScore(scoreResult.value);
 				else console.error("Failed to load overview season score:", scoreResult.reason);
@@ -97,6 +101,7 @@ function View({ me }: { me: Me }) {
 					scoreLoading,
 					activities,
 					activitiesLoading,
+					activitiesFailed,
 				}}
 			/>
 			<div className="hubRedesign__grid overviewLowerRow">
@@ -111,7 +116,6 @@ function View({ me }: { me: Me }) {
 					showLeaderboard={
 						userData.isAdmin || (userData.isParticipant && userData.isActive)
 					}
-					currentUserName={me.displayName}
 				/>
 			</div>
 		</main>

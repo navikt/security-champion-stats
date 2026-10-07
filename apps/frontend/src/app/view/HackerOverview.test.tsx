@@ -95,6 +95,7 @@ const leaderboard: LeaderboardEntry[] = [
 		rank: 1,
 		points: 9,
 		level: "Novice",
+		isCurrentUser: true,
 	},
 ];
 

@@ -93,6 +93,7 @@ export type LeaderboardEntry = {
 	rank: number;
 	points: number;
 	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+	isCurrentUser: boolean;
 };
 export type ActivityCredit = {
 	id: string;

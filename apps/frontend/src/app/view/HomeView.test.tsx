@@ -49,3 +49,37 @@ it("removes personal scoring and leaderboard immediately after voluntary departu
 	expect(screen.queryByText("Season points")).not.toBeInTheDocument();
 	expect(screen.queryByRole("heading", { name: /leaderboard/i })).not.toBeInTheDocument();
 });
+
+it("shows an activity error instead of an empty-history message when history fails", async () => {
+	const me: Me = {
+		username: "person@nav.no",
+		displayName: null,
+		isAdmin: false,
+		isParticipant: true,
+		isActive: true,
+	};
+	const participant: ProgramParticipant = {
+		id: "participant-1",
+		email: me.username,
+		fullname: "Person",
+		teams: [],
+		active: true,
+		status: "ACTIVE",
+		joinedAt: "2026-01-01T00:00:00Z",
+	};
+	vi.spyOn(Apies, "fetchEvents").mockResolvedValue([]);
+	vi.spyOn(Apies, "fetchMembership").mockResolvedValue(participant);
+	vi.spyOn(Apies, "getHistory").mockRejectedValue(new Error("Unavailable"));
+	vi.spyOn(Apies, "getParticipantSeasonScore").mockResolvedValue({
+		season: { id: "season-1", startsOn: "2026-01-01", endsOn: null, nextResetDate: "2027-01-01" },
+		points: 1,
+		level: "Novice",
+		rank: 1,
+	});
+	vi.spyOn(console, "error").mockImplementation(() => {});
+	render(<MainView info={me} />);
+
+	const historyError = await screen.findByText("We couldn't load recent activity. Try again later.");
+	expect(historyError).toHaveAttribute("role", "alert");
+	expect(screen.queryByText(/No activity yet/)).not.toBeInTheDocument();
+});

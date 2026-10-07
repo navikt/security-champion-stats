@@ -8,7 +8,7 @@
 	--hub-border-strong: var(--sc-border-strong);
 	--hub-text: var(--sc-text);
 	--hub-text-secondary: var(--sc-text-muted);
-	--hub-text-muted: var(--sc-text-subtle);
+	--hub-text-muted: var(--sc-text-muted);
 	--hub-accent: var(--sc-primary);
 	--hub-accent-soft: var(--sc-primary-soft);
 	--hub-info: var(--sc-info);
@@ -817,11 +817,11 @@ html.hacker .hubRedesign {
 		grid-row: 1 / 3;
 	}
 
-	.dashboardView__attentionContent {
+	.dashboardView .hubRedesign__attentionContent {
 		grid-column: 2;
 	}
 
-	.dashboardView__attention > a {
+	.dashboardView .hubRedesign__attention > a {
 		grid-column: 2;
 	}
 

@@ -87,8 +87,38 @@ describe("AdminDashboardView", () => {
 		expect(screen.getAllByText("Disabled")).toHaveLength(2);
 		expect(screen.getByText("Delta sync failed")).toBeInTheDocument();
 		expect(screen.getAllByText("Delta service could not be reached")).toHaveLength(2);
-		expect(screen.getByRole("link", { name: "Review Delta mappings →" })).toHaveAttribute("href", "/appsec/delta");
+		expect(screen.getByRole("link", { name: "Review participant matches →" })).toHaveAttribute(
+			"href",
+			"/appsec/audit?category=syncs&q=unmatchedRegistrations",
+		);
 		expect(screen.queryByRole("heading", { name: "Program administration" })).not.toBeInTheDocument();
+	});
+
+	it("keeps weeks visible when category activity nets to zero", () => {
+		render(
+			<AdminDashboardView
+				overview={{
+					...overview,
+					weeklyTotals: [
+						{
+							weekStarting: "2026-10-05",
+							pointsByCreditType: { SLACK_WEEK: 10, POINT_ADJUSTMENT: -10 },
+						},
+						{
+							weekStarting: "2026-09-28",
+							pointsByCreditType: {},
+						},
+					],
+				}}
+				onTriggerSync={vi.fn()}
+				triggeringSync={null}
+				triggerError={null}
+			/>,
+		);
+
+		expect(screen.getByText("Oct 5, 2026")).toBeInTheDocument();
+		expect(screen.getByText("Oct 5, 2026").closest("tr")).toHaveTextContent("10");
+		expect(screen.getByText(/1 hidden/)).toBeInTheDocument();
 	});
 
 	it("should allow admins to trigger enabled integrations only", async () => {

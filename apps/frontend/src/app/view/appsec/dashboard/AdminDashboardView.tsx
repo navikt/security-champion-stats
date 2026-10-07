@@ -6,7 +6,6 @@ import {
 	Checkbox,
 	Heading,
 	HGrid,
-	HStack,
 	Table,
 	Tag,
 	VStack,
@@ -86,8 +85,12 @@ function weekDate(value: string): string {
 	});
 }
 
+function weekHasActivity(week: AdminDashboardWeeklyTotals): boolean {
+	return Object.values(week.pointsByCreditType).some((value) => value !== 0);
+}
+
 function weekTotal(week: AdminDashboardWeeklyTotals): number {
-	return Object.values(week.pointsByCreditType).reduce((sum, value) => sum + value, 0);
+	return Object.values(week.pointsByCreditType).reduce((total, value) => total + value, 0);
 }
 
 function makeAttentionItems(overview: AdminDashboardOverview): AttentionItem[] {
@@ -126,9 +129,9 @@ function makeAttentionItems(overview: AdminDashboardOverview): AttentionItem[] {
 		items.push({
 			count: overview.delta.unmatchedRegistrations,
 			title: "Unmatched event registrations",
-			description: "Registrations could not be matched to a program event.",
-			href: "/appsec/delta",
-			linkLabel: "Review Delta mappings →",
+			description: "Registrations could not be matched to one active participant.",
+			href: "/appsec/audit?category=syncs&q=unmatchedRegistrations",
+			linkLabel: "Review participant matches →",
 			variant: "warning",
 		});
 	}
@@ -182,9 +185,9 @@ export function AdminDashboardView({
 			),
 		[overview.weeklyTotals],
 	);
-	const emptyWeekCount = sortedWeeks.filter((week) => weekTotal(week) === 0).length;
+	const emptyWeekCount = sortedWeeks.filter((week) => !weekHasActivity(week)).length;
 	const shownWeeks = sortedWeeks.filter(
-		(week) => !hideEmpty || weekTotal(week) !== 0,
+		(week) => !hideEmpty || weekHasActivity(week),
 	);
 	const firstWeek = sortedWeeks.at(-1)?.weekStarting;
 	const lastWeek = sortedWeeks[0]?.weekStarting;

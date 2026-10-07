@@ -27,6 +27,7 @@ export function MembershipView({
 		scoreLoading: boolean;
 		activities: HistoryEntry[];
 		activitiesLoading: boolean;
+		activitiesFailed: boolean;
 	};
 }) {
 	const [userData, setMe] = useState(me);
@@ -101,6 +102,7 @@ export function MembershipView({
 				scoreLoading={overview.scoreLoading}
 				activities={overview.activities}
 				activitiesLoading={overview.activitiesLoading}
+				activitiesFailed={overview.activitiesFailed}
 				confirmingLeave={leaveOpen}
 				pending={pending}
 				actionError={actionError}

@@ -52,6 +52,7 @@ export function OverviewParticipationCard({
 	scoreLoading,
 	activities,
 	activitiesLoading,
+	activitiesFailed,
 	confirmingLeave,
 	pending,
 	actionError,
@@ -65,6 +66,7 @@ export function OverviewParticipationCard({
 	scoreLoading: boolean;
 	activities: HistoryEntry[];
 	activitiesLoading: boolean;
+	activitiesFailed: boolean;
 	confirmingLeave: boolean;
 	pending: boolean;
 	actionError: string | null;
@@ -174,6 +176,8 @@ export function OverviewParticipationCard({
 				</div>
 				{activitiesLoading ? (
 					<BodyShort role="status">Loading recent activity…</BodyShort>
+				) : activitiesFailed ? (
+					<BodyShort role="alert">We couldn't load recent activity. Try again later.</BodyShort>
 				) : activities.length === 0 ? (
 					<BodyShort className="hubRedesign__muted">
 						No activity yet — register for an event to earn your first points.

@@ -75,6 +75,33 @@ describe("AdminAuditView", () => {
 		expect(screen.getByText(/Showing 51–51 of 51 events/)).toBeInTheDocument();
 	});
 
+	it("does not reset an already selected page when the search debounce expires unchanged", async () => {
+		vi.spyOn(Apies, "getAdminAudit").mockImplementation(async (_query, _category, page) => ({
+			...auditPage,
+			page,
+		}));
+		render(<AdminAuditView />);
+
+		await screen.findByRole("button", { name: /Slack scoring sync completed/ });
+		fireEvent.click(screen.getByRole("button", { name: "Older →" }));
+		await waitFor(() =>
+			expect(Apies.getAdminAudit).toHaveBeenLastCalledWith("", "all", 1),
+		);
+
+		await new Promise((resolve) => window.setTimeout(resolve, 300));
+		expect(Apies.getAdminAudit).toHaveBeenLastCalledWith("", "all", 1);
+	});
+
+	it("limits audit searches to the backend's 100-character contract", async () => {
+		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue(auditPage);
+		render(<AdminAuditView />);
+		await screen.findByRole("button", { name: /Slack scoring sync completed/ });
+		expect(screen.getByRole("textbox", { name: /Search events/ })).toHaveAttribute(
+			"maxLength",
+			"100",
+		);
+	});
+
 	it("reports errors rather than showing empty results", async () => {
 		vi.spyOn(Apies, "getAdminAudit").mockRejectedValue(new Error("Unavailable"));
 		render(<AdminAuditView />);

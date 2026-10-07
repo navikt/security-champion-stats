@@ -39,10 +39,18 @@ class ScoringService(
             .filter { it.points > 0 && it.rank <= 5 }
             .map { RecognitionEntry(it.fullName, it.rank) }
 
-    fun leaderboard(): List<LeaderboardEntry> =
+    fun leaderboard(currentParticipantId: UUID? = null): List<LeaderboardEntry> =
         ranked(repository.scoresForCurrentSeason(activeOnly = true))
             .filter { it.points > 0 }
-            .map { LeaderboardEntry(it.fullName, it.rank, it.points, levelFor(it.points)) }
+            .map {
+                LeaderboardEntry(
+                    it.fullName,
+                    it.rank,
+                    it.points,
+                    levelFor(it.points),
+                    isCurrentUser = it.participantId == currentParticipantId,
+                )
+            }
 
     fun ownScore(participantId: UUID): OwnSeasonScore {
         val season = repository.currentSeason()

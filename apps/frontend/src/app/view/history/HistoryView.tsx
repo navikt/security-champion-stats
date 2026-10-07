@@ -56,6 +56,10 @@ function entryTitle(entry: HistoryEntry): string {
 	if (entry.action === "PARTICIPANT_ENROLLED") return "Joined program";
 	if (entry.action === "PARTICIPANT_LEFT") return "Left program";
 	if (entry.action === "PARTICIPANT_REJOINED") return "Rejoined program";
+	if (entry.action === "PARTICIPATION_STATUS_CHANGED") {
+		if (entry.details.status === "ACTIVE") return "Membership activated";
+		if (entry.details.status === "DEACTIVATED") return "Membership deactivated";
+	}
 	return readable(entry.action);
 }
 
@@ -139,12 +143,6 @@ function updateFilterInUrl(filter: HistoryFilter) {
 	);
 }
 
-function isInSeason(entry: HistoryEntry, score: ParticipantSeasonScore | null) {
-	if (!score) return false;
-	return new Date(entry.recordedAt).getTime() >=
-		new Date(score.season.startsOn).getTime();
-}
-
 export function HistoryView() {
 	const [page, setPage] = useState<HistoryPage | null>(null);
 	const [score, setScore] = useState<ParticipantSeasonScore | null>(null);
@@ -224,10 +222,6 @@ export function HistoryView() {
 		return result;
 	}, [visibleEntries]);
 
-	const pointsEarned = (page?.entries ?? [])
-		.filter((entry) => classify(entry) !== "membership" && isInSeason(entry, score))
-		.reduce((total, entry) => total + (entryPoints(entry) ?? 0), 0);
-
 	const selectFilter = (value: string) => {
 		if (!HISTORY_FILTERS.some((candidate) => candidate.value === value)) return;
 		const nextFilter = value as HistoryFilter;
@@ -269,7 +263,7 @@ export function HistoryView() {
 				<div className="hubRedesign__stats">
 					<SummaryStat
 						label="Points earned"
-						value={score ? `${pointsEarned >= 0 ? "+" : "−"}${Math.abs(pointsEarned)}` : "—"}
+						value={score ? String(score.points) : "—"}
 					/>
 					<SummaryStat label="Entries" value={String(filteredEntries.length)} />
 					<SummaryStat

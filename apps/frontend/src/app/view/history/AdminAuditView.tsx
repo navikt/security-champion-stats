@@ -61,7 +61,7 @@ function summary(details: Record<string, string>): string {
 }
 
 function initialQuery() {
-	return new URLSearchParams(window.location.search).get("q") ?? "";
+	return (new URLSearchParams(window.location.search).get("q") ?? "").slice(0, 100);
 }
 
 function initialCategory(): AuditCategory {
@@ -107,12 +107,14 @@ export function AdminAuditView() {
 	useEffect(() => {
 		const timer = window.setTimeout(() => {
 			const normalized = query.trim();
-			setPageNumber(0);
-			setSearch(normalized);
+			if (normalized !== search) {
+				setPageNumber(0);
+				setSearch(normalized);
+			}
 			setAuditUrl(normalized, category);
 		}, 250);
 		return () => window.clearTimeout(timer);
-	}, [query, category]);
+	}, [query]);
 
 	useEffect(() => {
 		let current = true;
@@ -167,7 +169,7 @@ export function AdminAuditView() {
 					<TextField
 						label="Search events, actors, run or participant IDs"
 						hideLabel
-						placeholder="Search events, actors, run or participant IDs"
+						maxLength={100}
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
 					/>

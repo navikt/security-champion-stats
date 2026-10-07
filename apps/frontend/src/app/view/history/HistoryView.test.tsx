@@ -12,7 +12,7 @@ const entry: HistoryEntry = {
 	occurredAt: "2026-10-06T10:00:00Z",
 	details: {
 		creditType: "SLACK_WEEK",
-		points: 1,
+		points: 9,
 		sourceReference: "channel:timestamp",
 	},
 };
@@ -34,7 +34,7 @@ beforeEach(() => {
 			endsOn: null,
 			nextResetDate: "2027-01-01",
 		},
-		points: 1,
+		points: 10,
 		level: "Novice",
 		rank: 1,
 	});
@@ -56,10 +56,35 @@ describe("HistoryView", () => {
 
 		expect(await screen.findByText("Slack participation")).toBeInTheDocument();
 		expect(screen.getByText("channel:timestamp")).toBeInTheDocument();
-		expect(screen.getAllByText("+1")).toHaveLength(2);
+		expect(screen.getAllByText("+9")).toHaveLength(1);
 		expect(screen.getByText("Member since")).toBeInTheDocument();
+		expect(screen.getByText("Points earned").nextElementSibling).toHaveTextContent("10");
 		expect(screen.queryByText(/Actor:/)).not.toBeInTheDocument();
 		expect(getHistory).toHaveBeenCalledWith(false, "", null);
+	});
+
+	it("describes activation and deactivation using the recorded resulting membership status", async () => {
+		vi.spyOn(Apies, "getHistory").mockResolvedValue({
+			entries: [
+				{
+					...entry,
+					id: "activated",
+					action: "PARTICIPATION_STATUS_CHANGED",
+					details: { status: "ACTIVE" },
+				},
+				{
+					...entry,
+					id: "deactivated",
+					action: "PARTICIPATION_STATUS_CHANGED",
+					details: { status: "DEACTIVATED" },
+				},
+			],
+			nextCursor: null,
+		});
+		render(<HistoryView />);
+
+		expect(await screen.findByRole("heading", { name: "Membership activated" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: "Membership deactivated" })).toBeInTheDocument();
 	});
 
 	it("filters entries and reflects the selected type in the URL", async () => {

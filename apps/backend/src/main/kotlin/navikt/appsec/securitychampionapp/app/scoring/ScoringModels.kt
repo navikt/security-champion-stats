@@ -51,6 +51,7 @@ data class LeaderboardEntry(
     val rank: Int,
     val points: Long,
     val level: String,
+    val isCurrentUser: Boolean = false,
 )
 
 data class OwnSeasonScore(

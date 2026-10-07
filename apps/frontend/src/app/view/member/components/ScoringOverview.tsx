@@ -76,16 +76,12 @@ function ScoringProgress({ score }: { score: ParticipantSeasonScore }) {
 
 function Leaderboard({
 	entries,
-	currentUserName,
 }: {
 	entries: LeaderboardEntry[];
-	currentUserName?: string | null;
 }) {
 	const sorted = [...entries].sort((a, b) => a.rank - b.rank);
 	const top = sorted.slice(0, 10);
-	const self = currentUserName
-		? sorted.find((entry) => entry.fullName === currentUserName)
-		: undefined;
+	const self = sorted.find((entry) => entry.isCurrentUser);
 	const selfOutsideTop = self && !top.includes(self) ? self : undefined;
 	const visible = selfOutsideTop ? [...top, selfOutsideTop] : top;
 	const leaderPoints = Math.max(sorted[0]?.points ?? 0, 1);
@@ -147,11 +143,9 @@ function Leaderboard({
 export function ScoringOverview({
 	showPersonalProgress,
 	showLeaderboard,
-	currentUserName,
 }: {
 	showPersonalProgress: boolean;
 	showLeaderboard: boolean;
-	currentUserName?: string | null;
 }) {
 	const [score, setScore] = useState<ParticipantSeasonScore | null>(null);
 	const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
@@ -222,7 +216,7 @@ export function ScoringOverview({
 						We couldn't load the leaderboard. Try again later.
 					</BodyShort>
 				) : (
-					<Leaderboard entries={entries} currentUserName={currentUserName} />
+					<Leaderboard entries={entries} />
 				))}
 		</div>
 	);

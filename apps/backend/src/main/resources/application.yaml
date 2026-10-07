@@ -55,6 +55,13 @@ spring:
 slack:
     token: ${SLACK_TOKEN}
     sc-channel-id: ${SLACK_SC_CHANNEL_ID}
+    membership:
+      enabled: ${SLACK_MEMBERSHIP_ENABLED:false}
+      dry-run: ${SLACK_MEMBERSHIP_DRY_RUN:true}
+      usergroup-id: ${SLACK_MEMBERSHIP_USERGROUP_ID:}
+      welcome-channel-id: ${SLACK_MEMBERSHIP_WELCOME_CHANNEL_ID:}
+      admin-channel-id: ${SLACK_MEMBERSHIP_ADMIN_CHANNEL_ID:}
+      cron: ${SLACK_MEMBERSHIP_CRON:0 30 */6 * * *}
 
 delta:
   events:

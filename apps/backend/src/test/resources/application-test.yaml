@@ -3,6 +3,9 @@ slack:
   sc-channel-id: ""
   scoring:
     cron: "-"
+  membership:
+    enabled: false
+    cron: "-"
 
 spring:
   security:

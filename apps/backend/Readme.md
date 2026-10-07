@@ -19,6 +19,52 @@ Slack scoring awards one weekly credit for qualifying messages in the configured
 The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
 Sync maps unmapped authors automatically when their Slack profile email (`users.info`, needs `users:read.email`)
 is a `@nav.no` address matching a participant's `nav_no_email`; administrators map the rest and review unmapped authors.
+Slack membership sync replaces the standalone `security-champion-slackbot`: all active application participants
+belong to the configured user group, regardless of their Teamkatalogen role. Welcome announcements go to the
+configured welcome channel; departure/deactivation notices go to the admin channel. Both are suppressed when
+the participant has `SECURITY_CHAMPION` in any active Teamkatalogen team. Unmatched or unavailable role data
+defers announcements without blocking group reconciliation. Role changes alone do not create announcements.
+The first non-dry-run sync establishes a silent baseline. Rejoins count as new active membership.
+Permanent deletion erases membership snapshots and deliveries; the next sync removes the Slack account without a notice.
+
+### Slack membership cutover
+
+Membership sync is disabled by default. Configure the following `spec.env` values in `.nais/nais.yaml`;
+announcement channels are independent of `SLACK_SC_CHANNEL_ID`, which controls scoring.
+
+| Variable | Purpose / default |
+|----------|-------------------|
+| `SLACK_MEMBERSHIP_ENABLED` | Enable scheduled and manual sync; `false` |
+| `SLACK_MEMBERSHIP_DRY_RUN` | Preview only, without changing membership, delivery state, or Slack; `true` |
+| `SLACK_MEMBERSHIP_WELCOME_CHANNEL_ID` | Welcome channel ID |
+| `SLACK_MEMBERSHIP_ADMIN_CHANNEL_ID` | Removal-notice channel ID; fill in before enabling |
+| `SLACK_MEMBERSHIP_USERGROUP_ID` | Managed user group ID; fill in before enabling |
+| `SLACK_MEMBERSHIP_CRON` | Every six hours at minute 30, Europe/Oslo; `-` disables scheduling |
+
+The existing `SLACK_TOKEN` needs `users:read`, `users:read.email`, `usergroups:read`, `usergroups:write`,
+and `chat:write`, with access to both announcement channels. Verify workspace user-group permissions:
+Slack permits bot-token group updates only when group management is allowed for everyone;
+otherwise a supported token from an authorized user is required. Never store tokens in the manifest.
+
+Use `GET /api/admin/slack/membership/preview` to review proposed additions/removals and unresolved participant IDs.
+Approved Slack mappings take precedence; otherwise accounts are looked up by verified participant email.
+Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
+Resolve mapping problems through the existing admin Slack mapping API before cutover.
+Compare the preview with the existing group (128 members at planning time), stop the old bot,
+then enable sync with `SLACK_MEMBERSHIP_DRY_RUN=false`. Only one writer may manage the group.
+The group-update API replaces the entire membership list. Zero active participants throws an exception and
+leaves Slack and membership state unchanged; the group is never automatically disabled.
+
+`POST /api/admin/slack/membership/sync` queues a locked background sync and honors the configured dry-run mode.
+Runs and failures appear in the audit timeline. `GET /api/admin/slack/membership/announcements` lists outstanding
+deliveries. Unknown roles remain `PENDING`; interrupted or ambiguous Slack deliveries become `UNCERTAIN`
+and are not automatically resent. Inspect Slack (delivery IDs are included in message metadata), then call
+`POST /api/admin/slack/membership/announcements/{id}/resolve` with `{"retry":false}` to suppress a delivered
+or unwanted message, or `{"retry":true}` to authorize another attempt. Explicit retries can produce duplicates.
+Known Slack rejections remain pending for a later run. Completed delivery records expire after 12 months.
+
+### Other integrations
+
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.
 Administrators can trigger Slack and enabled Delta scoring syncs from the dashboard; they run in
 the background and use the same locks as scheduled syncs.
@@ -197,6 +243,10 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 | POST | `/api/admin/scoring/season/reset` | Start a manually confirmed season |
 | GET | `/api/admin/slack` | List approved Slack mappings and unmapped authors |
 | POST | `/api/admin/slack/sync` | Trigger a Slack scoring sync |
+| GET | `/api/admin/slack/membership/preview` | Preview group reconciliation without writes |
+| POST | `/api/admin/slack/membership/sync` | Trigger membership sync in the configured dry-run mode |
+| GET | `/api/admin/slack/membership/announcements` | List pending and uncertain membership announcements |
+| POST | `/api/admin/slack/membership/announcements/{id}/resolve` | Explicitly retry or suppress uncertain delivery |
 | POST | `/api/admin/slack/mappings` | Explicitly map a Slack account to a participant |
 | DELETE | `/api/admin/slack/mappings/{slackUserId}` | Remove a Slack account mapping |
 | GET | `/api/admin/delta/event-mappings` | List explicit program-event-to-Delta UUID mappings |
@@ -217,6 +267,7 @@ gradle/libs.versions.toml           # Centralized dependency version catalog
 |-----|----------|-------------|
 | `SyncJob` | Daily at 12:00 | Updates participant profiles from Teamkatalogen |
 | `SlackScoringSyncJob` | Every 6 hours | Awards qualifying Slack participation credits and queues unmapped authors |
+| `SlackMembershipSyncJob` | Every 6 hours at minute 30, Europe/Oslo | Reconciles active app participants and role-filtered announcements; disabled by default |
 | `DeltaScoringSyncJob` | Every 6 hours | Awards registrations for started, current-year public events in eligible categories or single events; disabled by default |
 | `DeltaEventImportJob` | Every 6 hours | Imports and updates Delta events in the configured category; disabled by default |
 | `ResetSeasonJob` | Daily at 00:00 Europe/Oslo | Starts a new season when its configured date is due |

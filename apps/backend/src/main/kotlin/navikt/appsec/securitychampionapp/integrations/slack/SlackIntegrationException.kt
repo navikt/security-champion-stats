@@ -6,6 +6,10 @@ class SlackIntegrationException(operation: Operation, errorCode: String?) :
         HISTORY("conversations.history"),
         REPLIES("conversations.replies"),
         USERS_INFO("users.info"),
+        LOOKUP_BY_EMAIL("users.lookupByEmail"),
+        GROUP_MEMBERS("usergroups.users.list"),
+        GROUP_UPDATE("usergroups.users.update"),
+        POST_MESSAGE("chat.postMessage"),
     }
 
     companion object {

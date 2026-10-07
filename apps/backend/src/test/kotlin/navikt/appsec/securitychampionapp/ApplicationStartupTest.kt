@@ -1,9 +1,11 @@
 package navikt.appsec.securitychampionapp
 
 import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
+import navikt.appsec.securitychampionapp.config.SlackMembershipProperties
 import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.test.util.ReflectionTestUtils
 import org.testcontainers.containers.PostgreSQLContainer
@@ -26,8 +28,9 @@ class ApplicationStartupTest {
         }
     }
 
-    @Test
-    fun `should start production application using main configuration`() {
+    @ParameterizedTest
+    @ValueSource(booleans = [false, true])
+    fun `should start production application using main configuration`(membershipEnabled: Boolean) {
         SpringApplicationBuilder(Application::class.java)
             .run(
                 "--spring.config.location=file:src/main/resources/application.yaml",
@@ -39,9 +42,20 @@ class ApplicationStartupTest {
                 "--NAIS_TOKEN_INTROSPECTION_ENDPOINT=http://localhost/introspect",
                 "--SLACK_TOKEN=synthetic-slack-token",
                 "--SLACK_SC_CHANNEL_ID=test-sc-channel",
+                "--SLACK_MEMBERSHIP_ENABLED=$membershipEnabled",
+                "--SLACK_MEMBERSHIP_WELCOME_CHANNEL_ID=C_WELCOME",
+                "--SLACK_MEMBERSHIP_ADMIN_CHANNEL_ID=C_ADMIN",
+                "--SLACK_MEMBERSHIP_USERGROUP_ID=S_GROUP",
+                "--slack.membership.cron=-",
             ).use { context ->
                 assertThat(context.environment.activeProfiles).containsExactly("prod")
                 assertThat(context.getBean(SlackApiService::class.java)).isNotNull()
+                val membership = context.getBean(SlackMembershipProperties::class.java)
+                assertThat(membership.enabled).isEqualTo(membershipEnabled)
+                assertThat(membership.dryRun).isTrue()
+                assertThat(membership.welcomeChannelId).isEqualTo("C_WELCOME")
+                assertThat(membership.adminChannelId).isEqualTo("C_ADMIN")
+                assertThat(membership.usergroupId).isEqualTo("S_GROUP")
                 val slackJob = context.getBean(SlackScoringSyncJob::class.java)
                 assertThat(ReflectionTestUtils.getField(slackJob, "channelId"))
                     .isEqualTo("test-sc-channel")

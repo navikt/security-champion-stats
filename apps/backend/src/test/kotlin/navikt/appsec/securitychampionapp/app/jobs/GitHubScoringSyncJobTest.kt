@@ -50,6 +50,15 @@ class GitHubScoringSyncJobTest {
     }
 
     @Test
+    fun `should persist rate limit guidance instead of permission errors`() {
+        runLocked()
+        whenever(service.sync(eq(now), anyOrNull()))
+            .thenThrow(GitHubIntegrationException(GitHubFailure.RATE_LIMIT))
+        job().syncGitHubScoring()
+        verify(status).recordFailed(GitHubFailure.RATE_LIMIT.summary)
+    }
+
+    @Test
     fun `should block disabled syncs without acquiring a token or lock`() {
         val job = job(enabled = false)
         job.syncGitHubScoring()

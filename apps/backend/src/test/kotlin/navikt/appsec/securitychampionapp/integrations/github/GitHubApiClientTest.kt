@@ -32,11 +32,17 @@ class GitHubApiClientTest {
     private var tokenResponse = """{"token":"installation-token","expires_at":"2026-10-06T13:00:00Z"}"""
     private var observedAt = now
     private var identityStatus = 200
+    private val responseHeaders = mutableMapOf<String, String>()
     private var tokenRequests = 0
     private var tokenBody = ""
     private var jwt = ""
     private val mapper = JsonMapper.builder().build()
     private val sha = "a".repeat(40)
+    private var associationRequests = 0
+    private var restAssociationRequests = 0
+    private val associationPages = mutableMapOf<Pair<String, String?>, String>()
+    private val queriedShas = mutableListOf<List<String>>()
+    private var associationError: String? = null
 
     @BeforeEach
     fun startServer() {
@@ -57,9 +63,18 @@ class GitHubApiClientTest {
                 status = 201
             } else {
                 val path = exchange.requestURI.path
+                if (path.matches(Regex(".*/commits/[a-f0-9]{40}/pulls"))) restAssociationRequests++
+                val graphRequest = if (path == "/graphql") {
+                    mapper.readTree(exchange.requestBody.bufferedReader().readText())
+                } else {
+                    null
+                }
                 val page = exchange.requestURI.rawQuery?.split("&")
                     ?.firstOrNull { it.startsWith("page=") }?.substringAfter("=")?.toInt() ?: 1
-                body = if (path == "/graphql" && identityPages.isNotEmpty()) identityPages.removeFirst()
+                body = if (graphRequest?.path("query")?.asString("")?.contains("CommitAssociations") == true) {
+                    associationRequests++
+                    associationResponse(graphRequest.path("variables"))
+                } else if (path == "/graphql" && identityPages.isNotEmpty()) identityPages.removeFirst()
                     else pageRoutes[path to page] ?: routes[path] ?: "[]"
                 status = if (expireNextApiRequest) {
                     expireNextApiRequest = false
@@ -67,6 +82,7 @@ class GitHubApiClientTest {
                 } else if (path == "/graphql") identityStatus else 200
             }
             exchange.responseHeaders.add("Content-Type", "application/json")
+            responseHeaders.forEach { (name, value) -> exchange.responseHeaders.add(name, value) }
             exchange.sendResponseHeaders(status, body.toByteArray().size.toLong())
             exchange.responseBody.use { it.write(body.toByteArray()) }
         }
@@ -84,6 +100,76 @@ class GitHubApiClientTest {
     @AfterEach
     fun stopServer() {
         server.stop(0)
+    }
+
+    @Test
+    fun `should batch association lookups for a hundred commits without per commit REST requests`() {
+        routes["/repos/navikt/security-playbook/commits"] =
+            (1..100).joinToString(",", "[", "]") { commit(it.toString(16).padStart(40, '0')) }
+        pageRoutes["/repos/navikt/security-playbook/commits" to 2] = "[]"
+        assertThat(client.contributions(now.minusSeconds(3600), now)).hasSize(100)
+        assertThat(restAssociationRequests).isZero()
+        assertThat(associationRequests).isEqualTo(2)
+    }
+
+    @Test
+    fun `should paginate only unresolved associations and find merged PRs beyond the first page`() {
+        val secondSha = "b".repeat(40)
+        routes["/repos/navikt/security-playbook/commits"] = "[${commit(sha)},${commit(secondSha)}]"
+        associationPages[sha to null] = """
+            {"nodes":[{"mergedAt":null,"baseRefName":"main"}],
+             "pageInfo":{"hasNextPage":true,"endCursor":"next"}}
+        """.trimIndent()
+        associationPages[sha to "next"] = """
+            {"nodes":[{"mergedAt":"2026-10-06T11:30:00Z","baseRefName":"main"}],
+             "pageInfo":{"hasNextPage":false,"endCursor":null}}
+        """.trimIndent()
+        val result = client.contributions(now.minusSeconds(3600), now)
+        assertThat(result.map { it.key }).containsExactly("navikt/security-playbook:commit:$secondSha")
+        assertThat(queriedShas).containsExactly(listOf(sha, secondSha), listOf(sha))
+        assertThat(restAssociationRequests).isZero()
+    }
+
+    @Test
+    fun `should reject missing partial and looping association responses rather than award standalone credits`() {
+        routes["/repos/navikt/security-playbook/commits"] = "[${commit(sha)}]"
+        listOf(
+            """{"data":{"repository":null}}""",
+            """{"data":{"repository":{}},"errors":[{"message":"query failed"}]}""",
+        ).forEach { body ->
+            associationError = body
+            assertThatThrownBy { client.contributions(now.minusSeconds(3600), now) }
+                .hasMessage(GitHubFailure.RESPONSE.summary)
+        }
+        associationError = null
+        val looping = """{"nodes":[],"pageInfo":{"hasNextPage":true,"endCursor":"same"}}"""
+        associationPages[sha to null] = looping
+        associationPages[sha to "same"] = looping
+        assertThatThrownBy { client.contributions(now.minusSeconds(3600), now) }
+            .hasMessage(GitHubFailure.RESPONSE.summary)
+    }
+
+    @Test
+    fun `should distinguish rate limited forbidden responses from denied permissions`() {
+        identityStatus = 403
+        responseHeaders["X-RateLimit-Remaining"] = "0"
+        assertThatThrownBy { client.identities() }
+            .hasMessage("GitHub API rate limit reached; wait for the reset or retry-after period before retrying")
+        responseHeaders.clear()
+        responseHeaders["Retry-After"] = "60"
+        assertThatThrownBy { client.identities() }
+            .hasMessage("GitHub API rate limit reached; wait for the reset or retry-after period before retrying")
+        responseHeaders.clear()
+        routes["/graphql"] = """{"message":"You have exceeded a secondary rate limit."}"""
+        assertThatThrownBy { client.identities() }
+            .hasMessage("GitHub API rate limit reached; wait for the reset or retry-after period before retrying")
+        identityStatus = 429
+        routes["/graphql"] = "{}"
+        assertThatThrownBy { client.identities() }
+            .hasMessage("GitHub API rate limit reached; wait for the reset or retry-after period before retrying")
+        identityStatus = 403
+        assertThatThrownBy { client.identities() }.hasMessage(GitHubFailure.ACCESS.summary)
+        assertThat(tokenRequests).isEqualTo(1)
     }
 
     @Test
@@ -213,6 +299,7 @@ class GitHubApiClientTest {
             """"committer":${user()}""", """"committer":${user("Bot")}""",
         )}]"""
         assertThat(client.contributions(now.minusSeconds(3600), now)).isEmpty()
+        assertThat(associationRequests).isZero()
     }
 
     @Test
@@ -246,6 +333,24 @@ class GitHubApiClientTest {
     }
 
     private fun user(type: String = "User") = """{"id":10,"login":"person","type":"$type"}"""
+
+    private fun associationResponse(variables: tools.jackson.databind.JsonNode): String {
+        queriedShas += variables.properties().filter { it.key.startsWith("sha") }.map { it.value.asString() }
+        associationError?.let { return it }
+        val fields = variables.properties().filter { it.key.startsWith("sha") }.joinToString(",") { (key, value) ->
+            val index = key.removePrefix("sha")
+            val cursor = variables.path("cursor$index").takeIf { it.isString }?.asString()
+            val page = associationPages[value.asString() to cursor]
+            val path = "/repos/navikt/security-playbook/commits/${value.asString()}/pulls"
+            val prs = mapper.readTree(routes[path] ?: "[]")
+            val nodes = prs.joinToString(",") { pr ->
+                """{"mergedAt":${pr.path("merged_at")},"baseRefName":${pr.path("base").path("ref")}}"""
+            }
+            val connection = page ?: """{"nodes":[$nodes],"pageInfo":{"hasNextPage":false,"endCursor":null}}"""
+            """"commit$index":{"associatedPullRequests":$connection}"""
+        }
+        return """{"data":{"repository":{$fields}}}"""
+    }
 
     private fun pr(number: Int, type: String = "User") =
         """{"number":$number,"merged_at":"2026-10-06T11:30:00Z","user":${user(type)},"base":{"ref":"main"}}"""

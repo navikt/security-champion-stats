@@ -86,23 +86,25 @@ class GitHubApiClient(
                 )
             }
         }
-        paged(
+        val commits = paged(
             "$REPOSITORY_PATH/commits",
             mapOf("sha" to branch, "since" to since.toString(), "until" to until.toString()),
-        ).forEach { commit ->
+        ).filter { commit ->
+            val at = timestamp(commit.path("commit").path("committer").path("date"))
+            isHuman(commit.path("author")) && commit.path("committer").path("type").asString("") != "Bot" &&
+                !at.isBefore(since) && !at.isAfter(until)
+        }
+        val shas = commits.map { commit ->
             val sha = requiredText(commit.path("sha"))
             if (!sha.matches(Regex("[a-fA-F0-9]{40}"))) throw GitHubIntegrationException(GitHubFailure.RESPONSE)
-            val associated = paged("$REPOSITORY_PATH/commits/$sha/pulls")
-            val includedInPr = associated.any { pr ->
-                !pr.path("merged_at").isNull && !pr.path("merged_at").isMissingNode &&
-                    requiredText(pr.path("base").path("ref")) == branch
-            }
+            sha
+        }
+        val includedInPr = mergedPrCommits(shas.distinct(), branch)
+        commits.forEach { commit ->
+            val sha = requiredText(commit.path("sha"))
             val author = commit.path("author")
-            val committer = commit.path("committer")
             val at = timestamp(commit.path("commit").path("committer").path("date"))
-            if (!includedInPr && isHuman(author) && committer.path("type").asString("") != "Bot" &&
-                !at.isBefore(since) && !at.isAfter(until)
-            ) {
+            if (sha !in includedInPr) {
                 contributions += GitHubContribution(
                     positiveId(author.path("id")),
                     ActivityCreditType.GITHUB_COMMIT,
@@ -112,6 +114,73 @@ class GitHubApiClient(
             }
         }
         return contributions.distinctBy { it.key }
+    }
+
+    private fun mergedPrCommits(shas: List<String>, branch: String): Set<String> {
+        val included = mutableSetOf<String>()
+        shas.chunked(50).forEach { batch ->
+            var pending: Map<String, String?> = batch.associateWith { null }
+            val seenCursors = batch.associateWith { mutableSetOf<String>() }
+            while (pending.isNotEmpty()) {
+                val entries = pending.entries.toList()
+                val declarations = entries.indices.joinToString(", ") {
+                    "${'$'}sha$it: GitObjectID!, ${'$'}cursor$it: String"
+                }
+                val fields = entries.indices.joinToString("\n") {
+                    """
+                        commit$it: object(oid: ${'$'}sha$it) {
+                          ... on Commit {
+                            associatedPullRequests(first: 100, after: ${'$'}cursor$it) {
+                              nodes { mergedAt baseRefName }
+                              pageInfo { hasNextPage endCursor }
+                            }
+                          }
+                        }
+                    """.trimIndent()
+                }
+                val variables = entries.flatMapIndexed { index, entry ->
+                    listOf("sha$index" to entry.key, "cursor$index" to entry.value)
+                }.toMap()
+                val response = request {
+                    client.post().uri("/graphql").bodyValue(
+                        mapOf(
+                            "query" to "query CommitAssociations($declarations) {" +
+                                " repository(owner: \"navikt\", name: \"security-playbook\") { $fields } }",
+                            "variables" to variables,
+                        ),
+                    )
+                }
+                if (response.has("errors")) throw GitHubIntegrationException(GitHubFailure.RESPONSE)
+                val next = mutableMapOf<String, String?>()
+                entries.forEachIndexed { index, entry ->
+                    val connection = response.path("data").path("repository").path("commit$index")
+                        .path("associatedPullRequests")
+                    val nodes = connection.path("nodes")
+                    val pageInfo = connection.path("pageInfo")
+                    if (!nodes.isArray || !pageInfo.path("hasNextPage").isBoolean) {
+                        throw GitHubIntegrationException(GitHubFailure.RESPONSE)
+                    }
+                    val merged = nodes.any { pr ->
+                        val mergedAt = pr.path("mergedAt")
+                        if (mergedAt.isMissingNode) throw GitHubIntegrationException(GitHubFailure.RESPONSE)
+                        val target = requiredText(pr.path("baseRefName"))
+                        if (!mergedAt.isNull) timestamp(mergedAt)
+                        !mergedAt.isNull && target == branch
+                    }
+                    if (merged) {
+                        included += entry.key
+                    } else if (pageInfo.path("hasNextPage").asBoolean()) {
+                        val cursor = requiredText(pageInfo.path("endCursor"))
+                        if (!seenCursors.getValue(entry.key).add(cursor)) {
+                            throw GitHubIntegrationException(GitHubFailure.RESPONSE)
+                        }
+                        next[entry.key] = cursor
+                    }
+                }
+                pending = next
+            }
+        }
+        return included
     }
 
     private fun paged(path: String, parameters: Map<String, String> = emptyMap()): List<JsonNode> {
@@ -139,7 +208,25 @@ class GitHubApiClient(
                 return build().headers { it.setBearerAuth(token) }
                     .retrieve()
                     .onStatus({ it.value() == 401 }) { Mono.error(ExpiredInstallationToken()) }
-                    .onStatus({ it.value() == 403 || it.value() == 404 }) {
+                    .onStatus({ it.value() == 403 || it.value() == 429 }) { response ->
+                        val headers = response.headers().asHttpHeaders()
+                        val rateLimited = response.statusCode().value() == 429 ||
+                            headers.getFirst("X-RateLimit-Remaining") == "0" ||
+                            headers.getFirst("Retry-After") != null
+                        response.bodyToMono<JsonNode>()
+                            .defaultIfEmpty(tools.jackson.databind.node.JsonNodeFactory.instance.objectNode())
+                            .flatMap { body ->
+                                val message = body.path("message").asString("").lowercase()
+                                val throttled = rateLimited || "rate limit" in message || "abuse detection" in message
+                                val failure = if (throttled) {
+                                    GitHubFailure.RATE_LIMIT
+                                } else {
+                                    GitHubFailure.ACCESS
+                                }
+                                Mono.error<Throwable>(GitHubIntegrationException(failure))
+                            }
+                    }
+                    .onStatus({ it.value() == 404 }) {
                         Mono.error(GitHubIntegrationException(GitHubFailure.ACCESS))
                     }
                     .onStatus({ it.isError }) { Mono.error(GitHubIntegrationException(GitHubFailure.API)) }

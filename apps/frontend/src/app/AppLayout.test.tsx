@@ -141,7 +141,7 @@ describe("sidebar layout", () => {
 			["Program dashboard", "/dashboard"],
 			["Manage events", "/appsec/events"],
 			["Manage participants", "/appsec/membership"],
-			["Manage scoring", "/appsec/scoring"],
+			["Scoring dashboard", "/appsec/scoring"],
 			["Manage Slack mappings", "/appsec/slack"],
 			["Manage Delta mappings", "/appsec/delta"],
 			["Audit trail", "/appsec/audit"],

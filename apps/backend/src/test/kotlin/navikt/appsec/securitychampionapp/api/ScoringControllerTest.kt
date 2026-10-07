@@ -121,6 +121,7 @@ class ScoringControllerTest {
                 points = 25,
                 level = "Novice",
                 rank = 4,
+                tiers = navikt.appsec.securitychampionapp.app.scoring.defaultScoringConfiguration.tiers,
             )
         )
 

@@ -7,6 +7,12 @@ correct season scores, schedule or start a new season, map Slack accounts, and c
 categories or single owner-confirmed Delta event UUIDs. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
 API proxies preserve backend status, response body, and content type; proxy-local errors use RFC 9457 Problem Details.
+The scoring dashboard (`/appsec/scoring`) lets administrators add, rename, and remove tiers, set minimum
+point thresholds, and configure points for the five existing activity types. Participant progress and
+leaderboards use the saved tiers, including in the Hacker theme. Preview and confirm changes with a reason.
+Activity values normally affect future credits; opt into current-season retroactive changes to append
+adjustments without rewriting original credits, manual corrections, or closed seasons. Zero-point
+activities are still recorded. If a preview becomes stale, reload configuration and preview again.
 The admin program dashboard summarizes participation and points by activity, highlights items needing attention,
 shows weekly points and Slack/Delta/GitHub sync health, and lets administrators trigger enabled syncs.
 The Slack administration page (`/appsec/slack`) also manages group membership operations.
@@ -61,7 +67,7 @@ To get started with the frontend application, follow these steps:
   - `style/`: Global styles.
   - `utils/`: App-level utility functions.
 - `instrumentation/`: OpenTelemetry / Grafana Faro instrumentation setup.
-- `app/view/appsec/scoring/`: Season score corrections and reset controls.
+- `app/view/appsec/scoring/`: Scoring rules, named tiers, season score corrections, and reset controls.
 - `app/view/appsec/dashboard/`: Aggregate program metrics and integration status.
 - `app/view/appsec/slack/`: Slack account mappings and unmapped author review.
 - `app/view/appsec/delta/`: Eligible Delta categories and single Delta event mappings.

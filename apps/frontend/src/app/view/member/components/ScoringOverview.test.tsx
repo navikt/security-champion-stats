@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { ScoringOverview } from "./ScoringOverview";
+import { defaultScoringConfiguration } from "@/app/utils/scoringFixtures.test-support";
 
 describe("ScoringOverview", () => {
 	afterEach(() => {
@@ -19,7 +20,9 @@ describe("ScoringOverview", () => {
 			points: 249,
 			level: "Apprentice",
 			rank: 2,
+			tiers: defaultScoringConfiguration.tiers,
 		});
+
 		vi.spyOn(Apies, "getLeaderboard").mockResolvedValue([
 			{ fullName: "Alex", rank: 1, points: 300, level: "Adept", isCurrentUser: false },
 			{ fullName: "Sam", rank: 2, points: 249, level: "Apprentice", isCurrentUser: true },
@@ -44,6 +47,17 @@ describe("ScoringOverview", () => {
 		expect(screen.getByText("Sam")).toBeInTheDocument();
 	});
 
+	it("shows administrator-defined tier progress", async () => {
+		vi.spyOn(Apies, "getParticipantSeasonScore").mockResolvedValue({
+			season: { id: "season-1", startsOn: "2026-01-01", endsOn: null, nextResetDate: "2027-01-01" },
+			points: 4, level: "Starter", rank: 1,
+			tiers: [{ name: "Starter", points: 0 }, { name: "Champion", points: 5 }],
+		});
+		render(<ScoringOverview showPersonalProgress showLeaderboard={false} />);
+		expect(await screen.findByText("1 point to Champion")).toBeInTheDocument();
+		expect(screen.getByText("Starter")).toBeInTheDocument();
+	});
+
 	it("does not assign a rank to a zero-score participant", async () => {
 		vi.spyOn(Apies, "getParticipantSeasonScore").mockResolvedValue({
 			season: {
@@ -55,6 +69,7 @@ describe("ScoringOverview", () => {
 			points: 0,
 			level: "Novice",
 			rank: null,
+			tiers: defaultScoringConfiguration.tiers,
 		});
 		vi.spyOn(Apies, "getLeaderboard").mockResolvedValue([]);
 

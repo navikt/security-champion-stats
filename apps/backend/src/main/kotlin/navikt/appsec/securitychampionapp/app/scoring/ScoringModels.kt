@@ -3,12 +3,12 @@ package navikt.appsec.securitychampionapp.app.scoring
 import java.time.LocalDate
 import java.util.UUID
 
-enum class ActivityCreditType(val points: Int) {
-    SLACK_WEEK(1),
-    DELTA_REGISTRATION(1),
-    GITHUB_COMMIT(1),
-    GITHUB_PULL_REQUEST(3),
-    SECURITY_EVENT_CONTRIBUTION(3),
+enum class ActivityCreditType {
+    SLACK_WEEK,
+    DELTA_REGISTRATION,
+    GITHUB_COMMIT,
+    GITHUB_PULL_REQUEST,
+    SECURITY_EVENT_CONTRIBUTION,
 }
 
 data class SeasonSummary(
@@ -30,6 +30,7 @@ data class AdminScoringOverview(
     val season: SeasonSummary,
     val today: LocalDate,
     val participants: List<AdminParticipantScore>,
+    val configuration: ScoringConfiguration,
 )
 
 data class AdminParticipantScore(
@@ -59,6 +60,7 @@ data class OwnSeasonScore(
     val points: Long,
     val level: String,
     val rank: Int?,
+    val tiers: List<ScoringTier>,
 )
 
 data class ActivityCredit(

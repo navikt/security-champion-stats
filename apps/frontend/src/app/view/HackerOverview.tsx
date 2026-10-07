@@ -14,14 +14,15 @@ import type {
 import { MembershipView } from "@/app/view/member/components/MembershipView";
 import { hackerCopy } from "./hackerCopy";
 import { hackerAlias } from "./hackerUtils";
+import { scoringProgress } from "@/app/utils/scoringUtils";
 import "../style/hackerOverview.css";
 
-const levelThresholds = [
-	{ level: "Novice", label: "SCRIPT KIDDIE", points: 0 },
-	{ level: "Apprentice", label: "PACKET SNIFFER", points: 100 },
-	{ level: "Adept", label: "SHELL JOCKEY", points: 250 },
-	{ level: "Expert", label: "ELITE / 1337", points: 500 },
-] as const;
+const levelAliases = new Map<string, string>([
+	["Novice", "SCRIPT KIDDIE"],
+	["Apprentice", "PACKET SNIFFER"],
+	["Adept", "SHELL JOCKEY"],
+	["Expert", "ELITE / 1337"],
+]);
 
 function stableIndex(value: string, length: number): number {
 	return (
@@ -193,12 +194,10 @@ function OpsListing({
 
 function PersonalProgress({ score }: { score: ParticipantSeasonScore }) {
 	const progressLabelId = useId();
-	const currentIndex = levelThresholds.findIndex(
-		(item) => item.level === score.level,
-	);
-	const current = levelThresholds[currentIndex];
-	if (!current) return null;
-	const next = levelThresholds[currentIndex + 1];
+	const scoring = scoringProgress(score);
+	if (!scoring) return null;
+	const current = scoring.currentLevel;
+	const next = scoring.nextLevel;
 	const nextPoints = next ? next.points - score.points : 0;
 	const span = next ? next.points - current.points : 1;
 	const progress = next
@@ -230,7 +229,7 @@ function PersonalProgress({ score }: { score: ParticipantSeasonScore }) {
 				</div>
 				<div className="hackerStat">
 					<span>{hackerCopy.score.level}</span>
-					<strong>{current.label}</strong>
+					<strong>{levelAliases.get(current.level) ?? current.level}</strong>
 					<small>a.k.a. {score.level}</small>
 				</div>
 				<div className="hackerStat">
@@ -243,7 +242,7 @@ function PersonalProgress({ score }: { score: ParticipantSeasonScore }) {
 				<div className="hackerProgress">
 					<div id={progressLabelId}>
 						{hackerCopy.score.nextLevelPrefix}
-						{next.label}
+						{levelAliases.get(next.level) ?? next.level}
 						{hackerCopy.score.nextLevelSuffix}{" "}
 						<span>
 							{Math.max(0, nextPoints)}
@@ -339,8 +338,7 @@ function MostWanted({
 								<ThreatBar points={entry.points} max={max} />
 								<span>{entry.points}</span>
 								<span>
-									{levelThresholds.find((item) => item.level === entry.level)
-										?.label ?? entry.level}
+									{levelAliases.get(entry.level) ?? entry.level}
 								</span>
 							</div>
 						);
@@ -467,13 +465,13 @@ export function HackerOverview({ info }: { info: Me }) {
 		hackerCopy.missions[
 			stableIndex(me.username || operative, hackerCopy.missions.length)
 		];
-	const level = score?.level ?? "Novice";
+	const tierIndex = score?.tiers.findIndex((tier) => tier.name === score.level) ?? 0;
 	const clearance =
-		level === "Novice"
+		tierIndex <= 0
 			? hackerCopy.clearance.novice
-			: level === "Apprentice"
+			: tierIndex === 1
 				? hackerCopy.clearance.apprentice
-				: level === "Expert"
+				: tierIndex === (score?.tiers.length ?? 1) - 1
 					? hackerCopy.clearance.expert
 					: hackerCopy.clearance.adept;
 	const recruited = participant

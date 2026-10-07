@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionapp.app.api
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
+import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataAccessException
@@ -36,6 +37,10 @@ class ApiExceptionHandler {
     @ExceptionHandler(InvalidScoringRequestException::class)
     fun invalidScoringRequest(exception: InvalidScoringRequestException, request: WebRequest): ResponseEntity<ProblemDetail> =
         problem(HttpStatus.BAD_REQUEST, "Invalid request", exception.message ?: "The request is invalid", request)
+
+    @ExceptionHandler(StaleScoringConfigurationException::class)
+    fun staleScoringConfiguration(exception: StaleScoringConfigurationException, request: WebRequest): ResponseEntity<ProblemDetail> =
+        problem(HttpStatus.CONFLICT, "Scoring changed", requireNotNull(exception.message), request)
 
     @ExceptionHandler(
         HttpMessageNotReadableException::class,

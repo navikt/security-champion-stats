@@ -78,6 +78,10 @@ const participant: ProgramParticipant = {
 };
 
 const score: ParticipantSeasonScore = {
+	tiers: [
+		{ name: "Novice", points: 0 }, { name: "Apprentice", points: 100 },
+		{ name: "Adept", points: 250 }, { name: "Expert", points: 500 },
+	],
 	season: {
 		id: "season-2026",
 		startsOn: "2026-01-01",
@@ -142,5 +146,19 @@ describe("HackerOverview", () => {
 		expect(
 			screen.getByRole("progressbar", { name: /upgrading to PACKET SNIFFER/ }),
 		).toHaveAttribute("aria-valuenow", "9");
+	});
+
+	it.each(["Starter", "constructor"])("uses administrator-configured tier %s and thresholds in the Hacker theme", async (name) => {
+		vi.mocked(Apies.getParticipantSeasonScore).mockResolvedValue({
+			...score, level: name, points: 4,
+			tiers: [{ name, points: 0 }, { name: "Champion", points: 5 }],
+		});
+		vi.mocked(Apies.getLeaderboard).mockResolvedValue([
+			{ ...leaderboard[0], points: 4, level: name },
+		]);
+		render(<HackerOverview info={me} />);
+		expect(await screen.findByRole("progressbar", { name: /upgrading to Champion/ }))
+			.toHaveAttribute("aria-valuenow", "80");
+		expect(screen.getAllByText(name)).toHaveLength(2);
 	});
 });

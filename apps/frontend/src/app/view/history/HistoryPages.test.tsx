@@ -36,6 +36,7 @@ beforeEach(() => {
 		points: 0,
 		level: "Novice",
 		rank: null,
+		tiers: [{ name: "Novice", points: 0 }],
 	});
 	vi.spyOn(Apies, "fetchMembership").mockResolvedValue({
 		id: "participant",

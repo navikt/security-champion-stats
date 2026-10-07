@@ -85,14 +85,15 @@ export type SeasonSummary = {
 export type ParticipantSeasonScore = {
 	season: SeasonSummary;
 	points: number;
-	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+	level: string;
 	rank: number | null;
+	tiers: ScoringTier[];
 };
 export type LeaderboardEntry = {
 	fullName: string;
 	rank: number;
 	points: number;
-	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+	level: string;
 	isCurrentUser: boolean;
 };
 export type ActivityCredit = {
@@ -113,12 +114,39 @@ export type AdminParticipantScore = {
 	email: string;
 	active: boolean;
 	points: number;
-	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+	level: string;
 };
 export type AdminScoringOverview = {
 	season: SeasonSummary;
 	today: string;
 	participants: AdminParticipantScore[];
+	configuration: ScoringConfiguration;
+};
+export type ScoringTier = { name: string; points: number };
+export type ScoringConfiguration = {
+	version: number;
+	tiers: ScoringTier[];
+	activities: { creditType: ActivityCredit["creditType"]; points: number }[];
+};
+export type ScoringConfigurationRequest = Omit<ScoringConfiguration, "version"> & {
+	expectedVersion: number;
+	applyRetroactively: boolean;
+	reason: string;
+	previewToken?: string;
+};
+export type ScoringConfigurationPreview = {
+	token: string;
+	season: SeasonSummary;
+	affectedCredits: number;
+	pointsDelta: number;
+	participants: {
+		participantId: string;
+		fullName: string;
+		pointsBefore: number;
+		pointsAfter: number;
+		levelBefore: string;
+		levelAfter: string;
+	}[];
 };
 export type AdminDashboardCreditTotal = {
 	creditType: string;

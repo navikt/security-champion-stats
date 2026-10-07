@@ -9,6 +9,13 @@ import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
+import navikt.appsec.securitychampionapp.app.scoring.ActivityPoints
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfiguration
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationPreview
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationRequest
+import navikt.appsec.securitychampionapp.app.scoring.ScoringImpact
+import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
+import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
@@ -17,11 +24,198 @@ import java.time.LocalDate
 import java.time.Instant
 import java.sql.Timestamp
 import java.util.UUID
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
+import java.security.MessageDigest
 
 @Repository
 class PostgresScoringLedger(
     private val jdbcTemplate: JdbcTemplate,
 ) : ScoringLedger {
+    @Transactional
+    override fun configuration(): ScoringConfiguration {
+        val version = lockConfiguration("SHARE")
+        val tiers = jdbcTemplate.query(
+            "SELECT name, points FROM program_scoring_tiers ORDER BY points",
+            { rs, _ -> ScoringTier(rs.getString("name"), rs.getInt("points")) },
+        )
+        val activities = jdbcTemplate.query(
+            "SELECT credit_type, points FROM program_activity_points",
+            { rs, _ -> ActivityPoints(ActivityCreditType.valueOf(rs.getString("credit_type")), rs.getInt("points")) },
+        ).sortedBy { it.creditType.ordinal }
+        check(tiers.isNotEmpty() && tiers.first().points == 0) { "Scoring tiers are incomplete" }
+        check(activities.map { it.creditType }.toSet() == ActivityCreditType.entries.toSet()) {
+            "Activity scoring configuration is incomplete"
+        }
+        return ScoringConfiguration(version, tiers, activities)
+    }
+
+    private fun lockConfiguration(mode: String): Long = jdbcTemplate.queryForObject(
+        "SELECT version FROM program_scoring_configuration WHERE singleton = TRUE FOR $mode",
+        Long::class.javaObjectType,
+    ) ?: error("No scoring configuration exists")
+
+    @Transactional
+    override fun previewConfiguration(request: ScoringConfigurationRequest): ScoringConfigurationPreview {
+        val configuration = configuration()
+        if (configuration.version != request.expectedVersion) throw StaleScoringConfigurationException()
+        return configurationChanges(request, configuration).preview
+    }
+
+    @Transactional
+    override fun saveConfiguration(request: ScoringConfigurationRequest, actor: String): ScoringConfiguration {
+        if (lockConfiguration("UPDATE") != request.expectedVersion) throw StaleScoringConfigurationException()
+        val configuration = configuration()
+        // Awards share the configuration lock; corrections/deletions share participant locks.
+        // Lock the season before computing the preview so a reset cannot move the affected credits.
+        jdbcTemplate.queryForObject(
+            "SELECT id FROM program_seasons WHERE ends_on IS NULL FOR SHARE", UUID::class.java,
+        )
+        jdbcTemplate.query(
+            "SELECT id FROM program_participants ORDER BY id FOR UPDATE",
+            { rs, _ -> rs.getObject("id", UUID::class.java) },
+        )
+        val changes = configurationChanges(request, configuration)
+        if (changes.preview.token != request.previewToken) throw StaleScoringConfigurationException()
+        val beforeValues = configurationAuditValues()
+        val newVersion = configuration.version + 1
+        jdbcTemplate.update("DELETE FROM program_scoring_tiers")
+        request.tiers.forEach {
+            jdbcTemplate.update("INSERT INTO program_scoring_tiers (name, points) VALUES (?, ?)", it.name, it.points)
+        }
+        request.activities.forEach {
+            jdbcTemplate.update(
+                "UPDATE program_activity_points SET points = ? WHERE credit_type = ?", it.points, it.creditType.name,
+            )
+        }
+        jdbcTemplate.update("UPDATE program_scoring_configuration SET version = ? WHERE singleton = TRUE", newVersion)
+        changes.credits.forEach { credit ->
+            val adjustment = addAdjustment(
+                credit.participantId,
+                credit.delta,
+                "Scoring rule update: ${request.reason}",
+                actor,
+                credit.id,
+            )
+            jdbcTemplate.update(
+                "UPDATE point_adjustments SET scoring_configuration_version = ? WHERE id = ?", newVersion, adjustment.id,
+            )
+        }
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_scoring_audit (
+                    actor_nav_no_email, action, reason, before_values, after_values
+                ) VALUES (
+                    ?, 'SCORING_CONFIGURATION_UPDATED', ?,
+                    ?::jsonb,
+                    ?::jsonb || jsonb_build_object('retroactive', ?, 'affectedCredits', ?, 'pointsDelta', ?)
+                )
+            """.trimIndent(),
+            actor, request.reason, beforeValues, configurationAuditValues(), request.applyRetroactively,
+            changes.preview.affectedCredits, changes.preview.pointsDelta,
+        )
+        return configuration()
+    }
+
+    private fun configurationAuditValues(): String = jdbcTemplate.queryForObject(
+        """
+            SELECT jsonb_build_object(
+                'version', version,
+                'tiers', (SELECT jsonb_agg(jsonb_build_object('name', name, 'points', points) ORDER BY points)
+                    FROM program_scoring_tiers),
+                'activities', (SELECT jsonb_agg(jsonb_build_object('creditType', credit_type, 'points', points)
+                    ORDER BY credit_type) FROM program_activity_points)
+            )::text
+            FROM program_scoring_configuration WHERE singleton = TRUE
+        """.trimIndent(),
+        String::class.java,
+    ) ?: error("No scoring configuration exists")
+
+    private data class CreditChange(val id: UUID, val participantId: UUID, val delta: Int)
+    private data class ConfigurationChanges(
+        val credits: List<CreditChange>,
+        val preview: ScoringConfigurationPreview,
+    )
+
+    private fun configurationChanges(
+        request: ScoringConfigurationRequest,
+        before: ScoringConfiguration,
+    ): ConfigurationChanges {
+        jdbcTemplate.queryForObject(
+            "SELECT id FROM program_seasons WHERE ends_on IS NULL FOR SHARE", UUID::class.java,
+        )
+        val season = currentSeason()
+        val desiredPoints = request.activities.associate { it.creditType to it.points }
+        val credits = if (request.applyRetroactively) {
+            jdbcTemplate.query(
+                """
+                    SELECT credit.id, credit.participant_id, credit.credit_type,
+                        credit.points + COALESCE(SUM(adjustment.points_delta), 0) AS effective_points
+                    FROM activity_credits AS credit
+                    LEFT JOIN point_adjustments AS adjustment ON adjustment.source_credit_id = credit.id
+                        AND adjustment.scoring_configuration_version IS NOT NULL
+                    WHERE credit.season_id = ?
+                    GROUP BY credit.id
+                    ORDER BY credit.id
+                """.trimIndent(),
+                { rs, _ ->
+                    CreditChange(
+                        rs.getObject("id", UUID::class.java),
+                        rs.getObject("participant_id", UUID::class.java),
+                        Math.toIntExact(
+                            desiredPoints.getValue(ActivityCreditType.valueOf(rs.getString("credit_type"))).toLong() -
+                                rs.getLong("effective_points"),
+                        ),
+                    )
+                },
+                season.id,
+            ).filter { it.delta != 0 }
+        } else {
+            emptyList()
+        }
+        val deltas = credits.groupBy { it.participantId }.mapValues { (_, values) -> values.sumOf { it.delta.toLong() } }
+        val after = ScoringConfiguration(before.version + 1, request.tiers, request.activities)
+        val scores = scoresForSeason(season.id).sortedBy { it.participantId }
+        val impacts = scores.map {
+            val pointsAfter = it.points + (deltas[it.participantId] ?: 0L)
+            ScoringImpact(
+                it.participantId, it.fullName, it.points, pointsAfter,
+                before.levelFor(it.points), after.levelFor(pointsAfter),
+            )
+        }.filter { it.pointsBefore != it.pointsAfter || it.levelBefore != it.levelAfter }
+        val bytes = ByteArrayOutputStream()
+        DataOutputStream(bytes).use { out ->
+            out.writeLong(before.version)
+            out.writeUTF(season.id.toString())
+            out.writeUTF(season.startsOn.toString())
+            out.writeUTF(season.nextResetDate.toString())
+            out.writeBoolean(request.applyRetroactively)
+            out.writeUTF(request.reason)
+            out.writeInt(request.tiers.size)
+            request.tiers.forEach { out.writeUTF(it.name); out.writeInt(it.points) }
+            request.activities.forEach { out.writeUTF(it.creditType.name); out.writeInt(it.points) }
+            out.writeInt(credits.size)
+            credits.forEach {
+                out.writeUTF(it.id.toString()); out.writeUTF(it.participantId.toString()); out.writeInt(it.delta)
+            }
+            out.writeInt(scores.size)
+            scores.forEach {
+                out.writeUTF(it.participantId.toString()); out.writeUTF(it.fullName); out.writeLong(it.points)
+            }
+        }
+        val token = MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()).joinToString("") { "%02x".format(it) }
+        return ConfigurationChanges(
+            credits,
+            ScoringConfigurationPreview(token, season, credits.size, credits.sumOf { it.delta.toLong() }, impacts),
+        )
+    }
+
+    override fun creditPoints(participantId: UUID, creditType: ActivityCreditType, uniquenessKey: String): Int =
+        jdbcTemplate.queryForObject(
+            "SELECT points FROM activity_credits WHERE participant_id = ? AND credit_type = ? AND uniqueness_key = ?",
+            Int::class.javaObjectType, participantId, creditType.name, uniquenessKey,
+        ) ?: error("The awarded credit does not exist")
+
     private val seasonMapper = RowMapper { rs, _ ->
         SeasonSummary(
             id = rs.getObject("id", UUID::class.java),
@@ -144,6 +338,11 @@ class PostgresScoringLedger(
         activityAt: Instant?,
         expectedSeasonId: UUID?,
     ): CreditAwardResult {
+        lockConfiguration("SHARE")
+        val points = jdbcTemplate.queryForObject(
+            "SELECT points FROM program_activity_points WHERE credit_type = ?",
+            Int::class.javaObjectType, creditType.name,
+        ) ?: error("The activity has no scoring configuration")
         val seasonId = jdbcTemplate.queryForObject(
             "SELECT id FROM program_seasons WHERE ends_on IS NULL FOR SHARE",
             UUID::class.java,
@@ -166,7 +365,7 @@ class PostgresScoringLedger(
             creditType.name,
             uniquenessKey,
             sourceReference,
-            creditType.points,
+            points,
             auditCorrelationId,
             activityAt?.let(Timestamp::from),
             participantId,

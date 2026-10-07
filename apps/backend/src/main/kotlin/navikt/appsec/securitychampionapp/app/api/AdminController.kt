@@ -6,9 +6,10 @@ import navikt.appsec.securitychampionapp.app.api.dto.DeleteParticipantRequest
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.SCdata
 import navikt.appsec.securitychampionapp.app.api.dto.UpdateParticipantStatusRequest
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.utils.Validate
@@ -16,7 +17,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -35,7 +35,7 @@ import java.util.UUID
 @RequestMapping("/api/admin")
 class AdminController(
     private val repo: MemberRepository,
-    private val participantRepository: ProgramParticipantRepository,
+    private val participantRepository: ParticipantStore,
     private val validate: Validate,
     private val eventRepository: EventRepository,
 ) {
@@ -48,7 +48,11 @@ class AdminController(
                 "Attempt to add member failed due to invalid email format, " +
                     "request made by user ${SecurityContextHolder.getContext().authentication?.name}"
             )
-            return ResponseEntity.status(HttpStatus.ACCEPTED).build()
+            throw ApiRequestException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid member",
+                "The email or full name is invalid",
+            )
         }
         val id = UUID.randomUUID().toString()
         repo.addMember(memberInfo.fullName, id = id, memberInfo.email, emptyList())
@@ -62,44 +66,37 @@ class AdminController(
     }
 
     @GetMapping("/participants")
-    fun getProgramParticipants(): ResponseEntity<List<AdminProgramParticipantView>> {
-        val response = participantRepository.findAllParticipants()
-        if (!response.isOk) {
-            logger.error("Failed to fetch program participants: ${response.error}")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-
-        return ResponseEntity.ok(
-            response.queryResult.map {
+    fun getProgramParticipants(): ResponseEntity<List<AdminProgramParticipantView>> =
+        ResponseEntity.ok(
+            participantRepository.findAllParticipants().map {
                 AdminProgramParticipantView(
-                    id = it.id,
+                    id = it.id.toString(),
                     email = it.email,
                     fullname = it.fullname,
                     teams = it.teams,
-                    active = it.status == "ACTIVE",
+                    active = it.status == ParticipationStatus.ACTIVE,
                     joinedAt = it.createdAt,
-                    status = it.status,
+                    status = it.status.name,
                 )
             }
         )
-    }
 
     @PutMapping("/participants/{id}/status", consumes = [MediaType.APPLICATION_JSON_VALUE])
     fun updateParticipantStatus(
         @PathVariable id: String,
         @RequestBody request: UpdateParticipantStatusRequest,
     ): ResponseEntity<Any> {
-        val participantId = id.toUuid() ?: return ResponseEntity.badRequest().build()
-        val response = participantRepository.updateStatus(
+        val participantId = id.toUuid() ?: throw ApiRequestException(
+            HttpStatus.BAD_REQUEST,
+            "Invalid participant ID",
+            "The participant ID is invalid",
+        )
+        val affectedRows = participantRepository.updateStatus(
             participantId,
             request.active,
             currentPrincipal().email,
         )
-        if (!response.isOk) {
-            logger.error("Failed to update participant status: ${response.error}")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-        if (response.affectedRows == 0) return ResponseEntity.notFound().build()
+        if (affectedRows == 0) throw ApiRequestException(HttpStatus.NOT_FOUND, "Participant not found", "The participant does not exist")
         return ResponseEntity.noContent().build()
     }
 
@@ -109,17 +106,21 @@ class AdminController(
         @RequestBody request: DeleteParticipantRequest,
     ): ResponseEntity<Any> {
         if (!request.confirmed || request.reason.isBlank()) {
-            return ResponseEntity.badRequest().body("Confirmation and a reason are required")
+            throw ApiRequestException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid deletion request",
+                "Confirmation and a reason are required",
+            )
         }
-        val participantId = id.toUuid() ?: return ResponseEntity.badRequest().build()
-        val response = participantRepository.permanentlyDelete(
+        val participantId = id.toUuid() ?: throw ApiRequestException(
+            HttpStatus.BAD_REQUEST,
+            "Invalid participant ID",
+            "The participant ID is invalid",
+        )
+        val affectedRows = participantRepository.permanentlyDelete(
             participantId,
         )
-        if (!response.isOk) {
-            logger.error("Failed to permanently delete participant: ${response.error}")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()
-        }
-        if (response.affectedRows == 0) return ResponseEntity.notFound().build()
+        if (affectedRows == 0) throw ApiRequestException(HttpStatus.NOT_FOUND, "Participant not found", "The participant does not exist")
         return ResponseEntity.noContent().build()
     }
 
@@ -139,8 +140,10 @@ class AdminController(
         }
         if (validationError != null) {
             logger.warn("Rejected event creation: {}", validationError)
-            return ResponseEntity.badRequest().body(
-                ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, validationError)
+            throw ApiRequestException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid event",
+                validationError,
             )
         }
         val created = event.copy(
@@ -152,21 +155,14 @@ class AdminController(
         )
 
         logger.info("Adding event: ${event.id}")
-        val result = try {
+        try {
             eventRepository.addEvent(created)
         } catch (_: DuplicateKeyException) {
             logger.warn("Rejected duplicate event creation")
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(
-                ProblemDetail.forStatusAndDetail(
-                    HttpStatus.CONFLICT,
-                    "An event with this name, start time and location already exists",
-                )
-            )
-        }
-        if (!result.isOk) {
-            logger.warn("Failed to add event due to error: ${result.error}")
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to add event")
+            throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                "An event with this name, start time and location already exists",
             )
         }
 

@@ -18,9 +18,21 @@ class AdminGitHubScoringController(private val job: GitHubScoringSyncJob) {
         val principal = requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal
         return when (job.triggerManualSync(principal.email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
-            SyncTriggerResult.ALREADY_RUNNING, SyncTriggerResult.DISABLED ->
-                ResponseEntity.status(HttpStatus.CONFLICT).build()
-            SyncTriggerResult.UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
+            SyncTriggerResult.ALREADY_RUNNING -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Sync already running",
+                "A GitHub scoring sync is already running",
+            )
+            SyncTriggerResult.UNAVAILABLE -> throw ApiRequestException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Sync unavailable",
+                "The GitHub scoring sync could not be started",
+            )
+            SyncTriggerResult.DISABLED -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Sync disabled",
+                "The GitHub scoring sync is disabled",
+            )
         }
     }
 }

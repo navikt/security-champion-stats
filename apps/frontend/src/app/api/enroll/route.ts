@@ -1,33 +1,6 @@
-import { getBackendToken, getServerEnv } from "@/app/utils/Validation";
-import { AUTHENTICATED_FAILED, FAILED_TO_JOIN } from "@/app/utils/Variables";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { proxyBackendRequest } from "@/app/utils/BackendProxy";
 
 export async function POST(request: NextRequest) {
-	try {
-		const { backendUrl } = getServerEnv();
-		const backendToken = await getBackendToken(request);
-
-		if (backendToken === AUTHENTICATED_FAILED) {
-			return NextResponse.json(
-				{ error: "Authentication failed, failed to fetch token" },
-				{ status: 401 },
-			);
-		}
-
-		const response = await fetch(`${backendUrl}/api/enroll`, {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${backendToken}`,
-				"Content-Type": "application/json",
-			},
-		});
-
-		if (!response.ok) {
-			return NextResponse.json({ error: FAILED_TO_JOIN }, { status: response.status });
-		}
-		return NextResponse.json({ status: response.status });
-	} catch (error) {
-		console.error("Error in /api/enroll:", error);
-		return NextResponse.json({ error: FAILED_TO_JOIN }, { status: 500 });
-	}
+	return proxyBackendRequest(request, "/api/enroll");
 }

@@ -8,6 +8,8 @@ import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
+import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncSummary
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncSummary
@@ -41,15 +43,27 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
+import org.springframework.aop.framework.ProxyFactory
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.DuplicateKeyException
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
+import org.springframework.transaction.interceptor.TransactionInterceptor
+import org.springframework.transaction.support.TransactionTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import java.sql.SQLException
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -66,7 +80,8 @@ class PostgresScoringLedgerTest {
 
     private lateinit var dataSource: HikariDataSource
     private lateinit var jdbcTemplate: JdbcTemplate
-    private lateinit var repository: PostgresScoringLedger
+    private lateinit var repository: ScoringLedger
+    private lateinit var transactionManager: DataSourceTransactionManager
     private lateinit var adminDashboardRepository: AdminDashboardRepository
     private lateinit var slackScoringStatusRepository: SlackScoringStatusRepository
     private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
@@ -85,7 +100,14 @@ class PostgresScoringLedgerTest {
             maximumPoolSize = 2
         }
         jdbcTemplate = JdbcTemplate(dataSource)
-        repository = PostgresScoringLedger(jdbcTemplate)
+        transactionManager = DataSourceTransactionManager(dataSource)
+        repository = ProxyFactory(PostgresScoringLedger(jdbcTemplate)).apply {
+            setInterfaces(ScoringLedger::class.java)
+            addAdvice(TransactionInterceptor().apply {
+                transactionManager = this@PostgresScoringLedgerTest.transactionManager
+                transactionAttributeSource = AnnotationTransactionAttributeSource()
+            })
+        }.proxy as ScoringLedger
         adminDashboardRepository = AdminDashboardRepository(jdbcTemplate)
         slackScoringStatusRepository = SlackScoringStatusRepository(jdbcTemplate)
         slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)
@@ -108,6 +130,146 @@ class PostgresScoringLedgerTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @Test
+    fun `should roll back a point adjustment when its required audit insert fails`() {
+        val participantId = createParticipant("person@nav.no")
+        val season = repository.currentSeason()
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        rejectScoringAuditInserts()
+
+        assertThatThrownBy {
+            repository.addAdjustment(participantId, -1, "Correct the award", "admin@nav.no", null)
+        }.isInstanceOf(DataIntegrityViolationException::class.java)
+
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(1)
+        assertThat(repository.creditsForParticipant(participantId)).hasSize(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_adjustments", Int::class.java)).isZero()
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_scoring_audit", Int::class.java)).isZero()
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["manual", "scheduled", "reset-date"])
+    fun `should roll back season changes when their required audit insert fails`(operation: String) {
+        val participantId = createParticipant("person@nav.no")
+        val originalSeason = repository.currentSeason()
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        rejectScoringAuditInserts()
+
+        assertThatThrownBy {
+            when (operation) {
+                "manual" -> repository.resetManually(originalSeason.nextResetDate, "Start a season", "admin@nav.no")
+                "scheduled" -> repository.resetIfDue(originalSeason.nextResetDate)
+                "reset-date" -> repository.updateNextResetDate(originalSeason.nextResetDate.plusDays(1), "admin@nav.no")
+                else -> error("Unknown season operation: $operation")
+            }
+        }.isInstanceOf(DataIntegrityViolationException::class.java)
+
+        assertThat(repository.currentSeason()).isEqualTo(originalSeason)
+        assertThat(repository.scoreForParticipant(participantId, originalSeason.id)).isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_seasons", Int::class.java)).isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_scoring_audit", Int::class.java)).isZero()
+    }
+
+    @Test
+    fun `should retain the award season lock until the surrounding transaction commits`() {
+        val participantId = createParticipant("person@nav.no")
+        val season = repository.currentSeason()
+
+        Executors.newSingleThreadExecutor().use { executor ->
+            TransactionTemplate(transactionManager).executeWithoutResult {
+                assertThat(
+                    repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1"),
+                ).isEqualTo(CreditAwardResult.AWARDED)
+
+                executor.submit {
+                    assertThatThrownBy {
+                        jdbcTemplate.queryForObject(
+                            "SELECT id FROM program_seasons WHERE id = ? FOR UPDATE NOWAIT",
+                            UUID::class.java,
+                            season.id,
+                        )
+                    }.rootCause().isInstanceOfSatisfying(SQLException::class.java) { error ->
+                        assertThat(error.sqlState).isEqualTo("55P03")
+                    }
+                }.get(10, TimeUnit.SECONDS)
+            }
+        }
+
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT id FROM program_seasons WHERE id = ? FOR UPDATE NOWAIT",
+                UUID::class.java,
+                season.id,
+            ),
+        ).isEqualTo(season.id)
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(1)
+    }
+
+    @Test
+    fun `should serialize concurrent adjustments and preserve their audited running totals`() {
+        val participantId = createParticipant("person@nav.no")
+        val season = repository.currentSeason()
+        val start = CyclicBarrier(2)
+        val adjustments = Executors.newFixedThreadPool(2).use { executor ->
+            val results = (1..2).map { index ->
+                executor.submit<PointAdjustment> {
+                    start.await(10, TimeUnit.SECONDS)
+                    repository.addAdjustment(participantId, 1, "Adjustment $index", "admin@nav.no", null)
+                }
+            }
+            results.map { it.get(10, TimeUnit.SECONDS) }
+        }
+
+        assertThat(adjustments.map { it.scoreBefore to it.scoreAfter })
+            .containsExactlyInAnyOrder(0L to 1L, 1L to 2L)
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(2)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_adjustments", Int::class.java)).isEqualTo(2)
+        assertThat(
+            jdbcTemplate.queryForList(
+                """
+                    SELECT before_values ->> 'points' AS before_points, after_values ->> 'points' AS after_points
+                    FROM program_scoring_audit
+                    WHERE action = 'POINTS_ADJUSTED'
+                    ORDER BY (before_values ->> 'points')::bigint
+                """.trimIndent(),
+            ),
+        ).containsExactly(
+            mapOf("before_points" to "0", "after_points" to "1"),
+            mapOf("before_points" to "1", "after_points" to "2"),
+        )
+    }
+
+    @Test
+    fun `should start only one new season for concurrent scheduled resets`() {
+        val originalSeason = repository.currentSeason()
+        val start = CyclicBarrier(2)
+        val resets = Executors.newFixedThreadPool(2).use { executor ->
+            val results = (1..2).map {
+                executor.submit<Boolean> {
+                    start.await(10, TimeUnit.SECONDS)
+                    repository.resetIfDue(originalSeason.nextResetDate)
+                }
+            }
+            results.map { it.get(10, TimeUnit.SECONDS) }
+        }
+
+        assertThat(resets).containsExactlyInAnyOrder(true, false)
+        assertThat(repository.currentSeason().startsOn).isEqualTo(originalSeason.nextResetDate)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_seasons", Int::class.java)).isEqualTo(2)
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM program_seasons WHERE ends_on IS NULL",
+                Int::class.java,
+            ),
+        ).isEqualTo(1)
+        assertThat(
+            jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM program_scoring_audit WHERE action = 'SEASON_RESET_SCHEDULED'",
+                Int::class.java,
+            ),
+        ).isEqualTo(1)
     }
 
     @Test
@@ -144,7 +306,7 @@ class PostgresScoringLedgerTest {
                 "SELECT COUNT(*) FROM program_participant_audit WHERE participant_id = ?", Int::class.java, id,
             ),
         ).isEqualTo(1)
-        assertThat(ProgramParticipantRepository(jdbcTemplate).permanentlyDelete(id).isOk).isTrue()
+        assertThat(ProgramParticipantRepository(jdbcTemplate).permanentlyDelete(id)).isEqualTo(1)
         listOf("github_account_mappings", "activity_credits", "program_participant_audit").forEach { table ->
             assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $table", Int::class.java)).isZero()
         }
@@ -733,6 +895,12 @@ class PostgresScoringLedgerTest {
         val status = statusService.status()
         assertThat(status.outcome).isEqualTo("FAILED")
         assertThat(status.failureSummary).isEqualTo(INTERRUPTED_SYNC_SUMMARY)
+    }
+
+    private fun rejectScoringAuditInserts() {
+        jdbcTemplate.execute(
+            "ALTER TABLE program_scoring_audit ADD CONSTRAINT reject_test_audit CHECK (FALSE) NOT VALID",
+        )
     }
 
     private fun createParticipant(email: String): UUID {

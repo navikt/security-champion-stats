@@ -1,13 +1,11 @@
 package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.scoring.AddSlackAccountMappingRequest
-import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.SlackMappingOverview
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
 import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
-import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -34,36 +32,50 @@ class AdminSlackScoringController(
     fun triggerSync(): ResponseEntity<Void> =
         when (slackScoringSyncJob.triggerManualSync(currentPrincipal().email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
-            SyncTriggerResult.ALREADY_RUNNING -> ResponseEntity.status(HttpStatus.CONFLICT).build()
-            SyncTriggerResult.UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
-            SyncTriggerResult.DISABLED -> ResponseEntity.status(HttpStatus.CONFLICT).build()
+            SyncTriggerResult.ALREADY_RUNNING -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Sync already running",
+                "A Slack sync is already running",
+            )
+            SyncTriggerResult.UNAVAILABLE -> throw ApiRequestException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Sync unavailable",
+                "The Slack sync could not be started",
+            )
+            SyncTriggerResult.DISABLED -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Sync disabled",
+                "The Slack sync is disabled",
+            )
         }
 
     @PostMapping("/mappings")
     fun addMapping(@RequestBody request: AddSlackAccountMappingRequest): ResponseEntity<Any> {
-        val participantId = request.participantId.toUuid() ?: return ResponseEntity.badRequest().build()
-        return try {
-            if (!slackScoringService.addMapping(request.slackUserId, participantId, currentPrincipal().email)) {
-                return ResponseEntity.notFound().build()
-            }
-            ResponseEntity.status(HttpStatus.CREATED).build()
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
-        } catch (_: DuplicateKeyException) {
-            ResponseEntity.status(HttpStatus.CONFLICT).body(mapOf("error" to "The Slack account is already mapped"))
+        val participantId = request.participantId.toUuid() ?: throw ApiRequestException(
+            HttpStatus.BAD_REQUEST,
+            "Invalid participant ID",
+            "The participant ID is invalid",
+        )
+        if (!slackScoringService.addMapping(request.slackUserId, participantId, currentPrincipal().email)) {
+            throw ApiRequestException(
+                HttpStatus.NOT_FOUND,
+                "Participant not found",
+                "The participant does not exist",
+            )
         }
+        return ResponseEntity.status(HttpStatus.CREATED).build()
     }
 
     @DeleteMapping("/mappings/{slackUserId}")
     fun removeMapping(@PathVariable slackUserId: String): ResponseEntity<Any> =
-        try {
-            if (!slackScoringService.removeMapping(slackUserId, currentPrincipal().email)) {
-                ResponseEntity.notFound().build()
-            } else {
-                ResponseEntity.noContent().build()
-            }
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        if (!slackScoringService.removeMapping(slackUserId, currentPrincipal().email)) {
+            throw ApiRequestException(
+                HttpStatus.NOT_FOUND,
+                "Slack mapping not found",
+                "The Slack account mapping does not exist",
+            )
+        } else {
+            ResponseEntity.noContent().build()
         }
 
     private fun currentPrincipal(): AppPrincipal =

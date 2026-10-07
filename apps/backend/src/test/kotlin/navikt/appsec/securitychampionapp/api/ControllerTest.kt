@@ -4,13 +4,14 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.Controller
+import navikt.appsec.securitychampionapp.app.participation.ParticipantProfileLookup
+import navikt.appsec.securitychampionapp.app.participation.ParticipantLifecycle
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipant
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantUpdateResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
@@ -36,13 +37,13 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 @WebMvcTest(Controller::class)
 @ActiveProfiles("test")
-@Import(SecurityConfig::class)
+@Import(SecurityConfig::class, ParticipantLifecycle::class)
 class ControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
 
     @MockitoBean
-    lateinit var participantRepository: ProgramParticipantRepository
+    lateinit var participantRepository: ParticipantStore
 
     @MockitoBean
     lateinit var auditService: ProgramAuditService
@@ -80,9 +81,7 @@ class ControllerTest {
                     startDate = "2026-10-20", endDate = "2026-10-22", location = "",
                     type = "event", deltaEvent = false, allDay = true, link = "https://example.org",
                 )
-                whenever(eventCatalogService.getAllEvents()).thenReturn(
-                    navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse(true, listOf(event))
-                )
+                whenever(eventCatalogService.getAllEvents()).thenReturn(listOf(event))
                 mockMvc.perform(MockMvcRequestBuilders.get("/api/events"))
                     .andExpect(status().isOk)
                     .andExpect(jsonPath("$[0].id").value("playbook:test"))
@@ -96,22 +95,20 @@ class ControllerTest {
     @Test
     fun `should enroll an authenticated employee by nav no email`() {
         mockAuthenticatedUser()
-        mockParticipant("ACTIVE")
-        val enrolled = participantRepository.findByNavNoEmail("user@nav.no")
         whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(ProgramParticipantQueryResponse(isOk = true), enrolled)
-        whenever(teamCatalog.fetchAllMembersWithTeamData()).thenReturn(emptyList())
-        whenever(participantRepository.enroll("user@nav.no", "A12345", "user@nav.no"))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
-        whenever(participantRepository.updateAuthenticatedIdentity("user@nav.no", "A12345", "user@nav.no"))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+            .thenReturn(null, participant("ACTIVE"))
+        whenever(teamCatalog.lookup("A12345", "user@nav.no"))
+            .thenReturn(ParticipantProfileLookup.Available(null))
+        whenever(
+            participantRepository.enroll(any(), any(), any(), any(), any(), any())
+        ).thenReturn(1)
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/enroll")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
         ).andExpect(status().isCreated)
 
-        verify(participantRepository).enroll("user@nav.no", "A12345", "user@nav.no")
+        verify(participantRepository).enroll(any(), any(), any(), any(), any(), any())
         verify(auditService).recordParticipantEvent(
             java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
             "PARTICIPANT_ENROLLED",
@@ -123,31 +120,14 @@ class ControllerTest {
     @Test
     fun `should not allow self enrollment to reactivate a deactivated participant`() {
         mockAuthenticatedUser()
-        whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(
-                ProgramParticipantQueryResponse(
-                    isOk = true,
-                    queryResult = listOf(
-                        ProgramParticipant(
-                            id = "00000000-0000-0000-0000-000000000001",
-                            navNoEmail = "user@nav.no",
-                            navIdent = "A12345",
-                            email = "user@nav.no",
-                            fullname = "User",
-                            teams = emptyList(),
-                            status = "DEACTIVATED",
-                            createdAt = "2026-01-01T00:00:00Z",
-                        )
-                    ),
-                )
-            )
+        mockParticipant("DEACTIVATED")
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/enroll")
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
         ).andExpect(status().isConflict)
 
-        verify(participantRepository, never()).enroll(any(), any(), any(), any(), any())
+        verify(participantRepository, never()).enroll(any(), any(), any(), any(), any(), any())
     }
 
     @Test
@@ -155,13 +135,13 @@ class ControllerTest {
         mockAuthenticatedUser()
         mockParticipant("LEFT")
         whenever(participantRepository.rejoin("user@nav.no"))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+            .thenReturn(1)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/enroll"))
             .andExpect(status().isOk)
 
         verify(participantRepository).rejoin("user@nav.no")
-        verify(participantRepository, never()).enroll(any(), any(), any(), any(), any())
+        verify(participantRepository, never()).enroll(any(), any(), any(), any(), any(), any())
         verify(auditService).recordParticipantEvent(
             java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
             "PARTICIPANT_REJOINED",
@@ -175,7 +155,7 @@ class ControllerTest {
         mockAuthenticatedUser()
         mockParticipant("ACTIVE")
         whenever(participantRepository.leave("user@nav.no"))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+            .thenReturn(1)
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/leave")
@@ -219,7 +199,7 @@ class ControllerTest {
         mockAuthenticatedUser()
         mockParticipant("LEFT")
         whenever(participantRepository.rejoin("user@nav.no"))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 0))
+            .thenReturn(0)
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/enroll"))
             .andExpect(status().isConflict)
@@ -231,53 +211,34 @@ class ControllerTest {
         mockAuthenticatedUser()
         mockParticipant("ACTIVE")
         whenever(participantRepository.leave("user@nav.no"))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = false, error = "Unavailable"))
+            .thenThrow(org.springframework.dao.DataAccessResourceFailureException("Unavailable"))
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/leave"))
             .andExpect(status().isInternalServerError)
     }
 
     private fun mockParticipant(participationStatus: String) {
-        whenever(participantRepository.findByNavNoEmail("user@nav.no")).thenReturn(
-            ProgramParticipantQueryResponse(
-                isOk = true,
-                queryResult = listOf(
-                    ProgramParticipant(
-                        id = "00000000-0000-0000-0000-000000000001",
-                        navNoEmail = "user@nav.no",
-                        navIdent = "A12345",
-                        email = "user@nav.no",
-                        fullname = "User",
-                        teams = emptyList(),
-                        status = participationStatus,
-                        createdAt = "2026-01-01T00:00:00Z",
-                    )
-                ),
-            )
-        )
+        whenever(participantRepository.findByNavNoEmail("user@nav.no"))
+            .thenReturn(participant(participationStatus))
     }
+
+    private fun participant(participationStatus: String) =
+        ProgramParticipant(
+            id = java.util.UUID.fromString("00000000-0000-0000-0000-000000000001"),
+            navNoEmail = "user@nav.no",
+            navIdent = "A12345",
+            email = "user@nav.no",
+            fullname = "User",
+            teams = emptyList(),
+            status = ParticipationStatus.valueOf(participationStatus),
+            createdAt = "2026-01-01T00:00:00Z",
+        )
 
     @Test
     fun `should return active participant names and teams without exact points or email`() {
         mockAuthenticatedUser()
         whenever(participantRepository.findActiveParticipants())
-            .thenReturn(
-                ProgramParticipantQueryResponse(
-                    isOk = true,
-                    queryResult = listOf(
-                        ProgramParticipant(
-                            id = "00000000-0000-0000-0000-000000000001",
-                            navNoEmail = "user@nav.no",
-                            navIdent = "A12345",
-                            email = "user@nav.no",
-                            fullname = "User",
-                            teams = listOf("Team"),
-                            status = "ACTIVE",
-                            createdAt = "2026-01-01T00:00:00Z",
-                        )
-                    ),
-                )
-            )
+            .thenReturn(listOf(participant("ACTIVE").copy(teams = listOf("Team"))))
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/members"))
             .andExpect(status().isOk)

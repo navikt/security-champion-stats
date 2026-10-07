@@ -1,5 +1,8 @@
 package navikt.appsec.securitychampionapp.integrations.teamCatalog
 
+import navikt.appsec.securitychampionapp.app.participation.ParticipantProfile
+import navikt.appsec.securitychampionapp.app.participation.ParticipantProfileLookup
+import navikt.appsec.securitychampionapp.app.participation.ParticipantProfileSource
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ProductAreaResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamResponse
@@ -15,61 +18,43 @@ class TeamCatalog(
     private val externalServiceWebClient: WebClient,
     private val teamCatalogMock: TeamCatalogMock,
     private val environment: Environment,
-) {
+) : ParticipantProfileSource {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
 
     private fun useMockResponses(): Boolean = environment.acceptsProfiles(Profiles.of("local", "test"))
 
-    private fun fetchAllProductAreas(): ProductAreaResponse {
-        return try {
-            externalServiceWebClient
+    private fun fetchAllProductAreas(): ProductAreaResponse =
+        externalServiceWebClient
                 .get()
                 .uri("/productarea?status=ACTIVE")
                 .retrieve()
                 .onStatus({ status -> status.isError}) { clientResponse ->
-                    clientResponse.bodyToMono<String>().map {
-                        RuntimeException("Error from Team catalog fetch product area: ${clientResponse.statusCode()}, body: $it")
-                    }
+                    clientResponse.bodyToMono<String>().map { RuntimeException("Teamkatalogen product area request failed") }
                 }
                 .bodyToMono<ProductAreaResponse>()
                 .block()
                 ?: ProductAreaResponse(emptyList())
-        } catch (e: Exception) {
-            logger.error(e.message)
-            ProductAreaResponse(
-                emptyList()
-            )
-        }
-
-    }
 
     private fun fetchAllTeams(productArea: ProductAreaResponse): List<TeamResponse> {
         if (productArea.content.isEmpty()) {
             return emptyList()
         }
 
-        return try {
-            productArea.content.map {
+        return productArea.content.map {
                 externalServiceWebClient
                     .get()
                     .uri("/team?productAreaId=${it.id}&status=ACTIVE")
                     .retrieve()
                     .onStatus({ status -> status.isError}) { clientResponse ->
-                        clientResponse.bodyToMono<String>().map {
-                            RuntimeException("Error from Team catalog fetch teams in product area: ${clientResponse.statusCode()}, body: $it")
-                        }
+                        clientResponse.bodyToMono<String>().map { RuntimeException("Teamkatalogen team request failed") }
                     }
                     .bodyToMono<TeamResponse>()
                     .block()
                     ?: TeamResponse(emptyList())
             }
-        } catch (e: Exception) {
-            logger.error(e.message)
-            emptyList()
-        }
     }
 
-    fun fetchAllMembersWithTeamData(): List<MemberWithTeamData> {
+    private fun fetchProfiles(): List<MemberWithTeamData> {
         val productAreas = if (useMockResponses()) {
             teamCatalogMock.loadMockProductAreas()
         } else {
@@ -80,11 +65,6 @@ class TeamCatalog(
             teamCatalogMock.loadMockTeamMembers(productAreas)
         } else {
             fetchAllTeams(productAreas)
-        }
-
-        if (teamsWithinProduct.isEmpty()) {
-            logger.info("No teams were found. return empty list")
-            return emptyList()
         }
 
         val membersWithTeamData = linkedMapOf<String, MemberWithTeamData>()
@@ -113,4 +93,22 @@ class TeamCatalog(
         }
         return membersWithTeamData.values.toList()
     }
+
+    fun fetchAllMembersWithTeamData(): List<MemberWithTeamData> =
+        try {
+            fetchProfiles()
+        } catch (e: Exception) {
+            logger.error("Teamkatalogen profile sync failed: {}", e.javaClass.simpleName)
+            emptyList()
+        }
+
+    override fun lookup(navIdent: String, email: String): ParticipantProfileLookup =
+        try {
+            val profile = fetchProfiles().firstOrNull { it.navIdent == navIdent && it.email == email }
+                ?.let { ParticipantProfile(it.fullName, it.teamName) }
+            ParticipantProfileLookup.Available(profile)
+        } catch (e: Exception) {
+            logger.warn("Teamkatalogen profile lookup failed: {}", e.javaClass.simpleName)
+            ParticipantProfileLookup.Unavailable
+        }
 }

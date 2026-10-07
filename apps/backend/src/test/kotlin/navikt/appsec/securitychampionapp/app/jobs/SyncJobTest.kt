@@ -1,8 +1,14 @@
 package navikt.appsec.securitychampionapp.app.jobs
 
 import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
@@ -19,10 +25,12 @@ import org.junit.jupiter.api.TestInstance
 import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.dao.DataAccessResourceFailureException
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -110,10 +118,10 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        val participant = repository.findByNavNoEmail("user@nav.no").queryResult.single()
+        val participant = requireNotNull(repository.findByNavNoEmail("user@nav.no"))
         assertThat(participant.fullname).isEqualTo("Test User")
         assertThat(participant.teams).containsExactly("Updated team")
-        assertThat(participant.status).isEqualTo("ACTIVE")
+        assertThat(participant.status).isEqualTo(ParticipationStatus.ACTIVE)
     }
 
     @Test
@@ -133,16 +141,14 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        assertThat(repository.findAllParticipants().queryResult).isEmpty()
+        assertThat(repository.findAllParticipants()).isEmpty()
     }
 
     @Test
     fun `should delete Slack mappings and credits without restoring a participant during sync`() {
         runJobInsideLock()
-        assertThat(repository.enroll("deleted@nav.no", "A12345", "deleted@nav.no").isOk).isTrue()
-        val participantId = UUID.fromString(
-            repository.findByNavNoEmail("deleted@nav.no").queryResult.single().id
-        )
+        assertThat(repository.enroll("deleted@nav.no", "A12345", "deleted@nav.no")).isEqualTo(1)
+        val participantId = requireNotNull(repository.findByNavNoEmail("deleted@nav.no")).id
         val mappings = SlackIdentityMappingRepository(jdbcTemplate)
         val scoring = PostgresScoringLedger(jdbcTemplate)
         assertThat(mappings.addMapping("U_DELETED", participantId, "admin@nav.no")).isTrue()
@@ -163,14 +169,14 @@ class SyncJobTest {
             )
         )
 
-        assertThat(repository.permanentlyDelete(participantId).affectedRows).isEqualTo(1)
+        assertThat(repository.permanentlyDelete(participantId)).isEqualTo(1)
         assertThat(mappings.mappingOverview().first).isEmpty()
         assertThat(scoring.creditsForParticipant(participantId)).isEmpty()
 
         syncJob().syncDatabase()
 
         verify(catalog).fetchAllMembersWithTeamData()
-        assertThat(repository.findAllParticipants().queryResult).isEmpty()
+        assertThat(repository.findAllParticipants()).isEmpty()
         assertThat(scoring.participantExists(participantId)).isFalse()
         assertThat(mappings.mappingOverview().first).isEmpty()
         assertThat(mappings.mappedParticipants()).isEmpty()
@@ -192,7 +198,7 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult).hasSize(1)
+        assertThat(repository.findByNavNoEmail("user@nav.no")).isNotNull
     }
 
     @Test
@@ -203,4 +209,55 @@ class SyncJobTest {
         verify(catalog, Mockito.never()).fetchAllMembersWithTeamData()
     }
 
+    @Test
+    fun `should continue profile sync and record partial completion after a persistence failure`() {
+        runJobInsideLock()
+        val participantRepository = mock<ParticipantStore>()
+        val auditService = mock<ProgramAuditService>()
+        val first = member("A11111", "first@nav.no", "First User")
+        val second = member("A22222", "second@nav.no", "Second User")
+        whenever(participantRepository.findAllParticipants()).thenReturn(
+            listOf(
+                participant("first@nav.no", "A11111"),
+                participant("second@nav.no", "A22222"),
+            )
+        )
+        whenever(catalog.fetchAllMembersWithTeamData()).thenReturn(listOf(first, second))
+        whenever(
+            participantRepository.updateProfile("A11111", "first@nav.no", "First User", listOf("Team")),
+        ).thenThrow(DataAccessResourceFailureException("Synthetic database failure"))
+        whenever(
+            participantRepository.updateProfile("A22222", "second@nav.no", "Second User", listOf("Team")),
+        ).thenReturn(1)
+
+        SyncJob(jobLock, participantRepository, catalog, auditService).syncDatabase()
+
+        verify(participantRepository).updateProfile("A11111", "first@nav.no", "First User", listOf("Team"))
+        verify(participantRepository).updateProfile("A22222", "second@nav.no", "Second User", listOf("Team"))
+        verify(auditService).recordRun(
+            eq("PARTICIPANT_PROFILE_SYNC_COMPLETED"),
+            eq(AuditOutcome.PARTIAL),
+            any<AuditRunContext>(),
+            eq(mapOf("profilesUpdated" to 1, "failedProfiles" to 1)),
+        )
+    }
+
+    private fun member(navIdent: String, email: String, fullName: String) = MemberWithTeamData(
+        navIdent = navIdent,
+        fullName = fullName,
+        email = email,
+        teamName = mutableListOf("Team"),
+        teamId = mutableListOf("team-id"),
+    )
+
+    private fun participant(email: String, navIdent: String) = ProgramParticipant(
+        id = UUID.randomUUID(),
+        navNoEmail = email,
+        navIdent = navIdent,
+        email = email,
+        fullname = email,
+        teams = emptyList(),
+        status = ParticipationStatus.ACTIVE,
+        createdAt = "2026-10-07T00:00:00Z",
+    )
 }

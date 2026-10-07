@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
 import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.flywaydb.core.Flyway
@@ -67,11 +68,9 @@ class ProgramParticipantRepositoryTest {
         val first = repository.enroll("user@nav.no", "A12345", "user@nav.no")
         val duplicate = repository.enroll("user@nav.no", "A12345", "user@nav.no")
 
-        assertThat(first.isOk).isTrue()
-        assertThat(first.affectedRows).isEqualTo(1)
-        assertThat(duplicate.isOk).isTrue()
-        assertThat(duplicate.affectedRows).isZero()
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult).hasSize(1)
+        assertThat(first).isEqualTo(1)
+        assertThat(duplicate).isZero()
+        assertThat(repository.findByNavNoEmail("user@nav.no")).isNotNull
     }
 
     @Test
@@ -79,23 +78,23 @@ class ProgramParticipantRepositoryTest {
         repository.enroll("old@nav.no", "A12345", "user@nav.no")
         repository.enroll("new@nav.no", "A12345", "user@nav.no")
 
-        val oldParticipant = repository.findByNavNoEmail("old@nav.no").queryResult.single()
-        val newParticipant = repository.findByNavNoEmail("new@nav.no").queryResult.single()
+        val oldParticipant = requireNotNull(repository.findByNavNoEmail("old@nav.no"))
+        val newParticipant = requireNotNull(repository.findByNavNoEmail("new@nav.no"))
 
-        assertThat(UUID.fromString(oldParticipant.id)).isNotEqualTo(UUID.fromString(newParticipant.id))
-        assertThat(repository.findAllParticipants().queryResult).hasSize(2)
+        assertThat(oldParticipant.id).isNotEqualTo(newParticipant.id)
+        assertThat(repository.findAllParticipants()).hasSize(2)
     }
 
     @Test
     fun `should retain participant data when deactivating and reactivating`() {
         repository.enroll("user@nav.no", "A12345", "user@nav.no")
-        val participant = repository.findByNavNoEmail("user@nav.no").queryResult.single()
-        val id = UUID.fromString(participant.id)
+        val participant = requireNotNull(repository.findByNavNoEmail("user@nav.no"))
+        val id = participant.id
 
-        assertThat(repository.updateStatus(id, active = false, actorNavNoEmail = "admin@nav.no").affectedRows)
+        assertThat(repository.updateStatus(id, active = false, actorNavNoEmail = "admin@nav.no"))
             .isEqualTo(1)
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult.single().status)
-            .isEqualTo("DEACTIVATED")
+        assertThat(repository.findByNavNoEmail("user@nav.no")?.status)
+            .isEqualTo(ParticipationStatus.DEACTIVATED)
         val audit = jdbcTemplate.queryForMap(
             """
                 SELECT actor_nav_no_email, action,
@@ -111,15 +110,15 @@ class ProgramParticipantRepositoryTest {
         assertThat(audit["before_status"]).isEqualTo("ACTIVE")
         assertThat(audit["after_status"]).isEqualTo("DEACTIVATED")
 
-        assertThat(repository.updateStatus(id, active = true, actorNavNoEmail = "admin@nav.no").affectedRows)
+        assertThat(repository.updateStatus(id, active = true, actorNavNoEmail = "admin@nav.no"))
             .isEqualTo(1)
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult.single().status).isEqualTo("ACTIVE")
+        assertThat(repository.findByNavNoEmail("user@nav.no")?.status).isEqualTo(ParticipationStatus.ACTIVE)
     }
 
     @Test
     fun `should retain credits through voluntary departure and rejoin without bypassing admin deactivation`() {
         repository.enroll("user@nav.no", "A12345", "user@nav.no")
-        val id = UUID.fromString(repository.findByNavNoEmail("user@nav.no").queryResult.single().id)
+        val id = requireNotNull(repository.findByNavNoEmail("user@nav.no")).id
         jdbcTemplate.update(
             """
                 INSERT INTO activity_credits (
@@ -131,28 +130,28 @@ class ProgramParticipantRepositoryTest {
             id,
         )
 
-        assertThat(repository.leave("user@nav.no").affectedRows).isEqualTo(1)
-        assertThat(repository.leave("user@nav.no").affectedRows).isZero()
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult.single().status).isEqualTo("LEFT")
-        assertThat(repository.findActiveParticipants().queryResult).isEmpty()
-        assertThat(repository.rejoin("user@nav.no").affectedRows).isEqualTo(1)
-        assertThat(repository.findActiveParticipants().queryResult).hasSize(1)
+        assertThat(repository.leave("user@nav.no")).isEqualTo(1)
+        assertThat(repository.leave("user@nav.no")).isZero()
+        assertThat(repository.findByNavNoEmail("user@nav.no")?.status).isEqualTo(ParticipationStatus.LEFT)
+        assertThat(repository.findActiveParticipants()).isEmpty()
+        assertThat(repository.rejoin("user@nav.no")).isEqualTo(1)
+        assertThat(repository.findActiveParticipants()).hasSize(1)
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM activity_credits", Int::class.java))
             .isEqualTo(1)
 
         repository.updateStatus(id, false, "admin@nav.no")
-        assertThat(repository.rejoin("user@nav.no").affectedRows).isZero()
-        assertThat(repository.leave("user@nav.no").affectedRows).isZero()
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult.single().status)
-            .isEqualTo("DEACTIVATED")
+        assertThat(repository.rejoin("user@nav.no")).isZero()
+        assertThat(repository.leave("user@nav.no")).isZero()
+        assertThat(repository.findByNavNoEmail("user@nav.no")?.status)
+            .isEqualTo(ParticipationStatus.DEACTIVATED)
     }
 
     @Test
     fun `should anonymize deleted administrator in retained adjustments and integration configuration`() {
         repository.enroll("admin@nav.no", "A12345", "admin@nav.no")
         repository.enroll("other@nav.no", "A12346", "other@nav.no")
-        val adminId = UUID.fromString(repository.findByNavNoEmail("admin@nav.no").queryResult.single().id)
-        val otherId = UUID.fromString(repository.findByNavNoEmail("other@nav.no").queryResult.single().id)
+        val adminId = requireNotNull(repository.findByNavNoEmail("admin@nav.no")).id
+        val otherId = requireNotNull(repository.findByNavNoEmail("other@nav.no")).id
         jdbcTemplate.update(
             """
                 INSERT INTO point_adjustments (
@@ -181,7 +180,7 @@ class ProgramParticipantRepositoryTest {
             """.trimIndent(),
         )
 
-        assertThat(repository.permanentlyDelete(adminId).isOk).isTrue()
+        assertThat(repository.permanentlyDelete(adminId)).isEqualTo(1)
         for ((table, column) in listOf(
             "point_adjustments" to "actor_nav_no_email",
             "slack_account_mappings" to "created_by_nav_no_email",
@@ -191,15 +190,15 @@ class ProgramParticipantRepositoryTest {
             assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $table", Int::class.java)).isEqualTo(1)
             assertThat(jdbcTemplate.queryForMap("SELECT $column FROM $table")[column]).isNull()
         }
-        assertThat(repository.findByNavNoEmail("other@nav.no").queryResult).hasSize(1)
+        assertThat(repository.findByNavNoEmail("other@nav.no")).isNotNull
     }
 
     @Test
     fun `should permanently delete only the selected participant`() {
         repository.enroll("first@nav.no", "A12345", "first@nav.no")
         repository.enroll("second@nav.no", "A12346", "second@nav.no")
-        val first = repository.findByNavNoEmail("first@nav.no").queryResult.single()
-        val second = repository.findByNavNoEmail("second@nav.no").queryResult.single()
+        val first = requireNotNull(repository.findByNavNoEmail("first@nav.no"))
+        val second = requireNotNull(repository.findByNavNoEmail("second@nav.no"))
         jdbcTemplate.update(
             "INSERT INTO Members (id, fullname, email) VALUES (?, ?, ?)",
             "legacy-first",
@@ -207,17 +206,17 @@ class ProgramParticipantRepositoryTest {
             "first@nav.no",
         )
         repository.updateStatus(
-            UUID.fromString(first.id),
+            first.id,
             active = false,
             actorNavNoEmail = "first@nav.no",
         )
         repository.updateStatus(
-            UUID.fromString(second.id),
+            second.id,
             active = false,
             actorNavNoEmail = "first@nav.no",
         )
-        val firstId = UUID.fromString(first.id)
-        val secondId = UUID.fromString(second.id)
+        val firstId = first.id
+        val secondId = second.id
         jdbcTemplate.update(
             """
                 INSERT INTO program_audit_events (
@@ -283,8 +282,7 @@ class ProgramParticipantRepositoryTest {
             firstId,
         )
 
-        assertThat(deletion.isOk).isTrue()
-        assertThat(deletion.affectedRows).isEqualTo(1)
+        assertThat(deletion).isEqualTo(1)
         assertThat(
             jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM program_audit_events WHERE target_participant_id = ?",
@@ -297,8 +295,8 @@ class ProgramParticipantRepositoryTest {
                 secondId,
             )["actor_nav_no_email"]
         ).isNull()
-        assertThat(repository.findByNavNoEmail("first@nav.no").queryResult).isEmpty()
-        assertThat(repository.findByNavNoEmail("second@nav.no").queryResult).hasSize(1)
+        assertThat(repository.findByNavNoEmail("first@nav.no")).isNull()
+        assertThat(repository.findByNavNoEmail("second@nav.no")).isNotNull
         assertThat(
             jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM Members WHERE email = ?",
@@ -310,7 +308,7 @@ class ProgramParticipantRepositoryTest {
             jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM program_participant_audit WHERE participant_id = ?",
                 Int::class.javaObjectType,
-                UUID.fromString(first.id),
+                first.id,
             )
         ).isZero()
         assertThat(
@@ -348,7 +346,7 @@ class ProgramParticipantRepositoryTest {
     fun `should update profile details without changing participant status`() {
         repository.enroll("user@nav.no", "A12345", "user@nav.no")
         repository.updateStatus(
-            UUID.fromString(repository.findByNavNoEmail("user@nav.no").queryResult.single().id),
+            requireNotNull(repository.findByNavNoEmail("user@nav.no")).id,
             active = false,
             actorNavNoEmail = "admin@nav.no",
         )
@@ -360,10 +358,10 @@ class ProgramParticipantRepositoryTest {
             teams = listOf("Team A", "Team B"),
         )
 
-        val participant = repository.findByNavNoEmail("user@nav.no").queryResult.single()
-        assertThat(update.isOk).isTrue()
+        val participant = requireNotNull(repository.findByNavNoEmail("user@nav.no"))
+        assertThat(update).isEqualTo(1)
         assertThat(participant.fullname).isEqualTo("Updated User")
         assertThat(participant.teams).containsExactly("Team A", "Team B")
-        assertThat(participant.status).isEqualTo("DEACTIVATED")
+        assertThat(participant.status).isEqualTo(ParticipationStatus.DEACTIVATED)
     }
 }

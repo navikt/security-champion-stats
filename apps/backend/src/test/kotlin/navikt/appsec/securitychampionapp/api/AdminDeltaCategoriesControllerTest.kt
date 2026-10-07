@@ -26,6 +26,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -69,7 +70,8 @@ class AdminDeltaCategoriesControllerTest {
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/delta/categories"))
             .andExpect(status().isServiceUnavailable)
-            .andExpect(content().json("""{"error":"${DeltaFailure.API.summary}"}"""))
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.detail").value(DeltaFailure.API.summary))
     }
 
     private fun mockAuthenticatedUser(role: String) {

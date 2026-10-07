@@ -7,9 +7,7 @@ import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustmentRequest
 import navikt.appsec.securitychampionapp.app.scoring.ResetSeasonRequest
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
-import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
-import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.UpdateSeasonResetDateRequest
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.springframework.http.HttpStatus
@@ -37,12 +35,9 @@ class AdminScoringController(
 
     @GetMapping("/participants/{id}/credits")
     fun participantCredits(@PathVariable id: String): ResponseEntity<List<ActivityCredit>> {
-        val participantId = id.toUuid() ?: return ResponseEntity.badRequest().build()
-        return try {
-            ResponseEntity.ok(scoringService.creditsForParticipant(participantId))
-        } catch (_: ScoringTargetNotFoundException) {
-            ResponseEntity.notFound().build()
-        }
+        val participantId = id.toUuid()
+            ?: throw InvalidScoringRequestException("The participant ID is invalid")
+        return ResponseEntity.ok(scoringService.creditsForParticipant(participantId))
     }
 
     @PostMapping("/participants/{id}/adjustments")
@@ -50,25 +45,18 @@ class AdminScoringController(
         @PathVariable id: String,
         @RequestBody request: PointAdjustmentRequest,
     ): ResponseEntity<Any> {
-        val participantId = id.toUuid() ?: return ResponseEntity.badRequest().build()
+        val participantId = id.toUuid() ?: throw InvalidScoringRequestException("The participant ID is invalid")
         val sourceCreditId = request.sourceCreditId?.toUuid()
-            ?: if (request.sourceCreditId == null) null else return ResponseEntity.badRequest().build()
-        return try {
-            val result: PointAdjustment = scoringService.addAdjustment(
-                participantId,
-                request.pointsDelta,
-                request.reason,
-                currentPrincipal().email,
-                sourceCreditId,
-            )
-            ResponseEntity.status(HttpStatus.CREATED).body(result)
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
-        } catch (_: ScoringTargetNotFoundException) {
-            ResponseEntity.notFound().build()
-        } catch (_: SourceCreditNotFoundException) {
-            ResponseEntity.badRequest().body(mapOf("error" to "The source credit does not belong to the participant"))
-        }
+            ?: if (request.sourceCreditId == null) null else
+                throw InvalidScoringRequestException("The source credit ID is invalid")
+        val result: PointAdjustment = scoringService.addAdjustment(
+            participantId,
+            request.pointsDelta,
+            request.reason,
+            currentPrincipal().email,
+            sourceCreditId,
+        )
+        return ResponseEntity.status(HttpStatus.CREATED).body(result)
     }
 
     @PutMapping("/season/reset-date")
@@ -78,28 +66,24 @@ class AdminScoringController(
         val resetDate = try {
             LocalDate.parse(request.nextResetDate)
         } catch (_: DateTimeParseException) {
-            return ResponseEntity.badRequest().body(mapOf("error" to "Use an ISO date"))
+            throw ApiRequestException(
+                HttpStatus.BAD_REQUEST,
+                "Invalid reset date",
+                "Use an ISO date",
+            )
         }
-        return try {
-            ResponseEntity.ok(scoringService.updateNextResetDate(resetDate, currentPrincipal().email))
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
-        }
+        return ResponseEntity.ok(scoringService.updateNextResetDate(resetDate, currentPrincipal().email))
     }
 
     @PostMapping("/season/reset")
     fun resetSeason(@RequestBody request: ResetSeasonRequest): ResponseEntity<Any> =
-        try {
-            ResponseEntity.ok(
-                scoringService.resetManually(
-                    request.confirmed,
-                    request.reason,
-                    currentPrincipal().email,
-                )
+        ResponseEntity.ok(
+            scoringService.resetManually(
+                request.confirmed,
+                request.reason,
+                currentPrincipal().email,
             )
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
-        }
+        )
 
     private fun currentPrincipal(): AppPrincipal =
         requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal

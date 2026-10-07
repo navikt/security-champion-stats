@@ -5,6 +5,7 @@ The backend application is built using Kotlin and Spring Boot, and it serves as 
 It provides endpoints for fetching security champion statistics, managing security champions, and supporting the
 Security Champion program over time. The backend application is responsible for handling business logic, data storage
 and retrieval, and authentication and authorization for the frontend application.
+API errors use RFC 9457 Problem Details (`application/problem+json`); unexpected persistence failures are logged and returned with sanitized details.
 
 Participation is managed in the application: employees can self-enroll, and administrators can manage
 active status. Participants can leave voluntarily (`LEFT`) and self-rejoin without losing their history;

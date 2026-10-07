@@ -4,12 +4,11 @@ import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.app.api.Controller
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
+import navikt.appsec.securitychampionapp.app.participation.ParticipantLifecycle
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.dto.TokenResponse
 import navikt.appsec.securitychampionapp.utils.Validate
@@ -39,7 +38,7 @@ import java.util.Base64
     AdminController::class,
     properties = ["spring.security.token-validation.groups=test-admin-group"],
 )
-@Import(SecurityConfig::class, TokenIntrospection::class)
+@Import(SecurityConfig::class, TokenIntrospection::class, ParticipantLifecycle::class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 class TokenAuthorizationTest {
@@ -62,7 +61,7 @@ class TokenAuthorizationTest {
     lateinit var tokenClient: TokenValidationClient
 
     @MockitoBean
-    lateinit var participantRepository: ProgramParticipantRepository
+    lateinit var participantRepository: ParticipantStore
 
     @MockitoBean
     lateinit var auditService: ProgramAuditService
@@ -85,7 +84,7 @@ class TokenAuthorizationTest {
     @Test
     fun `should reject Swagger credentials on application admin endpoints`() {
         whenever(participantRepository.findAllParticipants())
-            .thenReturn(ProgramParticipantQueryResponse(isOk = true))
+            .thenReturn(emptyList())
         val credentials = Base64.getEncoder().encodeToString("admin:test123".toByteArray())
 
         mockMvc.perform(
@@ -101,7 +100,7 @@ class TokenAuthorizationTest {
     fun `should allow admin access for a validated token with the configured group`() {
         whenever(tokenClient.validate(any(), any(), any())).thenReturn(validToken())
         whenever(participantRepository.findAllParticipants())
-            .thenReturn(ProgramParticipantQueryResponse(isOk = true))
+            .thenReturn(emptyList())
 
         mockMvc.perform(
             get("/api/admin/participants").header("Authorization", "Bearer test-token")
@@ -157,7 +156,7 @@ class TokenAuthorizationTest {
             .thenReturn(validToken())
             .thenThrow(IllegalStateException("Introspection unavailable"))
         whenever(participantRepository.findAllParticipants())
-            .thenReturn(ProgramParticipantQueryResponse(isOk = true))
+            .thenReturn(emptyList())
 
         mockMvc.perform(
             get("/api/admin/participants").header("Authorization", "Bearer test-token")
@@ -184,8 +183,7 @@ class TokenAuthorizationTest {
     @Test
     fun `should allow event requests when preferred username exists without nav no email`() {
         whenever(tokenClient.validate(any(), any(), any())).thenReturn(validToken())
-        whenever(eventCatalogService.getAllEvents())
-            .thenReturn(EventQueryResponse(isOk = true, queryResult = emptyList()))
+        whenever(eventCatalogService.getAllEvents()).thenReturn(emptyList())
 
         mockMvc.perform(
             get("/api/events").header("Authorization", "Bearer test-token")

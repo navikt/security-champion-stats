@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
+import org.springframework.dao.DataAccessException
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.dao.DuplicateKeyException
 import org.testcontainers.containers.PostgreSQLContainer
@@ -86,7 +87,8 @@ class EventRepositoryTest {
                     ready.countDown()
                     start.await()
                     try {
-                        repository.addEvent(testEvent()).isOk
+                        repository.addEvent(testEvent())
+                        true
                     } catch (_: DuplicateKeyException) {
                         false
                     }
@@ -98,7 +100,7 @@ class EventRepositoryTest {
             Assertions.assertThat(attempts.map { it.get(10, TimeUnit.SECONDS) })
                 .containsExactlyInAnyOrder(true, false)
         }
-        Assertions.assertThat(repository.getAllEvents().queryResult).hasSize(1)
+        Assertions.assertThat(repository.getAllEvents()).hasSize(1)
     }
 
     @Test
@@ -134,7 +136,7 @@ class EventRepositoryTest {
     @Test
     fun `should reject duplicate program events with normalized name start and location`() {
         val event = testEvent()
-        Assertions.assertThat(repository.addEvent(event).isOk).isTrue()
+        repository.addEvent(event)
 
         val duplicate = event.copy(
             id = UUID.randomUUID().toString(),
@@ -144,16 +146,16 @@ class EventRepositoryTest {
         )
         Assertions.assertThatThrownBy { repository.addEvent(duplicate) }
             .isInstanceOf(DuplicateKeyException::class.java)
-        Assertions.assertThat(repository.getAllEvents().queryResult).hasSize(1)
-        Assertions.assertThat(repository.addEvent(event.copy(
+        Assertions.assertThat(repository.getAllEvents()).hasSize(1)
+        repository.addEvent(event.copy(
             id = UUID.randomUUID().toString(),
             location = "Bergen",
-        )).isOk).isTrue()
-        Assertions.assertThat(repository.addEvent(event.copy(
+        ))
+        repository.addEvent(event.copy(
             id = UUID.randomUUID().toString(),
             startDate = "2026-11-02T09:00:00Z",
             endDate = "2026-11-02T10:00:00Z",
-        )).isOk).isTrue()
+        ))
     }
 
     @Test
@@ -169,11 +171,10 @@ class EventRepositoryTest {
 
         )
 
-        val response = repository.getAllEvents()
+        val events = repository.getAllEvents()
 
-        Assertions.assertThat(response.isOk).isTrue()
-        Assertions.assertThat(response.queryResult).hasSize(1)
-        val event = response.queryResult!!.first()
+        Assertions.assertThat(events).hasSize(1)
+        val event = events.first()
         Assertions.assertThat(event.name).isEqualTo("Security Champion Summit")
         Assertions.assertThat(event.description).isEqualTo("Yearly gathering for security champions")
         Assertions.assertThat(event.location).isEqualTo("Oslo")
@@ -186,15 +187,14 @@ class EventRepositoryTest {
         insertEvent(name = "Workshop", externalEvent = true, deltaEvent = false)
         insertEvent(name = "Internal Meetup")
 
-        val response = repository.getAllEvents()
+        val events = repository.getAllEvents()
 
-        Assertions.assertThat(response.isOk).isTrue()
-        Assertions.assertThat(response.queryResult).hasSize(2)
-        Assertions.assertThat(response.queryResult!!.map { it.name }).containsExactlyInAnyOrder("Workshop", "Internal Meetup")
-        val workshop = response.queryResult.first { it.name == "Workshop" }
+        Assertions.assertThat(events).hasSize(2)
+        Assertions.assertThat(events.map { it.name }).containsExactlyInAnyOrder("Workshop", "Internal Meetup")
+        val workshop = events.first { it.name == "Workshop" }
         Assertions.assertThat(workshop.externalEvent).isTrue()
         Assertions.assertThat(workshop.deltaEvent).isFalse()
-        val internalMeetup = response.queryResult.first { it.name == "Internal Meetup" }
+        val internalMeetup = events.first { it.name == "Internal Meetup" }
         Assertions.assertThat(internalMeetup.externalEvent).isFalse()
         Assertions.assertThat(internalMeetup.deltaEvent).isTrue()
     }
@@ -205,7 +205,7 @@ class EventRepositoryTest {
         repository.upsertDeltaEvent(event)
         repository.upsertDeltaEvent(event.copy(name = "Renamed meetup", location = "Bergen"))
 
-        val stored = repository.getAllEvents().queryResult!!.single()
+        val stored = repository.getAllEvents().single()
         Assertions.assertThat(stored.name).isEqualTo("Renamed meetup")
         Assertions.assertThat(stored.location).isEqualTo("Bergen")
         Assertions.assertThat(stored.link).isEqualTo("https://delta.nav.no/event/abc")
@@ -214,10 +214,17 @@ class EventRepositoryTest {
 
     @Test
     fun `should return empty result when no events exist`() {
-        val response = repository.getAllEvents()
+        Assertions.assertThat(repository.getAllEvents()).isEmpty()
+    }
 
-        Assertions.assertThat(response.isOk).isTrue()
-        Assertions.assertThat(response.queryResult).isEmpty()
+    @Test
+    fun `should propagate event database failures`() {
+        jdbcTemplate.execute("ALTER TABLE Events RENAME TO events_unavailable")
+
+        Assertions.assertThatThrownBy { repository.getAllEvents() }
+            .isInstanceOf(DataAccessException::class.java)
+        Assertions.assertThatThrownBy { repository.addEvent(testEvent()) }
+            .isInstanceOf(DataAccessException::class.java)
     }
 
     @Test
@@ -243,7 +250,7 @@ class EventRepositoryTest {
         Assertions.assertThat(playbook.findAll()).containsExactly(updated)
         transaction.executeWithoutResult { playbook.replaceSnapshot(emptyList()) }
         Assertions.assertThat(playbook.findAll()).isEmpty()
-        Assertions.assertThat(repository.getAllEvents().queryResult).hasSize(1)
+        Assertions.assertThat(repository.getAllEvents()).hasSize(1)
     }
 
     private fun insertEvent(

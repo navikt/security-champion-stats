@@ -7,9 +7,9 @@ import navikt.appsec.securitychampionapp.integrations.delta.DeltaRegistrationSou
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCategoryRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipant
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -28,7 +28,7 @@ import java.util.UUID
 class DeltaScoringServiceTest {
     private val mappingRepository = mock<DeltaEventMappingRepository>()
     private val categoryRepository = mock<DeltaEligibleCategoryRepository>()
-    private val participantRepository = mock<ProgramParticipantRepository>()
+    private val participantRepository = mock<ParticipantStore>()
     private val scoringService = mock<ScoringService>()
     private val eventSource = mock<DeltaRegistrationSource>()
     private val statusRepository = mock<DeltaScoringStatusRepository>()
@@ -201,7 +201,7 @@ class DeltaScoringServiceTest {
 
     private fun activeParticipants(vararg participants: ProgramParticipant) {
         whenever(participantRepository.findActiveParticipants())
-            .thenReturn(ProgramParticipantQueryResponse(true, participants.toList()))
+            .thenReturn(participants.toList())
     }
 
     private fun awardReturns(eventId: UUID, result: CreditAwardResult) {
@@ -225,13 +225,13 @@ class DeltaScoringServiceTest {
     )
 
     private fun participant(id: UUID, email: String) = ProgramParticipant(
-        id = id.toString(),
+        id = id,
         navNoEmail = email,
         navIdent = null,
         email = email,
         fullname = "Synthetic Participant",
         teams = emptyList(),
-        status = "ACTIVE",
+        status = ParticipationStatus.ACTIVE,
         createdAt = "2026-09-01T12:00:00Z",
     )
 

@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter
+import org.springframework.http.HttpStatus
 import tools.jackson.databind.ObjectMapper
 
 
@@ -32,6 +33,28 @@ class SecurityConfig(
         return http
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .exceptionHandling {
+                it.authenticationEntryPoint { request, response, _ ->
+                    writeProblemDetail(
+                        response,
+                        request,
+                        HttpStatus.UNAUTHORIZED,
+                        "Unauthorized",
+                        "Authentication is required",
+                        objectMapperProvider.getObject(),
+                    )
+                }
+                it.accessDeniedHandler { request, response, _ ->
+                    writeProblemDetail(
+                        response,
+                        request,
+                        HttpStatus.FORBIDDEN,
+                        "Forbidden",
+                        "You are not allowed to access this resource",
+                        objectMapperProvider.getObject(),
+                    )
+                }
+            }
             .authorizeHttpRequests {
                 it.requestMatchers(
                     "/auth/**",

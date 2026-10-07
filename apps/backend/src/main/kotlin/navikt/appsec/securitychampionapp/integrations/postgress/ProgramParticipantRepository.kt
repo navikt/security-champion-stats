@@ -1,8 +1,8 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipant
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantUpdateResponse
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.SqlTextArray
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -12,50 +12,46 @@ import java.util.UUID
 @Repository
 class ProgramParticipantRepository(
     private val jdbcTemplate: JdbcTemplate,
-) {
+) : ParticipantStore {
     private val rowMapper = RowMapper { rs, _ ->
         val teams = (rs.getArray("teams")?.array as? Array<*>)
             ?.mapNotNull { team -> team?.toString() }
             ?: emptyList()
         ProgramParticipant(
-            id = rs.getString("id"),
+            id = rs.getObject("id", UUID::class.java),
             navNoEmail = rs.getString("nav_no_email"),
             navIdent = rs.getString("nav_ident"),
             email = rs.getString("email"),
             fullname = rs.getString("fullname"),
             teams = teams,
-            status = rs.getString("status"),
+            status = ParticipationStatus.valueOf(rs.getString("status")),
             createdAt = rs.getString("created_at"),
         )
     }
 
-    fun findByNavNoEmail(navNoEmail: String): ProgramParticipantQueryResponse =
-        query(
-            "SELECT * FROM program_participants WHERE nav_no_email = ?",
-            navNoEmail,
-        )
+    override fun findByNavNoEmail(navNoEmail: String): ProgramParticipant? =
+        query("SELECT * FROM program_participants WHERE nav_no_email = ?", navNoEmail).singleOrNull()
 
-    fun findActiveParticipants(): ProgramParticipantQueryResponse =
-        query(
-            "SELECT * FROM program_participants WHERE status = 'ACTIVE' ORDER BY fullname",
-        )
+    override fun findActiveParticipants(): List<ProgramParticipant> =
+        query("SELECT * FROM program_participants WHERE status = 'ACTIVE' ORDER BY fullname")
 
-    fun findAllParticipants(): ProgramParticipantQueryResponse =
+    override fun findAllParticipants(): List<ProgramParticipant> =
         query("SELECT * FROM program_participants ORDER BY fullname")
 
-    fun enroll(
+    override fun enroll(
+        id: UUID,
         navNoEmail: String,
         navIdent: String,
         email: String,
-        fullname: String = "",
-        teams: List<String> = emptyList(),
-    ): ProgramParticipantUpdateResponse = update(
+        fullname: String,
+        teams: List<String>,
+    ): Int = update(
         """
             INSERT INTO program_participants (id, nav_no_email, nav_ident, email, fullname, teams)
             VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT (nav_no_email) DO NOTHING
         """.trimIndent(),
-        UUID.randomUUID(),
+        id,
         navNoEmail,
         navIdent,
         email,
@@ -63,11 +59,19 @@ class ProgramParticipantRepository(
         SqlTextArray(teams),
     )
 
-    fun updateAuthenticatedIdentity(
+    fun enroll(
         navNoEmail: String,
         navIdent: String,
         email: String,
-    ): ProgramParticipantUpdateResponse = update(
+        fullname: String = "",
+        teams: List<String> = emptyList(),
+    ): Int = enroll(UUID.randomUUID(), navNoEmail, navIdent, email, fullname, teams)
+
+    override fun updateAuthenticatedIdentity(
+        navNoEmail: String,
+        navIdent: String,
+        email: String,
+    ): Int = update(
         """
             UPDATE program_participants
             SET nav_ident = ?, email = ?, updated_at = NOW()
@@ -78,7 +82,7 @@ class ProgramParticipantRepository(
         navNoEmail,
     )
 
-    fun leave(navNoEmail: String): ProgramParticipantUpdateResponse = update(
+    override fun leave(navNoEmail: String): Int = update(
         """
             UPDATE program_participants
             SET status = 'LEFT', updated_at = NOW()
@@ -87,7 +91,7 @@ class ProgramParticipantRepository(
         navNoEmail,
     )
 
-    fun rejoin(navNoEmail: String): ProgramParticipantUpdateResponse = update(
+    override fun rejoin(navNoEmail: String): Int = update(
         """
             UPDATE program_participants
             SET status = 'ACTIVE', updated_at = NOW()
@@ -96,12 +100,12 @@ class ProgramParticipantRepository(
         navNoEmail,
     )
 
-    fun updateProfile(
+    override fun updateProfile(
         navIdent: String,
         email: String,
         fullname: String,
         teams: List<String>,
-    ): ProgramParticipantUpdateResponse = update(
+    ): Int = update(
         """
             UPDATE program_participants
             SET fullname = ?, teams = ?, updated_at = NOW()
@@ -113,11 +117,11 @@ class ProgramParticipantRepository(
         email,
     )
 
-    fun updateStatus(
+    override fun updateStatus(
         id: UUID,
         active: Boolean,
         actorNavNoEmail: String,
-    ): ProgramParticipantUpdateResponse = update(
+    ): Int = update(
         """
             WITH target AS (
                 SELECT id, status
@@ -149,9 +153,7 @@ class ProgramParticipantRepository(
         actorNavNoEmail,
     )
 
-    fun permanentlyDelete(
-        id: UUID,
-    ): ProgramParticipantUpdateResponse = update(
+    override fun permanentlyDelete(id: UUID): Int = update(
         """
             WITH target AS MATERIALIZED (
                 SELECT id, nav_no_email, email
@@ -212,43 +214,26 @@ class ProgramParticipantRepository(
         id,
     )
 
-    private fun query(query: String, vararg args: Any): ProgramParticipantQueryResponse =
-        try {
-            val participants = if (args.isEmpty()) {
-                jdbcTemplate.query(query, rowMapper)
-            } else {
-                jdbcTemplate.query(query, rowMapper, *args)
-            }
-            ProgramParticipantQueryResponse(isOk = true, queryResult = participants)
-        } catch (e: Exception) {
-            ProgramParticipantQueryResponse(
-                isOk = false,
-                queryResult = emptyList(),
-                error = "Failed to fetch program participants: ${e.message}",
-            )
+    private fun query(query: String, vararg args: Any): List<ProgramParticipant> =
+        if (args.isEmpty()) {
+            jdbcTemplate.query(query, rowMapper)
+        } else {
+            jdbcTemplate.query(query, rowMapper, *args)
         }
 
-    private fun update(query: String, vararg args: Any): ProgramParticipantUpdateResponse =
-        try {
-            val affectedRows = jdbcTemplate.update { connection ->
-                connection.prepareStatement(query).apply {
-                    args.forEachIndexed { index, value ->
-                        val parameterIndex = index + 1
-                        when (value) {
-                            is SqlTextArray -> setArray(
-                                parameterIndex,
-                                connection.createArrayOf("text", value.value.toTypedArray()),
-                            )
-                            else -> setObject(parameterIndex, value)
-                        }
+    private fun update(query: String, vararg args: Any): Int =
+        jdbcTemplate.update { connection ->
+            connection.prepareStatement(query).apply {
+                args.forEachIndexed { index, value ->
+                    val parameterIndex = index + 1
+                    when (value) {
+                        is SqlTextArray -> setArray(
+                            parameterIndex,
+                            connection.createArrayOf("text", value.value.toTypedArray()),
+                        )
+                        else -> setObject(parameterIndex, value)
                     }
                 }
             }
-            ProgramParticipantUpdateResponse(isOk = true, affectedRows = affectedRows)
-        } catch (e: Exception) {
-            ProgramParticipantUpdateResponse(
-                isOk = false,
-                error = "Failed to update program participant: ${e.message}",
-            )
         }
 }

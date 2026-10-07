@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminController
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.app.api.dto.AddMember
 import navikt.appsec.securitychampionapp.app.api.dto.DeleteParticipantRequest
 import navikt.appsec.securitychampionapp.app.api.dto.Event
@@ -13,10 +14,6 @@ import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.MemberUpdateResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantUpdateResponse
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.utils.Validate
@@ -30,6 +27,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -59,7 +57,7 @@ class AdminControllerTest {
     lateinit var repo: MemberRepository
 
     @MockitoBean
-    lateinit var participantRepository: ProgramParticipantRepository
+    lateinit var participantRepository: ParticipantStore
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
@@ -92,7 +90,6 @@ class AdminControllerTest {
     @Test
     fun `should reject invalid event input before persistence`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        whenever(eventRepository.addEvent(any())).thenReturn(EventQueryResponse(isOk = true))
         val event = testEvent()
         val invalidEvents = listOf(
             event.copy(name = "   "),
@@ -133,7 +130,6 @@ class AdminControllerTest {
     fun `should return created event as JSON after saving`() {
         mockAuthenticatedUser(ADMIN_ROLE)
         val event = testEvent()
-        whenever(eventRepository.addEvent(any())).thenReturn(EventQueryResponse(isOk = true))
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/events")
@@ -171,7 +167,7 @@ class AdminControllerTest {
         mockAuthenticatedUser(ADMIN_ROLE)
         whenever(validate.isValidEmail(any())).thenReturn(true)
         whenever(validate.isValidName(any())).thenReturn(true)
-        whenever(repo.addMember(any(), any(), any(), any())).thenReturn(MemberUpdateResponse(isOk = true))
+        whenever(repo.addMember(any(), any(), any(), any())).thenReturn(1)
 
         mockMvc.perform(
             MockMvcRequestBuilders.post("/api/admin/member")
@@ -179,6 +175,18 @@ class AdminControllerTest {
                 .content(objectMapper.writeValueAsString(AddMember(fullName = "Test User", email = "test@nav.no")))
         ).andExpect(status().isCreated)
             .andExpect(content().string("User was created"))
+    }
+
+    @Test
+    fun `should return a sanitized problem detail when member storage is unavailable`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(repo.getSCAmountOverTime())
+            .thenThrow(DataAccessResourceFailureException("Synthetic database detail"))
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/dashboard/members"))
+            .andExpect(status().isInternalServerError)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.detail").value("The request could not be completed"))
     }
 
     @Test
@@ -193,7 +201,7 @@ class AdminControllerTest {
     fun `should update participant status for admins`() {
         mockAuthenticatedUser(ADMIN_ROLE)
         whenever(participantRepository.updateStatus(any(), eq(false), eq("admin@nav.no")))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+            .thenReturn(1)
 
         mockMvc.perform(
             MockMvcRequestBuilders.put("/api/admin/participants/00000000-0000-0000-0000-000000000001/status")
@@ -238,7 +246,7 @@ class AdminControllerTest {
     fun `should permanently delete participant after confirmation and reason`() {
         mockAuthenticatedUser(ADMIN_ROLE)
         whenever(participantRepository.permanentlyDelete(any()))
-            .thenReturn(ProgramParticipantUpdateResponse(isOk = true, affectedRows = 1))
+            .thenReturn(1)
 
         mockMvc.perform(
             MockMvcRequestBuilders.delete("/api/admin/participants/00000000-0000-0000-0000-000000000001")

@@ -21,6 +21,18 @@ Changes require a reason, an impact preview, and confirmation. Tier changes take
 activity point changes normally affect new credits only. Optional current-season repricing appends
 source-linked adjustments, preserving original credits, manual corrections, and closed-season balances.
 Repeated repricing accounts for previous rule adjustments rather than applying the difference twice.
+Participants submit post-event contribution claims at `/api/event-claims`, with security-content descriptions,
+HTTP(S) links, advance network invitation evidence and named co-hosts/presenters. New claims are limited to
+the current season; every contributor must be active and have enrolled before the event. Pending or rejected
+claims can be revised by their submitter, preserving reviews; dates and linked event identity are fixed.
+Administrators review each contribution at `/api/admin/event-claims/{id}/reviews`, with a reason and
+the expected claim version. Self-approval is forbidden. Each approval awards the configured contribution
+value in the original event season, even after a reset. The first approval publishes the event in `Events`
+(or reuses its existing catalog entry); invitation evidence and contribution reviews are not public.
+Approved claims are locked. Revocation appends a source-linked correction for the credit and its rule
+repricing, without undoing manual corrections; revoked credits are excluded from subsequent repricing.
+The event remains in Past events. Awards, publication and durable claim reviews share a transaction.
+Claim identity, existing event IDs and shared links at the same start time prevent duplicate submissions.
 Configuration saves are transactional and reject stale previews with HTTP 409.
 Credit awards and capture of their awarded point values share a transaction, preventing concurrent
 participant deletion from interrupting the lookup. Best-effort operational audit writes run after commit.

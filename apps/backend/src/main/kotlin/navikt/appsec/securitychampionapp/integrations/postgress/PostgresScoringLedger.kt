@@ -34,7 +34,7 @@ class PostgresScoringLedger(
 ) : ScoringLedger {
     @Transactional
     override fun configuration(): ScoringConfiguration {
-        val version = lockConfiguration("SHARE")
+        val version = lockConfiguration()
         val tiers = jdbcTemplate.query(
             "SELECT name, points FROM program_scoring_tiers ORDER BY points",
             { rs, _ -> ScoringTier(rs.getString("name"), rs.getInt("points")) },
@@ -50,8 +50,12 @@ class PostgresScoringLedger(
         return ScoringConfiguration(version, tiers, activities)
     }
 
-    private fun lockConfiguration(mode: String): Long = jdbcTemplate.queryForObject(
-        "SELECT version FROM program_scoring_configuration WHERE singleton = TRUE FOR $mode",
+    private fun lockConfiguration(forUpdate: Boolean = false): Long = jdbcTemplate.queryForObject(
+        if (forUpdate) {
+            "SELECT version FROM program_scoring_configuration WHERE singleton = TRUE FOR UPDATE"
+        } else {
+            "SELECT version FROM program_scoring_configuration WHERE singleton = TRUE FOR SHARE"
+        },
         Long::class.javaObjectType,
     ) ?: error("No scoring configuration exists")
 
@@ -64,7 +68,7 @@ class PostgresScoringLedger(
 
     @Transactional
     override fun saveConfiguration(request: ScoringConfigurationRequest, actor: String): ScoringConfiguration {
-        if (lockConfiguration("UPDATE") != request.expectedVersion) throw StaleScoringConfigurationException()
+        if (lockConfiguration(forUpdate = true) != request.expectedVersion) throw StaleScoringConfigurationException()
         val configuration = configuration()
         // Awards share the configuration lock; corrections/deletions share participant locks.
         // Lock the season before computing the preview so a reset cannot move the affected credits.
@@ -338,7 +342,7 @@ class PostgresScoringLedger(
         activityAt: Instant?,
         expectedSeasonId: UUID?,
     ): CreditAwardResult {
-        lockConfiguration("SHARE")
+        lockConfiguration()
         val points = jdbcTemplate.queryForObject(
             "SELECT points FROM program_activity_points WHERE credit_type = ?",
             Int::class.javaObjectType, creditType.name,

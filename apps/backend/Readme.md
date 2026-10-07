@@ -22,6 +22,8 @@ activity point changes normally affect new credits only. Optional current-season
 source-linked adjustments, preserving original credits, manual corrections, and closed-season balances.
 Repeated repricing accounts for previous rule adjustments rather than applying the difference twice.
 Configuration saves are transactional and reject stale previews with HTTP 409.
+Credit awards and capture of their awarded point values share a transaction, preventing concurrent
+participant deletion from interrupting the lookup. Best-effort operational audit writes run after commit.
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
 Sync maps unmapped authors automatically when their Slack profile email (`users.info`, needs `users:read.email`)

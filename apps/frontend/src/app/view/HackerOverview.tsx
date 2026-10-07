@@ -469,10 +469,10 @@ export function HackerOverview({ info }: { info: Me }) {
 	const clearance =
 		tierIndex <= 0
 			? hackerCopy.clearance.novice
-			: tierIndex === 1
-				? hackerCopy.clearance.apprentice
-				: tierIndex === (score?.tiers.length ?? 1) - 1
-					? hackerCopy.clearance.expert
+			: tierIndex === (score?.tiers.length ?? 1) - 1
+				? hackerCopy.clearance.expert
+				: tierIndex === 1
+					? hackerCopy.clearance.apprentice
 					: hackerCopy.clearance.adept;
 	const recruited = participant
 		? formatDate(participant.joinedAt)

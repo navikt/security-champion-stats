@@ -79,6 +79,7 @@ class ScoringService(
         return repository.creditsForParticipant(participantId)
     }
 
+    @Transactional
     fun awardCredit(
         participantId: UUID,
         creditType: ActivityCreditType,
@@ -100,6 +101,7 @@ class ScoringService(
         return result
     }
 
+    @Transactional
     fun awardGitHubCredit(
         participantId: UUID,
         creditType: ActivityCreditType,

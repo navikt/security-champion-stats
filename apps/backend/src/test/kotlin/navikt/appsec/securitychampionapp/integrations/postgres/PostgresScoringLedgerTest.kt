@@ -20,6 +20,9 @@ import navikt.appsec.securitychampionapp.app.scoring.SlackSyncSummary
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCategoryRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
@@ -46,6 +49,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -54,6 +58,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.DuplicateKeyException
+import org.springframework.dao.DataAccessException
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import org.springframework.transaction.interceptor.TransactionInterceptor
 import org.springframework.transaction.support.TransactionTemplate
@@ -61,13 +66,20 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.sql.SQLException
+import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
+import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.argThat
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -134,6 +146,67 @@ class PostgresScoringLedgerTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["SLACK_WEEK", "GITHUB_PULL_REQUEST"])
+    fun `should prevent concurrent deletion between awarding and capturing credit points`(typeName: String) {
+        val participantId = createParticipant("person@nav.no")
+        jdbcTemplate.update(
+            "UPDATE program_participants SET created_at = ? WHERE id = ?",
+            Timestamp.from(Instant.parse("2025-01-01T00:00:00Z")), participantId,
+        )
+        val creditType = ActivityCreditType.valueOf(typeName)
+        val expectedPoints = repository.configuration().activities.single { it.creditType == creditType }.points
+        val auditRepository = mock<ProgramAuditRepository>()
+        whenever(auditRepository.participantExists(participantId)).thenReturn(true)
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val ledger = object : ScoringLedger by repository {
+                override fun creditPoints(participantId: UUID, creditType: ActivityCreditType, uniquenessKey: String): Int {
+                    val deletion = executor.submit {
+                        val failure = assertThrows(DataAccessException::class.java) {
+                            TransactionTemplate(transactionManager).executeWithoutResult {
+                                jdbcTemplate.execute("SET LOCAL lock_timeout = '200ms'")
+                                jdbcTemplate.update("DELETE FROM program_participants WHERE id = ?", participantId)
+                            }
+                        }
+                        val cause = failure.cause
+                        check(cause is SQLException)
+                        assertThat(cause.sqlState).isEqualTo("55P03")
+                    }
+                    deletion.get(10, TimeUnit.SECONDS)
+                    return repository.creditPoints(participantId, creditType, uniquenessKey)
+                }
+            }
+            val service = ProxyFactory(
+                ScoringService(ledger, ProgramAuditService(auditRepository, Clock.systemUTC())),
+            ).apply {
+                isProxyTargetClass = true
+                addAdvice(TransactionInterceptor().apply {
+                    transactionManager = this@PostgresScoringLedgerTest.transactionManager
+                    transactionAttributeSource = AnnotationTransactionAttributeSource()
+                })
+            }.proxy as ScoringService
+            val result = if (creditType == ActivityCreditType.SLACK_WEEK) {
+                service.awardCredit(participantId, creditType, "activity:1", "source:1")
+            } else {
+                service.awardGitHubCredit(
+                    participantId, creditType, "activity:1", "source:1", null,
+                    repository.currentSeason().startsOn.atStartOfDay(ZoneId.of("Europe/Oslo")).toInstant().plusSeconds(1),
+                    repository.currentSeason().id,
+                )
+            }
+            assertThat(result).isEqualTo(CreditAwardResult.AWARDED)
+            verify(auditRepository).insert(
+                eq("CREDIT_AWARDED"), eq(AuditOutcome.SUCCEEDED), eq(null), eq(participantId), eq(null),
+                argThat { this["points"] == expectedPoints },
+            )
+            assertThat(jdbcTemplate.update("DELETE FROM program_participants WHERE id = ?", participantId)).isEqualTo(1)
+            assertThat(repository.creditsForParticipant(participantId)).isEmpty()
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     @Test

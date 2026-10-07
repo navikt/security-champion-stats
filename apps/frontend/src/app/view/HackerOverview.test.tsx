@@ -9,6 +9,7 @@ import type {
 	SecurityEvent,
 } from "@/app/utils/Variables";
 import { HackerOverview } from "./HackerOverview";
+import { hackerCopy } from "./hackerCopy";
 
 vi.mock("@/app/shared/hooks/Apies", () => ({
 	Apies: {
@@ -160,5 +161,19 @@ describe("HackerOverview", () => {
 		expect(await screen.findByRole("progressbar", { name: /upgrading to Champion/ }))
 			.toHaveAttribute("aria-valuenow", "80");
 		expect(screen.getAllByText(name)).toHaveLength(2);
+	});
+
+	it("assigns top clearance to the highest tier in a two-tier progression", async () => {
+		vi.mocked(Apies.getParticipantSeasonScore).mockResolvedValue({
+			...score,
+			level: "Champion",
+			points: 5,
+			tiers: [{ name: "Starter", points: 0 }, { name: "Champion", points: 5 }],
+		});
+
+		render(<HackerOverview info={me} />);
+
+		expect(await screen.findByText(hackerCopy.clearance.expert)).toBeInTheDocument();
+		expect(screen.queryByText(hackerCopy.clearance.apprentice)).not.toBeInTheDocument();
 	});
 });

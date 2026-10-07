@@ -19,6 +19,7 @@ import {
 	useDatepicker,
 } from "@navikt/ds-react";
 import { useMemo, useState } from "react";
+import { ScoringConfigurationView } from "./ScoringConfigurationView";
 
 export function ScoringManagementView({
 	overview,
@@ -203,14 +204,18 @@ export function ScoringManagementView({
 		<VStack gap="space-24">
 			<VStack gap="space-4">
 				<Heading level="1" size="xlarge">
-					Manage scoring
+					Scoring dashboard
 				</Heading>
 				<BodyShort>
-					View current-season points, correct scores, and manage season starts.
+					Configure activity points and tiers, correct scores, and manage seasons.
 				</BodyShort>
 			</VStack>
 
 			{notice && <BodyShort role="status">{notice}</BodyShort>}
+
+			<ScoringConfigurationView key={overview.configuration.version}
+				configuration={overview.configuration} onRefresh={onRefresh}
+				onSaved={() => setNotice("Scoring configuration saved.")} />
 
 			<section aria-labelledby="season-heading">
 				<VStack gap="space-16">

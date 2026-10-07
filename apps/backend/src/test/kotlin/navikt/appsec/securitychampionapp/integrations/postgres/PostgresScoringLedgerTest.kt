@@ -7,6 +7,10 @@ import navikt.appsec.securitychampionapp.app.scoring.INTERRUPTED_SYNC_SUMMARY
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationRequest
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationService
+import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
+import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
@@ -16,6 +20,9 @@ import navikt.appsec.securitychampionapp.app.scoring.SlackSyncSummary
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
+import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
+import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
+import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCategoryRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
@@ -42,6 +49,7 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -50,6 +58,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.DuplicateKeyException
+import org.springframework.dao.DataAccessException
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import org.springframework.transaction.interceptor.TransactionInterceptor
 import org.springframework.transaction.support.TransactionTemplate
@@ -57,13 +66,20 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.sql.SQLException
+import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
+import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.CyclicBarrier
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.argThat
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -130,6 +146,270 @@ class PostgresScoringLedgerTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["SLACK_WEEK", "GITHUB_PULL_REQUEST"])
+    fun `should prevent concurrent deletion between awarding and capturing credit points`(typeName: String) {
+        val participantId = createParticipant("person@nav.no")
+        jdbcTemplate.update(
+            "UPDATE program_participants SET created_at = ? WHERE id = ?",
+            Timestamp.from(Instant.parse("2025-01-01T00:00:00Z")), participantId,
+        )
+        val creditType = ActivityCreditType.valueOf(typeName)
+        val expectedPoints = repository.configuration().activities.single { it.creditType == creditType }.points
+        val auditRepository = mock<ProgramAuditRepository>()
+        whenever(auditRepository.participantExists(participantId)).thenReturn(true)
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val ledger = object : ScoringLedger by repository {
+                override fun creditPoints(participantId: UUID, creditType: ActivityCreditType, uniquenessKey: String): Int {
+                    val deletion = executor.submit {
+                        val failure = assertThrows(DataAccessException::class.java) {
+                            TransactionTemplate(transactionManager).executeWithoutResult {
+                                jdbcTemplate.execute("SET LOCAL lock_timeout = '200ms'")
+                                jdbcTemplate.update("DELETE FROM program_participants WHERE id = ?", participantId)
+                            }
+                        }
+                        val cause = failure.cause
+                        check(cause is SQLException)
+                        assertThat(cause.sqlState).isEqualTo("55P03")
+                    }
+                    deletion.get(10, TimeUnit.SECONDS)
+                    return repository.creditPoints(participantId, creditType, uniquenessKey)
+                }
+            }
+            val service = ProxyFactory(
+                ScoringService(ledger, ProgramAuditService(auditRepository, Clock.systemUTC())),
+            ).apply {
+                isProxyTargetClass = true
+                addAdvice(TransactionInterceptor().apply {
+                    transactionManager = this@PostgresScoringLedgerTest.transactionManager
+                    transactionAttributeSource = AnnotationTransactionAttributeSource()
+                })
+            }.proxy as ScoringService
+            val result = if (creditType == ActivityCreditType.SLACK_WEEK) {
+                service.awardCredit(participantId, creditType, "activity:1", "source:1")
+            } else {
+                service.awardGitHubCredit(
+                    participantId, creditType, "activity:1", "source:1", null,
+                    repository.currentSeason().startsOn.atStartOfDay(ZoneId.of("Europe/Oslo")).toInstant().plusSeconds(1),
+                    repository.currentSeason().id,
+                )
+            }
+            assertThat(result).isEqualTo(CreditAwardResult.AWARDED)
+            verify(auditRepository).insert(
+                eq("CREDIT_AWARDED"), eq(AuditOutcome.SUCCEEDED), eq(null), eq(participantId), eq(null),
+                argThat { this["points"] == expectedPoints },
+            )
+            assertThat(jdbcTemplate.update("DELETE FROM program_participants WHERE id = ?", participantId)).isEqualTo(1)
+            assertThat(repository.creditsForParticipant(participantId)).isEmpty()
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `should preview tier-only changes immediately without altering points`() {
+        val participantId = createParticipant("person@nav.no")
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        val request = configurationRequest(1, retroactive = false).copy(
+            tiers = listOf(ScoringTier("Starter", 0), ScoringTier("Champion", 1)),
+        )
+        val preview = repository.previewConfiguration(request)
+        assertThat(preview.affectedCredits).isZero()
+        assertThat(preview.participants.single().levelBefore).isEqualTo("Novice")
+        assertThat(preview.participants.single().levelAfter).isEqualTo("Champion")
+        assertThat(preview.participants.single().pointsAfter).isEqualTo(1)
+        repository.saveConfiguration(request.copy(previewToken = preview.token), "admin@nav.no")
+        assertThat(ScoringService(repository).ownScore(participantId).level).isEqualTo("Champion")
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT after_values->'tiers'->0->>'name' FROM program_scoring_audit WHERE action = 'SCORING_CONFIGURATION_UPDATED'",
+            String::class.java,
+        )).isEqualTo("Starter")
+    }
+
+    @Test
+    fun `should serialize competing configuration saves and apply repricing only once`() {
+        val participantId = createParticipant("person@nav.no")
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        val request = configurationRequest(4)
+        val preview = repository.previewConfiguration(request)
+        val barrier = CyclicBarrier(2)
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            val futures = (1..2).map {
+                executor.submit<String> {
+                    barrier.await(10, TimeUnit.SECONDS)
+                    try {
+                        repository.saveConfiguration(request.copy(previewToken = preview.token), "admin@nav.no")
+                        "saved"
+                    } catch (_: StaleScoringConfigurationException) {
+                        "stale"
+                    }
+                }
+            }
+            assertThat(futures.map { it.get(10, TimeUnit.SECONDS) }).containsExactlyInAnyOrder("saved", "stale")
+        } finally {
+            executor.shutdownNow()
+        }
+        assertThat(repository.configuration().version).isEqualTo(2)
+        assertThat(repository.scoreForParticipant(participantId, repository.currentSeason().id)).isEqualTo(4)
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM point_adjustments WHERE scoring_configuration_version IS NOT NULL", Int::class.java,
+        )).isEqualTo(1)
+    }
+
+    @Test
+    fun `should persist configured tiers and award all activity types at their configured values including zero`() {
+        val participantId = createParticipant("person@nav.no")
+        val service = ScoringConfigurationService(repository)
+        val current = service.configuration()
+        val request = ScoringConfigurationRequest(
+            current.version,
+            listOf(ScoringTier("Starter", 0), ScoringTier("Champion", 5)),
+            current.activities.mapIndexed { index, activity -> activity.copy(points = index) },
+            reason = "Balance the program",
+        )
+        val preview = service.preview(request)
+        val saved = service.save(request.copy(previewToken = preview.token), "admin@nav.no")
+
+        assertThat(saved.version).isEqualTo(2)
+        assertThat(saved.tiers).containsExactly(ScoringTier("Starter", 0), ScoringTier("Champion", 5))
+        ActivityCreditType.entries.forEach { type ->
+            assertThat(repository.awardCredit(participantId, type, "activity:${type.name}", "source:${type.name}"))
+                .isEqualTo(CreditAwardResult.AWARDED)
+            assertThat(repository.awardCredit(participantId, type, "activity:${type.name}", "source:${type.name}"))
+                .isEqualTo(CreditAwardResult.DUPLICATE)
+            assertThat(repository.creditPoints(participantId, type, "activity:${type.name}")).isEqualTo(type.ordinal)
+        }
+        assertThat(ScoringService(repository).ownScore(participantId).level).isEqualTo("Champion")
+        assertThat(ScoringService(repository).ownScore(participantId).tiers).isEqualTo(saved.tiers)
+        assertThat(ScoringService(repository).leaderboard().single().level).isEqualTo("Champion")
+        assertThat(ScoringService(repository).adminOverview().participants.single().level).isEqualTo("Champion")
+    }
+
+    @Test
+    fun `should preview without writes and preserve existing credits on a future-only change`() {
+        val participantId = createParticipant("person@nav.no")
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        val request = configurationRequest(4, retroactive = false)
+        val original = repository.configuration()
+        val preview = repository.previewConfiguration(request)
+
+        assertThat(repository.configuration()).isEqualTo(original)
+        assertThat(preview.affectedCredits).isZero()
+        assertThat(preview.pointsDelta).isZero()
+        repository.saveConfiguration(request.copy(previewToken = preview.token), "admin@nav.no")
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:2", "message:2")
+
+        assertThat(repository.creditsForParticipant(participantId).map { it.points }).containsExactly(4, 1)
+        assertThat(repository.scoreForParticipant(participantId, repository.currentSeason().id)).isEqualTo(5)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_adjustments", Int::class.java)).isZero()
+    }
+
+    @Test
+    fun `should reprice current season credits repeatedly without rewriting credits or manual corrections`() {
+        val participantId = createParticipant("person@nav.no")
+        val closedSeason = repository.currentSeason()
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:old", "message:old")
+        repository.resetManually(closedSeason.startsOn.plusDays(1), "New season", "admin@nav.no")
+        val season = repository.currentSeason()
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        val credit = repository.creditsForParticipant(participantId).first()
+        repository.addAdjustment(participantId, -1, "Manual source correction", "admin@nav.no", credit.id)
+        repository.addAdjustment(participantId, 2, "Manual bonus", "admin@nav.no", null)
+        jdbcTemplate.update("UPDATE program_participants SET status = 'DEACTIVATED' WHERE id = ?", participantId)
+        val originalCredits = repository.creditsForParticipant(participantId)
+
+        val first = configurationRequest(4)
+        val preview = repository.previewConfiguration(first)
+        assertThat(preview.affectedCredits).isEqualTo(1)
+        assertThat(preview.pointsDelta).isEqualTo(3)
+        assertThat(preview.participants.single().pointsBefore).isEqualTo(2)
+        assertThat(preview.participants.single().pointsAfter).isEqualTo(5)
+        repository.saveConfiguration(first.copy(previewToken = preview.token), "admin@nav.no")
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(5)
+
+        val second = configurationRequest(2)
+        val secondPreview = repository.previewConfiguration(second)
+        assertThat(secondPreview.pointsDelta).isEqualTo(-2)
+        repository.saveConfiguration(second.copy(previewToken = secondPreview.token), "admin@nav.no")
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(3)
+
+        val repeated = configurationRequest(2)
+        val repeatedPreview = repository.previewConfiguration(repeated)
+        assertThat(repeatedPreview.affectedCredits).isZero()
+        repository.saveConfiguration(repeated.copy(previewToken = repeatedPreview.token), "admin@nav.no")
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(3)
+        assertThat(repository.scoreForParticipant(participantId, closedSeason.id)).isEqualTo(1)
+        assertThat(repository.creditsForParticipant(participantId)).isEqualTo(originalCredits)
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM point_adjustments WHERE scoring_configuration_version IS NULL", Int::class.java,
+        )).isEqualTo(2)
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM point_adjustments WHERE scoring_configuration_version IS NOT NULL", Int::class.java,
+        )).isEqualTo(2)
+        assertThat(adminDashboardRepository.metrics(season.id, season.startsOn, season.startsOn.plusYears(1))
+            .pointsByCreditType.values.sum()).isEqualTo(3)
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["award", "manual-adjustment", "season", "configuration", "request"])
+    fun `should reject a stale preview without changing rules or adding repricing adjustments`(change: String) {
+        val participantId = createParticipant("person@nav.no")
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        val request = configurationRequest(4)
+        val preview = repository.previewConfiguration(request)
+        when (change) {
+            "award" -> repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:2", "message:2")
+            "manual-adjustment" -> repository.addAdjustment(participantId, 2, "Correction", "admin@nav.no", null)
+            "season" -> repository.resetManually(repository.currentSeason().startsOn.plusDays(1), "Reset", "admin@nav.no")
+            "configuration" -> {
+                val competing = configurationRequest(2, retroactive = false)
+                val competingPreview = repository.previewConfiguration(competing)
+                repository.saveConfiguration(competing.copy(previewToken = competingPreview.token), "other@nav.no")
+            }
+        }
+        val before = repository.configuration()
+        val submitted = if (change == "request") request.copy(reason = "Different request") else request
+        assertThatThrownBy {
+            repository.saveConfiguration(submitted.copy(previewToken = preview.token), "admin@nav.no")
+        }.isInstanceOf(StaleScoringConfigurationException::class.java)
+        assertThat(repository.configuration()).isEqualTo(before)
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM point_adjustments WHERE scoring_configuration_version IS NOT NULL", Int::class.java,
+        )).isZero()
+    }
+
+    @Test
+    fun `should atomically roll back rules tiers and adjustments if scoring audit fails`() {
+        val participantId = createParticipant("person@nav.no")
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "message:1")
+        val original = repository.configuration()
+        val request = configurationRequest(4).copy(tiers = listOf(ScoringTier("Starter", 0)))
+        val preview = repository.previewConfiguration(request)
+        rejectScoringAuditInserts()
+
+        assertThatThrownBy {
+            repository.saveConfiguration(request.copy(previewToken = preview.token), "admin@nav.no")
+        }.isInstanceOf(DataIntegrityViolationException::class.java)
+        assertThat(repository.configuration()).isEqualTo(original)
+        assertThat(repository.scoreForParticipant(participantId, repository.currentSeason().id)).isEqualTo(1)
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM point_adjustments", Int::class.java)).isZero()
+    }
+
+    private fun configurationRequest(points: Int, retroactive: Boolean = true): ScoringConfigurationRequest {
+        val configuration = repository.configuration()
+        return ScoringConfigurationRequest(
+            configuration.version,
+            configuration.tiers,
+            configuration.activities.map {
+                if (it.creditType == ActivityCreditType.SLACK_WEEK) it.copy(points = points) else it
+            },
+            applyRetroactively = retroactive,
+            reason = "Balance Slack scoring",
+        )
     }
 
     @Test

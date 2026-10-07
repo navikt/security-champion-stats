@@ -4,6 +4,12 @@ import jakarta.servlet.FilterChain
 import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminScoringController
+import navikt.appsec.securitychampionapp.app.api.AdminScoringConfigurationController
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationService
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationRequest
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationPreview
+import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
+import navikt.appsec.securitychampionapp.app.scoring.defaultScoringConfiguration
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
@@ -42,9 +48,9 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
 
-@WebMvcTest(AdminScoringController::class)
+@WebMvcTest(AdminScoringController::class, AdminScoringConfigurationController::class)
 @ActiveProfiles("test")
-@Import(SecurityConfig::class, ScoringService::class)
+@Import(SecurityConfig::class, ScoringService::class, ScoringConfigurationService::class)
 class AdminScoringControllerTest {
     @Autowired
     lateinit var mockMvc: MockMvc
@@ -57,6 +63,82 @@ class AdminScoringControllerTest {
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
+    @Test
+    fun `should expose configured tiers and activity values only to administrators`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(scoringRepository.configuration()).thenReturn(defaultScoringConfiguration)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/scoring/configuration"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.version").value(1))
+            .andExpect(jsonPath("$.tiers[0].name").value("Novice"))
+            .andExpect(jsonPath("$.activities[3].points").value(3))
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["GET", "PUT", "POST"])
+    fun `should reject all scoring configuration operations for non administrators`(method: String) {
+        mockAuthenticatedUser(USER_ROLE)
+        val path = "/api/admin/scoring/configuration" + if (method == "POST") "/preview" else ""
+        mockMvc.perform(MockMvcRequestBuilders.request(org.springframework.http.HttpMethod.valueOf(method), path)
+            .contentType(MediaType.APPLICATION_JSON).content("{}"))
+            .andExpect(status().isForbidden)
+        verifyNoInteractions(scoringRepository)
+    }
+
+    @Test
+    fun `should preview and save confirmed scoring configuration with the authenticated actor`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val request = ScoringConfigurationRequest(
+            1, defaultScoringConfiguration.tiers, defaultScoringConfiguration.activities,
+            applyRetroactively = true, reason = "Balance scoring",
+        )
+        val season = SeasonSummary(UUID.randomUUID(), LocalDate.of(2026, 1, 1), null, LocalDate.of(2027, 1, 1))
+        whenever(scoringRepository.previewConfiguration(request)).thenReturn(
+            ScoringConfigurationPreview("preview-token", season, 2, 6, emptyList()),
+        )
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/scoring/configuration/preview")
+            .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.token").value("preview-token"))
+            .andExpect(jsonPath("$.affectedCredits").value(2))
+            .andExpect(jsonPath("$.pointsDelta").value(6))
+
+        val confirmed = request.copy(previewToken = "preview-token")
+        whenever(scoringRepository.saveConfiguration(confirmed, "admin@nav.no"))
+            .thenReturn(defaultScoringConfiguration.copy(version = 2))
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/admin/scoring/configuration")
+            .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(confirmed)))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.version").value(2))
+        verify(scoringRepository).saveConfiguration(confirmed, "admin@nav.no")
+    }
+
+    @Test
+    fun `should return problem details for stale configuration previews`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val request = ScoringConfigurationRequest(
+            1, defaultScoringConfiguration.tiers, defaultScoringConfiguration.activities,
+            reason = "Balance scoring", previewToken = "stale",
+        )
+        whenever(scoringRepository.saveConfiguration(request, "admin@nav.no"))
+            .thenThrow(StaleScoringConfigurationException())
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/admin/scoring/configuration")
+            .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isConflict)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Scoring changed"))
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["{}", """{"expectedVersion":1,"tiers":null,"activities":[],"reason":"Change"}"""])
+    fun `should reject malformed scoring configuration bodies`(body: String) {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/admin/scoring/configuration/preview")
+            .contentType(MediaType.APPLICATION_JSON).content(body))
+            .andExpect(status().isBadRequest)
+        verifyNoInteractions(scoringRepository)
+    }
 
     @Test
     fun `should reject scoring operations for non-admins`() {

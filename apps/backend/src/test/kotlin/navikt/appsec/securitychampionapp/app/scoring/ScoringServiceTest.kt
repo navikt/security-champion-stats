@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.scoring
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeEach
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import java.time.LocalDate
@@ -10,12 +11,30 @@ import java.util.UUID
 class ScoringServiceTest {
     private val repository: ScoringLedger = mock()
     private val service = ScoringService(repository)
+    @BeforeEach
+    fun configureScoring() {
+        whenever(repository.configuration()).thenReturn(defaultScoringConfiguration)
+    }
     private val season = SeasonSummary(
         id = UUID.randomUUID(),
         startsOn = LocalDate.parse("2026-01-01"),
         endsOn = null,
         nextResetDate = LocalDate.parse("2027-01-01"),
     )
+
+    @Test
+    fun `should use saved custom tier names and thresholds for negative and boundary scores`() {
+        val participant = UUID.randomUUID()
+        whenever(repository.configuration()).thenReturn(defaultScoringConfiguration.copy(
+            tiers = listOf(ScoringTier("Starter", 0), ScoringTier("Champion", 5)),
+        ))
+        whenever(repository.currentSeason()).thenReturn(season)
+        listOf(-2L to "Starter", 0L to "Starter", 4L to "Starter", 5L to "Champion").forEach { (points, level) ->
+            whenever(repository.scoreForParticipant(participant, season.id)).thenReturn(points)
+            whenever(repository.scoresForSeason(season.id, activeOnly = true)).thenReturn(emptyList())
+            assertEquals(level, service.ownScore(participant).level)
+        }
+    }
 
     @Test
     fun `should return participant rank using shared competition ranks`() {

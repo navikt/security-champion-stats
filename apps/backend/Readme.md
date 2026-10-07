@@ -15,6 +15,15 @@ creating, deactivating, or restoring participation.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
+Administrators configure named tiers, point thresholds, and all five activity point values at
+`/appsec/scoring`. Zero-point activities still retain their qualifying credit and deduplication identity.
+Changes require a reason, an impact preview, and confirmation. Tier changes take effect immediately;
+activity point changes normally affect new credits only. Optional current-season repricing appends
+source-linked adjustments, preserving original credits, manual corrections, and closed-season balances.
+Repeated repricing accounts for previous rule adjustments rather than applying the difference twice.
+Configuration saves are transactional and reject stale previews with HTTP 409.
+Credit awards and capture of their awarded point values share a transaction, preventing concurrent
+participant deletion from interrupting the lookup. Best-effort operational audit writes run after commit.
 Slack scoring awards one weekly credit for qualifying messages in the configured Security Champions channel.
 The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
 Sync maps unmapped authors automatically when their Slack profile email (`users.info`, needs `users:read.email`)
@@ -87,7 +96,7 @@ until permanent deletion. Audit writes are best-effort and do not change scoring
 Administrators choose eligible Delta categories and can add single owner-confirmed Delta event UUIDs.
 Delta registration sync fetches past public events once per category (`GET /event?categories=<id>&onlyPast=true`)
 and each single event (`GET /event/{id}`), keeps events that started this calendar year, and matches only
-participant and host emails locally. Active program participants receive 1 point per eligible event, including hosts;
+participant and host emails locally. Active program participants receive the configured points (initially 1) per eligible event, including hosts;
 being listed in both rosters does not award extra credit. Removing a category keeps awarded credits.
 The sync is disabled by default until Delta read access,
 outbound network access, and eligible public event identifiers are confirmed. Administrators can inspect
@@ -100,7 +109,7 @@ Playbook events are cached from `https://sikkerhet.nav.no/events.json` at startu
 `external:*` entries remain visible unless their Delta URL identifies an event already in our catalog.
 Date-only feed events do not affect scoring.
 Administrators can trigger an import with `POST /api/admin/playbook/events/sync`.
-GitHub scoring awards 3 points per merged playbook PR or 1 per standalone default-branch commit,
+GitHub scoring initially awards 3 points per merged playbook PR or 1 per standalone default-branch commit,
 strictly after enrollment and within the current season. The App installation token is requested unscoped and needs
 organization `Members: read` and `Administration: read` (SAML identities), plus `Contents: read` /
 `Pull requests: read` on `navikt/security-playbook`.

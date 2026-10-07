@@ -21,9 +21,32 @@ import type {
 	AuditResponse,
 	AuditCategory,
 	ParticipantHistoryEntry,
+	ScoringConfigurationRequest,
+	ScoringConfigurationPreview,
 } from "../../utils/Variables";
 
 export const Apies = {
+	previewScoringConfiguration: async (request: ScoringConfigurationRequest): Promise<ScoringConfigurationPreview> => {
+		const res = await fetch("/api/admin/scoring/configuration/preview", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(request),
+		});
+		if (!res.ok) {
+			throw new Error(res.status === 409
+				? "Scoring changed. Reload the configuration and preview again."
+				: "We couldn't preview the scoring changes. Check the values and try again.");
+		}
+		return res.json();
+	},
+	saveScoringConfiguration: async (request: ScoringConfigurationRequest): Promise<number> => {
+		const res = await fetch("/api/admin/scoring/configuration", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(request),
+		});
+		return res.status;
+	},
 	getAdminAudit: async (
 		query: string,
 		category: AuditCategory,

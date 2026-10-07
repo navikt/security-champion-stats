@@ -36,6 +36,7 @@ it("removes personal scoring and leaderboard immediately after voluntary departu
 		points: 1,
 		level: "Novice",
 		rank: 1,
+		tiers: [{ name: "Novice", points: 0 }],
 	});
 	vi.spyOn(Apies, "getLeaderboard").mockResolvedValue([]);
 	render(<MainView info={me} />);
@@ -75,6 +76,7 @@ it("shows an activity error instead of an empty-history message when history fai
 		points: 1,
 		level: "Novice",
 		rank: 1,
+		tiers: [{ name: "Novice", points: 0 }],
 	});
 	vi.spyOn(console, "error").mockImplementation(() => {});
 	render(<MainView info={me} />);

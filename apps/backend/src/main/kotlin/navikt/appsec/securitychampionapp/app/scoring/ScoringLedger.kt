@@ -5,6 +5,14 @@ import java.time.LocalDate
 import java.util.UUID
 
 interface ScoringLedger {
+    fun configuration(): ScoringConfiguration
+
+    fun previewConfiguration(request: ScoringConfigurationRequest): ScoringConfigurationPreview
+
+    fun saveConfiguration(request: ScoringConfigurationRequest, actor: String): ScoringConfiguration
+
+    fun creditPoints(participantId: UUID, creditType: ActivityCreditType, uniquenessKey: String): Int
+
     fun currentSeason(): SeasonSummary
 
     fun scoresForCurrentSeason(activeOnly: Boolean = false): List<ParticipantSeasonScore>

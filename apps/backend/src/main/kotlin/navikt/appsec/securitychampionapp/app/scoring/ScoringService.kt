@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionapp.app.scoring
 import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -15,7 +16,9 @@ class ScoringService(
     private val repository: ScoringLedger,
     private val auditService: ProgramAuditService? = null,
 ) {
+    @Transactional
     fun adminOverview(): AdminScoringOverview {
+        val configuration = repository.configuration()
         val season = repository.currentSeason()
         val scores = repository.scoresForSeason(season.id)
         return AdminScoringOverview(
@@ -28,9 +31,10 @@ class ScoringService(
                     email = it.email,
                     active = it.active,
                     points = it.points,
-                    level = levelFor(it.points),
+                    level = configuration.levelFor(it.points),
                 )
             },
+            configuration = configuration,
         )
     }
 
@@ -39,20 +43,25 @@ class ScoringService(
             .filter { it.points > 0 && it.rank <= 5 }
             .map { RecognitionEntry(it.fullName, it.rank) }
 
-    fun leaderboard(currentParticipantId: UUID? = null): List<LeaderboardEntry> =
-        ranked(repository.scoresForCurrentSeason(activeOnly = true))
+    @Transactional
+    fun leaderboard(currentParticipantId: UUID? = null): List<LeaderboardEntry> {
+        val configuration = repository.configuration()
+        return ranked(repository.scoresForCurrentSeason(activeOnly = true))
             .filter { it.points > 0 }
             .map {
                 LeaderboardEntry(
                     it.fullName,
                     it.rank,
                     it.points,
-                    levelFor(it.points),
+                    configuration.levelFor(it.points),
                     isCurrentUser = it.participantId == currentParticipantId,
                 )
             }
+    }
 
+    @Transactional
     fun ownScore(participantId: UUID): OwnSeasonScore {
+        val configuration = repository.configuration()
         val season = repository.currentSeason()
         val points = repository.scoreForParticipant(participantId, season.id)
         val rank = if (points > 0) {
@@ -62,7 +71,7 @@ class ScoringService(
         } else {
             null
         }
-        return OwnSeasonScore(season, points, levelFor(points), rank)
+        return OwnSeasonScore(season, points, configuration.levelFor(points), rank, configuration.tiers)
     }
 
     fun creditsForParticipant(participantId: UUID): List<ActivityCredit> {
@@ -70,6 +79,7 @@ class ScoringService(
         return repository.creditsForParticipant(participantId)
     }
 
+    @Transactional
     fun awardCredit(
         participantId: UUID,
         creditType: ActivityCreditType,
@@ -87,10 +97,11 @@ class ScoringService(
             sourceReference,
             auditCorrelationId,
         )
-        recordAward(participantId, creditType, sourceReference, auditCorrelationId, result)
+        recordAward(participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, result)
         return result
     }
 
+    @Transactional
     fun awardGitHubCredit(
         participantId: UUID,
         creditType: ActivityCreditType,
@@ -108,26 +119,27 @@ class ScoringService(
         val result = repository.awardGitHubCredit(
             participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, activityAt, expectedSeasonId,
         )
-        recordAward(participantId, creditType, sourceReference, auditCorrelationId, result)
+        recordAward(participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, result)
         return result
     }
 
     private fun recordAward(
         participantId: UUID,
         creditType: ActivityCreditType,
+        uniquenessKey: String,
         sourceReference: String,
         auditCorrelationId: UUID?,
         result: CreditAwardResult,
     ) {
-        if (result == CreditAwardResult.AWARDED) {
-            auditService?.record(
+        if (result == CreditAwardResult.AWARDED && auditService != null) {
+            auditService.record(
                 action = "CREDIT_AWARDED",
                 outcome = AuditOutcome.SUCCEEDED,
                 targetParticipantId = participantId,
                 correlationId = auditCorrelationId,
                 details = mapOf(
                     "creditType" to creditType.name,
-                    "points" to creditType.points,
+                    "points" to repository.creditPoints(participantId, creditType, uniquenessKey),
                     "sourceReference" to sourceReference,
                 ),
             )
@@ -222,14 +234,6 @@ class ScoringService(
             RankedScore(score.participantId, score.fullName, score.points, currentRank)
         }
     }
-
-    private fun levelFor(points: Long): String =
-        when {
-            points >= 500 -> "Expert"
-            points >= 250 -> "Adept"
-            points >= 100 -> "Apprentice"
-            else -> "Novice"
-        }
 
     private data class RankedScore(
         val participantId: UUID,

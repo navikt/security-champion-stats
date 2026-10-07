@@ -3,8 +3,10 @@ import { AdminScoringOverview } from "@/app/utils/Variables";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ScoringManagementView } from "./ScoringManagementView";
+import { defaultScoringConfiguration } from "@/app/utils/scoringFixtures.test-support";
 
 const overview: AdminScoringOverview = {
+	configuration: defaultScoringConfiguration,
 	season: {
 		id: "season-1",
 		startsOn: "2026-01-01",

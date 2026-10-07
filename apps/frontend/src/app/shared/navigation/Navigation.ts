@@ -26,7 +26,7 @@ export const administrationLinks: ModuleNavLink[] = [
 	{ label: "Program dashboard", path: "/dashboard" },
 	{ label: "Manage events", path: "/appsec/events" },
 	{ label: "Manage participants", path: "/appsec/membership" },
-	{ label: "Manage scoring", path: "/appsec/scoring" },
+	{ label: "Scoring dashboard", path: "/appsec/scoring" },
 	{ label: "Manage Slack mappings", path: "/appsec/slack" },
 	{ label: "Manage Delta mappings", path: "/appsec/delta" },
 	{ label: "Audit trail", path: "/appsec/audit" },

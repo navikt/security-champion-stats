@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import AppLayout from "./AppLayout";
 import { HackerPreferencesProvider } from "./shared/theme/ThemeProvider";
 import type { Me } from "./utils/Variables";
+import { hackerCopy } from "./view/hackerCopy";
 
 const state = vi.hoisted(() => ({
 	pathName: "/",
 	loading: false,
+	theme: "system",
 	me: {
 		username: "synthetic.user@nav.no",
 		displayName: "Ada Lovelace",
@@ -27,7 +29,7 @@ vi.mock("./shared/hooks/UseMe", () => ({
 
 vi.mock("next-themes", () => ({
 	useTheme: () => ({
-		theme: "system",
+		theme: state.theme,
 		resolvedTheme: "light",
 		setTheme: vi.fn(),
 	}),
@@ -36,7 +38,9 @@ vi.mock("next-themes", () => ({
 beforeEach(() => {
 	state.pathName = "/";
 	state.loading = false;
+	state.theme = "system";
 	state.me.isAdmin = false;
+	state.me.isParticipant = true;
 	state.me.displayName = "Ada Lovelace";
 });
 
@@ -58,9 +62,12 @@ describe("sidebar layout", () => {
 		expect(sidebar).toContainElement(
 			screen.getByRole("link", { name: "Sec Hub" }),
 		);
-		for (const label of ["Overview", "Events", "Community"]) {
-			expect(sidebar).toContainElement(
-				screen.getByRole("link", { name: label }),
+		for (const label of ["Overview", "Events", "Community", "My history"]) {
+			const link = screen.getByRole("link", { name: label });
+			expect(sidebar).toContainElement(link);
+			expect(link.querySelector(".sideNavigation__icon")).toHaveAttribute(
+				"aria-hidden",
+				"true",
 			);
 		}
 		expect(screen.queryByRole("banner")).not.toBeInTheDocument();
@@ -79,6 +86,34 @@ describe("sidebar layout", () => {
 		expect(avatar).toHaveAttribute("title", "Signed in as Ada Lovelace");
 		expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
 		expect(screen.getByRole("main")).toHaveTextContent("Page content");
+	});
+
+	it("keeps My history active and available only to participants", () => {
+		state.pathName = "/history";
+		const { unmount } = renderLayout();
+
+		expect(screen.getByRole("link", { name: "My history" })).toHaveAttribute(
+			"aria-current",
+			"page",
+		);
+
+		unmount();
+		state.me.isParticipant = false;
+		renderLayout();
+		expect(
+			screen.queryByRole("link", { name: "My history" }),
+		).not.toBeInTheDocument();
+	});
+
+	it("keeps My history text-only in the Hacker theme", () => {
+		state.theme = "hacker";
+		renderLayout();
+
+		const link = screen.getByRole("link", {
+			name: hackerCopy.navigation.history.trim(),
+		});
+		expect(link).toHaveAttribute("href", "/history");
+		expect(link.querySelector("svg")).not.toBeInTheDocument();
 	});
 
 	it("shows first-name-first initials for a surname-first Entra display name", () => {

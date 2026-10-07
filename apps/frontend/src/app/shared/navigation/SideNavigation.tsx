@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import "../../style/SideNavigation.css";
-import { ChevronDownIcon } from "@navikt/aksel-icons";
+import { ChevronDownIcon, TimelineIcon } from "@navikt/aksel-icons";
 import { Button } from "@navikt/ds-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -141,7 +141,10 @@ export function SideNavigation({ me }: { me: Me }) {
 							isActivePath(pathName, "/history") ? "page" : undefined
 						}
 					>
-						{hacker ? hackerCopy.navigation.history : "My history"}
+						{!hacker && (
+							<TimelineIcon aria-hidden className="sideNavigation__icon" />
+						)}
+						<span>{hacker ? hackerCopy.navigation.history : "My history"}</span>
 					</Link>
 				)}
 				{me.isAdmin && (

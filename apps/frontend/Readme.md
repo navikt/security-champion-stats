@@ -25,6 +25,8 @@ current-season leaderboard. Administrators can view the leaderboard; backend aut
 The user interface is English-only.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
+The favicon is a locally bundled copy of the Security Champion logo from
+https://sikkerhet.nav.no/img/SecurityChampion.svg (`src/app/icon.svg`).
 The optional Hacker theme adds a Matrix-inspired overview and shell; its rain, CRT, and phosphor
 preferences are available only while Hacker is selected.
 Event listings include cached playbook events, with date-only ranges shown without invented times.

@@ -38,8 +38,12 @@ export const Apies = {
 		if (!res.ok) throw new Error("We couldn't load membership announcements. Try again.");
 		return res.json();
 	},
-	triggerSlackMembershipSync: async (): Promise<number> => {
-		const res = await fetch("/api/admin/slack/membership/sync", { method: "POST" });
+	triggerSlackMembershipSync: async (expectedVersion?: string): Promise<number> => {
+		const res = await fetch("/api/admin/slack/membership/sync", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ expectedVersion }),
+		});
 		return res.status;
 	},
 	resolveSlackMembershipDelivery: async (id: string, retry: boolean): Promise<number> => {

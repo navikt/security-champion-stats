@@ -12,8 +12,39 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.core.task.TaskExecutor
 import java.util.UUID
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.mockito.kotlin.inOrder
 
 class ScoringSyncTriggerTest {
+    @Test
+    fun `failed validation closes lease without queueing a write`() {
+        val jobLock = mock<PostgresJobLock>()
+        val executor = mock<TaskExecutor>()
+        val lease = mock<PostgresJobLock.LockLease>()
+        whenever(jobLock.tryAcquireLock(7L, "testSync")).thenReturn(lease)
+        val trigger = ScoringSyncTrigger(jobLock, executor)
+        assertThatThrownBy {
+            trigger.triggerValidated(7L, "testSync", "admin@nav.no", { error("stale preview") }) {}
+        }.hasMessageContaining("stale preview")
+        verify(lease).close()
+        verifyNoInteractions(executor)
+    }
+
+    @Test
+    fun `validation runs under the acquired lease before queueing`() {
+        val jobLock = mock<PostgresJobLock>()
+        val executor = mock<TaskExecutor>()
+        val lease = mock<PostgresJobLock.LockLease>()
+        val validator = mock<Runnable>()
+        whenever(jobLock.tryAcquireLock(7L, "testSync")).thenReturn(lease)
+        val trigger = ScoringSyncTrigger(jobLock, executor)
+        assertEquals(SyncTriggerResult.STARTED,
+            trigger.triggerValidated(7L, "testSync", "admin@nav.no", { validator.run() }) {})
+        val order = inOrder(jobLock, validator, executor)
+        order.verify(jobLock).tryAcquireLock(7L, "testSync")
+        order.verify(validator).run()
+        order.verify(executor).execute(org.mockito.kotlin.any())
+    }
     @Test
     fun `should acquire a lock and run the sync in the background`() {
         val jobLock = mock<PostgresJobLock>()

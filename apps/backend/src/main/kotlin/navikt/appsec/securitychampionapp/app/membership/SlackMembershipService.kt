@@ -4,6 +4,10 @@ import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import org.slf4j.LoggerFactory
+import java.security.MessageDigest
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import java.util.UUID
 
 data class SlackIdentityResolution(
@@ -21,8 +25,14 @@ interface SlackMembershipGateway {
     fun announce(channelId: String, userId: String, kind: MembershipAnnouncementKind, deliveryId: UUID): String
 }
 
-class MembershipDeliveryException(val uncertain: Boolean, message: String) : RuntimeException(message)
+class MembershipDeliveryException(
+    val uncertain: Boolean,
+    message: String,
+    val stopBatch: Boolean = true,
+    val retryAfter: Duration = Duration.ofMinutes(15),
+) : RuntimeException(message)
 class MembershipSyncBusyException : RuntimeException("Slack membership sync is running")
+class MembershipPreviewChangedException : RuntimeException("A fresh Slack membership preview is required")
 
 enum class ChampionRole { PRESENT, ABSENT, UNKNOWN }
 
@@ -39,6 +49,7 @@ data class MembershipAnnouncement(
     val slackUserId: String,
     val kind: MembershipAnnouncementKind,
     val status: MembershipDeliveryStatus,
+    val nextAttemptAt: Instant = Instant.EPOCH,
 )
 
 interface SlackMembershipStore {
@@ -46,6 +57,7 @@ interface SlackMembershipStore {
     fun announcements(usergroupId: String): List<MembershipAnnouncement>
     fun updateDelivery(id: UUID, status: MembershipDeliveryStatus, messageTs: String? = null)
     fun recoverInterruptedDeliveries(usergroupId: String)
+    fun deferDelivery(id: UUID, retryAfter: Duration)
 }
 
 data class SlackMembershipPreview(
@@ -53,6 +65,7 @@ data class SlackMembershipPreview(
     val removedUserIds: Set<String>,
     val unresolvedParticipantIds: Set<UUID>,
     val activeParticipants: Int,
+    val version: String = "",
 )
 
 data class SlackMembershipSettings(
@@ -74,10 +87,11 @@ class SlackMembershipService(
     private val roles: ChampionRoleSource,
     private val state: SlackMembershipStore,
     private val settings: SlackMembershipSettings,
+    private val clock: Clock = Clock.systemUTC(),
 ) {
     private val logger = LoggerFactory.getLogger(SlackMembershipService::class.java)
 
-    fun sync(dryRun: Boolean): SlackMembershipPreview {
+    fun sync(dryRun: Boolean, expectedVersion: String? = null): SlackMembershipPreview {
         val active = participants.findActiveParticipants()
         check(active.isNotEmpty()) {
             "Slack membership sync refuses zero active participants"
@@ -91,7 +105,9 @@ class SlackMembershipService(
             existing - desired,
             resolution.unresolvedParticipantIds,
             active.size,
+            snapshotVersion(active, resolution, existing),
         )
+        if (expectedVersion != null && expectedVersion != preview.version) throw MembershipPreviewChangedException()
         if (dryRun) return preview
         check(resolution.unresolvedParticipantIds.isEmpty() && resolution.users.keys == active.map { it.id }.toSet()) {
             "Slack membership sync blocked by unresolved participant identities"
@@ -108,13 +124,33 @@ class SlackMembershipService(
         return preview
     }
 
+    fun validatePreview(expectedVersion: String?) {
+        if (expectedVersion.isNullOrBlank()) throw MembershipPreviewChangedException()
+        sync(dryRun = true, expectedVersion = expectedVersion)
+    }
+
+    private fun snapshotVersion(
+        active: List<ProgramParticipant>,
+        resolution: SlackIdentityResolution,
+        existing: Set<String>,
+    ): String {
+        val fields = listOf(settings.usergroupId, settings.welcomeChannelId, settings.adminChannelId, active.size.toString()) +
+            active.sortedBy { it.id }.flatMap { listOf(it.id.toString(), it.navNoEmail, resolution.users[it.id].orEmpty()) } +
+            listOf(existing.size.toString()) + existing.sorted() +
+            listOf(resolution.unresolvedParticipantIds.size.toString()) +
+            resolution.unresolvedParticipantIds.map { it.toString() }.sorted()
+        val canonical = fields.joinToString("") { "${it.length}:$it" }
+        return MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+    }
+
     private fun deliverAnnouncements(activeUsers: Map<UUID, String>) {
         val pending = state.announcements(settings.usergroupId)
-            .filter { it.status == MembershipDeliveryStatus.PENDING }
+            .filter { it.status == MembershipDeliveryStatus.PENDING && !it.nextAttemptAt.isAfter(clock.instant()) }
         if (pending.isEmpty()) return
         val roleSnapshot = roles.fetchRoles()
         pending.forEach { announcement ->
-            val participant = participants.findAllParticipants().firstOrNull { it.id == announcement.participantId }
+            val participant = participants.findById(announcement.participantId)
             val active = participant?.status == ParticipationStatus.ACTIVE
             if (participant == null || active != (announcement.kind == MembershipAnnouncementKind.WELCOME)) {
                 state.updateDelivery(announcement.id, MembershipDeliveryStatus.CANCELLED)
@@ -141,11 +177,14 @@ class SlackMembershipService(
                     val messageTs = try {
                         slack.announce(channel, userId, announcement.kind, announcement.id)
                     } catch (e: MembershipDeliveryException) {
-                        state.updateDelivery(
-                            announcement.id,
-                            if (e.uncertain) MembershipDeliveryStatus.UNCERTAIN else MembershipDeliveryStatus.PENDING,
-                        )
-                        throw e
+                        if (e.uncertain) {
+                            state.updateDelivery(announcement.id, MembershipDeliveryStatus.UNCERTAIN)
+                            throw e
+                        }
+                        state.deferDelivery(announcement.id, e.retryAfter)
+                        logger.warn("Slack membership announcement rejected (delivery={}): {}", announcement.id, e.message)
+                        if (e.stopBatch) throw e
+                        return@forEach
                     }
                     state.updateDelivery(announcement.id, MembershipDeliveryStatus.SENT, messageTs)
                 }

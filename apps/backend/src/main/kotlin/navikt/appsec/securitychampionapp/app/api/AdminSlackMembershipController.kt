@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipConfiguration
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.membership.MembershipAnnouncement
 import navikt.appsec.securitychampionapp.app.membership.MembershipSyncBusyException
+import navikt.appsec.securitychampionapp.app.membership.MembershipPreviewChangedException
 import navikt.appsec.securitychampionapp.app.membership.SlackMembershipPreview
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.springframework.http.HttpStatus
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
 data class ResolveMembershipDeliveryRequest(val retry: Boolean)
+data class SyncSlackMembershipRequest(val expectedVersion: String? = null)
 
 @RestController
 @RequestMapping("/api/admin/slack/membership")
@@ -28,8 +30,15 @@ class AdminSlackMembershipController(private val job: SlackMembershipSyncJob) {
     fun announcements(): List<MembershipAnnouncement> = job.announcements()
 
     @PostMapping("/sync")
-    fun sync(): ResponseEntity<Void> =
-        when (job.triggerManualSync(principal().email)) {
+    fun sync(@RequestBody(required = false) request: SyncSlackMembershipRequest?): ResponseEntity<Void> {
+        val result = try {
+            job.triggerManualSync(principal().email, request?.expectedVersion)
+        } catch (_: MembershipPreviewChangedException) {
+            throw ApiRequestException(
+                HttpStatus.CONFLICT, "Preview changed", "Preview membership changes again before starting a write-enabled sync",
+            )
+        }
+        return when (result) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
             SyncTriggerResult.ALREADY_RUNNING -> throw ApiRequestException(
                 HttpStatus.CONFLICT, "Sync already running", "A Slack membership sync is already running",
@@ -41,6 +50,7 @@ class AdminSlackMembershipController(private val job: SlackMembershipSyncJob) {
                 HttpStatus.SERVICE_UNAVAILABLE, "Sync unavailable", "The Slack membership sync could not be started",
             )
         }
+    }
 
     @PostMapping("/announcements/{id}/resolve")
     fun resolve(@PathVariable id: UUID, @RequestBody request: ResolveMembershipDeliveryRequest): ResponseEntity<Void> {

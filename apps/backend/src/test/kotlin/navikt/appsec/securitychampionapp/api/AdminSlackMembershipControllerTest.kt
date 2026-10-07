@@ -8,6 +8,7 @@ import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipSyncJob
 import navikt.appsec.securitychampionapp.app.jobs.SlackMembershipConfiguration
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.membership.MembershipSyncBusyException
+import navikt.appsec.securitychampionapp.app.membership.MembershipPreviewChangedException
 import navikt.appsec.securitychampionapp.app.membership.SlackMembershipPreview
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
@@ -89,11 +90,32 @@ class AdminSlackMembershipControllerTest {
     @Test
     fun `disabled sync returns problem details`() {
         authenticated(ADMIN_ROLE)
-        whenever(job.triggerManualSync(any())).thenReturn(SyncTriggerResult.DISABLED)
+        whenever(job.triggerManualSync(any(), anyOrNull())).thenReturn(SyncTriggerResult.DISABLED)
 
         mvc.perform(post("/api/admin/slack/membership/sync"))
             .andExpect(status().isConflict)
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+    }
+
+    @Test
+    fun `manual sync forwards the reviewed version`() {
+        authenticated(ADMIN_ROLE)
+        whenever(job.triggerManualSync("admin@nav.no", "reviewed-version")).thenReturn(SyncTriggerResult.STARTED)
+        mvc.perform(post("/api/admin/slack/membership/sync")
+            .contentType(MediaType.APPLICATION_JSON).content("""{"expectedVersion":"reviewed-version"}"""))
+            .andExpect(status().isAccepted)
+        verify(job).triggerManualSync("admin@nav.no", "reviewed-version")
+    }
+
+    @Test
+    fun `stale preview returns sanitized conflict details`() {
+        authenticated(ADMIN_ROLE)
+        whenever(job.triggerManualSync(any(), anyOrNull())).thenThrow(MembershipPreviewChangedException())
+        mvc.perform(post("/api/admin/slack/membership/sync")
+            .contentType(MediaType.APPLICATION_JSON).content("""{"expectedVersion":"old-version"}"""))
+            .andExpect(status().isConflict)
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Preview changed"))
     }
 
     @Test

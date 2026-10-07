@@ -15,6 +15,8 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
+import java.time.Duration
+import java.time.Instant
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -121,5 +123,25 @@ class SlackMembershipRepositoryTest {
     private fun enroll(name: String): UUID {
         participants.enroll("$name@nav.no", "A12345", "$name@nav.no")
         return requireNotNull(participants.findByNavNoEmail("$name@nav.no")).id
+    }
+
+    @Test
+    fun `rejected announcements retain a persisted due time until retry is authorized`() {
+        val first = enroll("first")
+        repository.observe("S_GROUP", mapOf(first to "U_FIRST"))
+        val second = enroll("second")
+        repository.observe("S_GROUP", mapOf(first to "U_FIRST", second to "U_SECOND"))
+        val announcement = repository.announcements("S_GROUP").single()
+        val before = Instant.now()
+        repository.updateDelivery(announcement.id, MembershipDeliveryStatus.SENDING)
+        repository.deferDelivery(announcement.id, Duration.ofMinutes(15))
+        val deferred = repository.announcements("S_GROUP").single()
+        assertThat(deferred.status).isEqualTo(MembershipDeliveryStatus.PENDING)
+        assertThat(deferred.nextAttemptAt).isAfter(before.plusSeconds(890))
+        repository.recoverInterruptedDeliveries("S_GROUP")
+        assertThat(repository.announcements("S_GROUP").single()).isEqualTo(deferred)
+        repository.updateDelivery(announcement.id, MembershipDeliveryStatus.UNCERTAIN)
+        assertThat(repository.resolveUncertain("S_GROUP", announcement.id, true)).isTrue()
+        assertThat(repository.announcements("S_GROUP").single().nextAttemptAt).isBefore(Instant.now())
     }
 }

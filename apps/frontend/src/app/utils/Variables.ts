@@ -181,6 +181,7 @@ export type SlackMembershipConfiguration = {
 	dryRun: boolean;
 };
 export type SlackMembershipPreview = {
+	version: string;
 	addedUserIds: string[];
 	removedUserIds: string[];
 	unresolvedParticipantIds: string[];

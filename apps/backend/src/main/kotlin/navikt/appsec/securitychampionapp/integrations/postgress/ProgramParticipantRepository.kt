@@ -29,6 +29,9 @@ class ProgramParticipantRepository(
         )
     }
 
+    override fun findById(id: UUID): ProgramParticipant? =
+        query("SELECT * FROM program_participants WHERE id = ?", id).singleOrNull()
+
     override fun findByNavNoEmail(navNoEmail: String): ProgramParticipant? =
         query("SELECT * FROM program_participants WHERE nav_no_email = ?", navNoEmail).singleOrNull()
 

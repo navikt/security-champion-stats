@@ -5,14 +5,14 @@ import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.chat.ChatPostMessageRequest
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersListRequest
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersUpdateRequest
-import com.slack.api.methods.request.users.UsersInfoRequest
-import com.slack.api.methods.request.users.UsersLookupByEmailRequest
+import com.slack.api.methods.request.users.UsersListRequest
 import com.slack.api.model.User
 import navikt.appsec.securitychampionapp.app.membership.*
 import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import org.springframework.stereotype.Service
 import java.io.IOException
+import java.time.Duration
 import java.util.UUID
 
 @Service
@@ -45,14 +45,18 @@ class SlackMembershipClient(
 
     override fun resolve(participants: List<ProgramParticipant>): SlackIdentityResolution {
         val approved = mappings.mappedParticipants().values.groupBy { it.participantId }
+        val directory = readDirectory()
+        val byId = directory.groupBy { it.id }
+        val byEmail = directory.filter { !it.profile?.email.isNullOrBlank() }
+            .groupBy { it.profile.email.lowercase() }
         val users = mutableMapOf<UUID, String>()
         val unresolved = mutableSetOf<UUID>()
         participants.forEach { participant ->
             val accounts = approved[participant.id].orEmpty()
             val user = when {
                 accounts.size > 1 -> null
-                accounts.size == 1 -> userById(accounts.single().slackUserId)
-                else -> userByEmail(participant.navNoEmail)
+                accounts.size == 1 -> byId[accounts.single().slackUserId]?.singleOrNull()
+                else -> byEmail[participant.navNoEmail.lowercase()]?.singleOrNull()
             }
             if (user == null || user.id.isNullOrBlank() || user.isDeleted || user.isBot ||
                 user.isRestricted || user.isUltraRestricted
@@ -68,30 +72,24 @@ class SlackMembershipClient(
         return SlackIdentityResolution(users, unresolved)
     }
 
-    private fun userById(userId: String): User? {
-        val response = requests.call(SlackIntegrationException.Operation.USERS_INFO) {
-            client.usersInfo(UsersInfoRequest.builder().user(userId).build())
-        }
-        if (response?.error == "user_not_found") return null
-        if (response == null || !response.isOk) {
-            throw SlackIntegrationException(SlackIntegrationException.Operation.USERS_INFO, response?.error)
-        }
-        return response.user
-    }
-
-    private fun userByEmail(email: String): User? {
-        val response = requests.call(SlackIntegrationException.Operation.LOOKUP_BY_EMAIL) {
-            client.usersLookupByEmail(UsersLookupByEmailRequest.builder().email(email).build())
-        }
-        if (response?.error == "users_not_found") return null
-        if (response == null || !response.isOk) {
-            throw SlackIntegrationException(SlackIntegrationException.Operation.LOOKUP_BY_EMAIL, response?.error)
-        }
-        val user = response.user ?: return null
-        check(user.profile?.email?.equals(email, ignoreCase = true) == true) {
-            "Slack email lookup returned an unverified identity"
-        }
-        return user
+    private fun readDirectory(): List<User> {
+        val users = mutableListOf<User>()
+        val cursors = mutableSetOf<String>()
+        var cursor = ""
+        do {
+            val response = requests.call(SlackIntegrationException.Operation.USERS_LIST) {
+                client.usersList(UsersListRequest.builder().limit(1000).cursor(cursor).build())
+            }
+            if (response?.isOk != true || response.members == null || response.responseMetadata?.nextCursor == null) {
+                throw SlackIntegrationException(SlackIntegrationException.Operation.USERS_LIST, response?.error)
+            }
+            users.addAll(response.members)
+            cursor = response.responseMetadata.nextCursor.trim()
+            if (cursor.isNotEmpty() && !cursors.add(cursor)) {
+                throw SlackIntegrationException(SlackIntegrationException.Operation.USERS_LIST, "repeated_cursor")
+            }
+        } while (cursor.isNotEmpty())
+        return users
     }
 
     override fun announce(
@@ -115,6 +113,10 @@ class SlackMembershipClient(
             throw MembershipDeliveryException(
                 e.response?.code.let { it == null || it >= 500 || it == 408 },
                 "Slack membership announcement failed at the HTTP boundary",
+                stopBatch = true,
+                retryAfter = Duration.ofSeconds(
+                    e.response?.header("Retry-After")?.toLongOrNull()?.coerceAtLeast(1) ?: 900,
+                ),
             )
         } catch (_: IOException) {
             throw MembershipDeliveryException(true, "Slack membership announcement delivery is unknown after a network failure")
@@ -123,6 +125,7 @@ class SlackMembershipClient(
             throw MembershipDeliveryException(
                 response == null || response.error in setOf("internal_error", "fatal_error", "request_timeout"),
                 SlackIntegrationException(SlackIntegrationException.Operation.POST_MESSAGE, response?.error).message.orEmpty(),
+                stopBatch = response?.error !in setOf("invalid_user", "user_not_found", "user_disabled", "cannot_dm_bot"),
             )
         }
         return response.ts?.takeIf { it.isNotBlank() }

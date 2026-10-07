@@ -10,6 +10,8 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import org.mockito.kotlin.*
 import java.util.UUID
+import java.time.Instant
+import java.time.Duration
 
 class SlackMembershipServiceTest {
     private val participants = mock<ParticipantStore>()
@@ -60,7 +62,7 @@ class SlackMembershipServiceTest {
         )
         whenever(participants.findActiveParticipants()).thenReturn(listOf(participant))
         whenever(participants.findByNavNoEmail(participant.navNoEmail)).thenReturn(participant)
-        whenever(participants.findAllParticipants()).thenReturn(listOf(participant))
+        whenever(participants.findById(participant.id)).thenReturn(participant)
         whenever(directory.resolve(any()))
             .thenReturn(SlackIdentityResolution(mapOf(participant.id to "U_ACTIVE"), emptySet()))
         whenever(slack.members("S_GROUP")).thenReturn(setOf("U_ACTIVE"))
@@ -76,6 +78,7 @@ class SlackMembershipServiceTest {
         order.verify(slack).announce("C_WELCOME", "U_ACTIVE", announcement.kind, announcement.id)
         order.verify(state).updateDelivery(announcement.id, MembershipDeliveryStatus.SENT, "123.456")
         verify(slack, never()).replaceMembers(any(), any())
+        verify(participants, never()).findAllParticipants()
     }
 
     @ParameterizedTest
@@ -104,7 +107,7 @@ class SlackMembershipServiceTest {
         prepare()
         val removed = participant.copy(id = UUID.randomUUID(), navNoEmail = "removed@nav.no", status = status)
         val announcement = pending(MembershipAnnouncementKind.REMOVAL).copy(participantId = removed.id)
-        whenever(participants.findAllParticipants()).thenReturn(listOf(participant, removed))
+        whenever(participants.findById(removed.id)).thenReturn(removed)
         whenever(state.announcements("S_GROUP")).thenReturn(listOf(announcement))
         whenever(roles.fetchRoles()).thenReturn(mapOf(removed.navNoEmail to ChampionRole.ABSENT))
         whenever(slack.announce(any(), any(), any(), any())).thenReturn("123.456")
@@ -207,11 +210,105 @@ class SlackMembershipServiceTest {
     }
 
     @Test
+    fun `rejected recipient does not starve later announcements`() {
+        prepare()
+        val rejected = pending(MembershipAnnouncementKind.WELCOME)
+        val next = pending(MembershipAnnouncementKind.WELCOME)
+        whenever(state.announcements("S_GROUP")).thenReturn(listOf(rejected, next))
+        whenever(roles.fetchRoles()).thenReturn(mapOf(participant.navNoEmail to ChampionRole.ABSENT))
+        whenever(slack.announce("C_WELCOME", "U_ACTIVE", rejected.kind, rejected.id))
+            .thenThrow(MembershipDeliveryException(false, "invalid_user", stopBatch = false))
+        whenever(slack.announce("C_WELCOME", "U_ACTIVE", next.kind, next.id)).thenReturn("123.456")
+
+        service.sync(false)
+
+        verify(slack).announce("C_WELCOME", "U_ACTIVE", next.kind, next.id)
+        verify(state).updateDelivery(next.id, MembershipDeliveryStatus.SENT, "123.456")
+        verify(state).deferDelivery(rejected.id, Duration.ofMinutes(15))
+    }
+
+    @Test
+    fun `deferred deliveries are not retried before their due time`() {
+        prepare()
+        val announcement = pending(MembershipAnnouncementKind.WELCOME).copy(nextAttemptAt = Instant.MAX)
+        whenever(state.announcements("S_GROUP")).thenReturn(listOf(announcement))
+        service.sync(false)
+        verifyNoInteractions(roles)
+        verify(slack, never()).announce(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `shared configuration rejection stops the batch after persisting retry time`() {
+        prepare()
+        val first = pending(MembershipAnnouncementKind.WELCOME)
+        val next = pending(MembershipAnnouncementKind.WELCOME)
+        whenever(state.announcements("S_GROUP")).thenReturn(listOf(first, next))
+        whenever(roles.fetchRoles()).thenReturn(mapOf(participant.navNoEmail to ChampionRole.ABSENT))
+        whenever(slack.announce(any(), any(), any(), any()))
+            .thenThrow(MembershipDeliveryException(false, "not_in_channel", stopBatch = true))
+        assertThatThrownBy { service.sync(false) }.hasMessageContaining("not_in_channel")
+        verify(state).deferDelivery(first.id, Duration.ofMinutes(15))
+        verify(slack, never()).announce(any(), any(), any(), eq(next.id))
+    }
+
+    @Test
+    fun `manual write is bound to membership identity and enrollment snapshot`() {
+        prepare()
+        val version = service.sync(true).version
+        assertThat(version).hasSize(64)
+        service.validatePreview(version)
+        service.sync(false, version)
+        verify(state).observe("S_GROUP", mapOf(participant.id to "U_ACTIVE"))
+    }
+
+    @Test
+    fun `changed Slack membership invalidates preview before writes`() {
+        prepare()
+        val version = service.sync(true).version
+        whenever(slack.members("S_GROUP")).thenReturn(setOf("U_EXTERNAL"))
+        assertThatThrownBy { service.sync(false, version) }.isInstanceOf(MembershipPreviewChangedException::class.java)
+        verifyNoInteractions(state, roles)
+        verify(slack, never()).replaceMembers(any(), any())
+    }
+
+    @Test
+    fun `changed mapping invalidates preview even when group differences remain identical`() {
+        prepare()
+        val other = participant.copy(id = UUID.randomUUID(), navNoEmail = "other@nav.no")
+        whenever(participants.findActiveParticipants()).thenReturn(listOf(participant, other))
+        whenever(directory.resolve(any())).thenReturn(
+            SlackIdentityResolution(mapOf(participant.id to "U_ACTIVE", other.id to "U_OTHER"), emptySet()),
+        )
+        val version = service.sync(true).version
+        whenever(directory.resolve(any())).thenReturn(
+            SlackIdentityResolution(mapOf(participant.id to "U_OTHER", other.id to "U_ACTIVE"), emptySet()),
+        )
+        assertThatThrownBy { service.sync(false, version) }.isInstanceOf(MembershipPreviewChangedException::class.java)
+        verifyNoInteractions(state, roles)
+    }
+
+    @Test
+    fun `enrollment change invalidates preview`() {
+        prepare()
+        val version = service.sync(true).version
+        whenever(participants.findActiveParticipants()).thenReturn(listOf(participant.copy(navNoEmail = "changed@nav.no")))
+        assertThatThrownBy { service.sync(false, version) }.isInstanceOf(MembershipPreviewChangedException::class.java)
+        verifyNoInteractions(state, roles)
+    }
+
+    @Test
+    fun `missing preview cannot validate a manual write`() {
+        assertThatThrownBy { service.validatePreview(null) }.isInstanceOf(MembershipPreviewChangedException::class.java)
+        assertThatThrownBy { service.validatePreview("") }.isInstanceOf(MembershipPreviewChangedException::class.java)
+        verifyNoInteractions(participants, slack, directory, state)
+    }
+
+    @Test
     fun `pending welcome is cancelled when participant has left before delivery`() {
         prepare()
         val announcement = pending(MembershipAnnouncementKind.WELCOME)
         whenever(state.announcements("S_GROUP")).thenReturn(listOf(announcement))
-        whenever(participants.findAllParticipants()).thenReturn(listOf(participant.copy(status = ParticipationStatus.LEFT)))
+        whenever(participants.findById(participant.id)).thenReturn(participant.copy(status = ParticipationStatus.LEFT))
         whenever(roles.fetchRoles()).thenReturn(emptyMap())
 
         service.sync(false)
@@ -235,7 +332,7 @@ class SlackMembershipServiceTest {
 
     private fun prepare() {
         whenever(participants.findActiveParticipants()).thenReturn(listOf(participant))
-        whenever(participants.findAllParticipants()).thenReturn(listOf(participant))
+        whenever(participants.findById(participant.id)).thenReturn(participant)
         whenever(directory.resolve(any()))
             .thenReturn(SlackIdentityResolution(mapOf(participant.id to "U_ACTIVE"), emptySet()))
         whenever(slack.members("S_GROUP")).thenReturn(setOf("U_ACTIVE"))

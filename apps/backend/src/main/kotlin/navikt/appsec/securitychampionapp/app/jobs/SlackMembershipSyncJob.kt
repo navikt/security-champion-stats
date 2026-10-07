@@ -32,9 +32,13 @@ class SlackMembershipSyncJob(
         lock.runWithLock(SLACK_MEMBERSHIP_LOCK_KEY, "syncSlackMembership") { runSync(AuditRunContext()) }
     }
 
-    fun triggerManualSync(actor: String): SyncTriggerResult =
+    fun triggerManualSync(actor: String, expectedVersion: String? = null): SyncTriggerResult =
         if (!properties.enabled) SyncTriggerResult.DISABLED else
-            trigger.trigger(SLACK_MEMBERSHIP_LOCK_KEY, "syncSlackMembership", actor, ::runSync)
+            trigger.triggerValidated(
+                SLACK_MEMBERSHIP_LOCK_KEY, "syncSlackMembership", actor,
+                { if (!properties.dryRun) service.validatePreview(expectedVersion) },
+                { run -> runSync(run, expectedVersion) },
+            )
 
     fun preview(): SlackMembershipPreview = service.sync(dryRun = true)
 
@@ -60,10 +64,11 @@ class SlackMembershipSyncJob(
         }
     }
 
-    private fun runSync(run: AuditRunContext) {
+    private fun runSync(run: AuditRunContext, expectedVersion: String? = null) {
         audit.recordRun("SLACK_MEMBERSHIP_SYNC_STARTED", AuditOutcome.SUCCEEDED, run)
         try {
-            val result = service.sync(properties.dryRun)
+            val result = if (expectedVersion == null) service.sync(properties.dryRun)
+                else service.sync(properties.dryRun, expectedVersion)
             val outstanding = announcements()
             val partial = result.unresolvedParticipantIds.isNotEmpty() || outstanding.isNotEmpty()
             audit.recordRun(

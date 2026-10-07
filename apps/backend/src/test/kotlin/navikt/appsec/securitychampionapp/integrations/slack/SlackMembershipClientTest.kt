@@ -6,11 +6,12 @@ import com.slack.api.methods.request.chat.ChatPostMessageRequest
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersUpdateRequest
 import com.slack.api.methods.request.users.UsersInfoRequest
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest
+import com.slack.api.methods.request.users.UsersListRequest
 import com.slack.api.methods.response.chat.ChatPostMessageResponse
 import com.slack.api.methods.response.usergroups.users.UsergroupsUsersUpdateResponse
-import com.slack.api.methods.response.users.UsersInfoResponse
-import com.slack.api.methods.response.users.UsersLookupByEmailResponse
+import com.slack.api.methods.response.users.UsersListResponse
 import com.slack.api.model.User
+import com.slack.api.model.ResponseMetadata
 import navikt.appsec.securitychampionapp.app.membership.*
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
@@ -58,16 +59,15 @@ class SlackMembershipClientTest {
     @Test
     fun `email lookup finds participants who have never posted a scoring message`() {
         whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
-        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
-            .thenReturn(UsersLookupByEmailResponse().apply { isOk = true; user = human() })
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(page(listOf(human())))
 
         val result = service.resolve(listOf(participant))
 
         assertThat(result.users).containsEntry(participant.id, "U_PERSON")
         assertThat(result.unresolvedParticipantIds).isEmpty()
-        val request = argumentCaptor<UsersLookupByEmailRequest>()
-        verify(client).usersLookupByEmail(request.capture())
-        assertThat(request.firstValue.email).isEqualTo(participant.navNoEmail)
+        verify(client, times(1)).usersList(any<UsersListRequest>())
+        verify(client, never()).usersLookupByEmail(any<UsersLookupByEmailRequest>())
+        verify(client, never()).usersInfo(any<UsersInfoRequest>())
     }
 
     @Test
@@ -75,8 +75,8 @@ class SlackMembershipClientTest {
         whenever(mappings.mappedParticipants()).thenReturn(mapOf(
             "U_APPROVED" to MappedSlackParticipant("U_APPROVED", participant.id, true, Instant.EPOCH),
         ))
-        whenever(client.usersInfo(any<UsersInfoRequest>())).thenReturn(
-            UsersInfoResponse().apply { isOk = true; user = human().apply { id = "U_APPROVED" } },
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(
+            page(listOf(human().apply { id = "U_APPROVED"; profile.email = "different@nav.no" }, human())),
         )
 
         assertThat(service.resolve(listOf(participant)).users).containsEntry(participant.id, "U_APPROVED")
@@ -89,9 +89,10 @@ class SlackMembershipClientTest {
             "U_FIRST" to MappedSlackParticipant("U_FIRST", participant.id, true, Instant.EPOCH),
             "U_SECOND" to MappedSlackParticipant("U_SECOND", participant.id, true, Instant.EPOCH),
         ))
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(page(emptyList()))
 
         assertThat(service.resolve(listOf(participant)).unresolvedParticipantIds).containsExactly(participant.id)
-        verifyNoInteractions(client)
+        verify(client, times(1)).usersList(any<UsersListRequest>())
     }
 
     @ParameterizedTest
@@ -106,8 +107,7 @@ class SlackMembershipClientTest {
             }
         }
         whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
-        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
-            .thenReturn(UsersLookupByEmailResponse().apply { isOk = true; user = account })
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(page(listOf(account)))
 
         val result = service.resolve(listOf(participant))
 
@@ -119,8 +119,7 @@ class SlackMembershipClientTest {
     fun `a Slack account assigned to two participants blocks both identities`() {
         val other = participant.copy(id = UUID.randomUUID())
         whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
-        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
-            .thenReturn(UsersLookupByEmailResponse().apply { isOk = true; user = human() })
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(page(listOf(human())))
 
         val result = service.resolve(listOf(participant, other))
 
@@ -131,8 +130,8 @@ class SlackMembershipClientTest {
     @Test
     fun `lookup failures cannot become missing-account results`() {
         whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
-        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
-            .thenReturn(UsersLookupByEmailResponse().apply { isOk = false; error = "missing_scope" })
+        whenever(client.usersList(any<UsersListRequest>()))
+            .thenReturn(UsersListResponse().apply { isOk = false; error = "missing_scope" })
 
         assertThatThrownBy { service.resolve(listOf(participant)) }
             .isInstanceOf(SlackIntegrationException::class.java)
@@ -173,32 +172,121 @@ class SlackMembershipClientTest {
 
         assertThatThrownBy {
             service.announce("C_DESTINATION", "U_PERSON", MembershipAnnouncementKind.WELCOME, UUID.randomUUID())
-        }.isInstanceOfSatisfying(MembershipDeliveryException::class.java) { assertThat(it.uncertain).isFalse() }
+        }.isInstanceOfSatisfying(MembershipDeliveryException::class.java) {
+            assertThat(it.uncertain).isFalse()
+            assertThat(it.stopBatch).isTrue()
+        }
+    }
+
+    @Test
+    fun `recipient rejection allows remaining messages to proceed`() {
+        whenever(client.chatPostMessage(any<ChatPostMessageRequest>()))
+            .thenReturn(ChatPostMessageResponse().apply { isOk = false; error = "invalid_user" })
+        assertThatThrownBy {
+            service.announce("C_DESTINATION", "U_PERSON", MembershipAnnouncementKind.WELCOME, UUID.randomUUID())
+        }.isInstanceOfSatisfying(MembershipDeliveryException::class.java) {
+            assertThat(it.uncertain).isFalse()
+            assertThat(it.stopBatch).isFalse()
+        }
+    }
+
+    @Test
+    fun `message rate limit is deferred without automatic resend and honors Retry-After`() {
+        val limited = SlackApiException(
+            Response.Builder().request(Request.Builder().url("https://slack.com/api/chat.postMessage").build())
+                .protocol(Protocol.HTTP_1_1).code(429).message("Too Many Requests").header("Retry-After", "1200").build(),
+            """{"ok":false,"error":"ratelimited"}""",
+        )
+        whenever(client.chatPostMessage(any<ChatPostMessageRequest>())).thenThrow(limited)
+        assertThatThrownBy {
+            service.announce("C_DESTINATION", "U_PERSON", MembershipAnnouncementKind.WELCOME, UUID.randomUUID())
+        }.isInstanceOfSatisfying(MembershipDeliveryException::class.java) {
+            assertThat(it.uncertain).isFalse()
+            assertThat(it.stopBatch).isTrue()
+            assertThat(it.retryAfter).isEqualTo(Duration.ofSeconds(1200))
+        }
+        verify(client, times(1)).chatPostMessage(any<ChatPostMessageRequest>())
     }
 
     @Test
     fun `identity lookups honor rate limits without restarting the entire reconciliation`() {
         val sleeps = mutableListOf<Duration>()
         val limited = SlackApiException(
-            Response.Builder().request(Request.Builder().url("https://slack.com/api/users.lookupByEmail").build())
+            Response.Builder().request(Request.Builder().url("https://slack.com/api/users.list").build())
                 .protocol(Protocol.HTTP_1_1).code(429).message("Too Many Requests").header("Retry-After", "2").build(),
             """{"ok":false,"error":"ratelimited"}""",
         )
         whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
-        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
+        whenever(client.usersList(any<UsersListRequest>()))
             .thenThrow(limited)
-            .thenReturn(UsersLookupByEmailResponse().apply { isOk = true; user = human() })
+            .thenReturn(page(listOf(human())))
 
         val result = SlackMembershipClient(client, mappings, SlackApiService(client) { sleeps += it })
             .resolve(listOf(participant))
 
         assertThat(result.users).containsEntry(participant.id, "U_PERSON")
         assertThat(sleeps).containsExactly(Duration.ofSeconds(2))
-        verify(client, times(2)).usersLookupByEmail(any<UsersLookupByEmailRequest>())
+        verify(client, times(2)).usersList(any<UsersListRequest>())
+    }
+
+    @Test
+    fun `128 participants resolve from a complete paginated directory with two calls`() {
+        val participants = (1..128).map {
+            participant.copy(id = UUID.randomUUID(), navNoEmail = "participant$it@nav.no")
+        }
+        val users = participants.mapIndexed { index, person ->
+            human().apply { id = "U_$index"; profile.email = person.navNoEmail }
+        }
+        whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
+        whenever(client.usersList(any<UsersListRequest>()))
+            .thenReturn(page(users.take(64), "next"), page(users.drop(64)))
+
+        val result = service.resolve(participants)
+
+        assertThat(result.users).hasSize(128)
+        assertThat(result.unresolvedParticipantIds).isEmpty()
+        val requests = argumentCaptor<UsersListRequest>()
+        verify(client, times(2)).usersList(requests.capture())
+        assertThat(requests.allValues.map { it.cursor }).containsExactly("", "next")
+        verify(client, never()).usersInfo(any<UsersInfoRequest>())
+        verify(client, never()).usersLookupByEmail(any<UsersLookupByEmailRequest>())
+    }
+
+    @Test
+    fun `failure on a later directory page never returns partial identities`() {
+        whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
+        whenever(client.usersList(any<UsersListRequest>()))
+            .thenReturn(page(listOf(human()), "next"), UsersListResponse().apply { error = "missing_scope" })
+        assertThatThrownBy { service.resolve(listOf(participant)) }
+            .isInstanceOf(SlackIntegrationException::class.java)
+    }
+
+    @Test
+    fun `repeated directory cursors fail rather than looping indefinitely`() {
+        whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(page(listOf(human()), "same"))
+        assertThatThrownBy { service.resolve(listOf(participant)) }
+            .isInstanceOf(SlackIntegrationException::class.java)
+            .hasMessageContaining("repeated_cursor")
+        verify(client, times(2)).usersList(any<UsersListRequest>())
+    }
+
+    @Test
+    fun `ambiguous directory email remains unresolved`() {
+        whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
+        whenever(client.usersList(any<UsersListRequest>()))
+            .thenReturn(page(listOf(human(), human().apply { id = "U_OTHER" })))
+        assertThat(service.resolve(listOf(participant)).unresolvedParticipantIds).containsExactly(participant.id)
     }
 
     private fun human() = User().apply {
         id = "U_PERSON"
         profile = User.Profile().apply { email = participant.navNoEmail }
+    }
+
+    private fun page(users: List<User>, cursor: String = "") = UsersListResponse().apply {
+        isOk = true
+        members = users
+        responseMetadata = ResponseMetadata().apply { nextCursor = cursor }
     }
 }

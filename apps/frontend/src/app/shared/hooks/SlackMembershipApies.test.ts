@@ -43,6 +43,23 @@ describe("Slack membership API client", () => {
 		expect(await Apies.triggerSlackMembershipSync()).toBe(202);
 		expect(fetch).toHaveBeenCalledWith("/api/admin/slack/membership/sync", {
 			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: "{}",
+		});
+	});
+
+	it("submits the version of the reviewed preview for a write", async () => {
+		const fetch = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 409 }));
+		vi.stubGlobal("fetch", fetch);
+		expect(await Apies.triggerSlackMembershipSync("reviewed-version")).toBe(
+			409,
+		);
+		expect(fetch).toHaveBeenCalledWith("/api/admin/slack/membership/sync", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: '{"expectedVersion":"reviewed-version"}',
 		});
 	});
 

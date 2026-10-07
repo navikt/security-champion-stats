@@ -16,6 +16,7 @@ data class ChampionRoleTeams(
     val content: List<TeamCatalogTeam>,
     val pages: Int,
     val totalElements: Int,
+    val paged: Boolean,
 )
 
 @Service
@@ -32,7 +33,7 @@ class TeamCatalogChampionRoles(
                 externalServiceWebClient.get().uri("/team?status=ACTIVE").retrieve()
                     .bodyToMono<ChampionRoleTeams>().block(Duration.ofSeconds(30)),
             ) { "Teamkatalogen role response was empty" }
-            check(response.pages == 1 && response.totalElements == response.content.size) {
+            check(!response.paged && response.pages == 1 && response.totalElements == response.content.size) {
                 "Teamkatalogen role response was incomplete"
             }
             response.content

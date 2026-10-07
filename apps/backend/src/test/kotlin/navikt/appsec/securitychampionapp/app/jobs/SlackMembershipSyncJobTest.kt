@@ -10,6 +10,9 @@ import navikt.appsec.securitychampionapp.integrations.postgress.SlackMembershipR
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
+import org.springframework.core.task.TaskExecutor
+import org.assertj.core.api.Assertions.assertThatThrownBy
+import navikt.appsec.securitychampionapp.app.membership.MembershipPreviewChangedException
 
 class SlackMembershipSyncJobTest {
     private val lock = mock<PostgresJobLock>()
@@ -32,7 +35,7 @@ class SlackMembershipSyncJobTest {
     @Test
     fun `enabled jobs share the same dedicated lock for scheduled and manual runs`() {
         val job = job(SlackMembershipProperties(enabled = true))
-        whenever(trigger.trigger(eq(1_008L), eq("syncSlackMembership"), eq("admin@nav.no"), any()))
+        whenever(trigger.triggerValidated(eq(1_008L), eq("syncSlackMembership"), eq("admin@nav.no"), any(), any()))
             .thenReturn(SyncTriggerResult.STARTED)
 
         job.scheduledSync()
@@ -66,6 +69,65 @@ class SlackMembershipSyncJobTest {
             .hasMessageContaining("zero active participants")
 
         verify(audit).recordRun(eq("SLACK_MEMBERSHIP_SYNC_FAILED"), eq(AuditOutcome.FAILED), any(), any())
+    }
+
+    @Test
+    fun `manual write validates under lock and rechecks the version in the queued operation`() {
+        val executor = mock<TaskExecutor>()
+        val lease = mock<PostgresJobLock.LockLease>()
+        whenever(lock.tryAcquireLock(1_008L, "syncSlackMembership")).thenReturn(lease)
+        val job = SlackMembershipSyncJob(
+            lock, ScoringSyncTrigger(lock, executor), service, repository,
+            SlackMembershipProperties(enabled = true, dryRun = false), audit,
+        )
+        whenever(service.sync(false, "reviewed-version"))
+            .thenReturn(SlackMembershipPreview(emptySet(), emptySet(), emptySet(), 128, "reviewed-version"))
+        whenever(repository.announcements(any())).thenReturn(emptyList())
+        assertThat(job.triggerManualSync("admin@nav.no", "reviewed-version")).isEqualTo(SyncTriggerResult.STARTED)
+        val task = argumentCaptor<Runnable>()
+        val order = inOrder(lock, service, executor)
+        order.verify(lock).tryAcquireLock(1_008L, "syncSlackMembership")
+        order.verify(service).validatePreview("reviewed-version")
+        order.verify(executor).execute(task.capture())
+        verify(service, never()).sync(false, "reviewed-version")
+        task.firstValue.run()
+        verify(service).sync(false, "reviewed-version")
+        verify(lease).close()
+    }
+
+    @Test
+    fun `manual stale preview is rejected before queueing and releases the lease`() {
+        val executor = mock<TaskExecutor>()
+        val lease = mock<PostgresJobLock.LockLease>()
+        whenever(lock.tryAcquireLock(1_008L, "syncSlackMembership")).thenReturn(lease)
+        val job = SlackMembershipSyncJob(
+            lock, ScoringSyncTrigger(lock, executor), service, repository,
+            SlackMembershipProperties(enabled = true, dryRun = false), audit,
+        )
+        doThrow(MembershipPreviewChangedException()).whenever(service).validatePreview(null)
+        assertThatThrownBy { job.triggerManualSync("admin@nav.no") }
+            .isInstanceOf(MembershipPreviewChangedException::class.java)
+        verifyNoInteractions(executor, repository)
+        verify(lease).close()
+    }
+
+    @Test
+    fun `preview changing after acceptance is recorded as a failed run`() {
+        val executor = mock<TaskExecutor>()
+        val lease = mock<PostgresJobLock.LockLease>()
+        whenever(lock.tryAcquireLock(1_008L, "syncSlackMembership")).thenReturn(lease)
+        val job = SlackMembershipSyncJob(
+            lock, ScoringSyncTrigger(lock, executor), service, repository,
+            SlackMembershipProperties(enabled = true, dryRun = false), audit,
+        )
+        whenever(service.sync(false, "reviewed-version")).thenThrow(MembershipPreviewChangedException())
+        assertThat(job.triggerManualSync("admin@nav.no", "reviewed-version")).isEqualTo(SyncTriggerResult.STARTED)
+        val task = argumentCaptor<Runnable>()
+        verify(executor).execute(task.capture())
+        assertThatThrownBy { task.firstValue.run() }.isInstanceOf(MembershipPreviewChangedException::class.java)
+        verify(audit).recordRun(eq("SLACK_MEMBERSHIP_SYNC_FAILED"), eq(AuditOutcome.FAILED), any(), any())
+        verify(lease).close()
+        verifyNoInteractions(repository)
     }
 
     private fun job(properties: SlackMembershipProperties) =

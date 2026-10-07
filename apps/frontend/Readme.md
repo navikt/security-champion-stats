@@ -15,6 +15,8 @@ It shows enabled/dry-run configuration, previews group additions/removals and un
 and lets administrators save verified Slack account mappings for participants who have not posted messages.
 Preview is read-only and available while sync is disabled once backend Slack destinations are configured.
 Manual write-enabled sync requires a resolved preview and confirmation; queued sync outcomes appear in the audit trail.
+The frontend submits the reviewed preview version. The backend rejects stale previews with HTTP 409;
+refresh operations and preview again if enrollment, account mappings or Slack membership changed.
 Use **Refresh operations** to reload outstanding announcements. Only uncertain deliveries have retry/suppress controls,
 and both require confirmation after checking Slack. Retrying authorizes a later sync and may produce duplicate messages.
 Membership sync remains disabled by default; follow the backend README cutover procedure before enabling writes.

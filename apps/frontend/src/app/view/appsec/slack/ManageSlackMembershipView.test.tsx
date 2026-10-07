@@ -15,6 +15,7 @@ describe("Slack membership administration", () => {
 		const preview = vi
 			.spyOn(Apies, "getSlackMembershipPreview")
 			.mockResolvedValue({
+				version: "reviewed-version",
 				activeParticipants: 128,
 				addedUserIds: ["U_NEW"],
 				removedUserIds: ["U_OLD"],
@@ -58,6 +59,7 @@ describe("Slack membership administration", () => {
 	it("requires a fresh preview and confirmation before triggering a write-enabled sync", async () => {
 		setup({ enabled: true, dryRun: false });
 		vi.spyOn(Apies, "getSlackMembershipPreview").mockResolvedValue({
+			version: "reviewed-version",
 			activeParticipants: 128,
 			addedUserIds: ["U_NEW"],
 			removedUserIds: ["U_OLD"],
@@ -83,6 +85,7 @@ describe("Slack membership administration", () => {
 		);
 
 		await waitFor(() => expect(sync).toHaveBeenCalledOnce());
+		expect(sync).toHaveBeenCalledWith("reviewed-version");
 	});
 
 	it("shows disabled or conflicting sync errors without reporting success", async () => {
@@ -161,6 +164,7 @@ describe("Slack membership administration", () => {
 	it("maps an unresolved participant and invalidates the old preview", async () => {
 		setup({ enabled: true, dryRun: false });
 		vi.spyOn(Apies, "getSlackMembershipPreview").mockResolvedValue({
+			version: "reviewed-version",
 			activeParticipants: 128,
 			addedUserIds: [],
 			removedUserIds: [],
@@ -259,6 +263,35 @@ describe("Slack membership administration", () => {
 				name: "Suppress announcement delivery-1",
 			}),
 		).not.toBeInTheDocument();
+	});
+
+	it("invalidates a stale preview after a write conflict", async () => {
+		setup({ enabled: true, dryRun: false });
+		vi.spyOn(Apies, "getSlackMembershipPreview").mockResolvedValue({
+			version: "old-version",
+			activeParticipants: 1,
+			addedUserIds: [],
+			removedUserIds: [],
+			unresolvedParticipantIds: [],
+		});
+		vi.spyOn(Apies, "triggerSlackMembershipSync").mockResolvedValue(409);
+		render(<ManageSlackMembershipView participants={[]} onRefresh={vi.fn()} />);
+		await screen.findByText("Membership sync is enabled.");
+		fireEvent.click(
+			screen.getByRole("button", { name: "Preview membership changes" }),
+		);
+		await screen.findByText("1 active participants");
+		fireEvent.click(screen.getByRole("button", { name: "Sync membership" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "Confirm membership sync" }),
+		);
+		expect(await screen.findByRole("alert")).toHaveTextContent(
+			"preview changed",
+		);
+		expect(
+			screen.getByRole("button", { name: "Sync membership" }),
+		).toBeDisabled();
+		expect(screen.queryByText("1 active participants")).not.toBeInTheDocument();
 	});
 
 	it("failed configuration load exposes a retry and does not enable mutations", async () => {

@@ -93,16 +93,20 @@ export function ManageSlackMembershipView({
 
 	const triggerSync = async () => {
 		if (busy || !configuration?.enabled) return;
+		if (!configuration.dryRun && !preview?.version) return;
 		setBusy(true);
 		setError(null);
 		setNotice(null);
 		setConfirmation(null);
 		try {
-			const status = await Apies.triggerSlackMembershipSync();
+			const status = await Apies.triggerSlackMembershipSync(
+				configuration.dryRun ? undefined : preview?.version,
+			);
 			if (status !== 202) {
+				setPreview(null);
 				setError(
 					status === 409
-						? "Membership sync is disabled or already running. Refresh operations and try again."
+						? "Membership sync is disabled or already running, or the preview changed. Refresh operations and preview again before retrying."
 						: "We couldn't queue membership sync. Try again.",
 				);
 				return;
@@ -112,6 +116,7 @@ export function ManageSlackMembershipView({
 				"Membership sync was queued. Check the audit trail for its outcome, then refresh operations.",
 			);
 		} catch {
+			setPreview(null);
 			setError("We couldn't queue membership sync. Try again.");
 		} finally {
 			setBusy(false);
@@ -187,7 +192,7 @@ export function ManageSlackMembershipView({
 	};
 
 	const canWrite =
-		preview !== null && preview.unresolvedParticipantIds.length === 0;
+		Boolean(preview?.version) && preview?.unresolvedParticipantIds.length === 0;
 	const participantLabel = (id: string) => {
 		const participant = participants.find((item) => item.id === id);
 		return participant

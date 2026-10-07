@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionapp.app.membership.*
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.support.TransactionTemplate
+import java.time.Duration
 import java.util.UUID
 
 @Repository
@@ -77,7 +78,7 @@ class SlackMembershipRepository(
     override fun announcements(usergroupId: String): List<MembershipAnnouncement> =
         jdbc.query(
             """
-                SELECT id, participant_id, slack_user_id, kind, status
+                SELECT id, participant_id, slack_user_id, kind, status, next_attempt_at
                 FROM slack_membership_announcements
                 WHERE usergroup_id = ? AND status IN ('PENDING', 'SENDING', 'UNCERTAIN')
                 ORDER BY created_at, id
@@ -89,6 +90,7 @@ class SlackMembershipRepository(
                     rs.getString("slack_user_id"),
                     MembershipAnnouncementKind.valueOf(rs.getString("kind")),
                     MembershipDeliveryStatus.valueOf(rs.getString("status")),
+                    rs.getTimestamp("next_attempt_at").toInstant(),
                 )
             },
             usergroupId,
@@ -114,10 +116,22 @@ class SlackMembershipRepository(
         )
     }
 
+    override fun deferDelivery(id: UUID, retryAfter: Duration) {
+        require(!retryAfter.isNegative && !retryAfter.isZero) { "Delivery retry delay must be positive" }
+        check(jdbc.update(
+            """
+                UPDATE slack_membership_announcements
+                SET status = 'PENDING', next_attempt_at = NOW() + (? * INTERVAL '1 millisecond'), updated_at = NOW()
+                WHERE id = ?
+            """.trimIndent(),
+            retryAfter.toMillis(), id,
+        ) == 1) { "Slack membership announcement no longer exists" }
+    }
+
     fun resolveUncertain(usergroupId: String, id: UUID, retry: Boolean): Boolean =
         jdbc.update(
             """
-                UPDATE slack_membership_announcements SET status = ?, updated_at = NOW()
+                UPDATE slack_membership_announcements SET status = ?, next_attempt_at = NOW(), updated_at = NOW()
                 WHERE usergroup_id = ? AND id = ? AND status = 'UNCERTAIN'
             """.trimIndent(),
             if (retry) "PENDING" else "SUPPRESSED", usergroupId, id,

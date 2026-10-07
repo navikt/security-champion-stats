@@ -49,7 +49,9 @@ otherwise a supported token from an authorized user is required. Never store tok
 Sign in as an administrator and open the frontend Slack administration page (`/appsec/slack`).
 Use **Preview membership changes** to review proposed additions/removals and unresolved participants.
 The frontend exchanges the session token and proxies all membership requests; operators do not need backend tokens.
-Approved Slack mappings take precedence; otherwise accounts are looked up by verified participant email.
+Accounts are resolved from a complete, paginated Slack `users.list` snapshot; failed or incomplete reads abort the sync.
+Approved Slack mappings take precedence; otherwise accounts are matched by verified participant email.
+Role verification uses Teamkatalogen's unpaged `/team?status=ACTIVE` endpoint and rejects incomplete or paged responses.
 Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
 Resolve mapping problems in the same page: review approved mappings and enter verified Slack IDs for unresolved participants.
 Compare the preview with the existing group (128 members at planning time), stop the old bot,
@@ -60,13 +62,18 @@ leaves Slack and membership state unchanged; the group is never automatically di
 The page shows whether sync is enabled and whether it runs in dry-run or write mode.
 Use **Run membership dry run** or **Sync membership** to queue a locked background sync in the configured mode.
 Write-enabled manual sync requires a preview without unresolved identities and explicit confirmation.
+The preview version binds the request to enrollment, resolved identities, existing group membership and destination IDs.
+It is checked under the sync lock before queueing and again before writes; a stale preview returns HTTP 409.
+Changes after queueing fail the run without writes and are recorded in the audit trail.
 Runs and failures appear in the audit timeline; an accepted request is not a completed sync.
 Use **Refresh operations** after reviewing the audit outcome to reload outstanding deliveries.
 Unknown roles remain `PENDING`; interrupted or ambiguous Slack deliveries become `UNCERTAIN`
 and are not automatically resent. Inspect Slack (delivery IDs are included in message metadata), then use
 **Suppress** for a delivered or unwanted announcement, or **Retry** to authorize another attempt on a later sync.
 Both actions require confirmation. Explicit retries can produce duplicates.
-Known Slack rejections remain pending for a later run. Completed delivery records expire after 12 months.
+Known Slack rejections remain pending with a persisted retry time (15 minutes by default; HTTP rate limits honor
+`Retry-After`). Recipient-specific rejections do not block later announcements; shared configuration/rate-limit
+failures stop the batch. Completed delivery records expire after 12 months.
 
 ### Other integrations
 

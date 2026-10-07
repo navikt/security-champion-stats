@@ -299,7 +299,7 @@ export function AdminAuditView() {
 													{summary(item.details)}
 												</span>
 												<span className="auditView__subline">
-													{item.actorNavNoEmail || "System / erased identity"}
+													{item.actorNavNoEmail || "System"}
 													{item.correlationId && (
 														<code className="hubRedesign__mono">
 															run {item.correlationId.slice(0, 8)}
@@ -348,7 +348,7 @@ export function AdminAuditView() {
 													</dd>
 													<dt>Actor</dt>
 													<dd>
-														{item.actorNavNoEmail || "System / erased identity"}
+														{item.actorNavNoEmail || "System"}
 													</dd>
 													{item.correlationId && (
 														<>
@@ -374,6 +374,9 @@ export function AdminAuditView() {
 														<>
 															<dt>Participant</dt>
 															<dd>
+																{item.targetParticipantName && (
+																	<span>{item.targetParticipantName} </span>
+																)}
 																<code className="hubRedesign__mono">
 																	{item.targetParticipantId}
 																</code>

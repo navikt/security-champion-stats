@@ -84,6 +84,11 @@
 	text-align: center;
 }
 
+.sc-membership-card__logo {
+	width: min(100%, 15rem);
+	height: auto;
+}
+
 [data-theme="dark"] .sc-membership-card__visual,
 html.dark .sc-membership-card__visual {
 	background: rgb(255 255 255 / 0.015);
@@ -194,6 +199,11 @@ html.dark .sc-membership-card__visual {
 	margin-top: auto;
 
 	padding-top: 1.5rem;
+}
+
+.sc-membership-card__actions--join {
+	align-items: center;
+	flex-direction: row;
 }
 
 /* Css for emblem/progress part  */
@@ -479,7 +489,7 @@ html.dark .sc-membership-card__visual {
 		margin-top: var(--sc-space-3);
 	}
 
-	.sc-membership-card__actions {
+	.sc-membership-card__actions:not(.sc-membership-card__actions--join) {
 		align-items: stretch;
 		flex-direction: column;
 	}

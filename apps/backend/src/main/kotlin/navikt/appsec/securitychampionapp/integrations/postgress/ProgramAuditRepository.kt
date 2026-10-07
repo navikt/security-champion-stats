@@ -27,6 +27,7 @@ class ProgramAuditRepository(
             outcome = AuditOutcome.valueOf(rs.getString("outcome")),
             actorNavNoEmail = rs.getString("actor_nav_no_email"),
             targetParticipantId = rs.getObject("target_participant_id", UUID::class.java),
+            targetParticipantName = rs.getString("target_participant_name"),
             correlationId = rs.getObject("correlation_id", UUID::class.java),
             details = detailValues.entries.associate { it.key.toString() to it.value.toString() },
         )
@@ -97,24 +98,27 @@ class ProgramAuditRepository(
         ) ?: 0L
         val rows = jdbcTemplate.query(
             """
-                SELECT id, created_at, action, outcome, actor_nav_no_email,
-                    target_participant_id, correlation_id, details
-                FROM program_audit_events
+                SELECT event.id, event.created_at, event.action, event.outcome, event.actor_nav_no_email,
+                    event.target_participant_id, participant.fullname AS target_participant_name,
+                    event.correlation_id, event.details
+                FROM program_audit_events AS event
+                LEFT JOIN program_participants AS participant
+                    ON participant.id = event.target_participant_id
                 WHERE (CAST(? AS text) IS NULL OR (
-                    action ILIKE ? ESCAPE '\'
-                    OR outcome ILIKE ? ESCAPE '\'
-                    OR COALESCE(actor_nav_no_email, '') ILIKE ? ESCAPE '\'
-                    OR details::text ILIKE ? ESCAPE '\'
-                    OR COALESCE(correlation_id::text, '') ILIKE ? ESCAPE '\'
-                    OR COALESCE(target_participant_id::text, '') ILIKE ? ESCAPE '\'
+                    event.action ILIKE ? ESCAPE '\'
+                    OR event.outcome ILIKE ? ESCAPE '\'
+                    OR COALESCE(event.actor_nav_no_email, '') ILIKE ? ESCAPE '\'
+                    OR event.details::text ILIKE ? ESCAPE '\'
+                    OR COALESCE(event.correlation_id::text, '') ILIKE ? ESCAPE '\'
+                    OR COALESCE(event.target_participant_id::text, '') ILIKE ? ESCAPE '\'
                 ))
                 AND (
                     CAST(? AS text) IS NULL
-                    OR (? = 'syncs' AND action ILIKE '%SYNC%')
-                    OR (? = 'credits' AND action ILIKE '%CREDIT%')
-                    OR (? = 'admin' AND action NOT ILIKE '%SYNC%' AND action NOT ILIKE '%CREDIT%')
+                    OR (? = 'syncs' AND event.action ILIKE '%SYNC%')
+                    OR (? = 'credits' AND event.action ILIKE '%CREDIT%')
+                    OR (? = 'admin' AND event.action NOT ILIKE '%SYNC%' AND event.action NOT ILIKE '%CREDIT%')
                 )
-                ORDER BY created_at DESC, id DESC
+                ORDER BY event.created_at DESC, event.id DESC
                 LIMIT ? OFFSET ?
             """.trimIndent(),
             entryMapper,

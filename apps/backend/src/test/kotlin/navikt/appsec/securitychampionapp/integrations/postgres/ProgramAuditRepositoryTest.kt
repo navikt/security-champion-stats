@@ -121,6 +121,7 @@ class ProgramAuditRepositoryTest {
             repository.adminPage(participantId.toString(), page = 0, size = 10, category = "syncs")
         assertThat(matchingParticipantTotal).isEqualTo(1)
         assertThat(searchedByParticipant.single().targetParticipantId).isEqualTo(participantId)
+        assertThat(searchedByParticipant.single().targetParticipantName).isEqualTo("Person")
 
         val (searchedByActor, matchingActorTotal) =
             repository.adminPage("admin@nav.no", page = 0, size = 10, category = "syncs")

@@ -22,6 +22,7 @@ data class ProgramAuditEntry(
     val outcome: AuditOutcome,
     val actorNavNoEmail: String?,
     val targetParticipantId: UUID?,
+    val targetParticipantName: String?,
     val correlationId: UUID?,
     val details: Map<String, String>,
 )

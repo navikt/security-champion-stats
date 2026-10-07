@@ -13,6 +13,7 @@ const auditPage: AuditResponse = {
 			outcome: "SUCCEEDED",
 			actorNavNoEmail: "admin@nav.no",
 			targetParticipantId: "participant-1",
+			targetParticipantName: "Example Participant",
 			correlationId: "12345678-1234-1234-1234-123456789012",
 			details: { eventsScanned: "8", unmapped_authors: "0" },
 		},
@@ -42,6 +43,8 @@ describe("AdminAuditView", () => {
 		expect(screen.getByText("Events scanned")).toBeInTheDocument();
 		expect(screen.getByText("8")).toBeInTheDocument();
 		expect(await screen.findAllByText("admin@nav.no")).toHaveLength(2);
+		expect(screen.getByText("Example Participant")).toBeInTheDocument();
+		expect(screen.getByText("participant-1")).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Show all events in this run" }));
 
 		await waitFor(() => {
@@ -54,6 +57,26 @@ describe("AdminAuditView", () => {
 		expect(screen.getByRole("textbox", { name: /Search events/ })).toHaveValue(
 			"12345678-1234-1234-1234-123456789012",
 		);
+	});
+
+	it("labels events without a human actor as system-generated", async () => {
+		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue({
+			...auditPage,
+			items: [
+				{
+					...auditPage.items[0],
+					actorNavNoEmail: null,
+					targetParticipantId: null,
+					targetParticipantName: null,
+				},
+			],
+		});
+		render(<AdminAuditView />);
+
+		await screen.findByRole("button", { name: /Slack scoring sync completed/ });
+
+		expect(screen.getAllByText("System")).toHaveLength(2);
+		expect(screen.queryByText(/erased identity/i)).not.toBeInTheDocument();
 	});
 
 	it("filters categories and paginates using the backend page contract", async () => {

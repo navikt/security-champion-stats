@@ -57,6 +57,7 @@ export type AuditResponse = {
 		outcome: "SUCCEEDED" | "FAILED" | "PARTIAL";
 		actorNavNoEmail: string | null;
 		targetParticipantId: string | null;
+		targetParticipantName: string | null;
 		correlationId: string | null;
 		details: Record<string, string>;
 	}[];

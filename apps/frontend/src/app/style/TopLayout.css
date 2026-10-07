@@ -26,3 +26,10 @@
 
 	padding-block: 0.5rem 4rem;
 }
+
+@media (max-width: 47.5rem) {
+	.appBody {
+		display: flex;
+		flex-direction: column;
+	}
+}

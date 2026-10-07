@@ -48,7 +48,6 @@ function AdministrationNavigation({ pathName }: { pathName: string }) {
 			</Button>
 			<div id="administration-navigation" hidden={!expanded}>
 				<div className="sideNavigation__adminLinks">
-					<span className="sideNavigation__adminLabel">Admin only</span>
 					{administrationLinks.map((item) => {
 						const isActive = isActivePath(pathName, item.path);
 						return (
@@ -132,7 +131,12 @@ export function SideNavigation({ me }: { me: Me }) {
 				{me.isParticipant && (
 					<Link
 						href="/history"
-						className="sideNavigation__item"
+						className={[
+							"sideNavigation__item",
+							isActivePath(pathName, "/history") ? "sideNavigation__item--active" : "",
+						]
+							.filter(Boolean)
+							.join(" ")}
 						aria-current={
 							isActivePath(pathName, "/history") ? "page" : undefined
 						}

@@ -286,15 +286,12 @@ function ThreatBar({ points, max }: { points: number; max: number }) {
 
 function MostWanted({
 	entries,
-	me,
 	score,
 }: {
 	entries: LeaderboardEntry[];
-	me: Me;
 	score: ParticipantSeasonScore | null;
 }) {
 	const max = Math.max(...entries.map((entry) => entry.points), 0);
-	const currentName = (me.displayName || "").trim().toLocaleLowerCase();
 	return (
 		<section className="hackerStats hackerLeaderboard">
 			<div className="hackerCommand">
@@ -326,9 +323,7 @@ function MostWanted({
 						{hackerCopy.leaderboard.class}
 					</span>
 					{entries.map((entry) => {
-						const isMe =
-							currentName !== "" &&
-							entry.fullName.trim().toLocaleLowerCase() === currentName;
+						const isMe = entry.isCurrentUser;
 						return (
 							<div
 								key={`${entry.rank}-${entry.fullName}`}
@@ -652,7 +647,7 @@ export function HackerOverview({ info }: { info: Me }) {
 				))}
 			{showLeaderboard &&
 				(entries ? (
-					<MostWanted entries={entries} me={me} score={score} />
+					<MostWanted entries={entries} score={score} />
 				) : leaderboardFailed ? (
 					<section className="hackerStats" role="alert">
 						{hackerCopy.leaderboard.unavailable}

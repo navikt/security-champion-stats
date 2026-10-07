@@ -64,6 +64,7 @@ export type AuditResponse = {
 	page: number;
 	size: number;
 };
+export type AuditCategory = "all" | "syncs" | "credits" | "admin";
 export type ParticipantHistoryEntry = {
 	id: string;
 	occurredAt: string;
@@ -92,6 +93,7 @@ export type LeaderboardEntry = {
 	rank: number;
 	points: number;
 	level: "Novice" | "Apprentice" | "Adept" | "Expert";
+	isCurrentUser: boolean;
 };
 export type ActivityCredit = {
 	id: string;

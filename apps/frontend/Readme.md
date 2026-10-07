@@ -7,8 +7,8 @@ correct season scores, schedule or start a new season, map Slack accounts, and c
 categories or single owner-confirmed Delta event UUIDs. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
 API proxies preserve backend status, response body, and content type; proxy-local errors use RFC 9457 Problem Details.
-The admin program dashboard summarizes active participants and season activity, shows Slack/Delta/GitHub sync
-health, and lets administrators trigger enabled syncs.
+The admin program dashboard summarizes participation and points by activity, highlights items needing attention,
+shows weekly points and Slack/Delta/GitHub sync health, and lets administrators trigger enabled syncs.
 The Slack administration page (`/appsec/slack`) also manages group membership operations.
 All operations go through authenticated frontend API proxies; no manually obtained backend token is needed.
 It shows enabled/dry-run configuration, previews group additions/removals and unresolved participants,
@@ -20,9 +20,8 @@ refresh operations and preview again if enrollment, account mappings or Slack me
 Use **Refresh operations** to reload outstanding announcements. Only uncertain deliveries have retry/suppress controls,
 and both require confirmation after checking Slack. Retrying authorizes a later sync and may produce duplicate messages.
 Membership sync remains disabled by default; follow the backend README cutover procedure before enabling writes.
-The home page shows active participants their current-season points, level progress, and rank, followed by
-the full current-season leaderboard. Administrators can view the leaderboard; backend authorization
-enforces score access.
+The overview brings together membership status, season points, level, rank, recent activity, events, and the
+current-season leaderboard. Administrators can view the leaderboard; backend authorization enforces score access.
 The user interface is English-only.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
@@ -31,7 +30,9 @@ preferences are available only while Hacker is selected.
 Event listings include cached playbook events, with date-only ranges shown without invented times.
 Delta and manual events take priority over same-day internal playbook entries; unrelated external entries remain visible.
 Participants can leave and rejoin without losing credits, unless an administrator has deactivated them.
-My history shows membership and score changes from rollout; administrators can search the audit trail.
+My history summarizes season points and provides filters for credits, adjustments, and membership changes from
+rollout. Administrators can search the audit trail by event, actor, run, or participant ID, filter by sync,
+credit, or admin action, and inspect event details.
 Audit capture is best-effort. Operational records expire after 12 months; participant history is erased on permanent deletion.
 
 ## Getting Started

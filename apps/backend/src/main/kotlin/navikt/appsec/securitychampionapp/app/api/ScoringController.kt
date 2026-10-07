@@ -29,18 +29,19 @@ class ScoringController(
     fun leaderboard(): ResponseEntity<List<LeaderboardEntry>> {
         val authentication = requireNotNull(SecurityContextHolder.getContext().authentication)
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" }
-        if (!isAdmin) {
-            val principal = authentication.principal as AppPrincipal
-            val participant = participantRepository.findByNavNoEmail(principal.email)
-            if (participant?.status != ParticipationStatus.ACTIVE) {
-                throw ApiRequestException(
-                    HttpStatus.FORBIDDEN,
-                    "Forbidden",
-                    "An active program membership is required to view the leaderboard",
-                )
-            }
+        val principal = authentication.principal as AppPrincipal
+        val participant = participantRepository.findByNavNoEmail(principal.email)
+        if (!isAdmin && participant?.status != ParticipationStatus.ACTIVE) {
+            throw ApiRequestException(
+                HttpStatus.FORBIDDEN,
+                "Forbidden",
+                "An active program membership is required to view the leaderboard",
+            )
         }
-        return ResponseEntity.ok(scoringService.leaderboard())
+        val currentParticipantId = participant
+            ?.takeIf { it.status == ParticipationStatus.ACTIVE }
+            ?.id
+        return ResponseEntity.ok(scoringService.leaderboard(currentParticipantId))
     }
 
     @GetMapping("/scoring/me")

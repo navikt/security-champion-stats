@@ -19,10 +19,26 @@ import type {
 	SlackMembershipAnnouncement,
 	HistoryPage,
 	AuditResponse,
+	AuditCategory,
 	ParticipantHistoryEntry,
 } from "../../utils/Variables";
 
 export const Apies = {
+	getAdminAudit: async (
+		query: string,
+		category: AuditCategory,
+		page: number,
+	): Promise<AuditResponse> => {
+		const params = new URLSearchParams({ page: String(page), size: "50" });
+		if (query) params.set("q", query);
+		if (category !== "all") params.set("category", category);
+		const response = await fetch(`/api/admin/audit?${params}`);
+		if (!response.ok) {
+			console.error("Failed to fetch audit events, status:", response.status);
+			throw new Error("We couldn't fetch audit events. Try again.");
+		}
+		return response.json();
+	},
 	getSlackMembershipConfiguration: async (): Promise<SlackMembershipConfiguration> => {
 		const res = await fetch("/api/admin/slack/membership");
 		if (!res.ok) throw new Error("We couldn't load membership sync configuration. Try again.");

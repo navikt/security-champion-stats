@@ -1,2 +1,4 @@
 @import "@navikt/ds-css";
 @import "./hacker.css";
+@import "./appTheme.css";
+@import "./redesign.css";

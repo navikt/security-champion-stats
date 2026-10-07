@@ -1,15 +1,35 @@
 import { BodyShort } from "@navikt/ds-react";
 import { useCallback, useEffect, useState } from "react";
-import { Me, ProgramParticipant } from "@/app/utils/Variables";
+import {
+	HistoryEntry,
+	Me,
+	ParticipantSeasonScore,
+	ProgramParticipant,
+} from "@/app/utils/Variables";
 import Loading from "@/app/view/Loading";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { notifyMembershipChanged } from "@/app/shared/hooks/UseMe";
 import { JoinedMembershipView } from "@/app/view/member/components/JoinedMembershipView";
 import { JoinProgramView } from "@/app/view/member/components/JoinProgramView";
 import { LeaveProgramModal } from "@/app/view/member/modal/LeaveProgramModal";
+import { OverviewParticipationCard } from "./OverviewParticipationCard";
 import "../../../style/home/MembershipView.css";
 
-export function MembershipView({ me, onMembershipChanged }: { me: Me; onMembershipChanged?: (updated: Me) => void }) {
+export function MembershipView({
+	me,
+	onMembershipChanged,
+	overview,
+}: {
+	me: Me;
+	onMembershipChanged?: (updated: Me) => void;
+	overview?: {
+		score: ParticipantSeasonScore | null;
+		scoreLoading: boolean;
+		activities: HistoryEntry[];
+		activitiesLoading: boolean;
+		activitiesFailed: boolean;
+	};
+}) {
 	const [userData, setMe] = useState(me);
 	const [loading, setLoading] = useState(me.isParticipant);
 	const [participant, setParticipant] = useState<ProgramParticipant | null>(null);
@@ -72,6 +92,29 @@ export function MembershipView({ me, onMembershipChanged }: { me: Me; onMembersh
 	if (!userData.isParticipant) return <JoinProgramView onEnroll={enroll} />;
 	if (fetchFailed || !participant) {
 		return <BodyShort>We couldn't fetch your participant details. Try again later.</BodyShort>;
+	}
+
+	if (overview) {
+		return (
+			<OverviewParticipationCard
+				participant={participant}
+				score={overview.score}
+				scoreLoading={overview.scoreLoading}
+				activities={overview.activities}
+				activitiesLoading={overview.activitiesLoading}
+				activitiesFailed={overview.activitiesFailed}
+				confirmingLeave={leaveOpen}
+				pending={pending}
+				actionError={actionError}
+				onRequestLeave={() => {
+					setActionError(null);
+					setLeaveOpen(true);
+				}}
+				onCancelLeave={() => setLeaveOpen(false)}
+				onConfirmLeave={() => void changeParticipation(true)}
+				onRejoin={() => void changeParticipation(false)}
+			/>
+		);
 	}
 
 	return (

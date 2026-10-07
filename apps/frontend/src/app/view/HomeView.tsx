@@ -1,27 +1,90 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Me, SecurityEvent } from "../utils/Variables";
-import { MembershipView } from "./member/components/MembershipView";
+import type {
+	HistoryEntry,
+	Me,
+	ParticipantSeasonScore,
+	SecurityEvent,
+} from "../utils/Variables";
 import "../style/home/HomeView.css";
 import { BodyShort, Heading } from "@navikt/ds-react";
 import { useTheme } from "next-themes";
 import { Apies } from "@/app/shared/hooks/Apies";
-import { EventsView } from "@/app/view/events/EventsView";
 import { HackerOverview } from "./HackerOverview";
+import { MembershipView } from "./member/components/MembershipView";
 import { ScoringOverview } from "./member/components/ScoringOverview";
+import { OverviewEvents } from "./events/OverviewEvents";
 
 function View({ me }: { me: Me }) {
 	const [userData, setUserData] = useState(me);
 	const [events, updateEvents] = useState<SecurityEvent[]>([]);
+	const [score, setScore] = useState<ParticipantSeasonScore | null>(null);
+	const [scoreLoading, setScoreLoading] = useState(me.isParticipant && me.isActive);
+	const [activities, setActivities] = useState<HistoryEntry[]>([]);
+	const [activitiesLoading, setActivitiesLoading] = useState(me.isParticipant);
+	const [activitiesFailed, setActivitiesFailed] = useState(false);
+	const [eventsLoading, setEventsLoading] = useState(true);
 
 	useEffect(() => {
-		Apies.fetchEvents().then((res) => updateEvents(res));
+		let current = true;
+		Apies.fetchEvents()
+			.then((res) => {
+				if (current) updateEvents(res);
+			})
+			.catch((error) => {
+				console.error("Failed to load overview events:", error);
+			})
+			.finally(() => {
+				if (current) setEventsLoading(false);
+			});
+		return () => {
+			current = false;
+		};
 	}, []);
 
+	useEffect(() => {
+		if (!userData.isParticipant) {
+			setActivities([]);
+			setActivitiesLoading(false);
+			setActivitiesFailed(false);
+			setScore(null);
+			setScoreLoading(false);
+			return;
+		}
+		let current = true;
+		setActivitiesLoading(true);
+		setActivitiesFailed(false);
+		setScoreLoading(userData.isActive);
+		const historyRequest = Apies.getHistory(false, "", null);
+		const scoreRequest = userData.isActive
+			? Apies.getParticipantSeasonScore()
+			: Promise.resolve(null);
+		Promise.allSettled([historyRequest, scoreRequest])
+			.then(([historyResult, scoreResult]) => {
+				if (!current) return;
+				if (historyResult.status === "fulfilled") {
+					setActivities(historyResult.value.entries);
+				} else {
+					console.error("Failed to load recent activity:", historyResult.reason);
+					setActivitiesFailed(true);
+				}
+				if (scoreResult.status === "fulfilled") setScore(scoreResult.value);
+				else console.error("Failed to load overview season score:", scoreResult.reason);
+			})
+			.finally(() => {
+				if (!current) return;
+				setActivitiesLoading(false);
+				setScoreLoading(false);
+			});
+		return () => {
+			current = false;
+		};
+	}, [userData.isParticipant, userData.isActive]);
+
 	return (
-		<main className={"homeView"}>
-			<header className={"homeView__header"}>
+		<main className="hubRedesign homeView">
+			<header className="hubRedesign__header">
 				<Heading level="1" size={"xlarge"}>
 					Security Champion Hub
 				</Heading>
@@ -30,21 +93,31 @@ function View({ me }: { me: Me }) {
 				</BodyShort>
 			</header>
 
-			<div className={"homeView__body"}>
-				<section className={"homeView__primary"}>
-					<MembershipView me={me} onMembershipChanged={setUserData} />
-				</section>
-				<section className={"homeView__secondary"}>
-					<EventsView events={events} compact limit={4} />
-				</section>
-			</div>
-			<ScoringOverview
-				key={`${userData.isParticipant}:${userData.isActive}`}
-				showPersonalProgress={userData.isParticipant && userData.isActive}
-				showLeaderboard={
-					userData.isAdmin || (userData.isParticipant && userData.isActive)
-				}
+			<MembershipView
+				me={me}
+				onMembershipChanged={setUserData}
+				overview={{
+					score: userData.isActive ? score : null,
+					scoreLoading,
+					activities,
+					activitiesLoading,
+					activitiesFailed,
+				}}
 			/>
+			<div className="hubRedesign__grid overviewLowerRow">
+				<OverviewEvents
+					events={events}
+					seasonStartsOn={score?.season.startsOn ?? null}
+					loading={eventsLoading}
+				/>
+				<ScoringOverview
+					key={`${userData.isParticipant}:${userData.isActive}`}
+					showPersonalProgress={false}
+					showLeaderboard={
+						userData.isAdmin || (userData.isParticipant && userData.isActive)
+					}
+				/>
+			</div>
 		</main>
 	);
 }

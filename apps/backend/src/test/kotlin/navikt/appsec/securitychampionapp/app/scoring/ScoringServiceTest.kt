@@ -51,6 +51,23 @@ class ScoringServiceTest {
     }
 
     @Test
+    fun `should identify the current participant in leaderboard without exposing their id`() {
+        val currentParticipantId = UUID.randomUUID()
+        val otherParticipantId = UUID.randomUUID()
+        whenever(repository.scoresForCurrentSeason(activeOnly = true)).thenReturn(
+            listOf(
+                score(currentParticipantId, "Same Name", 10L),
+                score(otherParticipantId, "Same Name", 5L),
+            ),
+        )
+
+        val result = service.leaderboard(currentParticipantId)
+
+        assertEquals(listOf(true, false), result.map { it.isCurrentUser })
+        assertEquals("Same Name", result[0].fullName)
+    }
+
+    @Test
     fun `should assign levels at the approved current season thresholds`() {
         val participant = UUID.randomUUID()
         whenever(repository.currentSeason()).thenReturn(season)

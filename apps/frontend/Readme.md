@@ -30,6 +30,16 @@ Membership sync remains disabled by default; follow the backend README cutover p
 The overview brings together membership status, season points, level, rank, recent activity, events, and the
 current-season leaderboard. Administrators can view the leaderboard; backend authorization enforces score access.
 The user interface is English-only.
+Active participants can use **Event claims** (`/event-claims`) to submit internal or external events
+they substantively organized or presented at, add co-hosts/presenters, and provide advance network
+invitation evidence. Submit after the event, within its season and after contributors enrolled.
+The submitter can revise pending or rejected claims; event dates and existing event identity stay fixed.
+Administrators use **Review event claims** (`/appsec/event-claims`) to approve or reject each contributor
+with a reason; their own credit requires another administrator. Each approval grants the full configured
+contribution value in the event's season and the first approval publishes the event in Past events.
+Approved claims are locked; administrators can revoke credit with a reason and confirmation without
+removing the public event. Review history remains visible to contributors and administrators, with
+subject names retained when a contributor is removed from a revised claim or becomes inactive.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
 The favicon is a locally bundled copy of the Security Champion logo from

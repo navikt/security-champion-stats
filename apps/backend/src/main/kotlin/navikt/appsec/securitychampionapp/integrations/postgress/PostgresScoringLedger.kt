@@ -158,7 +158,7 @@ class PostgresScoringLedger(
                     FROM activity_credits AS credit
                     LEFT JOIN point_adjustments AS adjustment ON adjustment.source_credit_id = credit.id
                         AND adjustment.scoring_configuration_version IS NOT NULL
-                    WHERE credit.season_id = ?
+                    WHERE credit.season_id = ? AND credit.revoked_at IS NULL
                     GROUP BY credit.id
                     ORDER BY credit.id
                 """.trimIndent(),

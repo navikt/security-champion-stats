@@ -25,6 +25,7 @@ export type NavigationItem = {
 export const administrationLinks: ModuleNavLink[] = [
 	{ label: "Program dashboard", path: "/dashboard" },
 	{ label: "Manage events", path: "/appsec/events" },
+	{ label: "Review event claims", path: "/appsec/event-claims" },
 	{ label: "Manage participants", path: "/appsec/membership" },
 	{ label: "Scoring dashboard", path: "/appsec/scoring" },
 	{ label: "Manage Slack mappings", path: "/appsec/slack" },

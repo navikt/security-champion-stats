@@ -128,6 +128,18 @@ export function SideNavigation({ me }: { me: Me }) {
 						</Link>
 					);
 				})}
+				{me.isActive && (
+					<Link
+						href="/event-claims"
+						className={[
+							"sideNavigation__item",
+							isActivePath(pathName, "/event-claims") ? "sideNavigation__item--active" : "",
+						].filter(Boolean).join(" ")}
+						aria-current={isActivePath(pathName, "/event-claims") ? "page" : undefined}
+					>
+						Event claims
+					</Link>
+				)}
 				{me.isParticipant && (
 					<Link
 						href="/history"

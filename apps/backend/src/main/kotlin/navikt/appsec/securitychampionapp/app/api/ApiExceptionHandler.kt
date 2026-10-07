@@ -1,5 +1,7 @@
 package navikt.appsec.securitychampionapp.app.api
 
+import navikt.appsec.securitychampionapp.app.events.EventClaimException
+import navikt.appsec.securitychampionapp.app.events.EventClaimFailure
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
@@ -33,6 +35,17 @@ class ApiExceptionHandler {
     @ExceptionHandler(ApiRequestException::class)
     fun apiRequestFailure(exception: ApiRequestException, request: WebRequest): ResponseEntity<ProblemDetail> =
         problem(exception.status, exception.title, exception.message, request)
+
+    @ExceptionHandler(EventClaimException::class)
+    fun eventClaimFailure(exception: EventClaimException, request: WebRequest): ResponseEntity<ProblemDetail> {
+        val (status, title) = when (exception.failure) {
+            EventClaimFailure.INVALID -> HttpStatus.BAD_REQUEST to "Invalid claim"
+            EventClaimFailure.FORBIDDEN -> HttpStatus.FORBIDDEN to "Forbidden"
+            EventClaimFailure.CONFLICT -> HttpStatus.CONFLICT to "Claim conflict"
+            EventClaimFailure.NOT_FOUND -> HttpStatus.NOT_FOUND to "Claim not found"
+        }
+        return problem(status, title, requireNotNull(exception.message), request)
+    }
 
     @ExceptionHandler(InvalidScoringRequestException::class)
     fun invalidScoringRequest(exception: InvalidScoringRequestException, request: WebRequest): ResponseEntity<ProblemDetail> =

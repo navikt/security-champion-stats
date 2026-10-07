@@ -9,12 +9,12 @@ import navikt.appsec.securitychampionapp.app.scoring.OwnSeasonScore
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipant
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.ProgramParticipantQueryResponse
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.junit.jupiter.api.Test
@@ -47,7 +47,7 @@ class ScoringControllerTest {
     lateinit var scoringService: ScoringService
 
     @MockitoBean
-    lateinit var participantRepository: ProgramParticipantRepository
+    lateinit var participantRepository: ParticipantStore
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
@@ -68,7 +68,7 @@ class ScoringControllerTest {
     fun `should deny the full leaderboard to employees who are not participants`() {
         mockAuthenticatedUser(USER_ROLE)
         whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(ProgramParticipantQueryResponse(isOk = true))
+            .thenReturn(null)
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/leaderboard"))
             .andExpect(status().isForbidden)
@@ -89,23 +89,7 @@ class ScoringControllerTest {
     fun `should allow an active participant to view exact leaderboard scores`() {
         mockAuthenticatedUser(USER_ROLE)
         whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(
-                ProgramParticipantQueryResponse(
-                    isOk = true,
-                    queryResult = listOf(
-                        ProgramParticipant(
-                            id = UUID.randomUUID().toString(),
-                            navNoEmail = "user@nav.no",
-                            navIdent = "A12345",
-                            email = "user@nav.no",
-                            fullname = "Person",
-                            teams = emptyList(),
-                            status = "ACTIVE",
-                            createdAt = "2026-01-01T00:00:00Z",
-                        )
-                    ),
-                )
-            )
+            .thenReturn(participant(UUID.randomUUID()))
         whenever(scoringService.leaderboard())
             .thenReturn(listOf(LeaderboardEntry("Person", 1, 25, "Novice")))
 
@@ -119,23 +103,7 @@ class ScoringControllerTest {
         val participantId = UUID.randomUUID()
         mockAuthenticatedUser(USER_ROLE)
         whenever(participantRepository.findByNavNoEmail("user@nav.no"))
-            .thenReturn(
-                ProgramParticipantQueryResponse(
-                    isOk = true,
-                    queryResult = listOf(
-                        ProgramParticipant(
-                            id = participantId.toString(),
-                            navNoEmail = "user@nav.no",
-                            navIdent = "A12345",
-                            email = "user@nav.no",
-                            fullname = "Person",
-                            teams = emptyList(),
-                            status = "ACTIVE",
-                            createdAt = "2026-01-01T00:00:00Z",
-                        )
-                    ),
-                )
-            )
+            .thenReturn(participant(participantId))
         whenever(scoringService.ownScore(participantId)).thenReturn(
             OwnSeasonScore(
                 season = SeasonSummary(
@@ -175,4 +143,16 @@ class ScoringControllerTest {
             null
         }.`when`(introspectionFilter).doFilter(Mockito.any(), Mockito.any(), Mockito.any())
     }
+
+    private fun participant(id: UUID) =
+        ProgramParticipant(
+            id = id,
+            navNoEmail = "user@nav.no",
+            navIdent = "A12345",
+            email = "user@nav.no",
+            fullname = "Person",
+            teams = emptyList(),
+            status = ParticipationStatus.ACTIVE,
+            createdAt = "2026-01-01T00:00:00Z",
+        )
 }

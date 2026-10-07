@@ -3,8 +3,6 @@ package navikt.appsec.securitychampionapp.app.events
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PlaybookEventRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
-import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.Instant
@@ -15,37 +13,31 @@ class EventCatalogService(
     private val eventRepository: EventRepository,
     private val playbookRepository: PlaybookEventRepository,
 ) {
-    fun getAllEvents(): EventQueryResponse {
-        val ownEvents = eventRepository.getAllEvents()
-        if (!ownEvents.isOk) return ownEvents
-        val events = requireNotNull(ownEvents.queryResult)
+    fun getAllEvents(): List<Event> {
+        val events = eventRepository.getAllEvents()
         val ownDates = events.map { Instant.parse(it.startDate).atZone(OSLO_ZONE).toLocalDate().toString() }.toSet()
         val ownIds = events.map { it.id.lowercase() }.toSet()
-        return try {
-            val playbookEvents = playbookRepository.findAll()
-                .filterNot {
-                    (it.id.startsWith("playbook:") && it.startDate in ownDates) ||
-                        deltaEventId(it.url) in ownIds
-                }
-                .map {
-                    Event(
-                        id = it.id,
-                        name = it.title,
-                        description = it.audience,
-                        startDate = it.startDate,
-                        endDate = it.endDate,
-                        location = "",
-                        type = "event",
-                        externalEvent = it.id.startsWith("external:"),
-                        deltaEvent = false,
-                        link = it.url,
-                        allDay = true,
-                    )
-                }
-            EventQueryResponse(isOk = true, queryResult = events + playbookEvents)
-        } catch (e: DataAccessException) {
-            EventQueryResponse(isOk = false, error = e.message)
-        }
+        val playbookEvents = playbookRepository.findAll()
+            .filterNot {
+                (it.id.startsWith("playbook:") && it.startDate in ownDates) ||
+                    deltaEventId(it.url) in ownIds
+            }
+            .map {
+                Event(
+                    id = it.id,
+                    name = it.title,
+                    description = it.audience,
+                    startDate = it.startDate,
+                    endDate = it.endDate,
+                    location = "",
+                    type = "event",
+                    externalEvent = it.id.startsWith("external:"),
+                    deltaEvent = false,
+                    link = it.url,
+                    allDay = true,
+                )
+            }
+        return events + playbookEvents
     }
 
     private fun deltaEventId(url: String): String? {

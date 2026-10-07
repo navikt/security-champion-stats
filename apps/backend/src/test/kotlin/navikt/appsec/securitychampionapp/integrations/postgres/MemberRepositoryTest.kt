@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.dao.DataAccessException
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -70,11 +71,9 @@ class MemberRepositoryTest {
 
         val member = repository.getMemberByEmail("test@nav.no")
 
-        Assertions.assertThat(member.isOk).isTrue()
-        Assertions.assertThat(member.queryResult).hasSize(1)
-        val members = member.queryResult.orEmpty()
-        Assertions.assertThat(members.first().level).isEqualTo("2")
-        Assertions.assertThat(members.first().teams).isEqualTo(listOf("team-a", "team-b"))
+        Assertions.assertThat(member).hasSize(1)
+        Assertions.assertThat(member.first().level).isEqualTo("2")
+        Assertions.assertThat(member.first().teams).isEqualTo(listOf("team-a", "team-b"))
     }
 
     @Test
@@ -84,8 +83,8 @@ class MemberRepositoryTest {
 
         repository.deleteMember("member-1")
 
-        Assertions.assertThat(repository.getMemberByEmail("test@nav.no").queryResult).isEmpty()
-        Assertions.assertThat(repository.getMemberByEmail("keep@nav.no").queryResult).hasSize(1)
+        Assertions.assertThat(repository.getMemberByEmail("test@nav.no")).isEmpty()
+        Assertions.assertThat(repository.getMemberByEmail("keep@nav.no")).hasSize(1)
         Assertions.assertThat(memberCount()).isEqualTo(1)
     }
 
@@ -95,8 +94,26 @@ class MemberRepositoryTest {
 
         repository.deleteMember("missing@nav.no")
 
-        Assertions.assertThat(repository.getMemberByEmail("existing@nav.no").queryResult).hasSize(1)
+        Assertions.assertThat(repository.getMemberByEmail("existing@nav.no")).hasSize(1)
         Assertions.assertThat(memberCount()).isEqualTo(1)
+    }
+
+    @Test
+    fun `should propagate member database failures`() {
+        jdbcTemplate.execute("ALTER TABLE Members RENAME TO members_unavailable")
+
+        Assertions.assertThatThrownBy { repository.getMemberByEmail("test@nav.no") }
+            .isInstanceOf(DataAccessException::class.java)
+        Assertions.assertThatThrownBy { repository.addMember("Test User", "id", "test@nav.no", emptyList()) }
+            .isInstanceOf(DataAccessException::class.java)
+    }
+
+    @Test
+    fun `should propagate graph database failures`() {
+        jdbcTemplate.execute("ALTER TABLE SCData RENAME TO sc_data_unavailable")
+
+        Assertions.assertThatThrownBy { repository.getSCAmountOverTime() }
+            .isInstanceOf(DataAccessException::class.java)
     }
 
     private fun insertMember(

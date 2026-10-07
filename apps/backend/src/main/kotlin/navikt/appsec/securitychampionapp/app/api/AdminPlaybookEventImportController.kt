@@ -17,9 +17,21 @@ class AdminPlaybookEventImportController(private val importJob: PlaybookEventImp
     fun triggerImport(): ResponseEntity<Void> =
         when (importJob.triggerManualImport(currentPrincipal().email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
-            SyncTriggerResult.ALREADY_RUNNING -> ResponseEntity.status(HttpStatus.CONFLICT).build()
-            SyncTriggerResult.UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
-            SyncTriggerResult.DISABLED -> ResponseEntity.status(HttpStatus.CONFLICT).build()
+            SyncTriggerResult.ALREADY_RUNNING -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Import already running",
+                "A playbook event import is already running",
+            )
+            SyncTriggerResult.UNAVAILABLE -> throw ApiRequestException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Import unavailable",
+                "The playbook event import could not be started",
+            )
+            SyncTriggerResult.DISABLED -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Import disabled",
+                "The playbook event import is disabled",
+            )
         }
 
     private fun currentPrincipal(): AppPrincipal =

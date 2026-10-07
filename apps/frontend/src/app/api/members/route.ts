@@ -1,48 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getBackendToken, getServerEnv } from "../../utils/Validation";
-import {
-	AUTHENTICATED_FAILED,
-	FAILED_FETCH,
-	INTERNAL_ERROR,
-} from "../../utils/Variables";
+import { NextRequest } from "next/server";
+import { proxyBackendRequest } from "@/app/utils/BackendProxy";
 
 export async function GET(request: NextRequest) {
-	try {
-		const { backendUrl } = getServerEnv();
-		const { searchParams } = new URL(request.url);
-		const bypassCache = searchParams.get("bypassCache") === "true";
-
-		const backendToken = await getBackendToken(request);
-
-		if (backendToken === AUTHENTICATED_FAILED) {
-			return NextResponse.json(
-				{ error: AUTHENTICATED_FAILED },
-				{ status: 401 },
-			);
-		}
-		const url = bypassCache
-			? `${backendUrl}/api/members?bypassCache=true`
-			: `${backendUrl}/api/members`;
-
-		const response = await fetch(url, {
-			method: "GET",
-			headers: {
-				Authorization: `Bearer ${backendToken}`,
-				"Content-Type": "application/json",
-			},
-		});
-
-		if (!response.ok) {
-			return NextResponse.json(
-				{ error: FAILED_FETCH },
-				{ status: response.status },
-			);
-		}
-
-		const data = await response.json();
-		return NextResponse.json(data);
-	} catch (error) {
-		console.error("Internal server error: ", error);
-		return NextResponse.json({ error: INTERNAL_ERROR }, { status: 500 });
-	}
+	return proxyBackendRequest(request, `/api/members${new URL(request.url).search}`);
 }

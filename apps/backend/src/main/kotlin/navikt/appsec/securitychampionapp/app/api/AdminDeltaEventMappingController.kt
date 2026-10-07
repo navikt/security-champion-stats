@@ -4,7 +4,6 @@ import navikt.appsec.securitychampionapp.app.scoring.AddDeltaEventMappingRequest
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMapping
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingService
-import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
@@ -28,35 +27,46 @@ class AdminDeltaEventMappingController(
     fun mappings(): ResponseEntity<List<DeltaEventMapping>> = ResponseEntity.ok(service.mappings())
 
     @PostMapping
-    fun addMapping(@RequestBody request: AddDeltaEventMappingRequest): ResponseEntity<Any> =
-        try {
-            val mapping = service.addMapping(
+    fun addMapping(@RequestBody request: AddDeltaEventMappingRequest): ResponseEntity<Any> {
+        val mapping = try {
+            service.addMapping(
                 request.programEventName,
                 request.deltaEventUuid,
                 currentPrincipal().email,
             )
-            ResponseEntity.status(HttpStatus.CREATED).body(mapping)
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
         } catch (_: DuplicateKeyException) {
-            ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(mapOf("error" to "The Delta event UUID is already mapped"))
+            throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Conflict",
+                "The Delta event UUID is already mapped",
+            )
         }
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapping)
+    }
 
     @DeleteMapping("/{id}")
     fun removeMapping(@PathVariable id: String): ResponseEntity<Any> {
-        val mappingId = id.toUuid() ?: return ResponseEntity.badRequest().build()
+        val mappingId = id.toUuid() ?: throw ApiRequestException(
+            HttpStatus.BAD_REQUEST,
+            "Invalid mapping ID",
+            "The mapping ID is invalid",
+        )
         return try {
             if (!service.removeMapping(mappingId, currentPrincipal().email)) {
-                ResponseEntity.notFound().build()
+                throw ApiRequestException(
+                    HttpStatus.NOT_FOUND,
+                    "Mapping not found",
+                    "The Delta event mapping does not exist",
+                )
             } else {
                 ResponseEntity.noContent().build()
             }
-        } catch (e: DeltaEventMappingHasCreditsException) {
-            ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(mapOf("error" to "A Delta mapping with awarded credits cannot be removed"))
-        } catch (e: InvalidScoringRequestException) {
-            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        } catch (_: DeltaEventMappingHasCreditsException) {
+            throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Mapping has awarded credits",
+                "A Delta mapping with awarded credits cannot be removed",
+            )
         }
     }
 

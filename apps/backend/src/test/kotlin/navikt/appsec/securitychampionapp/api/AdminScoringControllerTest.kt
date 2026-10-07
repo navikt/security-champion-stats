@@ -33,6 +33,7 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -147,7 +148,27 @@ class AdminScoringControllerTest {
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content("""{"confirmed":false,"reason":"Program reset"}""")
         ).andExpect(status().isBadRequest)
-            .andExpect(jsonPath("$.error").value("Confirmation is required"))
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.detail").value("Confirmation is required"))
+
+        verifyNoInteractions(scoringRepository)
+    }
+
+    @Test
+    fun `should return a problem detail for an invalid adjustment`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val participantId = UUID.fromString("00000000-0000-0000-0000-000000000001")
+
+        mockMvc.perform(
+            MockMvcRequestBuilders.post("/api/admin/scoring/participants/$participantId/adjustments")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("""{"pointsDelta":0,"reason":"Correction"}""")
+        ).andExpect(status().isBadRequest)
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                .contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.title").value("Invalid request"))
+            .andExpect(jsonPath("$.detail").value("The adjustment must not be zero"))
 
         verifyNoInteractions(scoringRepository)
     }

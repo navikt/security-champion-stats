@@ -6,6 +6,7 @@ program and view participant names and teams. AppSec administrators can manage p
 correct season scores, schedule or start a new season, map Slack accounts, and choose eligible Delta
 categories or single owner-confirmed Delta event UUIDs. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
+API proxies preserve backend status, response body, and content type; proxy-local errors use RFC 9457 Problem Details.
 The admin program dashboard summarizes active participants and season activity, shows Slack/Delta/GitHub sync
 health, and lets administrators trigger enabled syncs.
 The home page shows active participants their current-season points, level progress, and rank, followed by

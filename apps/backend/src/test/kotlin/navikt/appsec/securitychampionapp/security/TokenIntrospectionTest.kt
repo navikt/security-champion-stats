@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer
+import tools.jackson.databind.ObjectMapper
 
 class TokenIntrospectionTest {
     private val tokenClient = mock<TokenValidationClient>()
@@ -36,6 +37,7 @@ class TokenIntrospectionTest {
                         "entra_id",
                         "http://localhost/introspect",
                         group,
+                        mock<ObjectMapper>(),
                     )
                 })
                 .run { context ->

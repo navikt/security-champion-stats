@@ -1,352 +1,51 @@
-# Copilot Instructions for Security champions levels
+# Copilot instructions
 
-**EXTREMELY IMPORTANT**:
-- Break up changes into smaller tasks and verify functionality before moving on.
-  If in doubt, ask for clarification. For example, if asked to implement functionality for fetching a set of data.
-  Do not stray outside of this task. Ask if the user wants you to add documentation or extend the functionality
-  of the initial request.
-- Do NOT add anything comprehensive unless specifically instructed.
-- Do NOT add documentation unless specifically asked.
-- Do NOT add comments in code unless the logic is VERY complex.
-- Always verify new features and changes by running the build and tests for every affected app.
-  For backend changes, run `./gradlew build` from `apps/backend` (includes tests).
-  For frontend changes, run `pnpm test` and `pnpm build` from `apps/frontend`.
-  When both apps are affected, verify both. Report failures or blockers; do not claim verification succeeded.
-- **DO NOT ADD EXTRA DOCUMENTATION OR EXPLANATIONS UNLESS SPECIFICALLY ASKED.**
-- Do not use timeout when running terminal commands, we are running zsh on macos.
-- Run terminal commands needed to build and test affected apps.
-- When adding or removing functionality, we update the README.md within frontend or backend folder with relevant information. Keep the information here VERY concise and to the point. For example when adding or removing a package or refactoring existing folder structure.
-- Do not change files without first presenting a solution and asking for approval.
+## Project
 
-## Project Overview:
+Security Champion Stats is a Nav employee web application for the Security Champion program. Employees can view
+participants and events; participants can view their membership and scores; administrators manage participation,
+scoring, integrations, and program dashboards.
 
-Security champion stats is a web application that allows nav employees to view whats happening with security champion program.
-On web application employees can view all security champions and events that are happening both internal and external. While
-employees that have the role of security champion can view additional information and also gamify their role of security champion.
-Lastly, the site has a admin part there appsec team can manage the site/program and also view dashboards that would indicate 
-how the security champion program is doing in general.
+This repository contains a Kotlin/Spring Boot backend and a TypeScript/Next.js frontend. The backend uses PostgreSQL
+and Flyway. Integrations include Entra ID, Teamkatalogen, Slack, Delta, and GitHub. Applications are built and
+deployed through the repository's GitHub Actions and NAIS configuration.
 
-This project is a mono repo, meaning it contains both backend and frontend code. Lastly frontend also has a frackend.
+## Working agreements
 
-### Integrations
-- **Entra ID** - For authentication and user management.
-- **PostgreSQL** - For data storage.
-- **Teamkatalogen** - For fetching SCs information and displaying it in the application.
-- **Slack** - For fetching SCs activity and calculating points based on activity.
+- Keep changes focused. Break larger work into testable steps and verify each step before proceeding.
+- For substantial or ambiguous changes, present the proposed approach and get approval before editing.
+- Do not add unrelated features, broad documentation, or comments that only restate the code.
+- Preserve existing behavior unless a change is part of the approved request. Do not discard unrelated worktree changes.
+- When changing behavior or setup, update the relevant app README briefly.
+- Never expose credentials, personal data, or internal exception details in API responses.
 
-### Key Architectural Principles
-- **Clean Architecture**: Dependencies point inward (infrastructure → usecase → domain)
-- **Dependency Injection**: Use constructor injection for all dependencies, avoid service locators or global state.
-- **Single Responsibility**: Each class or module has one clear purpose.
-- **Testability**: Design for testability with clear separation of concerns and use of interfaces
-- **Interface Segregation**: Avoid large, monolithic interfaces; prefer smaller, focused ones.
+## Architecture and code
 
-## Technology Stack:
+- Keep dependencies directed inward: application logic should not depend on integration or web-framework details.
+- Use constructor injection for Spring dependencies. Introduce interfaces where they clarify an application boundary or
+  improve testability; avoid abstractions without a clear purpose.
+- Keep persistence failures explicit. Do not convert unexpected database errors into empty results or success-shaped
+  responses; allow them to reach the appropriate error boundary.
+- Use idiomatic Kotlin and TypeScript, explicit null handling, and the established patterns in nearby code.
+- Keep frontend API route handlers consistent: proxy backend status, body, and content type; use RFC 9457 Problem
+  Details (`application/problem+json`) for errors produced at the frontend boundary.
+- Backend HTTP errors use RFC 9457 Problem Details. Return sanitized details for unexpected errors and log server-side
+  failures appropriately.
+- Validate untrusted input and enforce authorization in the backend; frontend checks are not an authorization boundary.
+- Add database changes as Flyway migrations under `apps/backend/src/main/resources/db/migration/` using
+  `V{version}__{description}.sql`. Prefer additive, data-preserving migrations.
 
-### Backend Core:
-- **Framework**: Spring Boot
-- **Language**: Kotlin
-- **Testing**: JUnit 5, MockK, Testcontainers
-- **Build Tool**: Gradle
+## Tests and verification
 
-#### Backend Ifrastructure:
-- **Database**: PostgreSQL (with Flyway for migrations)
-- **Authentication**: Azure AD (via Spring Security)
-- **Containerization**: Docker (distroless base images)
-- **Deployment**: GCP Cloud run with NAIS platform
+- Backend tests use JUnit 5 and MockK; controller tests use Spring MockMvc, and database integration tests use
+  Testcontainers. Keep tests under `apps/backend/src/test/kotlin/` in the corresponding package structure.
+- Frontend tests use Vitest and Testing Library. Keep tests near the feature or source file they exercise.
+- Run checks for every affected app:
+  - Backend: from `apps/backend`, run `./gradlew build`.
+  - Frontend: from `apps/frontend`, run `pnpm test` and `pnpm build`.
+- Report any failed or blocked checks accurately; do not claim unrun checks passed.
 
-### Frontend Core:
-- **Framework**: React, Next.js
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Build tool**: pnpm
+## Relevant references
 
-## Coding Conventions:
-
-### Code Style Guidelines:
-
-- **Line Length**: 120 characters max
-- **Imports**: Organize with wildcards for 5+ imports from same package, otherwise explicit imports.
-- **Documentation**: Inline comments for complex logic only
-- **Naming Conventions**:
-  - Classes: PascalCase
-  - Methods/Functions: camelCase
-  - Variables: camelCase
-  - Constants: UPPER_SNAKE_CASE
-- **Nullability**: Explicit null handling, prefer safe calls (`?.`)
-
-### File Organization:
-#### Backend:
-- **One public class per file** (private helpers allowed)
-- **File name matches primary class name**
-- **Package structure reflects architectural layers**
-- **Test files mirror main source structure** 
-
-#### Frontend:
-- **One component per file** (unless closely related)
-- **File name matches component name**
-- **Organize by feature or domain**
-- **Test files mirror main source structure**
-
-### Error handling:
-#### Backend:
-The project adheres to Problem Details RFC9457 for error handling.
-Example request: 
-```
-POST /purchase HTTP/1.1
-Host: store.example.com
-Content-Type: application/json
-Accept: application/json, application/problem+json
-
-{
-"item": 123456,
-"quantity": 2
-}
-```
-
-Problem details response:
-```
-HTTP/1.1 403 Forbidden
-Content-Type: application/problem+json
-Content-Language: en
-
-{
- "type": "https://example.com/probs/out-of-credit",
- "title": "You do not have enough credit.",
- "detail": "Your current balance is 30, but that costs 50.",
- "instance": "/account/12345/msgs/abc",
- "balance": 30,
- "accounts": ["/account/12345",
-              "/account/67890"]
-}
-```
-```kotlin
-// Exception handling with proper logging
-try {
-    // Business logic
-} catch (e: SerializationException) {
-    call.respond(HttpStatusCode.BadRequest, ErrorResponse(...))
-} catch (e: IOException) {
-    call.respond(HttpStatusCode.InternalServerError, ErrorResponse(...))
-}
-```
-
-#### Frontend:
-The project adheres to Problem Details RFC0759 for error handling.
-Example request:
-```
-try {
- // Business logic
-} catch (error) {
-  console.error('An error occurred:', error);
-}
-
-```
-
-## Testing Conventions:
-
-### Test Structure:
-
-#### Backend:
-- **Location**: `src/test/kotlin` mirrors `src/main/kotlin`
-- **Naming**: `ClassNameTest` for unit tests, `ClassNameIntegrationTest` for integration tests
-- **Test Method Naming**: Backtick syntax with descriptive names using spaces (e.g., `fun \`should generate valid PNG when given valid request\`()`)
-- **Frameworks**: JUnit 5 for testing, MockK for mocking, Testcontainers for integration tests with real dependencies
-- **Pattern**: Descriptive sentences that clearly explain the behavior being tested
-
-### Test Categories:
-
-#### Backend:
-- **Unit Tests**: Test individual classes or methods in isolation, using mocks for dependencies.
-- **Integration Tests**: Full application context (`testApplication`)
-- **API Tests**: End-to-end endpoint testing
-
-#### Frontend:
-- **Unit Tests**: Test individual components or functions in isolation, using mocks for dependencies.
-- **Integration Tests**: Test component interactions and state management.
-
-### Test Patterns:
-
-#### Backend:
-```kotlin
-@Test
-fun `should generate valid PNG when given valid request`() = testApplication {
-    application { module() }
-    val response = client.post("/snap") {
-        contentType(ContentType.Application.Json)
-        setBody(validSnapRequest)
-    }
-    assertEquals(HttpStatusCode.OK, response.status)
-    assertTrue(response.contentType()?.match(ContentType.Image.PNG) == true)
-}
-
-@Test
-fun `should reject request with invalid preset`() = testApplication {
-    application { module() }
-    val response = client.post("/snap") {
-        contentType(ContentType.Application.Json)
-        setBody(invalidPresetRequest)
-    }
-    assertEquals(HttpStatusCode.BadRequest, response.status)
-}
-```
-#### Frontend:
-```typescript
-test('renders component with valid props', () => {
-  render(<MyComponent title="Test Title" />);
-  expect(screen.getByText('Test Title')).toBeInTheDocument();
-});
-```
-
-### Test Naming Conventions
-
-#### Backend:
-- **Positive Tests**: `should [expected behavior] when [condition]` (e.g., `should generate valid image when given valid input`)
-- **Negative Tests**: `should [error behavior] when [invalid condition]` (e.g., `should reject request when preset is invalid`)
-- **Feature Tests**: `should [feature behavior] for [specific case]` (e.g., `should produce larger images for presentation preset`)
-- **Validation Tests**: `should validate [rule] and [expected result]` (e.g., `should validate input and return error details`)
-
-## API Design Patterns
-
-### RESTful Conventions
-- **Endpoints**: Descriptive nouns (`/snap` for image generation)
-- **HTTP Methods**: POST for resource creation, GET for retrieval
-- **Status Codes**: Proper HTTP semantics (200, 400, 500, etc.)
-
-### Request/Response Structure
-- **Consistent Naming**: camelCase for JSON fields
-- **Optional Parameters**: Nullable with sensible defaults
-- **Backward Compatibility**: Deprecated fields maintained with warnings
-- **Extensibility**: Preset system for common configurations
-
-## Configuration & Environment
-
-### Application Configuration
-
-#### Backend:
-- **Build Config**: `build.gradle.kts` with version catalogs (`libs.versions.toml`)
-- **Environment Variables**: For secrets and deployment-specific values
-- **Stable dependencies**: We will stick to the latest stable release of all dependencies.
-
-## Common Patterns & Best Practices
-
-- We follow best practices from the kotlin foundation and Spring documentation.
-- We follow best practices for React and Next.js development, including component design, state management, and performance optimization.
-
-### Use Case Pattern
-```kotlin
-class GenerateCodeImageUseCase(
-    private val highlighterService: CodeHighlighterService,
-    private val rendererFactory: ImageRendererFactory
-) {
-    suspend fun execute(request: GenerateImageRequest): ByteArray {
-        // Business logic here
-    }
-}
-```
-
-### Factory Pattern
-```kotlin
-class ImageRendererFactory {
-    fun createRenderer(designSystem: String): ImageRenderer = when (designSystem) {
-        "material" -> MaterialDesignImageRenderer()
-        "macos" -> Java2DImageRenderer()
-        else -> Java2DImageRenderer() // default
-    }
-}
-```
-
-### Leader Election Pattern
-```kotlin
-class LeaderElection(private val httpClient: HttpClient) {
-    suspend fun isLeader(): Boolean {
-        val electorUrl = System.getenv("ELECTOR_PATH") ?: return true // Local dev
-        val response = httpClient.get(electorUrl)
-        val leaderInfo: LeaderInfo = response.body()
-        return hostname == leaderInfo.name
-    }
-    
-    suspend fun <T> ifLeader(operation: suspend () -> T): T? {
-        return if (isLeader()) operation() else null
-    }
-}
-```
-
-### Database Transaction Pattern
-```kotlin
-suspend fun <T> dbQuery(block: suspend () -> T): T =
-    newSuspendedTransaction(Dispatchers.IO) { block() }
-
-// Batch operations with chunking
-suspend fun upsertCves(cves: List<NvdCveData>) {
-    cves.chunked(500).forEach { batch ->
-        dbQuery {
-            batch.forEach { cve ->
-                // Upsert logic
-            }
-        }
-    }
-}
-```
-
-## Performance Considerations
-
-- **Caching**: Valkey cache for API responses (configurable TTL)
-- **Database Indexes**: Proper indexes on frequently queried fields
-- **Connection Pooling**: HikariCP for efficient database connection management
-- **Batch Processing**: Chunked operations for large datasets (e.g., 500 CVEs per batch)
-- **Rate Limiting**: Respect external API rate limits (NVD: 6 seconds between requests)
-
-## Database Patterns
-
-### Repository Pattern
-```kotlin
-interface NvdRepository {
-    suspend fun getCveData(cveId: String): NvdCveData?
-    suspend fun upsertCves(cves: List<NvdCveData>)
-    suspend fun getLastModifiedDate(): LocalDateTime?
-}
-```
-
-### Migration Management
-- **Location**: `src/main/resources/db/migration/`
-- **Naming**: `V{version}__{description}.sql` (e.g., `V1__create_nvd_tables.sql`)
-- **Execution**: Flyway runs migrations automatically on application startup
-- **Reversibility**: Avoid destructive changes; use new migrations to modify schema
-
-## Security Considerations
-
-- **Input Validation**: All inputs validated before processing
-- **Error Information**: No sensitive data in error responses
-- **CORS Configuration**: Properly configured for web clients
-- **Content Type Validation**: Strict content type checking
-
-## Additional Guidelines
-
-## Code Review Standards
-- Check for logic errors, code style, and architectural consistency.
-- Ensure all code (including Copilot-generated) is readable, maintainable, and tested.
-- Review for security issues, proper error handling, and input validation.
-- Require at least one approving review before merging PRs.
-
-## Security Standards
-- Follow OWASP Top 10 guidelines for web application security.
-- Never commit secrets or sensitive data; use environment variables.
-- Regularly update dependencies and review for vulnerabilities.
-- Validate all user input and sanitize outputs.
-- Use secure defaults for CORS, headers, and authentication.
-
-## CI/CD Best Practices
-- All code must pass linting, static analysis, and tests before merge.
-- Use conventional commit messages for automated changelog generation.
-- Automate releases and Docker builds via GitHub Actions.
-
-## Key File References
-- **README.md**: Project overview, setup, and API usage.
-- **copilot-instructions.md**: Coding, commit, and workflow standards.
-- **.github/workflows/**: CI/CD automation.
-
-## Documentation Update Workflow
-- Update copilot-instructions.md and other docs for any new conventions or major changes.
-- Review documentation changes in PRs; require approval before merging.
-- Keep documentation concise, actionable, and up-to-date.
+- `apps/backend/Readme.md` and `apps/frontend/Readme.md`: application setup and behavior.
+- `.github/workflows/`: CI and deployment workflows.

@@ -4,10 +4,11 @@ import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.playbook.PlaybookEvent
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PlaybookEventRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventQueryResponse
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.reset
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.dao.DataAccessResourceFailureException
@@ -23,7 +24,7 @@ class EventCatalogServiceTest {
             ownEvent("delta", "2022-01-20T23:30:00Z"),
             ownEvent("manual", "2026-10-20T22:30:00Z").copy(deltaEvent = false),
         )
-        whenever(ownRepository.getAllEvents()).thenReturn(EventQueryResponse(true, ownEvents))
+        whenever(ownRepository.getAllEvents()).thenReturn(ownEvents)
         whenever(playbookRepository.findAll()).thenReturn(
             listOf(
                 feedEvent("playbook:past", "2022-01-21"),
@@ -35,11 +36,10 @@ class EventCatalogServiceTest {
 
         val result = service.getAllEvents()
 
-        assertThat(result.isOk).isTrue()
-        assertThat(result.queryResult!!.map { it.id })
+        assertThat(result.map { it.id })
             .containsExactly("delta", "manual", "external:conference", "playbook:other")
-        assertThat(result.queryResult.take(2)).isEqualTo(ownEvents)
-        val conference = result.queryResult[2]
+        assertThat(result.take(2)).isEqualTo(ownEvents)
+        val conference = result[2]
         assertThat(conference.allDay).isTrue()
         assertThat(conference.deltaEvent).isFalse()
         assertThat(conference.externalEvent).isTrue()
@@ -50,25 +50,25 @@ class EventCatalogServiceTest {
     fun `should restore a suppressed playbook event after an own event is rescheduled or removed`() {
         whenever(playbookRepository.findAll()).thenReturn(listOf(feedEvent("playbook:meetup", "2026-10-21")))
         whenever(ownRepository.getAllEvents()).thenReturn(
-            EventQueryResponse(true, listOf(ownEvent("manual", "2026-10-21T12:00:00Z"))),
-            EventQueryResponse(true, listOf(ownEvent("manual", "2026-10-22T12:00:00Z"))),
-            EventQueryResponse(true, emptyList()),
+            listOf(ownEvent("manual", "2026-10-21T12:00:00Z")),
+            listOf(ownEvent("manual", "2026-10-22T12:00:00Z")),
+            emptyList(),
         )
 
-        assertThat(service.getAllEvents().queryResult!!.map { it.id }).containsExactly("manual")
-        assertThat(service.getAllEvents().queryResult!!.map { it.id }).containsExactly("manual", "playbook:meetup")
-        assertThat(service.getAllEvents().queryResult!!.map { it.id }).containsExactly("playbook:meetup")
+        assertThat(service.getAllEvents().map { it.id }).containsExactly("manual")
+        assertThat(service.getAllEvents().map { it.id }).containsExactly("manual", "playbook:meetup")
+        assertThat(service.getAllEvents().map { it.id }).containsExactly("playbook:meetup")
     }
 
     @Test
     fun `should compare start dates rather than suppressing overlapping multi day events`() {
         whenever(ownRepository.getAllEvents())
-            .thenReturn(EventQueryResponse(true, listOf(ownEvent("manual", "2026-10-21T12:00:00Z"))))
+            .thenReturn(listOf(ownEvent("manual", "2026-10-21T12:00:00Z")))
         whenever(playbookRepository.findAll()).thenReturn(
             listOf(feedEvent("playbook:course", "2026-10-20").copy(endDate = "2026-10-22"))
         )
 
-        assertThat(service.getAllEvents().queryResult!!.map { it.id }).containsExactly("manual", "playbook:course")
+        assertThat(service.getAllEvents().map { it.id }).containsExactly("manual", "playbook:course")
     }
 
     @Test
@@ -82,25 +82,29 @@ class EventCatalogServiceTest {
         )
         whenever(playbookRepository.findAll()).thenReturn(listOf(matching, unrelated))
         whenever(ownRepository.getAllEvents()).thenReturn(
-            EventQueryResponse(true, listOf(ownEvent(deltaId, "2024-02-02T12:00:00Z"))),
-            EventQueryResponse(true, emptyList()),
+            listOf(ownEvent(deltaId, "2024-02-02T12:00:00Z")),
+            emptyList(),
         )
 
-        assertThat(service.getAllEvents().queryResult!!.map { it.id })
+        assertThat(service.getAllEvents().map { it.id })
             .containsExactly(deltaId, "external:unrelated")
-        assertThat(service.getAllEvents().queryResult!!.map { it.id })
+        assertThat(service.getAllEvents().map { it.id })
             .containsExactly("external:delta", "external:unrelated")
     }
 
     @Test
     fun `should report storage errors instead of returning a partial catalog`() {
-        whenever(ownRepository.getAllEvents()).thenReturn(EventQueryResponse(false, error = "unavailable"))
-        assertThat(service.getAllEvents().isOk).isFalse()
+        whenever(ownRepository.getAllEvents())
+            .thenThrow(DataAccessResourceFailureException("unavailable"))
+        assertThatThrownBy { service.getAllEvents() }
+            .isInstanceOf(DataAccessResourceFailureException::class.java)
         verifyNoInteractions(playbookRepository)
 
-        whenever(ownRepository.getAllEvents()).thenReturn(EventQueryResponse(true, emptyList()))
+        reset(ownRepository)
+        whenever(ownRepository.getAllEvents()).thenReturn(emptyList())
         whenever(playbookRepository.findAll()).thenThrow(DataAccessResourceFailureException("unavailable"))
-        assertThat(service.getAllEvents().isOk).isFalse()
+        assertThatThrownBy { service.getAllEvents() }
+            .isInstanceOf(DataAccessResourceFailureException::class.java)
     }
 
     private fun ownEvent(id: String, start: String) = Event(

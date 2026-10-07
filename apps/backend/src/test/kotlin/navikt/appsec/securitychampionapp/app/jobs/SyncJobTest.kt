@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionapp.app.jobs
 import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
@@ -110,10 +111,10 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        val participant = repository.findByNavNoEmail("user@nav.no").queryResult.single()
+        val participant = requireNotNull(repository.findByNavNoEmail("user@nav.no"))
         assertThat(participant.fullname).isEqualTo("Test User")
         assertThat(participant.teams).containsExactly("Updated team")
-        assertThat(participant.status).isEqualTo("ACTIVE")
+        assertThat(participant.status).isEqualTo(ParticipationStatus.ACTIVE)
     }
 
     @Test
@@ -133,16 +134,14 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        assertThat(repository.findAllParticipants().queryResult).isEmpty()
+        assertThat(repository.findAllParticipants()).isEmpty()
     }
 
     @Test
     fun `should delete Slack mappings and credits without restoring a participant during sync`() {
         runJobInsideLock()
-        assertThat(repository.enroll("deleted@nav.no", "A12345", "deleted@nav.no").isOk).isTrue()
-        val participantId = UUID.fromString(
-            repository.findByNavNoEmail("deleted@nav.no").queryResult.single().id
-        )
+        assertThat(repository.enroll("deleted@nav.no", "A12345", "deleted@nav.no")).isEqualTo(1)
+        val participantId = requireNotNull(repository.findByNavNoEmail("deleted@nav.no")).id
         val mappings = SlackIdentityMappingRepository(jdbcTemplate)
         val scoring = PostgresScoringLedger(jdbcTemplate)
         assertThat(mappings.addMapping("U_DELETED", participantId, "admin@nav.no")).isTrue()
@@ -163,14 +162,14 @@ class SyncJobTest {
             )
         )
 
-        assertThat(repository.permanentlyDelete(participantId).affectedRows).isEqualTo(1)
+        assertThat(repository.permanentlyDelete(participantId)).isEqualTo(1)
         assertThat(mappings.mappingOverview().first).isEmpty()
         assertThat(scoring.creditsForParticipant(participantId)).isEmpty()
 
         syncJob().syncDatabase()
 
         verify(catalog).fetchAllMembersWithTeamData()
-        assertThat(repository.findAllParticipants().queryResult).isEmpty()
+        assertThat(repository.findAllParticipants()).isEmpty()
         assertThat(scoring.participantExists(participantId)).isFalse()
         assertThat(mappings.mappingOverview().first).isEmpty()
         assertThat(mappings.mappedParticipants()).isEmpty()
@@ -192,7 +191,7 @@ class SyncJobTest {
 
         syncJob().syncDatabase()
 
-        assertThat(repository.findByNavNoEmail("user@nav.no").queryResult).hasSize(1)
+        assertThat(repository.findByNavNoEmail("user@nav.no")).isNotNull
     }
 
     @Test

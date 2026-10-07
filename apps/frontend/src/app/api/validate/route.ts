@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBackendToken, getServerEnv } from "../../utils/Validation";
-import {
-	AUTHENTICATED_FAILED,
-	INTERNAL_ERROR,
-	Me,
-	MISSING_GROUP,
-} from "../../utils/Variables";
+import { AUTHENTICATED_FAILED, INTERNAL_ERROR, MISSING_GROUP } from "../../utils/Variables";
 import { parseAzureUserToken } from "@navikt/oasis";
 import { createLocalParserResult } from "@/app/utils/LocalDevAuth";
+import { forwardBackendResponse, problemResponse } from "@/app/utils/BackendProxy";
 
 export async function GET(request: NextRequest) {
 	try {
@@ -18,24 +14,26 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (token === AUTHENTICATED_FAILED) {
-			return NextResponse.json(
-				{ error: AUTHENTICATED_FAILED },
-				{ status: 401 },
+			return problemResponse(
+				401,
+				"Unauthorized",
+				"Authentication is required",
+				new URL(request.url).pathname,
 			);
 		}
 		const { backendUrl, backendScope } = getServerEnv();
-		let parse;
-		if (backendScope !== "LOCAL") {
-			parse = parseAzureUserToken(token);
-			if (!parse.ok) {
-				return NextResponse.json({ error: parse.error }, { status: 401 });
-			}
-		} else {
-			parse = createLocalParserResult();
+		const parsedToken = backendScope === "LOCAL" ? null : parseAzureUserToken(token);
+		if (parsedToken && !parsedToken.ok) {
+			return problemResponse(
+				401,
+				"Unauthorized",
+				"The user token is invalid",
+				new URL(request.url).pathname,
+			);
 		}
+		const parse = parsedToken?.ok ? parsedToken : createLocalParserResult();
 
-		const url = `${backendUrl}/api/validate`;
-		const response = await fetch(url, {
+		const response = await fetch(`${backendUrl}/api/validate`, {
 			method: "GET",
 			headers: {
 				Authorization: `Bearer ${token}`,
@@ -44,28 +42,27 @@ export async function GET(request: NextRequest) {
 		});
 
 		if (!response.ok) {
-			return NextResponse.json(
-				{
-					error: AUTHENTICATED_FAILED,
-					backendStatus: response.status,
-					backendHeaders: Object.fromEntries(response.headers.entries()),
-					backendBody: response.text(),
-				},
-				{ status: response.status },
-			);
+			return forwardBackendResponse(response);
 		}
 
-		const backendResponse: Omit<Me, "displayName"> = await response.json();
+		const backendResponse: { username: string } = await response.json();
 		const groups = parse.groups;
 
 		if (!groups) {
-			return NextResponse.json({ error: MISSING_GROUP }, { status: 403 });
+			return problemResponse(
+				403,
+				"Forbidden",
+				MISSING_GROUP,
+				new URL(request.url).pathname,
+			);
 		}
 
 		if (backendResponse.username !== parse.preferred_username) {
-			return NextResponse.json(
-				{ error: AUTHENTICATED_FAILED },
-				{ status: 401 },
+			return problemResponse(
+				401,
+				"Unauthorized",
+				AUTHENTICATED_FAILED,
+				new URL(request.url).pathname,
 			);
 		}
 		return NextResponse.json({
@@ -74,6 +71,11 @@ export async function GET(request: NextRequest) {
 		});
 	} catch (error) {
 		console.error("Validation error, then validating user," + error);
-		return NextResponse.json({ error: INTERNAL_ERROR }, { status: 500 });
+		return problemResponse(
+			500,
+			"Internal server error",
+			INTERNAL_ERROR,
+			new URL(request.url).pathname,
+		);
 	}
 }

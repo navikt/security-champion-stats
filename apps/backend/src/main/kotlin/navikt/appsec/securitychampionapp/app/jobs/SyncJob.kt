@@ -4,7 +4,7 @@ import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
@@ -15,7 +15,7 @@ private const val SYNC_JOB_LOCK_KEY = 1_001L
 @Component
 class SyncJob(
     private val jobLock: PostgresJobLock,
-    private val repo: ProgramParticipantRepository,
+    private val repo: ParticipantStore,
     private val catalog: TeamCatalog,
     private val auditService: ProgramAuditService? = null,
 ) {
@@ -39,21 +39,10 @@ class SyncJob(
             }
 
             val participants = repo.findAllParticipants()
-            if (!participants.isOk) {
-                auditService?.recordRun(
-                    "PARTICIPANT_PROFILE_SYNC_FAILED",
-                    AuditOutcome.FAILED,
-                    run,
-                    mapOf("failure" to "participantLookup"),
-                )
-                logger.error("Failed to fetch program participants: ${participants.error}")
-                return@runWithLock
-            }
-
             var updated = 0
             var failed = 0
             catalogMembers.forEach { catalogMember ->
-                val hasParticipant = participants.queryResult.any {
+                val hasParticipant = participants.any {
                     it.navIdent == catalogMember.navIdent && it.email == catalogMember.email
                 }
                 if (hasParticipant) {
@@ -63,12 +52,7 @@ class SyncJob(
                         fullname = catalogMember.fullName,
                         teams = catalogMember.teamName,
                     )
-                    if (!response.isOk) {
-                        failed++
-                        logger.error("Failed to update participant profile: ${response.error}")
-                    } else {
-                        updated += response.affectedRows
-                    }
+                    updated += response
                 }
             }
             auditService?.recordRun(

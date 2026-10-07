@@ -27,9 +27,21 @@ class AdminDeltaScoringController(
     fun triggerSync(): ResponseEntity<Void> =
         when (deltaScoringSyncJob.triggerManualSync(currentPrincipal().email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
-            SyncTriggerResult.ALREADY_RUNNING -> ResponseEntity.status(HttpStatus.CONFLICT).build()
-            SyncTriggerResult.UNAVAILABLE -> ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
-            SyncTriggerResult.DISABLED -> ResponseEntity.status(HttpStatus.CONFLICT).build()
+            SyncTriggerResult.ALREADY_RUNNING -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Sync already running",
+                "A Delta registration sync is already running",
+            )
+            SyncTriggerResult.UNAVAILABLE -> throw ApiRequestException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Sync unavailable",
+                "The Delta registration sync could not be started",
+            )
+            SyncTriggerResult.DISABLED -> throw ApiRequestException(
+                HttpStatus.CONFLICT,
+                "Sync disabled",
+                "The Delta registration sync is disabled",
+            )
         }
 
     private fun currentPrincipal(): AppPrincipal =

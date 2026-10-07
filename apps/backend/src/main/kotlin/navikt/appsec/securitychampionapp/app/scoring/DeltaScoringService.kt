@@ -4,9 +4,9 @@ import navikt.appsec.securitychampionapp.integrations.delta.DeltaEventRegistrati
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaIntegrationException
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaRegistrationSource
+import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCategoryRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
 import org.springframework.dao.DataAccessException
 import org.springframework.stereotype.Service
@@ -25,7 +25,7 @@ class DeltaScoringService(
     private val eventSource: DeltaRegistrationSource,
     private val mappingRepository: DeltaEventMappingRepository,
     private val categoryRepository: DeltaEligibleCategoryRepository,
-    private val participantRepository: ProgramParticipantRepository,
+    private val participantRepository: ParticipantStore,
     private val scoringService: ScoringService,
     private val statusRepository: DeltaScoringStatusRepository,
     private val clock: Clock,
@@ -64,10 +64,7 @@ class DeltaScoringService(
         val now = LocalDateTime.now(clock.withZone(DELTA_SCORING_ZONE))
         val from = LocalDate.of(now.year, 1, 1).atStartOfDay()
         val activeParticipants = participantRepository.findActiveParticipants()
-        if (!activeParticipants.isOk) {
-            throw DeltaIntegrationException(DeltaFailure.PARTICIPANT_LOOKUP)
-        }
-        val participantsByEmail = activeParticipants.queryResult
+        val participantsByEmail = activeParticipants
             .filter { it.email.isNotBlank() }
             .groupBy { it.email.normalizeEmail() }
 
@@ -110,7 +107,7 @@ class DeltaScoringService(
                 }
                 when (
                     scoringService.awardCredit(
-                        participantId = UUID.fromString(participant.id),
+                        participantId = participant.id,
                         creditType = ActivityCreditType.DELTA_REGISTRATION,
                         uniquenessKey = event.eventUuid.toString(),
                         sourceReference = event.eventUuid.toString(),

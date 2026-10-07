@@ -306,7 +306,7 @@ class PostgresScoringLedgerTest {
                 "SELECT COUNT(*) FROM program_participant_audit WHERE participant_id = ?", Int::class.java, id,
             ),
         ).isEqualTo(1)
-        assertThat(ProgramParticipantRepository(jdbcTemplate).permanentlyDelete(id).isOk).isTrue()
+        assertThat(ProgramParticipantRepository(jdbcTemplate).permanentlyDelete(id)).isEqualTo(1)
         listOf("github_account_mappings", "activity_credits", "program_participant_audit").forEach { table ->
             assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM $table", Int::class.java)).isZero()
         }

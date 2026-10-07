@@ -5,9 +5,9 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.AdminScoringController
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
+import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
@@ -52,7 +52,7 @@ class AdminScoringControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @MockitoBean
-    lateinit var scoringRepository: ScoringRepository
+    lateinit var scoringRepository: ScoringLedger
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter

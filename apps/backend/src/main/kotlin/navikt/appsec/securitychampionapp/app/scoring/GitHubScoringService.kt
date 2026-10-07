@@ -2,7 +2,6 @@ package navikt.appsec.securitychampionapp.app.scoring
 
 import navikt.appsec.securitychampionapp.integrations.github.GitHubContributionSource
 import navikt.appsec.securitychampionapp.integrations.postgress.GitHubIdentityMappingRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.time.ZoneId
@@ -19,7 +18,7 @@ data class GitHubSyncSummary(
 class GitHubScoringService(
     private val source: GitHubContributionSource,
     private val mappings: GitHubIdentityMappingRepository,
-    private val repository: ScoringRepository,
+    private val repository: ScoringLedger,
     private val scoringService: ScoringService,
 ) {
     fun sync(now: Instant, correlationId: UUID? = null): GitHubSyncSummary {

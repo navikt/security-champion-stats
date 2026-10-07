@@ -4,12 +4,12 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
+import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncStatusView
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardMetrics
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.WeeklyCreditPoints
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -30,7 +30,7 @@ class AdminDashboardServiceTest {
             endsOn = null,
             nextResetDate = LocalDate.parse("2027-01-01"),
         )
-        val scoringRepository = mock<ScoringRepository>()
+        val scoringRepository = mock<ScoringLedger>()
         val dashboardRepository = mock<AdminDashboardRepository>()
         val slackStatusService = mock<SlackScoringStatusService>()
         val deltaStatusService = mock<DeltaScoringStatusService>()

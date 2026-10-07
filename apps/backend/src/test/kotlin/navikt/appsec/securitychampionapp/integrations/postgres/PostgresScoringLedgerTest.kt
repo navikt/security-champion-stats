@@ -19,7 +19,7 @@ import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEligibleCat
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaEventMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaScoringStatusRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.DeltaSyncOutcome
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackScoringStatusRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackSyncOutcome
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
@@ -53,7 +53,7 @@ import java.util.UUID
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ScoringRepositoryTest {
+class PostgresScoringLedgerTest {
     companion object {
         @JvmStatic
         @Container
@@ -66,7 +66,7 @@ class ScoringRepositoryTest {
 
     private lateinit var dataSource: HikariDataSource
     private lateinit var jdbcTemplate: JdbcTemplate
-    private lateinit var repository: ScoringRepository
+    private lateinit var repository: PostgresScoringLedger
     private lateinit var adminDashboardRepository: AdminDashboardRepository
     private lateinit var slackScoringStatusRepository: SlackScoringStatusRepository
     private lateinit var slackIdentityMappingRepository: SlackIdentityMappingRepository
@@ -85,7 +85,7 @@ class ScoringRepositoryTest {
             maximumPoolSize = 2
         }
         jdbcTemplate = JdbcTemplate(dataSource)
-        repository = ScoringRepository(jdbcTemplate)
+        repository = PostgresScoringLedger(jdbcTemplate)
         adminDashboardRepository = AdminDashboardRepository(jdbcTemplate)
         slackScoringStatusRepository = SlackScoringStatusRepository(jdbcTemplate)
         slackIdentityMappingRepository = SlackIdentityMappingRepository(jdbcTemplate)

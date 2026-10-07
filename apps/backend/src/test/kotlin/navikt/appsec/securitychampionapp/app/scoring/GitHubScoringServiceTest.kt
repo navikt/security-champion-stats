@@ -7,7 +7,6 @@ import navikt.appsec.securitychampionapp.integrations.github.GitHubIdentity
 import navikt.appsec.securitychampionapp.integrations.github.GitHubIntegrationException
 import navikt.appsec.securitychampionapp.integrations.postgress.GitHubIdentityMappingRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.MappedGitHubParticipant
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
@@ -25,7 +24,7 @@ import java.util.UUID
 class GitHubScoringServiceTest {
     private val source = mock<GitHubContributionSource>()
     private val mappings = mock<GitHubIdentityMappingRepository>()
-    private val repository = mock<ScoringRepository>()
+    private val repository = mock<ScoringLedger>()
     private val scoring = mock<ScoringService>()
     private val service = GitHubScoringService(source, mappings, repository, scoring)
     private val now = Instant.parse("2026-10-06T12:00:00Z")

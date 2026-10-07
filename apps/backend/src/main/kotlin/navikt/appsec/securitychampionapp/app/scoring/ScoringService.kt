@@ -2,7 +2,6 @@ package navikt.appsec.securitychampionapp.app.scoring
 
 import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.Instant
@@ -13,7 +12,7 @@ private val PROGRAM_TIME_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 
 @Service
 class ScoringService(
-    private val repository: ScoringRepository,
+    private val repository: ScoringLedger,
     private val auditService: ProgramAuditService? = null,
 ) {
     fun adminOverview(): AdminScoringOverview {

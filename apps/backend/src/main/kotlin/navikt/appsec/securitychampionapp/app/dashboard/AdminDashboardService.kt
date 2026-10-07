@@ -5,11 +5,11 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
+import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncStatusView
 import navikt.appsec.securitychampionapp.integrations.postgress.AdminDashboardRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.springframework.stereotype.Service
 import java.time.Clock
 import java.time.DayOfWeek
@@ -43,7 +43,7 @@ data class AdminDashboardOverview(
 
 @Service
 class AdminDashboardService(
-    private val scoringRepository: ScoringRepository,
+    private val scoringRepository: ScoringLedger,
     private val dashboardRepository: AdminDashboardRepository,
     private val slackStatusService: SlackScoringStatusService,
     private val deltaStatusService: DeltaScoringStatusService,

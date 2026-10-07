@@ -3,8 +3,8 @@ package navikt.appsec.securitychampionapp.app.audit
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -39,7 +39,7 @@ class ProgramAuditServiceTest {
 
     @Test
     fun `should not change a successful credit award when the optional audit write fails`() {
-        val scoringRepository = mock<ScoringRepository>()
+        val scoringRepository = mock<ScoringLedger>()
         val auditRepository = mock<ProgramAuditRepository>()
         val participantId = UUID.fromString(PARTICIPANT_ID)
         val correlationId = UUID.randomUUID()

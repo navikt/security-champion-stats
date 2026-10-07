@@ -5,7 +5,7 @@ import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWithTeamData
@@ -144,7 +144,7 @@ class SyncJobTest {
             repository.findByNavNoEmail("deleted@nav.no").queryResult.single().id
         )
         val mappings = SlackIdentityMappingRepository(jdbcTemplate)
-        val scoring = ScoringRepository(jdbcTemplate)
+        val scoring = PostgresScoringLedger(jdbcTemplate)
         assertThat(mappings.addMapping("U_DELETED", participantId, "admin@nav.no")).isTrue()
         assertThat(
             scoring.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "2026-10-05", "U_DELETED:message")

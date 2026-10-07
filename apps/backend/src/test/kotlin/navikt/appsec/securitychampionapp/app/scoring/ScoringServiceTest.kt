@@ -1,6 +1,5 @@
 package navikt.appsec.securitychampionapp.app.scoring
 
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -9,7 +8,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 class ScoringServiceTest {
-    private val repository: ScoringRepository = mock()
+    private val repository: ScoringLedger = mock()
     private val service = ScoringService(repository)
     private val season = SeasonSummary(
         id = UUID.randomUUID(),

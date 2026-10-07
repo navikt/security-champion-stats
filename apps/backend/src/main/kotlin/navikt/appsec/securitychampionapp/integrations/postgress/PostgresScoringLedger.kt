@@ -8,6 +8,7 @@ import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
+import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Repository
@@ -18,9 +19,9 @@ import java.sql.Timestamp
 import java.util.UUID
 
 @Repository
-class ScoringRepository(
+class PostgresScoringLedger(
     private val jdbcTemplate: JdbcTemplate,
-) {
+) : ScoringLedger {
     private val seasonMapper = RowMapper { rs, _ ->
         SeasonSummary(
             id = rs.getObject("id", UUID::class.java),
@@ -40,7 +41,7 @@ class ScoringRepository(
         )
     }
 
-    fun currentSeason(): SeasonSummary =
+    override fun currentSeason(): SeasonSummary =
         jdbcTemplate.queryForObject(
             """
                 SELECT season.id, season.starts_on, season.ends_on, settings.next_reset_date
@@ -51,12 +52,12 @@ class ScoringRepository(
             seasonMapper,
         )
 
-    fun scoresForCurrentSeason(activeOnly: Boolean = false): List<ParticipantSeasonScore> =
+    override fun scoresForCurrentSeason(activeOnly: Boolean): List<ParticipantSeasonScore> =
         scoresForSeason(currentSeason().id, activeOnly)
 
-    fun scoresForSeason(
+    override fun scoresForSeason(
         seasonId: UUID,
-        activeOnly: Boolean = false,
+        activeOnly: Boolean,
     ): List<ParticipantSeasonScore> =
         jdbcTemplate.query(
             scoreQuery,
@@ -66,7 +67,7 @@ class ScoringRepository(
             activeOnly,
         )
 
-    fun scoreForParticipant(participantId: UUID, seasonId: UUID): Long =
+    override fun scoreForParticipant(participantId: UUID, seasonId: UUID): Long =
         jdbcTemplate.queryForObject(
             """
                 SELECT
@@ -82,7 +83,7 @@ class ScoringRepository(
             seasonId,
         ) ?: 0L
 
-    fun creditsForParticipant(participantId: UUID): List<ActivityCredit> =
+    override fun creditsForParticipant(participantId: UUID): List<ActivityCredit> =
         jdbcTemplate.query(
             """
                 SELECT credit.id, credit.credit_type, credit.source_reference, credit.points, season.starts_on
@@ -103,7 +104,7 @@ class ScoringRepository(
             participantId,
         )
 
-    fun participantExists(participantId: UUID): Boolean =
+    override fun participantExists(participantId: UUID): Boolean =
         jdbcTemplate.query(
             "SELECT id FROM program_participants WHERE id = ?",
             { rs, _ -> rs.getObject("id", UUID::class.java) },
@@ -111,18 +112,18 @@ class ScoringRepository(
         ).isNotEmpty()
 
     @Transactional
-    fun awardCredit(
+    override fun awardCredit(
         participantId: UUID,
         creditType: ActivityCreditType,
         uniquenessKey: String,
         sourceReference: String,
-        auditCorrelationId: UUID? = null,
+        auditCorrelationId: UUID?,
     ): CreditAwardResult = insertCredit(
         participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, null, null,
     )
 
     @Transactional
-    fun awardGitHubCredit(
+    override fun awardGitHubCredit(
         participantId: UUID,
         creditType: ActivityCreditType,
         uniquenessKey: String,
@@ -195,7 +196,7 @@ class ScoringRepository(
     }
 
     @Transactional
-    fun addAdjustment(
+    override fun addAdjustment(
         participantId: UUID,
         pointsDelta: Int,
         reason: String,
@@ -270,7 +271,7 @@ class ScoringRepository(
     }
 
     @Transactional
-    fun updateNextResetDate(
+    override fun updateNextResetDate(
         newDate: LocalDate,
         actorNavNoEmail: String,
     ): SeasonSummary {
@@ -318,7 +319,7 @@ class ScoringRepository(
     }
 
     @Transactional
-    fun resetManually(
+    override fun resetManually(
         startDate: LocalDate,
         reason: String,
         actorNavNoEmail: String,
@@ -350,7 +351,7 @@ class ScoringRepository(
     }
 
     @Transactional
-    fun resetIfDue(today: LocalDate): Boolean {
+    override fun resetIfDue(today: LocalDate): Boolean {
         val dueDate = lockSettings()
         if (dueDate.isAfter(today)) return false
 

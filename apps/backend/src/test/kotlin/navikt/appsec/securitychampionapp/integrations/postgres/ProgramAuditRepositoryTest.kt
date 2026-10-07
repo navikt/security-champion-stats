@@ -7,7 +7,7 @@ import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
-import navikt.appsec.securitychampionapp.integrations.postgress.ScoringRepository
+import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
 import org.assertj.core.api.Assertions.assertThat
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.AfterAll
@@ -46,7 +46,7 @@ class ProgramAuditRepositoryTest {
     private lateinit var jdbcTemplate: JdbcTemplate
     private lateinit var repository: ProgramAuditRepository
     private lateinit var auditService: ProgramAuditService
-    private lateinit var scoringRepository: ScoringRepository
+    private lateinit var scoringRepository: PostgresScoringLedger
     private lateinit var participantRepository: ProgramParticipantRepository
     private lateinit var flyway: Flyway
 
@@ -62,7 +62,7 @@ class ProgramAuditRepositoryTest {
         jdbcTemplate = JdbcTemplate(dataSource)
         repository = ProgramAuditRepository(jdbcTemplate, JsonMapper.builder().build())
         auditService = ProgramAuditService(repository, Clock.systemUTC())
-        scoringRepository = ScoringRepository(jdbcTemplate)
+        scoringRepository = PostgresScoringLedger(jdbcTemplate)
         participantRepository = ProgramParticipantRepository(jdbcTemplate)
         flyway = Flyway.configure()
             .dataSource(dataSource)

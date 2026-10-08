@@ -18,6 +18,7 @@ import {
 	type EventClaimOverview,
 	type EventClaimRequest,
 } from "./EventClaimsApi";
+import { formatEventDate, getPastEvents } from "@/app/utils/eventUtils";
 
 function localDateTime(instant: string): string {
 	const date = new Date(instant);
@@ -77,10 +78,11 @@ export function EventClaimForm({
 	const [links, setLinks] = useState(form.links.join("\n"));
 	const [error, setError] = useState<string | null>(null);
 	const [saving, setSaving] = useState(false);
-	const existingEvents = events.filter(
+	const seasonStart = new Date(overview.seasonStartsOn).getTime();
+	const existingEvents = getPastEvents(events).filter(
 		(event) =>
 			/^[0-9a-f-]{36}$/i.test(event.id) &&
-			new Date(event.endDate) <= new Date(),
+			new Date(event.startDate).getTime() >= seasonStart,
 	);
 	const update = <K extends keyof EventClaimRequest>(
 		key: K,
@@ -189,7 +191,7 @@ export function EventClaimForm({
 						<option value="">Create a new event with this claim</option>
 						{existingEvents.map((event) => (
 							<option key={event.id} value={event.id}>
-								{event.name}
+								{event.name} — {formatEventDate(event)}
 							</option>
 						))}
 					</Select>

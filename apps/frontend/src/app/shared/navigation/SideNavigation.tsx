@@ -2,7 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import "../../style/SideNavigation.css";
-import { ChevronDownIcon, TimelineIcon } from "@navikt/aksel-icons";
+import {
+	ClipboardCheckmarkIcon,
+	ChevronDownIcon,
+	TimelineIcon,
+} from "@navikt/aksel-icons";
 import { Button } from "@navikt/ds-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -137,6 +141,12 @@ export function SideNavigation({ me }: { me: Me }) {
 						].filter(Boolean).join(" ")}
 						aria-current={isActivePath(pathName, "/event-claims") ? "page" : undefined}
 					>
+						{!hacker && (
+							<ClipboardCheckmarkIcon
+								aria-hidden
+								className="sideNavigation__icon"
+							/>
+						)}
 						Event claims
 					</Link>
 				)}

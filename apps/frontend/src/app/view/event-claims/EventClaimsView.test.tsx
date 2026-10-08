@@ -4,6 +4,7 @@ import {
 	render,
 	screen,
 	waitFor,
+	within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useMe } from "@/app/shared/hooks/UseMe";
@@ -92,6 +93,58 @@ afterEach(() => {
 });
 
 describe("Event claims", () => {
+	it("shows current-season past events newest first with dates", () => {
+		const meetup = {
+			id: "",
+			name: "Security Champions Meetup",
+			description: "",
+			startDate: "",
+			endDate: "",
+			location: "",
+			type: "meetup" as const,
+			externalEvent: false,
+			deltaEvent: false,
+		};
+		render(
+			<EventClaimForm
+				overview={{ ...overview, seasonStartsOn: "2025-01-01" }}
+				events={[
+					{
+						...meetup,
+						id: "12345678-1234-1234-1234-123456789abc",
+						startDate: "2024-12-12T18:00:00Z",
+						endDate: "2024-12-12T20:00:00Z",
+					},
+					{
+						...meetup,
+						id: "abcdef12-1234-1234-1234-123456789abc",
+						startDate: "2025-03-12T18:00:00Z",
+						endDate: "2025-03-12T20:00:00Z",
+					},
+					{
+						...meetup,
+						id: "23456789-1234-1234-1234-123456789abc",
+						startDate: "2025-02-12T18:00:00Z",
+						endDate: "2025-02-12T20:00:00Z",
+					},
+				]}
+				onSaved={vi.fn()}
+				onCancel={vi.fn()}
+			/>,
+		);
+
+		const options = within(
+			screen.getByLabelText("Existing event (optional)"),
+		).getAllByRole("option");
+		expect(options).toHaveLength(3);
+		expect(options[1]).toHaveTextContent(
+			"Security Champions Meetup — 12.3.2025",
+		);
+		expect(options[2]).toHaveTextContent(
+			"Security Champions Meetup — 12.2.2025",
+		);
+	});
+
 	it("names retained reviews when the contributor is removed and no longer active", async () => {
 		vi.mocked(EventClaimsApi.overview).mockResolvedValue({
 			...overview,

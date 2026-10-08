@@ -9,6 +9,10 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class EventSignupServiceTest {
     private val source = mock<DeltaSignupSource>()
@@ -67,6 +71,60 @@ class EventSignupServiceTest {
         assertThat(result[0].signupStatus).isEqualTo(EventSignupStatus.UNAVAILABLE)
         assertThat(result[0].signupCheckedAt).isNull()
         assertThat(result[1]).isEqualTo(manual)
+    }
+
+    @Test
+    fun `unavailable snapshots expire after sixty seconds and recover without serving stale rosters`() {
+        whenever(source.signupRoster(id)).thenReturn(roster(setOf(participant.navNoEmail)))
+            .thenThrow(EventSignupUnavailableException())
+            .thenReturn(roster(emptySet()))
+        val service = service()
+        assertThat(service.forParticipant(listOf(event), participant.navNoEmail).single().signupStatus)
+            .isEqualTo(EventSignupStatus.SIGNED_UP)
+        whenever(clock.instant()).thenReturn(now.plusSeconds(60))
+        val unavailable = service.forParticipant(listOf(event), participant.navNoEmail).single()
+        assertThat(unavailable.signupStatus).isEqualTo(EventSignupStatus.UNAVAILABLE)
+        assertThat(unavailable.signupCheckedAt).isNull()
+        whenever(clock.instant()).thenReturn(now.plusSeconds(119))
+        assertThat(service.forParticipant(listOf(event), "other@nav.no").single().signupStatus)
+            .isEqualTo(EventSignupStatus.UNAVAILABLE)
+        verify(source, times(2)).signupRoster(id)
+        whenever(clock.instant()).thenReturn(now.plusSeconds(120))
+        val recovered = service.forParticipant(listOf(event), participant.navNoEmail).single()
+        assertThat(recovered.signupStatus).isEqualTo(EventSignupStatus.NOT_SIGNED_UP)
+        assertThat(recovered.signupCheckedAt).isEqualTo(now.plusSeconds(120).toString())
+        verify(source, times(3)).signupRoster(id)
+    }
+
+    @Test
+    fun `concurrent requests coalesce a failed Delta lookup`() {
+        val started = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val barrier = CyclicBarrier(8)
+        whenever(source.signupRoster(id)).thenAnswer {
+            started.countDown()
+            check(release.await(5, TimeUnit.SECONDS))
+            throw EventSignupUnavailableException()
+        }
+        val service = service()
+        val executor = Executors.newFixedThreadPool(8)
+        try {
+            val results = (1..8).map {
+                executor.submit<Event> {
+                    barrier.await(5, TimeUnit.SECONDS)
+                    service.forParticipant(listOf(event), participant.navNoEmail).single()
+                }
+            }
+            assertThat(started.await(5, TimeUnit.SECONDS)).isTrue()
+            release.countDown()
+            results.forEach {
+                assertThat(it.get(5, TimeUnit.SECONDS).signupStatus).isEqualTo(EventSignupStatus.UNAVAILABLE)
+            }
+            verify(source, times(1)).signupRoster(id)
+        } finally {
+            release.countDown()
+            executor.shutdownNow()
+        }
     }
 
     @Test

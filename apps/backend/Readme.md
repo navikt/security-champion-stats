@@ -137,7 +137,9 @@ UUID and linked to `https://delta.nav.no/event/{id}`. It is disabled unless `DEL
 Upcoming Delta events expose only the active viewer's signup status at `/api/events`, matched by verified
 participant email. Hosts are labeled separately; registration is not attendance. Status snapshots are cached
 for at most 60 seconds, with a check timestamp. Unavailable or incomplete Delta rosters produce an explicit
-unavailable status without hiding the event catalog. Non-Delta events have no signup status.
+unavailable status without hiding the event catalog. Failed lookups are also cached for 60 seconds to
+coalesce concurrent requests during outages; unavailable results have no successful-check timestamp.
+Non-Delta events have no signup status.
 Administrators preview manual Slack DMs at `GET /api/admin/events/{eventId}/reminders`, then submit
 `POST` with `expectedVersion` and `confirmed=true`. Delta-linked playbook entries are also supported.
 The backend rechecks the event, Delta roster, active participants, Slack identities and delivery state before

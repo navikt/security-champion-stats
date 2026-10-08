@@ -46,7 +46,7 @@ class EventSignupService(
     private val participants: ParticipantStore,
     private val clock: Clock,
 ) {
-    private data class Snapshot(val roster: DeltaSignupRoster, val checkedAt: Instant)
+    private data class Snapshot(val roster: DeltaSignupRoster?, val checkedAt: Instant)
     private val snapshots = ConcurrentHashMap<UUID, Snapshot>()
     private val logger = LoggerFactory.getLogger(EventSignupService::class.java)
 
@@ -59,24 +59,29 @@ class EventSignupService(
         return supported.map { event ->
             val id = deltaSignupEventId(event)
             if (id == null || !isUpcomingEvent(event, clock)) return@map event
-            try {
-                val snapshot = requireNotNull(snapshots.compute(id) { _, previous ->
-                    if (previous != null && previous.checkedAt.plusSeconds(60).isAfter(clock.instant())) previous
-                    else Snapshot(source.signupRoster(id), clock.instant())
-                })
-                val identity = email.trim().lowercase()
-                event.copy(
-                    signupStatus = when (identity) {
-                        in snapshot.roster.hostEmails -> EventSignupStatus.HOST
-                        in snapshot.roster.participantEmails -> EventSignupStatus.SIGNED_UP
-                        else -> EventSignupStatus.NOT_SIGNED_UP
-                    },
-                    signupCheckedAt = snapshot.checkedAt.toString(),
-                )
-            } catch (_: EventSignupUnavailableException) {
-                logger.warn("Delta signup lookup unavailable (event={})", id)
-                event.copy(signupStatus = EventSignupStatus.UNAVAILABLE)
-            }
+            val snapshot = requireNotNull(snapshots.compute(id) { _, previous ->
+                if (previous != null && previous.checkedAt.plusSeconds(60).isAfter(clock.instant())) previous
+                else {
+                    val roster = try {
+                        source.signupRoster(id)
+                    } catch (_: EventSignupUnavailableException) {
+                        logger.warn("Delta signup lookup unavailable (event={})", id)
+                        null
+                    }
+                    Snapshot(roster, clock.instant())
+                }
+            })
+            val roster = snapshot.roster
+                ?: return@map event.copy(signupStatus = EventSignupStatus.UNAVAILABLE)
+            val identity = email.trim().lowercase()
+            event.copy(
+                signupStatus = when (identity) {
+                    in roster.hostEmails -> EventSignupStatus.HOST
+                    in roster.participantEmails -> EventSignupStatus.SIGNED_UP
+                    else -> EventSignupStatus.NOT_SIGNED_UP
+                },
+                signupCheckedAt = snapshot.checkedAt.toString(),
+            )
         }
     }
 }

@@ -115,6 +115,13 @@ describe("HackerOverview", () => {
 		vi.mocked(Apies.getLeaderboard).mockResolvedValue(leaderboard);
 	});
 
+	it("includes the viewer signup status in the Hacker event link's accessible name", async () => {
+		vi.mocked(Apies.fetchEvents).mockResolvedValue([{ ...upcomingEvent, signupStatus: "SIGNED_UP" }]);
+		render(<HackerOverview info={me} />);
+		expect(await screen.findByText("Signed up")).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /Security Design Meetup.*Signed up/ })).toBeInTheDocument();
+	});
+
 	it("renders real participant, event, season, and leaderboard data", async () => {
 		render(<HackerOverview info={me} />);
 
@@ -126,6 +133,7 @@ describe("HackerOverview", () => {
 		const eventLink = screen.getByRole("link", {
 			name: /Security Design Meetup/,
 		});
+
 		expect(eventLink).toHaveAttribute("href", upcomingEvent.link);
 		expect(eventLink).toHaveAttribute("title", upcomingEvent.name);
 		expect(eventLink).toHaveTextContent("security_design_meetup.evt");

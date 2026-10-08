@@ -155,6 +155,22 @@ class SlackMembershipClientTest {
     }
 
     @Test
+    fun `event reminders send one direct message with delivery metadata and no link unfurling`() {
+        val deliveryId = UUID.randomUUID()
+        whenever(client.chatPostMessage(any<ChatPostMessageRequest>()))
+            .thenReturn(ChatPostMessageResponse().apply { isOk = true; ts = "123.456" })
+        assertThat(service.remind("U_PERSON", "Synthetic event reminder", deliveryId)).isEqualTo("123.456")
+        val request = argumentCaptor<ChatPostMessageRequest>()
+        verify(client).chatPostMessage(request.capture())
+        assertThat(request.firstValue.channel).isEqualTo("U_PERSON")
+        assertThat(request.firstValue.text).isEqualTo("Synthetic event reminder")
+        assertThat(request.firstValue.isUnfurlLinks).isFalse()
+        assertThat(request.firstValue.isUnfurlMedia).isFalse()
+        assertThat(request.firstValue.metadataAsString).contains("security_champion_event_reminder", deliveryId.toString())
+        verifyNoMoreInteractions(client)
+    }
+
+    @Test
     fun `network failure during announcement is uncertain and is not retried`() {
         whenever(client.chatPostMessage(any<ChatPostMessageRequest>())).thenThrow(IOException("Connection lost"))
 

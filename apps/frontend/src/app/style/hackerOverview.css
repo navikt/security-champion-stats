@@ -312,6 +312,10 @@ html.hacker .hackerMembership .sc-membership-card__status__inactive {
 	white-space: nowrap;
 }
 
+.hackerEvent__signup {
+	grid-column: 1 / -1;
+}
+
 .hackerEvent__type {
 	align-self: center;
 	padding: 1px 6px;

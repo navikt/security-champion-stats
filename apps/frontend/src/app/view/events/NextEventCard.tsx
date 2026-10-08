@@ -3,6 +3,7 @@ import { SecurityEvent } from "@/app/utils/Variables";
 import { formatEventDate } from "@/app/utils/eventUtils";
 import "../../style/events/EventsView.css";
 import { CalendarIcon, ClockIcon, LocationPinIcon } from "@navikt/aksel-icons";
+import { EventSignupBadge } from "./EventSignupBadge";
 
 interface NextEventCardProps {
 	event: SecurityEvent;
@@ -46,6 +47,7 @@ export function NextEventCard({ event }: NextEventCardProps) {
 			</div>
 
 			<div className={"nextEventCard__metadata"}>
+				<EventSignupBadge event={event} />
 				<div className={"eventMeta"}>
 					<CalendarIcon aria-hidden />
 					<Detail>{formatEventDate(event)}</Detail>

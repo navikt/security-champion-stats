@@ -6,6 +6,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.function.client.WebClient
 import java.time.Clock
+import java.time.Duration
+import reactor.netty.http.client.HttpClient
+import org.springframework.http.client.reactive.ReactorClientHttpConnector
 
 @Configuration
 class DeltaConfig(
@@ -16,8 +19,12 @@ class DeltaConfig(
     @Bean
     fun deltaApiClient(): DeltaApiClient =
         DeltaApiClient(
-            apiClient = WebClient.builder().baseUrl(apiBaseUrl).build(),
-            tokenClient = WebClient.builder().build(),
+            apiClient = WebClient.builder().baseUrl(apiBaseUrl)
+                .clientConnector(ReactorClientHttpConnector(HttpClient.create().responseTimeout(Duration.ofSeconds(10))))
+                .build(),
+            tokenClient = WebClient.builder()
+                .clientConnector(ReactorClientHttpConnector(HttpClient.create().responseTimeout(Duration.ofSeconds(10))))
+                .build(),
             tokenEndpoint = tokenEndpoint,
             target = target,
         )

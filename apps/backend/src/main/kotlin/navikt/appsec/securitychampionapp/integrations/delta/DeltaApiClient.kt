@@ -2,6 +2,9 @@ package navikt.appsec.securitychampionapp.integrations.delta
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import navikt.appsec.securitychampionapp.app.events.DeltaSignupRoster
+import navikt.appsec.securitychampionapp.app.events.DeltaSignupSource
+import navikt.appsec.securitychampionapp.app.events.EventSignupUnavailableException
 import org.springframework.core.codec.DecodingException
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.MediaType
@@ -11,6 +14,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.UUID
 
 class DeltaApiClient(
@@ -18,7 +22,16 @@ class DeltaApiClient(
     private val tokenClient: WebClient,
     private val tokenEndpoint: String,
     private val target: String,
-) : DeltaRegistrationSource, DeltaCategorySource, DeltaEventSource {
+) : DeltaRegistrationSource, DeltaCategorySource, DeltaEventSource, DeltaSignupSource {
+    override fun signupRoster(eventId: UUID): DeltaSignupRoster =
+        try {
+            val response = fetchEvent(eventId) ?: throw EventSignupUnavailableException()
+            if (response.event.id != eventId) throw EventSignupUnavailableException()
+            response.toSignupRoster()
+        } catch (_: DeltaIntegrationException) {
+            throw EventSignupUnavailableException()
+        }
+
     override fun eventsInCategory(categoryId: Int): List<DeltaEventDetails> {
         if (categoryId <= 0) throw DeltaIntegrationException(DeltaFailure.CONFIGURATION)
 
@@ -79,8 +92,10 @@ class DeltaApiClient(
         return response.map { it.toRegistrations() }
     }
 
-    override fun event(eventId: UUID): DeltaEventRegistrations? {
-        val response = apiRequest { token ->
+    override fun event(eventId: UUID): DeltaEventRegistrations? = fetchEvent(eventId)?.toRegistrations()
+
+    private fun fetchEvent(eventId: UUID): DeltaFullEventResponse? =
+        apiRequest { token ->
             apiClient.get()
                 .uri("/event/{id}", eventId)
                 .headers { it.setBearerAuth(token) }
@@ -94,8 +109,6 @@ class DeltaApiClient(
                 }
                 .block()
         }
-        return response?.toRegistrations()
-    }
 
     private fun acquireToken(): String =
         try {
@@ -194,16 +207,29 @@ private data class NaisTokenResponse(
 @JsonIgnoreProperties(ignoreUnknown = true)
 private data class DeltaFullEventResponse(
     val event: DeltaEventDetailsResponse,
-    val participants: List<DeltaParticipantResponse> = emptyList(),
+    val participants: List<DeltaParticipantResponse>? = null,
     val hosts: List<DeltaParticipantResponse> = emptyList(),
 ) {
     fun toRegistrations() = DeltaEventRegistrations(
         eventUuid = event.id,
         startTime = parseTime(event.startTime),
-        participantEmails = (participants + hosts)
+        participantEmails = (participants.orEmpty() + hosts)
             .mapNotNull { it.email?.trim()?.takeIf(String::isNotEmpty) }
             .toSet(),
     )
+
+    fun toSignupRoster() = DeltaSignupRoster(
+        eventId = event.id,
+        startsAt = parseTime(event.startTime).atZone(ZoneId.of("Europe/Oslo")).toInstant(),
+        participantEmails = requireEmails(participants ?: throw EventSignupUnavailableException()),
+        hostEmails = requireEmails(hosts),
+    )
+
+    private fun requireEmails(roster: List<DeltaParticipantResponse>): Set<String> =
+        roster.map {
+            it.email?.trim()?.lowercase()?.takeIf { email -> email.isNotEmpty() && email.contains("@") }
+                ?: throw EventSignupUnavailableException()
+        }.toSet()
 
     fun toDetails() = DeltaEventDetails(
         id = event.id,

@@ -3,6 +3,7 @@ import { formatEventDate } from "@/app/utils/eventUtils";
 import { CalendarIcon, ChevronRightIcon } from "@navikt/aksel-icons";
 import { Detail, Link, Tag } from "@navikt/ds-react";
 import "../../style/events/EventsView.css";
+import { EventSignupBadge } from "./EventSignupBadge";
 
 interface EventListItemProps {
 	event: SecurityEvent;
@@ -44,6 +45,7 @@ export function EventListItem({ event, muted = false }: EventListItemProps) {
 						</>
 					)}
 				</Detail>
+				{!muted && <EventSignupBadge event={event} />}
 			</div>
 
 			{event.type && (

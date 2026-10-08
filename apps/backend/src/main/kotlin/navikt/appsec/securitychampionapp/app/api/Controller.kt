@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.app.api.dto.Me
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantSummary
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantView
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
+import navikt.appsec.securitychampionapp.app.events.EventSignupService
 import navikt.appsec.securitychampionapp.app.participation.EnrollmentOutcome
 import navikt.appsec.securitychampionapp.app.participation.LeaveOutcome
 import navikt.appsec.securitychampionapp.app.participation.ParticipantLifecycle
@@ -27,6 +28,7 @@ class Controller(
     private val participantStore: ParticipantStore,
     private val participantLifecycle: ParticipantLifecycle,
     private val eventCatalogService: EventCatalogService,
+    private val eventSignupService: EventSignupService,
 ) {
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
@@ -134,7 +136,8 @@ class Controller(
 
     @GetMapping("/events")
     fun fetchEvents(): ResponseEntity<List<Event>> =
-        ResponseEntity.ok(eventCatalogService.getAllEvents())
+        ResponseEntity.ok().header("Cache-Control", "private, no-store")
+            .body(eventSignupService.forParticipant(eventCatalogService.getAllEvents(), currentPrincipal().email))
 
     private fun currentPrincipal(): AppPrincipal =
         requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal

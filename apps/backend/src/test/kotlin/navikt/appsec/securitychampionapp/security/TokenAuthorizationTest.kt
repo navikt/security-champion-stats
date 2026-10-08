@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionapp.app.api.AdminController
 import navikt.appsec.securitychampionapp.app.api.Controller
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
+import navikt.appsec.securitychampionapp.app.events.EventSignupService
 import navikt.appsec.securitychampionapp.app.participation.ParticipantLifecycle
 import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.config.SecurityConfig
@@ -74,6 +75,9 @@ class TokenAuthorizationTest {
 
     @MockitoBean
     lateinit var eventCatalogService: EventCatalogService
+
+    @MockitoBean
+    lateinit var eventSignupService: EventSignupService
 
     @MockitoBean
     lateinit var validate: Validate

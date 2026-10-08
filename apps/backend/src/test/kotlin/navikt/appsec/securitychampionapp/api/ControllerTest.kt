@@ -12,6 +12,7 @@ import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
+import navikt.appsec.securitychampionapp.app.events.EventSignupService
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalog
 import navikt.appsec.securitychampionapp.security.AppAuthenticationFilter
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
@@ -52,6 +53,9 @@ class ControllerTest {
     lateinit var eventCatalogService: EventCatalogService
 
     @MockitoBean
+    lateinit var eventSignupService: EventSignupService
+
+    @MockitoBean
     lateinit var teamCatalog: TeamCatalog
 
     @MockitoBean
@@ -71,6 +75,24 @@ class ControllerTest {
                 filterChain.doFilter(request, response)
             } finally {
                 SecurityContextHolder.clearContext()
+            }
+
+            @Test
+            fun `events expose only viewer signup status and prevent shared caching`() {
+                mockAuthenticatedUser()
+                val event = navikt.appsec.securitychampionapp.app.api.dto.Event(
+                    id = "00000000-0000-0000-0000-000000000001", name = "Meetup", description = "",
+                    startDate = "2026-10-20T08:00:00Z", endDate = "2026-10-20T09:00:00Z", location = "", type = "meetup",
+                )
+                whenever(eventCatalogService.getAllEvents()).thenReturn(listOf(event))
+                whenever(eventSignupService.forParticipant(listOf(event), "user@nav.no"))
+                    .thenReturn(listOf(event.copy(signupStatus = navikt.appsec.securitychampionapp.app.events.EventSignupStatus.SIGNED_UP)))
+                mockMvc.perform(MockMvcRequestBuilders.get("/api/events"))
+                    .andExpect(status().isOk)
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control", "private, no-store"))
+                    .andExpect(jsonPath("$[0].signupStatus").value("SIGNED_UP"))
+                    .andExpect(jsonPath("$[0].participantEmails").doesNotExist())
+                verify(eventSignupService).forParticipant(listOf(event), "user@nav.no")
             }
 
             @Test

@@ -286,6 +286,9 @@ export interface SecurityEvent {
 	amountOfPeopleJoined?: number;
 	link?: string | null;
 	allDay?: boolean;
+	signupSupported?: boolean;
+	signupStatus?: "SIGNED_UP" | "NOT_SIGNED_UP" | "HOST" | "UNAVAILABLE" | null;
+	signupCheckedAt?: string | null;
 }
 
 export type SecurityEventType = "meetup" | "workshop" | "event";

@@ -8,6 +8,7 @@ import com.slack.api.methods.request.usergroups.users.UsergroupsUsersUpdateReque
 import com.slack.api.methods.request.users.UsersListRequest
 import com.slack.api.model.User
 import navikt.appsec.securitychampionapp.app.membership.*
+import navikt.appsec.securitychampionapp.app.events.EventReminderGateway
 import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import org.springframework.stereotype.Service
@@ -20,7 +21,7 @@ class SlackMembershipClient(
     private val client: MethodsClient,
     private val mappings: SlackIdentityMappingRepository,
     private val requests: SlackApiService,
-) : SlackMembershipGateway, SlackParticipantDirectory {
+) : SlackMembershipGateway, SlackParticipantDirectory, EventReminderGateway {
     override fun members(usergroupId: String): Set<String> {
         val response = requests.call(SlackIntegrationException.Operation.GROUP_MEMBERS) {
             client.usergroupsUsersList(UsergroupsUsersListRequest.builder().usergroup(usergroupId).build())
@@ -102,24 +103,37 @@ class SlackMembershipClient(
             MembershipAnnouncementKind.WELCOME -> "Velkommen til Security Champion-programmet, <@$userId>!"
             MembershipAnnouncementKind.REMOVAL -> "<@$userId> er ikke lenger aktiv deltaker i Security Champion-programmet."
         }
+        return postMessage(
+            ChatPostMessageRequest.builder().channel(channelId).text(text)
+                .metadataAsString(
+                    """{"event_type":"security_champion_membership","event_payload":{"delivery_id":"$deliveryId"}}""",
+                ).build(),
+        )
+    }
+
+    override fun remind(slackUserId: String, text: String, deliveryId: UUID): String =
+        postMessage(
+            ChatPostMessageRequest.builder().channel(slackUserId).text(text)
+                .unfurlLinks(false).unfurlMedia(false)
+                .metadataAsString(
+                    """{"event_type":"security_champion_event_reminder","event_payload":{"delivery_id":"$deliveryId"}}""",
+                ).build(),
+        )
+
+    private fun postMessage(request: ChatPostMessageRequest): String {
         val response = try {
-            client.chatPostMessage(
-                ChatPostMessageRequest.builder().channel(channelId).text(text)
-                    .metadataAsString(
-                        """{"event_type":"security_champion_membership","event_payload":{"delivery_id":"$deliveryId"}}""",
-                    ).build(),
-            )
+            client.chatPostMessage(request)
         } catch (e: SlackApiException) {
             throw MembershipDeliveryException(
                 e.response?.code.let { it == null || it >= 500 || it == 408 },
-                "Slack membership announcement failed at the HTTP boundary",
+                "Slack message failed at the HTTP boundary",
                 stopBatch = true,
                 retryAfter = Duration.ofSeconds(
                     e.response?.header("Retry-After")?.toLongOrNull()?.coerceAtLeast(1) ?: 900,
                 ),
             )
         } catch (_: IOException) {
-            throw MembershipDeliveryException(true, "Slack membership announcement delivery is unknown after a network failure")
+            throw MembershipDeliveryException(true, "Slack message delivery is unknown after a network failure")
         }
         if (response == null || !response.isOk) {
             throw MembershipDeliveryException(
@@ -129,7 +143,7 @@ class SlackMembershipClient(
             )
         }
         return response.ts?.takeIf { it.isNotBlank() }
-            ?: throw MembershipDeliveryException(true, "Slack membership announcement response has no message timestamp")
+            ?: throw MembershipDeliveryException(true, "Slack message response has no message timestamp")
     }
 
 }

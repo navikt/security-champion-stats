@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.app.api.dto
 
 import com.fasterxml.jackson.annotation.JsonInclude
+import navikt.appsec.securitychampionapp.app.events.EventSignupStatus
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class Member(
@@ -67,4 +68,7 @@ data class Event(
     val amountOfPeopleJoined: Int = 0,
     val link: String? = null,
     val allDay: Boolean = false,
+    val signupStatus: EventSignupStatus? = null,
+    val signupCheckedAt: String? = null,
+    val signupSupported: Boolean = false,
 )

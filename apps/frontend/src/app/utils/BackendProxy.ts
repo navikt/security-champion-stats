@@ -34,6 +34,10 @@ export async function forwardBackendResponse(response: Response): Promise<NextRe
 	if (contentType) {
 		headers.set("Content-Type", contentType);
 	}
+	const cacheControl = response.headers.get("cache-control");
+	if (cacheControl) {
+		headers.set("Cache-Control", cacheControl);
+	}
 	return new NextResponse(responseBody || null, {
 		status: response.status,
 		headers,

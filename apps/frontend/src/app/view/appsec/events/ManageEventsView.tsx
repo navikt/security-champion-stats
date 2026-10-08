@@ -6,6 +6,8 @@ import { BodyShort, Button, Heading, VStack } from "@navikt/ds-react";
 import { EventList } from "@/app/view/events/EventList";
 import { AddEventModal } from "@/app/view/appsec/events/AddEventModal";
 import { Apies } from "@/app/shared/hooks/Apies";
+import { EventRemindersPanel } from "./EventRemindersPanel";
+import { getUpcomingEvents } from "@/app/utils/eventUtils";
 
 interface ManageEventsViewProps {
 	events: SecurityEvent[];
@@ -82,6 +84,20 @@ export function ManageEventsView({ events }: ManageEventsViewProps) {
 			</Button>
 
 			{refreshError && <BodyShort role="alert">{refreshError}</BodyShort>}
+
+			<VStack gap="space-24">
+				<Heading level="2" size="medium">Delta signup reminders</Heading>
+				<BodyShort>
+					Preview and confirm Slack DMs to active participants who have not signed up.
+					Each participant receives at most one successfully delivered reminder per event.
+				</BodyShort>
+				{getUpcomingEvents(eventsList).filter((event) => event.signupSupported).map((event) => (
+					<EventRemindersPanel key={event.id} event={event} />
+				))}
+				{!getUpcomingEvents(eventsList).some((event) => event.signupSupported) && (
+					<BodyShort>No upcoming Delta events available for reminders.</BodyShort>
+				)}
+			</VStack>
 
 			<EventList
 				title="All events"

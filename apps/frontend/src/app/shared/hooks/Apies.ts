@@ -467,7 +467,7 @@ export const Apies = {
 		return res.json();
 	},
 	fetchEvents: async (): Promise<SecurityEvent[]> => {
-		const res = await fetch("/api/events");
+		const res = await fetch("/api/events", { cache: "no-store" });
 		if (!res.ok) {
 			console.error("Failed to fetch events, with status: ", res.status);
 			return [];

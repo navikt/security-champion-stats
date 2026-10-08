@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionapp.app.participation
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 enum class ParticipationStatus {
@@ -84,11 +85,14 @@ enum class LeaveOutcome {
     CONFLICT,
 }
 
+data class ParticipantEnrolledEvent(val participantId: UUID)
+
 @Service
 class ParticipantLifecycle(
     private val participants: ParticipantStore,
     private val profiles: ParticipantProfileSource,
     private val auditService: ProgramAuditService,
+    private val events: ApplicationEventPublisher,
 ) {
     private val logger = LoggerFactory.getLogger(ParticipantLifecycle::class.java)
 
@@ -126,6 +130,7 @@ class ParticipantLifecycle(
             navNoEmail,
             details = mapOf("status" to ParticipationStatus.ACTIVE.name),
         )
+        events.publishEvent(ParticipantEnrolledEvent(participant.id))
         return EnrollmentOutcome.ENROLLED
     }
 
@@ -161,6 +166,7 @@ class ParticipantLifecycle(
                         participant.navNoEmail,
                         details = mapOf("status" to ParticipationStatus.ACTIVE.name),
                     )
+                    events.publishEvent(ParticipantEnrolledEvent(participant.id))
                     EnrollmentOutcome.REJOINED
                 }
             }

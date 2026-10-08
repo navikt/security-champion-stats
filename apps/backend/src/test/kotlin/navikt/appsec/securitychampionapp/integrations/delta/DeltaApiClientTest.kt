@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.delta
 
 import com.sun.net.httpserver.HttpServer
+import navikt.appsec.securitychampionapp.app.events.EventSignupUnavailableException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
@@ -11,6 +12,7 @@ import java.net.InetSocketAddress
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -118,6 +120,40 @@ class DeltaApiClientTest {
 
         assertThat(result).isEqualTo(EXPECTED_REGISTRATIONS)
         assertThat(requests.map { it.path }).containsExactly("/token", "/event/$EVENT_ID")
+    }
+
+    @Test
+    fun `signup separates participants and hosts and normalizes email without affecting scoring`() {
+        eventJson = """
+            {
+              "event": {"id": "$EVENT_ID", "startTime": "2026-10-20T10:00:00"},
+              "participants": [{"email": " PARTICIPANT@nav.no "}],
+              "hosts": [{"email": " HOST@nav.no "}]
+            }
+        """.trimIndent()
+        val roster = client("http://localhost:${server.address.port}").signupRoster(EVENT_ID)
+        assertThat(roster.eventId).isEqualTo(EVENT_ID)
+        assertThat(roster.startsAt).isEqualTo(Instant.parse("2026-10-20T08:00:00Z"))
+        assertThat(roster.participantEmails).containsExactly("participant@nav.no")
+        assertThat(roster.hostEmails).containsExactly("host@nav.no")
+    }
+
+    @Test
+    fun `an explicit empty participant roster is valid but a missing roster is not`() {
+        val client = client("http://localhost:${server.address.port}")
+        eventJson = """{"event":{"id":"$EVENT_ID","startTime":"2026-10-20T10:00:00"},"participants":[]}"""
+        assertThat(client.signupRoster(EVENT_ID).participantEmails).isEmpty()
+        eventJson = """{"event":{"id":"$EVENT_ID","startTime":"2026-10-20T10:00:00"}}"""
+        assertThatThrownBy { client.signupRoster(EVENT_ID) }.isInstanceOf(EventSignupUnavailableException::class.java)
+    }
+
+    @Test
+    fun `unknown roster identities wrong event ids and missing events cannot imply not signed up`() {
+        val client = client("http://localhost:${server.address.port}")
+        assertThatThrownBy { client.signupRoster(EVENT_ID) }.isInstanceOf(EventSignupUnavailableException::class.java)
+        eventJson = """{"event":{"id":"$MISSING_EVENT_ID","startTime":"2026-10-20T10:00:00"},"participants":[]}"""
+        assertThatThrownBy { client.signupRoster(EVENT_ID) }.isInstanceOf(EventSignupUnavailableException::class.java)
+        assertThatThrownBy { client.signupRoster(MISSING_EVENT_ID) }.isInstanceOf(EventSignupUnavailableException::class.java)
     }
 
     @Test

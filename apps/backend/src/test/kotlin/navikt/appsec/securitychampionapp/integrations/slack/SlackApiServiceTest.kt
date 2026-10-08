@@ -8,6 +8,8 @@ import com.slack.api.methods.response.conversations.ConversationsHistoryResponse
 import com.slack.api.methods.response.conversations.ConversationsRepliesResponse
 import com.slack.api.methods.request.users.UsersInfoRequest
 import com.slack.api.methods.response.users.UsersInfoResponse
+import com.slack.api.methods.request.users.UsersLookupByEmailRequest
+import com.slack.api.methods.response.users.UsersLookupByEmailResponse
 import com.slack.api.model.User
 import com.slack.api.model.Message
 import com.slack.api.model.ResponseMetadata
@@ -27,6 +29,79 @@ class SlackApiServiceTest {
     private val service = SlackApiService(client) { sleeps += it }
     private val oldest = Instant.parse("2026-09-01T00:00:00Z")
     private val latest = Instant.parse("2026-10-06T00:00:00.123456789Z")
+
+    private fun eligibleLookup() = UsersLookupByEmailResponse().apply {
+        isOk = true
+        user = User().apply {
+            id = "U_SYNTHETIC"
+            profile = User.Profile().apply { email = "synthetic@nav.no" }
+        }
+    }
+
+    @Test
+    fun `enrollment lookup uses normalized verified email and paces requests below fifty per minute`() {
+        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>())).thenReturn(eligibleLookup())
+        repeat(50) { assertThat(service.findEligibleUser(" SYNTHETIC@nav.no ")).isEqualTo("U_SYNTHETIC") }
+        val request = argumentCaptor<UsersLookupByEmailRequest>()
+        verify(client, times(50)).usersLookupByEmail(request.capture())
+        assertThat(request.allValues.map { it.email }).containsOnly("synthetic@nav.no")
+        assertThat(sleeps).hasSize(50).containsOnly(Duration.ofMillis(1300))
+        assertThat(sleeps.sumOf { it.toMillis() }).isGreaterThan(60_000)
+        verify(client, never()).usersInfo(any<UsersInfoRequest>())
+    }
+
+    @Test
+    fun `missing or deactivated accounts remain unresolved while other lookup errors fail explicitly`() {
+        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
+            .thenReturn(UsersLookupByEmailResponse().apply { error = "users_not_found" })
+            .thenReturn(UsersLookupByEmailResponse().apply { error = "missing_scope" })
+        assertThat(service.findEligibleUser("synthetic@nav.no")).isNull()
+        assertThatThrownBy { service.findEligibleUser("synthetic@nav.no") }
+            .isInstanceOf(SlackIntegrationException::class.java).hasMessageContaining("missing_scope")
+    }
+
+    @Test
+    fun `bots guests deleted and app accounts cannot become enrollment mappings`() {
+        for (type in listOf("deleted", "bot", "guest", "single-channel-guest", "app")) {
+            val response = eligibleLookup()
+            response.user.apply {
+                when (type) {
+                    "deleted" -> isDeleted = true
+                    "bot" -> isBot = true
+                    "guest" -> isRestricted = true
+                    "single-channel-guest" -> isUltraRestricted = true
+                    "app" -> isAppUser = true
+                }
+            }
+            whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>())).thenReturn(response)
+            assertThat(service.findEligibleUser("synthetic@nav.no")).isNull()
+        }
+    }
+
+    @Test
+    fun `incomplete or mismatched responses never create a verified mapping`() {
+        val missingId = eligibleLookup().apply { user.id = "" }
+        val missingEmail = eligibleLookup().apply { user.profile.email = null }
+        val wrongEmail = eligibleLookup().apply { user.profile.email = "different@nav.no" }
+        val noUser = UsersLookupByEmailResponse().apply { isOk = true }
+        for (response in listOf(missingId, missingEmail, wrongEmail, noUser)) {
+            whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>())).thenReturn(response)
+            assertThatThrownBy { service.findEligibleUser("synthetic@nav.no") }.isInstanceOf(SlackIntegrationException::class.java)
+        }
+    }
+
+    @Test
+    fun `lookup honors the full Retry After even above the normal Slack retry cap`() {
+        val limited = SlackApiException(
+            Response.Builder().request(Request.Builder().url("https://slack.com/api/users.lookupByEmail").build())
+                .protocol(Protocol.HTTP_1_1).code(429).message("Too Many Requests").header("Retry-After", "120").build(),
+            """{"ok":false,"error":"ratelimited"}""",
+        )
+        whenever(client.usersLookupByEmail(any<UsersLookupByEmailRequest>()))
+            .thenThrow(limited).thenReturn(eligibleLookup())
+        assertThat(service.findEligibleUser("synthetic@nav.no")).isEqualTo("U_SYNTHETIC")
+        assertThat(sleeps).containsExactly(Duration.ofMillis(1300), Duration.ofSeconds(120), Duration.ofMillis(1300))
+    }
 
     @Test
     fun `should fetch root messages and thread replies for scoring`() {

@@ -8,6 +8,7 @@ metadata:
 spec:
   ingresses:
       - https://securitychampion.intern.nav.no
+      - https://securitychampion.ansatt.nav.no
   azure:
     application:
       enabled: true

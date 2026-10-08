@@ -81,6 +81,16 @@ import org.mockito.kotlin.whenever
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.any
+import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.clearInvocations
+import navikt.appsec.securitychampionapp.app.membership.SlackIdentityProvisioningService
+import navikt.appsec.securitychampionapp.app.jobs.SlackIdentityProvisioningJob
+import navikt.appsec.securitychampionapp.app.participation.ParticipantEnrolledEvent
+import org.springframework.context.annotation.AnnotationConfigApplicationContext
+import org.springframework.core.task.TaskExecutor
+import org.springframework.transaction.event.TransactionalEventListenerFactory
+import java.util.function.Supplier
 
 @Testcontainers
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -961,6 +971,81 @@ class PostgresScoringLedgerTest {
         assertThat(
             jdbcTemplate.queryForList("SELECT actor_nav_no_email FROM program_participant_audit", String::class.java)
         ).containsExactly("system:test")
+    }
+
+    @Test
+    fun `enrollment Slack mappings persist once and preserve approved mappings and user ownership`() {
+        val participantRepository = ProgramParticipantRepository(jdbcTemplate)
+        val id = createParticipant("synthetic@nav.no")
+        val participant = requireNotNull(participantRepository.findByNavNoEmail("synthetic@nav.no"))
+        slackIdentityMappingRepository.recordUnmappedAuthor("U_SYNTHETIC")
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_SYNTHETIC", participant)).isTrue()
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_SYNTHETIC", participant)).isFalse()
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_REPLACEMENT", participant)).isFalse()
+        assertThat(slackIdentityMappingRepository.mappedParticipantIds()).containsExactly(id)
+        assertThat(slackIdentityMappingRepository.mappingOverview().second).isEmpty()
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM program_participant_audit WHERE participant_id = ? AND action = 'SLACK_ACCOUNT_MAPPED'",
+            Int::class.java, id,
+        )).isEqualTo(1)
+        val otherId = createParticipant("other@nav.no")
+        val other = requireNotNull(participantRepository.findByNavNoEmail("other@nav.no"))
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_SYNTHETIC", other)).isFalse()
+        assertThat(slackIdentityMappingRepository.mappedParticipantIds()).doesNotContain(otherId)
+        slackIdentityMappingRepository.addMapping("U_ADMIN_APPROVED", otherId, "admin@nav.no")
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_OTHER", other)).isFalse()
+        assertThat(slackIdentityMappingRepository.mappedParticipants()["U_ADMIN_APPROVED"]?.participantId).isEqualTo(otherId)
+    }
+
+    @Test
+    fun `enrollment Slack mappings reject stale identity departure deletion and re enrollment`() {
+        val participantRepository = ProgramParticipantRepository(jdbcTemplate)
+        createParticipant("synthetic@nav.no")
+        val participant = requireNotNull(participantRepository.findByNavNoEmail("synthetic@nav.no"))
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_WRONG", participant.copy(navNoEmail = "wrong@nav.no"))).isFalse()
+        participantRepository.leave("synthetic@nav.no")
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_SYNTHETIC", participant)).isFalse()
+        participantRepository.rejoin("synthetic@nav.no")
+        participantRepository.permanentlyDelete(participant.id)
+        createParticipant("synthetic@nav.no")
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_SYNTHETIC", participant)).isFalse()
+        val current = requireNotNull(participantRepository.findByNavNoEmail("synthetic@nav.no"))
+        assertThat(slackIdentityMappingRepository.saveVerifiedMapping("U_CURRENT", current)).isTrue()
+        participantRepository.permanentlyDelete(current.id)
+        assertThat(slackIdentityMappingRepository.mappedParticipantIds()).isEmpty()
+    }
+
+    @Test
+    fun `enrollment lookup listener queues only committed events with a real database transaction`() {
+        val service = mock<SlackIdentityProvisioningService>()
+        val lock = mock<PostgresJobLock>()
+        val executor = mock<TaskExecutor>()
+        val audit = mock<ProgramAuditService>()
+        AnnotationConfigApplicationContext().use { context ->
+            context.registerBean("service", SlackIdentityProvisioningService::class.java, Supplier { service })
+            context.registerBean("lock", PostgresJobLock::class.java, Supplier { lock })
+            context.registerBean("scoringSyncExecutor", TaskExecutor::class.java, Supplier { executor })
+            context.registerBean("audit", ProgramAuditService::class.java, Supplier { audit })
+            context.register(TransactionalEventListenerFactory::class.java, SlackIdentityProvisioningJob::class.java)
+            context.refresh()
+            val transaction = TransactionTemplate(transactionManager)
+            transaction.executeWithoutResult {
+                val id = createParticipant("committed@nav.no")
+                context.publishEvent(ParticipantEnrolledEvent(id))
+                verifyNoInteractions(executor, service)
+            }
+            verify(executor).execute(any())
+            clearInvocations(executor)
+            transaction.executeWithoutResult { status ->
+                val id = createParticipant("rolledback@nav.no")
+                context.publishEvent(ParticipantEnrolledEvent(id))
+                status.setRollbackOnly()
+            }
+            verifyNoInteractions(executor, service)
+            context.publishEvent(ParticipantEnrolledEvent(UUID.randomUUID()))
+            verify(executor).execute(any())
+            verifyNoInteractions(service, lock)
+        }
     }
 
     @Test

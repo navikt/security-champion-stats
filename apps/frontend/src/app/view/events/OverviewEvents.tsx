@@ -3,6 +3,7 @@ import { BodyShort, Box, Heading, HStack, Tag, ToggleGroup } from "@navikt/ds-re
 import { useMemo, useState } from "react";
 import type { SecurityEvent } from "@/app/utils/Variables";
 import { formatEventDate, getPastEvents, getUpcomingEvents } from "@/app/utils/eventUtils";
+import { EventSignupBadge } from "./EventSignupBadge";
 
 type EventTab = "upcoming" | "past";
 
@@ -99,6 +100,7 @@ export function OverviewEvents({
 									<span className="overviewEvents__content">
 										<strong className="overviewEvents__title">{event.name}</strong>
 										<span className="hubRedesign__muted">{eventWhen(event)}</span>
+										{tab === "upcoming" && <EventSignupBadge event={event} />}
 									</span>
 									<Tag size="xsmall" variant="outline" data-color="neutral">
 										{event.type}

@@ -53,6 +53,17 @@ The optional Hacker theme adds a Matrix-inspired overview and shell; its rain, C
 preferences are available only while Hacker is selected.
 Event listings include cached playbook events, with date-only ranges shown without invented times.
 Delta and manual events take priority over same-day internal playbook entries; unrelated external entries remain visible.
+Active participants see **Signed up**, **Not signed up**, **Hosting**, or **Signup status unavailable** for
+upcoming Delta events across the overview, Events page and Hacker theme. Other event types show no signup
+status. The status is checked by email in the backend; the badge's tooltip shows the check time, and snapshots
+are cached for at most 60 seconds. Reload the events after signing up to retrieve the latest available snapshot.
+In **Manage events**, administrators can preview Slack reminder recipients and the message, then explicitly
+confirm sending. Signed-up participants and hosts are excluded; unresolved accounts, previous deliveries and
+unconfirmed deliveries are listed as skipped. A queued batch is not a completed delivery: check the audit
+trail, then use **Preview Slack reminders** again for current delivery outcomes. Stale previews are rejected.
+Each participant receives at most one successfully delivered reminder per Delta event; failed requests require
+a fresh preview before retrying, and uncertain deliveries are not resent automatically. Reminders are manual
+Slack DMs only, with no automatic scheduling or email delivery.
 Participants can leave and rejoin without losing credits, unless an administrator has deactivated them.
 My history summarizes season points and provides filters for credits, adjustments, and membership changes from
 rollout. Administrators can search the audit trail by event, actor, run, or participant ID, filter by sync,

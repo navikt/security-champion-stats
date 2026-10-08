@@ -5,6 +5,8 @@ import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.scoring.MappedSlackParticipant
 import navikt.appsec.securitychampionapp.app.scoring.SlackAccountMapping
 import navikt.appsec.securitychampionapp.app.scoring.UnmappedSlackAuthor
+import navikt.appsec.securitychampionapp.app.membership.SlackIdentityStore
+import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -16,7 +18,29 @@ import java.util.UUID
 class SlackIdentityMappingRepository(
     private val jdbcTemplate: JdbcTemplate,
     private val auditService: ProgramAuditService? = null,
-) {
+) : SlackIdentityStore {
+    override fun mappedParticipantIds(): Set<UUID> =
+        jdbcTemplate.query(
+            "SELECT participant_id FROM slack_account_mappings",
+            { rs, _ -> rs.getObject("participant_id", UUID::class.java) },
+        ).toSet()
+
+    @Transactional
+    override fun saveVerifiedMapping(slackUserId: String, participant: ProgramParticipant): Boolean {
+        val inserted = jdbcTemplate.update(
+            """
+                INSERT INTO slack_account_mappings (slack_user_id, participant_id, created_by_nav_no_email)
+                SELECT ?, id, 'system:slack-email-match' FROM program_participants
+                WHERE id = ? AND LOWER(nav_no_email) = LOWER(?) AND status = 'ACTIVE'
+                ON CONFLICT DO NOTHING
+            """.trimIndent(),
+            slackUserId, participant.id, participant.navNoEmail,
+        )
+        if (inserted == 0) return false
+        recordAutomaticMapping(slackUserId, participant.id, "system:slack-email-match")
+        return true
+    }
+
     fun mappingOverview(): Pair<List<SlackAccountMapping>, List<UnmappedSlackAuthor>> {
         val mappings = jdbcTemplate.query(
             """
@@ -169,6 +193,11 @@ class SlackIdentityMappingRepository(
             navNoEmail,
         ).firstOrNull() ?: return false
 
+        recordAutomaticMapping(slackUserId, participantId, actor)
+        return true
+    }
+
+    private fun recordAutomaticMapping(slackUserId: String, participantId: UUID, actor: String) {
         jdbcTemplate.update("DELETE FROM slack_unmapped_authors WHERE slack_user_id = ?", slackUserId)
         jdbcTemplate.update(
             """
@@ -185,7 +214,6 @@ class SlackIdentityMappingRepository(
             AuditOutcome.SUCCEEDED,
             targetParticipantId = participantId,
         )
-        return true
     }
 
     fun recordUnmappedAuthor(slackUserId: String) {

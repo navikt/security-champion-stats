@@ -15,6 +15,7 @@ import { MembershipView } from "@/app/view/member/components/MembershipView";
 import { hackerCopy } from "./hackerCopy";
 import { hackerAlias } from "./hackerUtils";
 import { scoringProgress } from "@/app/utils/scoringUtils";
+import { EventSignupBadge, signupStatusLabel } from "./events/EventSignupBadge";
 import "../style/hackerOverview.css";
 
 const levelAliases = new Map<string, string>([
@@ -129,7 +130,7 @@ function EventRows({
 						className={`hackerEvent${past ? " hackerEvent--past" : ""}`}
 						href={event.link || "/events"}
 						title={event.name}
-						aria-label={`${event.name}${hackerCopy.labels.eventLinkSuffix}${eventDate(event)}`}
+						aria-label={`${event.name}${hackerCopy.labels.eventLinkSuffix}${eventDate(event)}${!past && event.signupStatus ? `, ${signupStatusLabel(event)}` : ""}`}
 					>
 						<span className="hackerEvent__file">
 							{eventFileName(event.name)}
@@ -145,6 +146,9 @@ function EventRows({
 								: hackerCopy.events.upcomingPermissions}{" "}
 							{eventDate(event)}
 						</span>
+						{!past && event.signupStatus && (
+							<span className="hackerEvent__signup"><EventSignupBadge event={event} /></span>
+						)}
 					</Link>
 				))
 			)}

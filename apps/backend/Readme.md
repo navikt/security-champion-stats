@@ -12,6 +12,18 @@ active status. Participants can leave voluntarily (`LEFT`) and self-rejoin witho
 administrator deactivation cannot be reversed by self-enrollment. Activity credits require active participation
 when the sync awards them. The scheduled Teamkatalogen sync refreshes profiles for existing participants without
 creating, deactivating, or restoring participation.
+Successful enrollment and voluntary rejoining queue a background `users.lookupByEmail` request using the
+participant's verified email. Eligible human, non-guest Slack accounts are persisted in the shared identity
+mapping table for scoring, membership and reminders. Existing mappings, including administrator mappings,
+are never overwritten; Slack failures never roll back enrollment.
+Unmapped active participants are backfilled and retried every six hours at minute 15 in Europe/Oslo
+(`slack.identity.cron`; `-` disables the scheduled retry). Missing/deactivated accounts and conflicts remain
+unresolved, with lookup outcomes in the audit trail. Enrollment and backfill share a cross-instance lock;
+busy workers defer the lookup to reconciliation. Lookup requests are serialized and paced at 1.3 seconds
+per attempt, below Slack's Tier 3 baseline, and HTTP 429 retries honor the full `Retry-After`.
+The lookup needs the existing `users:read.email` scope. Bulk membership/reminder reconciliation retains its
+paginated `users.list` snapshot to revalidate saved accounts and detect conflicts efficiently. Reminders still
+send through `chat.postMessage` with `chat:write`; no explicit `conversations.open` call is needed.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
@@ -122,6 +134,25 @@ outbound network access, and eligible public event identifiers are confirmed. Ad
 its latest outcome at `/api/admin/delta/sync-status`.
 Delta event import upserts all events in `DELTA_EVENTS_CATEGORY_ID` (default 54) into `Events`, keyed by the Delta
 UUID and linked to `https://delta.nav.no/event/{id}`. It is disabled unless `DELTA_EVENTS_ENABLED=true`.
+Upcoming Delta events expose only the active viewer's signup status at `/api/events`, matched by verified
+participant email. Hosts are labeled separately; registration is not attendance. Status snapshots are cached
+for at most 60 seconds, with a check timestamp. Unavailable or incomplete Delta rosters produce an explicit
+unavailable status without hiding the event catalog. Failed lookups are also cached for 60 seconds to
+coalesce concurrent requests during outages; unavailable results have no successful-check timestamp.
+Non-Delta events have no signup status.
+Administrators preview manual Slack DMs at `GET /api/admin/events/{eventId}/reminders`, then submit
+`POST` with `expectedVersion` and `confirmed=true`. Delta-linked playbook entries are also supported.
+The backend rechecks the event, Delta roster, active participants, Slack identities and delivery state before
+queueing and before sending. Started events and unavailable rosters block sending. Registered participants
+and hosts are excluded; unresolved Slack identities are listed but skipped.
+Reminders use the existing Slack token (`users:read`, `users:read.email`, `chat:write`) and verified directory
+resolution/approved mappings; membership sync does not need to be enabled. Sends run under a cross-instance
+lock in the background, with outcomes in the audit trail. At most one successful reminder is sent per
+participant and Delta event. Known rejections can be retried manually after the persisted delay
+(15 minutes by default; HTTP rate limits honor `Retry-After`). Uncertain or interrupted deliveries are
+shown as unconfirmed and never automatically resent; inspect Slack before further operational action.
+The durable delivery records are erased with permanent participant deletion. No scheduled reminders or
+email delivery are enabled.
 Playbook events are cached from `https://sikkerhet.nav.no/events.json` at startup and every six hours when
 `PLAYBOOK_EVENTS_ENABLED=true` (enabled in Nais). Failed imports retain the previous snapshot.
 `/api/events` hides `playbook:*` entries when a Delta or manual event starts on the same Europe/Oslo date;

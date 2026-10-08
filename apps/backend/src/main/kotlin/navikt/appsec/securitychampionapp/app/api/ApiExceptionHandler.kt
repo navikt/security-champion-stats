@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.events.EventClaimException
 import navikt.appsec.securitychampionapp.app.events.EventClaimFailure
+import navikt.appsec.securitychampionapp.app.events.EventReminderConflictException
+import navikt.appsec.securitychampionapp.app.events.EventSignupUnavailableException
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
@@ -31,6 +33,16 @@ import java.net.URI
 @RestControllerAdvice
 class ApiExceptionHandler {
     private val logger = LoggerFactory.getLogger(ApiExceptionHandler::class.java)
+
+    @ExceptionHandler(EventReminderConflictException::class)
+    fun reminderConflict(exception: EventReminderConflictException, request: WebRequest): ResponseEntity<ProblemDetail> =
+        problem(HttpStatus.CONFLICT, "Reminder preview changed", requireNotNull(exception.message), request)
+
+    @ExceptionHandler(EventSignupUnavailableException::class)
+    fun signupUnavailable(request: WebRequest): ResponseEntity<ProblemDetail> {
+        logger.warn("Event reminder request blocked because Delta signup information is unavailable")
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Signup information unavailable", "Delta signup information could not be verified", request)
+    }
 
     @ExceptionHandler(ApiRequestException::class)
     fun apiRequestFailure(exception: ApiRequestException, request: WebRequest): ResponseEntity<ProblemDetail> =

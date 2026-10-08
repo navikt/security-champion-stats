@@ -5,8 +5,10 @@ import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.conversations.ConversationsHistoryRequest
 import com.slack.api.methods.request.conversations.ConversationsRepliesRequest
 import com.slack.api.methods.request.users.UsersInfoRequest
+import com.slack.api.methods.request.users.UsersLookupByEmailRequest
 import com.slack.api.model.Message
 import navikt.appsec.securitychampionapp.app.scoring.SlackActivityMessage
+import navikt.appsec.securitychampionapp.app.membership.SlackParticipantLookup
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.io.IOException
@@ -23,7 +25,7 @@ private val THREAD_FETCH_DELAY: Duration = Duration.ofMillis(1200)
 class SlackApiService(
     private val client: MethodsClient,
     private val sleeper: (Duration) -> Unit = { Thread.sleep(it) },
-) {
+) : SlackParticipantLookup {
     private val log = LoggerFactory.getLogger(SlackApiService::class.java)
 
     fun fetchScoringMessages(
@@ -95,6 +97,27 @@ class SlackApiService(
         return response.user?.profile?.email?.takeIf { it.isNotBlank() }
     }
 
+    @Synchronized
+    override fun findEligibleUser(email: String): String? {
+        val normalized = email.trim().lowercase()
+        require(Regex("^[A-Za-z0-9+_.-]+@nav\\.no$").matches(normalized)) {
+            "Slack identity lookup requires a participant email"
+        }
+        val response = call(SlackIntegrationException.Operation.LOOKUP_BY_EMAIL) {
+            sleeper(Duration.ofMillis(1300))
+            client.usersLookupByEmail(UsersLookupByEmailRequest.builder().email(normalized).build())
+        }
+        if (response?.error == "users_not_found") return null
+        if (response?.isOk != true || response.user == null) {
+            throw SlackIntegrationException(SlackIntegrationException.Operation.LOOKUP_BY_EMAIL, response?.error)
+        }
+        val user = response.user
+        if (user.id.isNullOrBlank() || user.profile?.email?.trim()?.lowercase() != normalized) {
+            throw SlackIntegrationException(SlackIntegrationException.Operation.LOOKUP_BY_EMAIL, "identity_mismatch")
+        }
+        return user.id.takeUnless { user.isDeleted || user.isBot || user.isRestricted || user.isUltraRestricted || user.isAppUser }
+    }
+
     internal fun <T> call(operation: SlackIntegrationException.Operation, request: () -> T): T {
         var attempt = 0
         while (true) {
@@ -104,7 +127,7 @@ class SlackApiService(
                 if (e.response?.code != 429) throw SlackIntegrationException(operation, e.error?.error)
                 if (attempt >= MAX_RATE_LIMIT_RETRIES) throw SlackIntegrationException(operation, "ratelimited")
                 attempt++
-                val retryAfter = e.retryAfter()
+                val retryAfter = e.retryAfter(operation)
                 log.info("Slack {} rate limited, retrying in {}s", operation.apiMethod, retryAfter.seconds)
                 sleeper(retryAfter)
             } catch (_: IOException) {
@@ -113,10 +136,13 @@ class SlackApiService(
         }
     }
 
-    private fun SlackApiException.retryAfter(): Duration =
+    private fun SlackApiException.retryAfter(operation: SlackIntegrationException.Operation): Duration =
         response?.header("Retry-After")?.toLongOrNull()
             ?.let { Duration.ofSeconds(it) }
-            ?.coerceIn(DEFAULT_RETRY_AFTER, MAX_RETRY_AFTER)
+            ?.let {
+                if (operation == SlackIntegrationException.Operation.LOOKUP_BY_EMAIL) it.coerceAtLeast(DEFAULT_RETRY_AFTER)
+                else it.coerceIn(DEFAULT_RETRY_AFTER, MAX_RETRY_AFTER)
+            }
             ?: DEFAULT_RETRY_AFTER
 
     private fun Message.hasRepliesSince(oldest: Instant): Boolean {

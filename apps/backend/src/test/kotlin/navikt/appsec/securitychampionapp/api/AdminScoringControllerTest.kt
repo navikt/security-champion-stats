@@ -11,6 +11,8 @@ import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationPreview
 import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
 import navikt.appsec.securitychampionapp.app.scoring.defaultScoringConfiguration
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
+import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntry
+import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntryType
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
@@ -45,6 +47,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPat
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import tools.jackson.databind.ObjectMapper
 import java.time.LocalDate
+import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
 
@@ -63,6 +66,58 @@ class AdminScoringControllerTest {
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
+    @Test
+    fun `should expose participant scoring history with season totals only to administrators`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val participantId = UUID.randomUUID()
+        val season = SeasonSummary(UUID.randomUUID(), LocalDate.of(2026, 1, 1), null, LocalDate.of(2027, 1, 1))
+        val creditId = UUID.randomUUID()
+        whenever(scoringRepository.participantExists(participantId)).thenReturn(true)
+        whenever(scoringRepository.currentSeason()).thenReturn(season)
+        whenever(scoringRepository.scoringHistoryForParticipant(participantId)).thenReturn(listOf(
+            ScoringHistoryEntry(
+                UUID.randomUUID(), ScoringHistoryEntryType.ADJUSTMENT, Instant.parse("2026-10-01T10:00:00Z"),
+                null, season.id, season.startsOn, null, -2, null, "source-1", creditId,
+                "Correct a duplicate", "admin@nav.no", null,
+            ),
+        ))
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/scoring/participants/$participantId/history"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.currentSeasonId").value(season.id.toString()))
+            .andExpect(jsonPath("$.seasons[0].points").value(-2))
+            .andExpect(jsonPath("$.seasons[0].adjustmentPoints").value(-2))
+            .andExpect(jsonPath("$.entries[0].recordedAt").value("2026-10-01T10:00:00Z"))
+            .andExpect(jsonPath("$.entries[0].sourceCreditId").value(creditId.toString()))
+            .andExpect(jsonPath("$.entries[0].reason").value("Correct a duplicate"))
+            .andExpect(jsonPath("$.entries[0].actorNavNoEmail").value("admin@nav.no"))
+        verify(scoringRepository).scoringHistoryForParticipant(participantId)
+    }
+
+    @Test
+    fun `should deny scoring history to non administrators before reading any data`() {
+        mockAuthenticatedUser(USER_ROLE)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/scoring/participants/${UUID.randomUUID()}/history"))
+            .andExpect(status().isForbidden)
+        verifyNoInteractions(scoringRepository)
+    }
+
+    @Test
+    fun `should return problem details for invalid and missing scoring history participants`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/scoring/participants/not-a-uuid/history"))
+            .andExpect(status().isBadRequest)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+        verifyNoInteractions(scoringRepository)
+
+        val participantId = UUID.randomUUID()
+        whenever(scoringRepository.participantExists(participantId)).thenReturn(false)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/scoring/participants/$participantId/history"))
+            .andExpect(status().isNotFound)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+        verify(scoringRepository, org.mockito.kotlin.never()).scoringHistoryForParticipant(any())
+    }
 
     @Test
     fun `should expose configured tiers and activity values only to administrators`() {

@@ -15,6 +15,11 @@ creating, deactivating, or restoring participation.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
+Administrators can inspect each participant's complete recorded scoring ledger at
+`GET /api/admin/scoring/participants/{id}/history`, including records from before audit rollout.
+It returns season totals and activity breakdowns alongside dated credits, revocations, reasoned
+adjustments, their administrators and linked activities, and scoring-rule changes. Totals use
+the ledger's season assignment, not the date a later correction was recorded.
 Administrators configure named tiers, point thresholds, and all five activity point values at
 `/appsec/scoring`. Zero-point activities still retain their qualifying credit and deduplication identity.
 Changes require a reason, an impact preview, and confirmation. Tier changes take effect immediately;

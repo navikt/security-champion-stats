@@ -31,6 +31,23 @@ describe("ScoringManagementView", () => {
 		vi.restoreAllMocks();
 	});
 
+	it("loads score history only when the participant history action is opened", async () => {
+		const getHistory = vi.spyOn(Apies, "getParticipantScoringHistory").mockResolvedValue({
+			currentSeasonId: "season-1",
+			seasons: [],
+			entries: [],
+		});
+		const getCredits = vi.spyOn(Apies, "getParticipantCredits");
+		render(<ScoringManagementView overview={overview} onRefresh={vi.fn()} />);
+		expect(getHistory).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "View score history for Example Person" }));
+		expect(await screen.findByRole("heading", { name: "Score history for Example Person" })).toBeInTheDocument();
+		await waitFor(() => expect(getHistory).toHaveBeenCalledWith("participant-1"));
+		expect(getCredits).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "Close" }));
+		expect(screen.queryByRole("dialog", { name: "Score history for Example Person" })).not.toBeInTheDocument();
+	});
+
 	it("should link a signed adjustment to the selected activity", async () => {
 		vi.spyOn(Apies, "getParticipantCredits").mockResolvedValue([
 			{

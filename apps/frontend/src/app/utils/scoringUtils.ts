@@ -1,4 +1,19 @@
-import type { ParticipantSeasonScore } from "./Variables";
+import type { ActivityCredit, ParticipantSeasonScore } from "./Variables";
+
+export function creditTypeLabel(creditType: ActivityCredit["creditType"]): string {
+	switch (creditType) {
+		case "SLACK_WEEK":
+			return "Slack participation";
+		case "DELTA_REGISTRATION":
+			return "Delta registration";
+		case "GITHUB_COMMIT":
+			return "GitHub commit";
+		case "GITHUB_PULL_REQUEST":
+			return "GitHub pull request";
+		case "SECURITY_EVENT_CONTRIBUTION":
+			return "Security event contribution";
+	}
+}
 
 export function scoringProgress(score: ParticipantSeasonScore) {
 	const thresholds = score.tiers.map((tier) => ({

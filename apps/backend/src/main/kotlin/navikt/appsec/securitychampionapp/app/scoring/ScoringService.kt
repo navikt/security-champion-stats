@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.annotation.Isolation
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -77,6 +78,34 @@ class ScoringService(
     fun creditsForParticipant(participantId: UUID): List<ActivityCredit> {
         if (!repository.participantExists(participantId)) throw ScoringTargetNotFoundException()
         return repository.creditsForParticipant(participantId)
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    fun scoringHistoryForParticipant(participantId: UUID): ParticipantScoringHistory {
+        if (!repository.participantExists(participantId)) throw ScoringTargetNotFoundException()
+        val currentSeason = repository.currentSeason()
+        val entries = repository.scoringHistoryForParticipant(participantId)
+        val bySeason = entries.groupBy { it.seasonId }
+        val seasonIds = bySeason.keys + currentSeason.id
+        val seasons = seasonIds.map { seasonId ->
+            val history = bySeason[seasonId].orEmpty()
+            val first = history.firstOrNull()
+            ParticipantScoringSeason(
+                id = seasonId,
+                startsOn = first?.seasonStartsOn ?: currentSeason.startsOn,
+                endsOn = first?.seasonEndsOn,
+                points = history.sumOf { it.points.toLong() },
+                creditPoints = ActivityCreditType.entries.associateWith { creditType ->
+                    history.filter { it.type == ScoringHistoryEntryType.CREDIT && it.creditType == creditType }
+                        .sumOf { it.points.toLong() }
+                },
+                adjustmentPoints = history.filter { it.type == ScoringHistoryEntryType.ADJUSTMENT }
+                    .sumOf { it.points.toLong() },
+                scoringRulePoints = history.filter { it.type == ScoringHistoryEntryType.SCORING_RULE_CHANGE }
+                    .sumOf { it.points.toLong() },
+            )
+        }.sortedByDescending { it.startsOn }
+        return ParticipantScoringHistory(currentSeason.id, seasons, entries)
     }
 
     @Transactional

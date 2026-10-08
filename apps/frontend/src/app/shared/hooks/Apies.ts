@@ -1,6 +1,7 @@
 import type {
 	AdminProgramParticipant,
 	ActivityCredit,
+	ParticipantScoringHistory,
 	AdminScoringOverview,
 	AdminDashboardOverview,
 	DeltaEventMapping,
@@ -302,6 +303,15 @@ export const Apies = {
 			console.error("Failed to remove Delta event mapping, status: ", res.status);
 		}
 		return res.status;
+	},
+	getParticipantScoringHistory: async (id: string): Promise<ParticipantScoringHistory> => {
+		const res = await fetch(
+			`/api/admin/scoring/participants/${encodeURIComponent(id)}/history`,
+		);
+		if (!res.ok) {
+			throw new Error(`Failed to fetch participant scoring history, status: ${res.status}`);
+		}
+		return res.json();
 	},
 	getParticipantCredits: async (
 		id: string,

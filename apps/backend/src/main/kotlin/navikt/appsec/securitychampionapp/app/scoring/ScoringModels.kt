@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.app.scoring
 
 import java.time.LocalDate
+import java.time.Instant
 import java.util.UUID
 
 enum class ActivityCreditType {
@@ -69,6 +70,45 @@ data class ActivityCredit(
     val sourceReference: String,
     val points: Int,
     val seasonStartsOn: LocalDate,
+)
+
+enum class ScoringHistoryEntryType {
+    CREDIT,
+    ADJUSTMENT,
+    SCORING_RULE_CHANGE,
+}
+
+data class ScoringHistoryEntry(
+    val id: UUID,
+    val type: ScoringHistoryEntryType,
+    val recordedAt: Instant,
+    val activityAt: Instant?,
+    val seasonId: UUID,
+    val seasonStartsOn: LocalDate,
+    val seasonEndsOn: LocalDate?,
+    val points: Int,
+    val creditType: ActivityCreditType?,
+    val sourceReference: String?,
+    val sourceCreditId: UUID?,
+    val reason: String?,
+    val actorNavNoEmail: String?,
+    val revokedAt: Instant?,
+)
+
+data class ParticipantScoringHistory(
+    val currentSeasonId: UUID,
+    val seasons: List<ParticipantScoringSeason>,
+    val entries: List<ScoringHistoryEntry>,
+)
+
+data class ParticipantScoringSeason(
+    val id: UUID,
+    val startsOn: LocalDate,
+    val endsOn: LocalDate?,
+    val points: Long,
+    val creditPoints: Map<ActivityCreditType, Long>,
+    val adjustmentPoints: Long,
+    val scoringRulePoints: Long,
 )
 
 data class PointAdjustment(

@@ -1,11 +1,17 @@
 package navikt.appsec.securitychampionapp.app.scoring
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.never
+import org.mockito.kotlin.any
 import java.time.LocalDate
+import java.time.Instant
+import org.springframework.dao.DataAccessResourceFailureException
 import java.util.UUID
 
 class ScoringServiceTest {
@@ -21,6 +27,60 @@ class ScoringServiceTest {
         endsOn = null,
         nextResetDate = LocalDate.parse("2027-01-01"),
     )
+
+    @Test
+    fun `should total history by assigned season rather than the correction date`() {
+        val participant = UUID.randomUUID()
+        val previous = season.copy(id = UUID.randomUUID(), startsOn = LocalDate.of(2025, 1, 1), endsOn = LocalDate.of(2025, 12, 31))
+        val recordedAt = Instant.parse("2026-10-01T12:00:00Z")
+        val credit = ScoringHistoryEntry(
+            UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, recordedAt, null,
+            previous.id, previous.startsOn, previous.endsOn, 3, ActivityCreditType.GITHUB_PULL_REQUEST,
+            "pull:1", null, null, null, null,
+        )
+        val manual = credit.copy(id = UUID.randomUUID(), type = ScoringHistoryEntryType.ADJUSTMENT, points = -1, sourceCreditId = credit.id)
+        val rule = manual.copy(id = UUID.randomUUID(), type = ScoringHistoryEntryType.SCORING_RULE_CHANGE, points = 2)
+        val zeroCredit = credit.copy(id = UUID.randomUUID(), seasonId = season.id, seasonStartsOn = season.startsOn, seasonEndsOn = null, points = 0)
+        whenever(repository.participantExists(participant)).thenReturn(true)
+        whenever(repository.currentSeason()).thenReturn(season)
+        whenever(repository.scoringHistoryForParticipant(participant)).thenReturn(listOf(rule, manual, zeroCredit, credit))
+
+        val result = service.scoringHistoryForParticipant(participant)
+
+        assertEquals(season.id, result.currentSeasonId)
+        assertEquals(listOf(season.id, previous.id), result.seasons.map { it.id })
+        assertEquals(listOf(0L, 4L), result.seasons.map { it.points })
+        assertEquals(3L, result.seasons[1].creditPoints[ActivityCreditType.GITHUB_PULL_REQUEST])
+        assertEquals(-1L, result.seasons[1].adjustmentPoints)
+        assertEquals(2L, result.seasons[1].scoringRulePoints)
+        assertEquals(listOf(rule, manual, zeroCredit, credit), result.entries)
+    }
+
+    @Test
+    fun `should return an empty current season without inventing history entries`() {
+        val participant = UUID.randomUUID()
+        whenever(repository.participantExists(participant)).thenReturn(true)
+        whenever(repository.currentSeason()).thenReturn(season)
+        whenever(repository.scoringHistoryForParticipant(participant)).thenReturn(emptyList())
+
+        val result = service.scoringHistoryForParticipant(participant)
+        assertEquals(emptyList<ScoringHistoryEntry>(), result.entries)
+        assertEquals(season.id, result.seasons.single().id)
+        assertEquals(0L, result.seasons.single().points)
+        assertEquals(ActivityCreditType.entries.associateWith { 0L }, result.seasons.single().creditPoints)
+    }
+
+    @Test
+    fun `should not hide history lookup failures or read a missing participant ledger`() {
+        val participant = UUID.randomUUID()
+        assertThrows(ScoringTargetNotFoundException::class.java) { service.scoringHistoryForParticipant(participant) }
+        verify(repository, never()).scoringHistoryForParticipant(any())
+
+        whenever(repository.participantExists(participant)).thenReturn(true)
+        whenever(repository.currentSeason()).thenReturn(season)
+        whenever(repository.scoringHistoryForParticipant(participant)).thenThrow(DataAccessResourceFailureException("Unavailable"))
+        assertThrows(DataAccessResourceFailureException::class.java) { service.scoringHistoryForParticipant(participant) }
+    }
 
     @Test
     fun `should use saved custom tier names and thresholds for negative and boundary scores`() {

@@ -26,6 +26,8 @@ interface ScoringLedger {
 
     fun creditsForParticipant(participantId: UUID): List<ActivityCredit>
 
+    fun scoringHistoryForParticipant(participantId: UUID): List<ScoringHistoryEntry>
+
     fun participantExists(participantId: UUID): Boolean
 
     fun awardCredit(

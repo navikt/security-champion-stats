@@ -20,6 +20,8 @@ import {
 } from "@navikt/ds-react";
 import { useMemo, useState } from "react";
 import { ScoringConfigurationView } from "./ScoringConfigurationView";
+import { ParticipantScoreHistoryModal } from "./ParticipantScoreHistoryModal";
+import { creditTypeLabel } from "@/app/utils/scoringUtils";
 
 export function ScoringManagementView({
 	overview,
@@ -32,6 +34,8 @@ export function ScoringManagementView({
 		overview.season.nextResetDate,
 	);
 	const [selectedParticipant, setSelectedParticipant] =
+		useState<AdminParticipantScore | null>(null);
+	const [historyParticipant, setHistoryParticipant] =
 		useState<AdminParticipantScore | null>(null);
 	const [credits, setCredits] = useState<ActivityCredit[]>([]);
 	const [creditsLoading, setCreditsLoading] = useState(false);
@@ -291,14 +295,26 @@ export function ScoringManagementView({
 									<Table.DataCell>{participant.points}</Table.DataCell>
 									<Table.DataCell>{participant.level}</Table.DataCell>
 									<Table.DataCell>
-										<Button
-											size="small"
-											data-color="neutral"
-											variant="secondary"
-											onClick={() => openAdjustment(participant)}
-										>
-											Adjust points
-										</Button>
+										<VStack gap="space-4" align="start">
+											<Button
+												type="button"
+												size="small"
+												data-color="neutral"
+												variant="secondary"
+												aria-label={`View score history for ${participant.fullName || participant.email}`}
+												onClick={() => setHistoryParticipant(participant)}
+											>
+												View score history
+											</Button>
+											<Button
+												size="small"
+												data-color="neutral"
+												variant="secondary"
+												onClick={() => openAdjustment(participant)}
+											>
+												Adjust points
+											</Button>
+										</VStack>
 									</Table.DataCell>
 								</Table.Row>
 							))}
@@ -313,6 +329,14 @@ export function ScoringManagementView({
 					</Table>
 				</VStack>
 			</section>
+
+			{historyParticipant && (
+				<ParticipantScoreHistoryModal
+					key={historyParticipant.participantId}
+					participant={historyParticipant}
+					onClose={() => setHistoryParticipant(null)}
+				/>
+			)}
 
 			<Modal
 				open={selectedParticipant !== null}
@@ -438,19 +462,4 @@ function creditLabel(
 	typeLabel: string,
 ): string {
 	return `${typeLabel} · ${credit.sourceReference} · ${credit.points} · ${credit.seasonStartsOn}`;
-}
-
-function creditTypeLabel(creditType: ActivityCredit["creditType"]): string {
-	switch (creditType) {
-		case "SLACK_WEEK":
-			return "Slack participation";
-		case "DELTA_REGISTRATION":
-			return "Delta registration";
-		case "GITHUB_COMMIT":
-			return "GitHub commit";
-		case "GITHUB_PULL_REQUEST":
-			return "GitHub pull request";
-		case "SECURITY_EVENT_CONTRIBUTION":
-			return "Security event contribution";
-	}
 }

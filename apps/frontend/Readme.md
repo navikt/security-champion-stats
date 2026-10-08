@@ -11,6 +11,11 @@ The scoring dashboard (`/appsec/scoring`) lets administrators add, rename, and r
 point thresholds, and configure points for the five existing activity types. Participant progress and
 leaderboards use the saved tiers, including in the Hacker theme, where the highest tier in a multi-tier
 progression receives top clearance. Preview and confirm changes with a reason.
+Use **View score history** beside a participant to inspect their current-season points,
+activity breakdown and full recorded scoring history across seasons. Filter by season and
+use **Show more** for longer histories. Entries include source references, dates in Oslo time,
+revoked credits, adjustment reasons and administrators, linked activities, and scoring-rule changes.
+This read-only ledger view includes records from before audit rollout; **Adjust points** is unchanged.
 Activity values normally affect future credits; opt into current-season retroactive changes to append
 adjustments without rewriting original credits, manual corrections, or closed seasons. Zero-point
 activities are still recorded. If a preview becomes stale, reload configuration and preview again.

@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.scoring.AdminScoringOverview
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCredit
+import navikt.appsec.securitychampionapp.app.scoring.ParticipantScoringHistory
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustmentRequest
@@ -38,6 +39,13 @@ class AdminScoringController(
         val participantId = id.toUuid()
             ?: throw InvalidScoringRequestException("The participant ID is invalid")
         return ResponseEntity.ok(scoringService.creditsForParticipant(participantId))
+    }
+
+    @GetMapping("/participants/{id}/history")
+    fun participantHistory(@PathVariable id: String): ResponseEntity<ParticipantScoringHistory> {
+        val participantId = id.toUuid()
+            ?: throw InvalidScoringRequestException("The participant ID is invalid")
+        return ResponseEntity.ok(scoringService.scoringHistoryForParticipant(participantId))
     }
 
     @PostMapping("/participants/{id}/adjustments")

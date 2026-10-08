@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCredit
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntry
+import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntryType
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.ParticipantSeasonScore
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
@@ -299,6 +301,52 @@ class PostgresScoringLedger(
                     seasonStartsOn = rs.getObject("starts_on", LocalDate::class.java),
                 )
             },
+            participantId,
+        )
+
+    override fun scoringHistoryForParticipant(participantId: UUID): List<ScoringHistoryEntry> =
+        jdbcTemplate.query(
+            """
+                SELECT credit.id, 'CREDIT' AS type, credit.awarded_at AS recorded_at, credit.activity_at,
+                    credit.season_id, season.starts_on, season.ends_on, credit.points,
+                    credit.credit_type, credit.source_reference, NULL::uuid AS source_credit_id,
+                    NULL::text AS reason, NULL::text AS actor_nav_no_email, credit.revoked_at
+                FROM activity_credits AS credit
+                JOIN program_seasons AS season ON season.id = credit.season_id
+                WHERE credit.participant_id = ?
+                UNION ALL
+                SELECT adjustment.id,
+                    CASE WHEN adjustment.scoring_configuration_version IS NULL
+                        THEN 'ADJUSTMENT' ELSE 'SCORING_RULE_CHANGE' END,
+                    adjustment.created_at, NULL::timestamptz,
+                    adjustment.season_id, season.starts_on, season.ends_on, adjustment.points_delta,
+                    credit.credit_type, credit.source_reference, adjustment.source_credit_id,
+                    adjustment.reason, adjustment.actor_nav_no_email, NULL::timestamptz
+                FROM point_adjustments AS adjustment
+                JOIN program_seasons AS season ON season.id = adjustment.season_id
+                LEFT JOIN activity_credits AS credit ON credit.id = adjustment.source_credit_id
+                WHERE adjustment.participant_id = ?
+                ORDER BY recorded_at DESC, id DESC
+            """.trimIndent(),
+            { rs, _ ->
+                ScoringHistoryEntry(
+                    id = rs.getObject("id", UUID::class.java),
+                    type = ScoringHistoryEntryType.valueOf(rs.getString("type")),
+                    recordedAt = rs.getTimestamp("recorded_at").toInstant(),
+                    activityAt = rs.getTimestamp("activity_at")?.toInstant(),
+                    seasonId = rs.getObject("season_id", UUID::class.java),
+                    seasonStartsOn = rs.getObject("starts_on", LocalDate::class.java),
+                    seasonEndsOn = rs.getObject("ends_on", LocalDate::class.java),
+                    points = rs.getInt("points"),
+                    creditType = rs.getString("credit_type")?.let(ActivityCreditType::valueOf),
+                    sourceReference = rs.getString("source_reference"),
+                    sourceCreditId = rs.getObject("source_credit_id", UUID::class.java),
+                    reason = rs.getString("reason"),
+                    actorNavNoEmail = rs.getString("actor_nav_no_email"),
+                    revokedAt = rs.getTimestamp("revoked_at")?.toInstant(),
+                )
+            },
+            participantId,
             participantId,
         )
 

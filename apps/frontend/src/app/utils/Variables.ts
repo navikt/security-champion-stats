@@ -123,6 +123,36 @@ export type AdminScoringOverview = {
 	participants: AdminParticipantScore[];
 	configuration: ScoringConfiguration;
 };
+export type ScoringHistoryEntry = {
+	id: string;
+	type: "CREDIT" | "ADJUSTMENT" | "SCORING_RULE_CHANGE";
+	recordedAt: string;
+	activityAt: string | null;
+	seasonId: string;
+	seasonStartsOn: string;
+	seasonEndsOn: string | null;
+	points: number;
+	creditType: ActivityCredit["creditType"] | null;
+	sourceReference: string | null;
+	sourceCreditId: string | null;
+	reason: string | null;
+	actorNavNoEmail: string | null;
+	revokedAt: string | null;
+};
+export type ParticipantScoringSeason = {
+	id: string;
+	startsOn: string;
+	endsOn: string | null;
+	points: number;
+	creditPoints: Record<ActivityCredit["creditType"], number>;
+	adjustmentPoints: number;
+	scoringRulePoints: number;
+};
+export type ParticipantScoringHistory = {
+	currentSeasonId: string;
+	seasons: ParticipantScoringSeason[];
+	entries: ScoringHistoryEntry[];
+};
 export type ScoringTier = { name: string; points: number };
 export type ScoringConfiguration = {
 	version: number;

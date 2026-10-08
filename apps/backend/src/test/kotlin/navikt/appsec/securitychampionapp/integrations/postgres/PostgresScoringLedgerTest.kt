@@ -7,6 +7,7 @@ import navikt.appsec.securitychampionapp.app.scoring.INTERRUPTED_SYNC_SUMMARY
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntryType
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationRequest
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationService
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
@@ -146,6 +147,61 @@ class PostgresScoringLedgerTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["ACTIVE", "DEACTIVATED", "LEFT"])
+    fun `should read the entire participant ledger across seasons with linked corrections`(status: String) {
+        val participantId = createParticipant("history@nav.no")
+        val otherParticipant = createParticipant("other@nav.no")
+        val originalSeason = repository.currentSeason()
+        insertCredit(participantId, originalSeason.id, "GITHUB_PULL_REQUEST", "pull:1", 3, originalSeason.startsOn)
+        insertCredit(otherParticipant, originalSeason.id, "SLACK_WEEK", "other:1", 1, originalSeason.startsOn)
+        val creditId = repository.creditsForParticipant(participantId).single().id
+        val activityAt = Instant.parse("2025-12-31T22:00:00Z")
+        jdbcTemplate.update("UPDATE activity_credits SET activity_at = ? WHERE id = ?", Timestamp.from(activityAt), creditId)
+
+        val currentSeason = repository.resetManually(originalSeason.nextResetDate, "New season", "admin@nav.no")
+        val correction = repository.addAdjustment(participantId, -1, "Correct original credit", "admin@nav.no", creditId)
+        val repricing = repository.addAdjustment(participantId, 2, "Scoring rule update", "rules@nav.no", creditId)
+        jdbcTemplate.update("UPDATE point_adjustments SET scoring_configuration_version = 2 WHERE id = ?", repricing.id)
+        val revocation = repository.addAdjustment(participantId, -5, "Revoke contribution", "reviewer@nav.no", creditId)
+        val revokedAt = Instant.parse("2027-01-02T10:00:00Z")
+        jdbcTemplate.update("UPDATE activity_credits SET revoked_at = ? WHERE id = ?", Timestamp.from(revokedAt), creditId)
+        repository.addAdjustment(participantId, -2, "Current season correction", "admin@nav.no", null)
+        insertCredit(participantId, currentSeason.id, "SLACK_WEEK", "zero-credit", 0, currentSeason.startsOn)
+        jdbcTemplate.update("UPDATE program_participants SET status = ? WHERE id = ?", status, participantId)
+
+        val history = repository.scoringHistoryForParticipant(participantId)
+        assertThat(history).hasSize(6)
+        assertThat(history.map { it.recordedAt }).isSortedAccordingTo(reverseOrder())
+        assertThat(history.single { it.id == creditId }.activityAt).isEqualTo(activityAt)
+        assertThat(history.single { it.id == creditId }.revokedAt).isEqualTo(revokedAt)
+        val linkedCorrection = history.single { it.id == correction.id }
+        assertThat(linkedCorrection.type).isEqualTo(ScoringHistoryEntryType.ADJUSTMENT)
+        assertThat(linkedCorrection.sourceCreditId).isEqualTo(creditId)
+        assertThat(linkedCorrection.creditType).isEqualTo(ActivityCreditType.GITHUB_PULL_REQUEST)
+        assertThat(linkedCorrection.sourceReference).isEqualTo("pull:1")
+        assertThat(linkedCorrection.reason).isEqualTo("Correct original credit")
+        assertThat(linkedCorrection.actorNavNoEmail).isEqualTo("admin@nav.no")
+        assertThat(linkedCorrection.seasonId).isEqualTo(originalSeason.id)
+        assertThat(linkedCorrection.seasonEndsOn).isEqualTo(currentSeason.startsOn.minusDays(1))
+        assertThat(history.single { it.id == repricing.id }.type).isEqualTo(ScoringHistoryEntryType.SCORING_RULE_CHANGE)
+        assertThat(history.single { it.id == revocation.id }.points).isEqualTo(-5)
+        assertThat(history.single { it.sourceReference == "zero-credit" }.points).isZero()
+        assertThat(history.single { it.reason == "Current season correction" }.sourceCreditId).isNull()
+
+        val summary = ScoringService(repository).scoringHistoryForParticipant(participantId)
+        summary.seasons.forEach {
+            assertThat(it.points).isEqualTo(repository.scoreForParticipant(participantId, it.id))
+            assertThat(it.points).isEqualTo(it.creditPoints.values.sum() + it.adjustmentPoints + it.scoringRulePoints)
+        }
+        assertThat(summary.seasons.map { it.points }).containsExactly(-2L, -1L)
+        assertThat(repository.scoringHistoryForParticipant(UUID.randomUUID())).isEmpty()
+
+        jdbcTemplate.update("DELETE FROM program_participants WHERE id = ?", participantId)
+        assertThat(repository.scoringHistoryForParticipant(participantId)).isEmpty()
+        assertThat(repository.scoringHistoryForParticipant(otherParticipant)).hasSize(1)
     }
 
     @ParameterizedTest

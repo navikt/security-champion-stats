@@ -57,10 +57,13 @@ Active participants see **Signed up**, **Not signed up**, **Hosting**, or **Sign
 upcoming Delta events across the overview, Events page and Hacker theme. Other event types show no signup
 status. The status is checked by email in the backend; the badge's tooltip shows the check time, and snapshots
 are cached for at most 60 seconds. Reload the events after signing up to retrieve the latest available snapshot.
-In **Manage events**, administrators can preview Slack reminder recipients and the message, then explicitly
-confirm sending. Signed-up participants and hosts are excluded; unresolved accounts, previous deliveries and
-unconfirmed deliveries are listed as skipped. A queued batch is not a completed delivery: check the audit
-trail, then use **Preview Slack reminders** again for current delivery outcomes. Stale previews are rejected.
+In **Manage events**, administrators select an upcoming Delta event, preview Slack reminder recipients,
+and edit a pre-filled message before explicitly confirming sending. Messages must contain text and be at
+most 4000 characters. Switching events clears the preview and confirmation; editing the message clears
+confirmation without resetting delivery tracking. Signed-up participants and hosts are excluded; unresolved
+accounts, previous deliveries and unconfirmed deliveries are listed as skipped. A queued batch is not a
+completed delivery: check the audit trail, then use **Preview Slack reminders** again for current delivery
+outcomes. Stale previews are rejected.
 Each participant receives at most one successfully delivered reminder per Delta event; failed requests require
 a fresh preview before retrying, and uncertain deliveries are not resent automatically. Reminders are manual
 Slack DMs only, with no automatic scheduling or email delivery.

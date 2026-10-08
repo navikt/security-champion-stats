@@ -4,6 +4,7 @@ import navikt.appsec.securitychampionapp.app.events.EventClaimException
 import navikt.appsec.securitychampionapp.app.events.EventClaimFailure
 import navikt.appsec.securitychampionapp.app.events.EventReminderConflictException
 import navikt.appsec.securitychampionapp.app.events.EventSignupUnavailableException
+import navikt.appsec.securitychampionapp.app.events.InvalidEventReminderMessageException
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
@@ -33,6 +34,10 @@ import java.net.URI
 @RestControllerAdvice
 class ApiExceptionHandler {
     private val logger = LoggerFactory.getLogger(ApiExceptionHandler::class.java)
+
+    @ExceptionHandler(InvalidEventReminderMessageException::class)
+    fun invalidReminderMessage(exception: InvalidEventReminderMessageException, request: WebRequest): ResponseEntity<ProblemDetail> =
+        problem(HttpStatus.BAD_REQUEST, "Invalid reminder message", requireNotNull(exception.message), request)
 
     @ExceptionHandler(EventReminderConflictException::class)
     fun reminderConflict(exception: EventReminderConflictException, request: WebRequest): ResponseEntity<ProblemDetail> =

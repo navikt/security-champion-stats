@@ -46,7 +46,7 @@ class AdminEventReminderControllerTest {
         authenticated("USER")
         mvc.perform(get(path)).andExpect(status().isForbidden)
         mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
-            .content("""{"expectedVersion":"reviewed","confirmed":true}""")).andExpect(status().isForbidden)
+            .content("""{"expectedVersion":"reviewed","message":"Edited reminder","confirmed":true}""")).andExpect(status().isForbidden)
         verifyNoInteractions(service, job)
     }
 
@@ -66,12 +66,12 @@ class AdminEventReminderControllerTest {
     fun `confirmation is required and accepted requests forward the reviewed version and administrator`() {
         authenticated("ADMIN")
         mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
-            .content("""{"expectedVersion":"reviewed","confirmed":false}""")).andExpect(status().isBadRequest)
+            .content("""{"expectedVersion":"reviewed","message":"Edited reminder","confirmed":false}""")).andExpect(status().isBadRequest)
         verifyNoInteractions(job)
-        whenever(job.send("synthetic-event", "reviewed", "admin@nav.no")).thenReturn(SyncTriggerResult.STARTED)
+        whenever(job.send("synthetic-event", "reviewed", "Edited reminder", "admin@nav.no")).thenReturn(SyncTriggerResult.STARTED)
         mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
-            .content("""{"expectedVersion":"reviewed","confirmed":true}""")).andExpect(status().isAccepted)
-        verify(job).send("synthetic-event", "reviewed", "admin@nav.no")
+            .content("""{"expectedVersion":"reviewed","message":"Edited reminder","confirmed":true}""")).andExpect(status().isAccepted)
+        verify(job).send("synthetic-event", "reviewed", "Edited reminder", "admin@nav.no")
     }
 
     @Test
@@ -81,20 +81,34 @@ class AdminEventReminderControllerTest {
         mvc.perform(get(path)).andExpect(status().isServiceUnavailable)
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.detail").value("Delta signup information could not be verified"))
-        whenever(job.send(any(), any(), any())).thenThrow(EventReminderConflictException("Preview again"))
+        whenever(job.send(any(), any(), any(), any())).thenThrow(EventReminderConflictException("Preview again"))
         mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
-            .content("""{"expectedVersion":"reviewed","confirmed":true}""")).andExpect(status().isConflict)
+            .content("""{"expectedVersion":"reviewed","message":"Edited reminder","confirmed":true}""")).andExpect(status().isConflict)
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
     }
 
     @Test
     fun `busy and unavailable queues are not reported as accepted`() {
         authenticated("ADMIN")
-        whenever(job.send(any(), any(), any())).thenReturn(SyncTriggerResult.ALREADY_RUNNING, SyncTriggerResult.UNAVAILABLE)
+        whenever(job.send(any(), any(), any(), any())).thenReturn(SyncTriggerResult.ALREADY_RUNNING, SyncTriggerResult.UNAVAILABLE)
         val request = { post(path).contentType(MediaType.APPLICATION_JSON)
-            .content("""{"expectedVersion":"reviewed","confirmed":true}""") }
+            .content("""{"expectedVersion":"reviewed","message":"Edited reminder","confirmed":true}""") }
         mvc.perform(request()).andExpect(status().isConflict)
         mvc.perform(request()).andExpect(status().isServiceUnavailable)
+    }
+
+    @Test
+    fun `missing or invalid messages return problem details rather than acceptance`() {
+        authenticated("ADMIN")
+        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
+            .content("""{"expectedVersion":"reviewed","confirmed":true}""")).andExpect(status().isBadRequest)
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+        verifyNoInteractions(job)
+        whenever(job.send(any(), any(), any(), any())).thenThrow(InvalidEventReminderMessageException())
+        mvc.perform(post(path).contentType(MediaType.APPLICATION_JSON)
+            .content("""{"expectedVersion":"reviewed","message":" ","confirmed":true}""")).andExpect(status().isBadRequest)
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Invalid reminder message"))
     }
 
     private fun authenticated(role: String) {

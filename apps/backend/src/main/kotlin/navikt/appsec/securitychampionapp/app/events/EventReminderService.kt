@@ -51,6 +51,8 @@ data class EventReminderPreview(
 
 data class EventReminderResult(val sent: Int, val failed: Int, val uncertain: Int, val skipped: Int)
 class EventReminderConflictException(message: String) : RuntimeException(message)
+class InvalidEventReminderMessageException :
+    RuntimeException("The reminder message must contain text and be at most 4000 characters")
 
 @Service
 class EventReminderService(
@@ -114,9 +116,11 @@ class EventReminderService(
         return deltaId to EventReminderPreview(version, clock.instant(), message, active.size - unsigned.size, recipients)
     }
 
-    fun validate(eventId: String, expectedVersion: String): EventReminderPreview = validated(eventId, expectedVersion).second
+    fun validate(eventId: String, expectedVersion: String, message: String): EventReminderPreview =
+        validated(eventId, expectedVersion, message).second
 
-    private fun validated(eventId: String, expectedVersion: String): Pair<UUID, EventReminderPreview> {
+    private fun validated(eventId: String, expectedVersion: String, message: String): Pair<UUID, EventReminderPreview> {
+        if (message.isBlank() || message.length > 4000) throw InvalidEventReminderMessageException()
         val prepared = prepare(eventId)
         val preview = prepared.second
         if (expectedVersion.isBlank() || preview.version != expectedVersion) {
@@ -128,8 +132,8 @@ class EventReminderService(
         return prepared
     }
 
-    fun send(eventId: String, expectedVersion: String): EventReminderResult {
-        val (deltaId, preview) = validated(eventId, expectedVersion)
+    fun send(eventId: String, expectedVersion: String, message: String): EventReminderResult {
+        val (deltaId, preview) = validated(eventId, expectedVersion, message)
         var sent = 0
         var failed = 0
         var uncertain = 0
@@ -149,7 +153,7 @@ class EventReminderService(
                 continue
             }
             val messageTs = try {
-                gateway.remind(recipient.slackUserId, preview.message, deliveryId)
+                gateway.remind(recipient.slackUserId, message, deliveryId)
             } catch (e: MembershipDeliveryException) {
                 store.finish(
                     deliveryId,

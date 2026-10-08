@@ -14,13 +14,13 @@ class EventReminderJob(
 ) {
     private val logger = LoggerFactory.getLogger(EventReminderJob::class.java)
 
-    fun send(eventId: String, expectedVersion: String, actor: String): SyncTriggerResult =
+    fun send(eventId: String, expectedVersion: String, message: String, actor: String): SyncTriggerResult =
         trigger.triggerValidated(
             1_009L, "sendEventReminders", actor,
-            { service.validate(eventId, expectedVersion) },
+            { service.validate(eventId, expectedVersion, message) },
         ) { run ->
             try {
-                val result = service.send(eventId, expectedVersion)
+                val result = service.send(eventId, expectedVersion, message)
                 audit.recordRun(
                     "EVENT_REMINDERS_COMPLETED",
                     if (result.failed + result.uncertain + result.skipped == 0) AuditOutcome.SUCCEEDED else AuditOutcome.PARTIAL,

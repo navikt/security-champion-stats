@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
-data class SendEventRemindersRequest(val expectedVersion: String, val confirmed: Boolean = false)
+data class SendEventRemindersRequest(val expectedVersion: String, val message: String, val confirmed: Boolean = false)
 
 @RestController
 @RequestMapping("/api/admin/events/{eventId}/reminders")
@@ -28,7 +28,7 @@ class AdminEventReminderController(
             throw ApiRequestException(HttpStatus.BAD_REQUEST, "Confirmation required", "Preview and confirm the reminder recipients")
         }
         val actor = (requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal).email
-        return when (job.send(eventId, request.expectedVersion, actor)) {
+        return when (job.send(eventId, request.expectedVersion, request.message, actor)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
             SyncTriggerResult.ALREADY_RUNNING -> throw ApiRequestException(
                 HttpStatus.CONFLICT, "Reminders already running", "Wait for the reminder batch to finish before sending again",

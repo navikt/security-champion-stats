@@ -42,7 +42,7 @@ describe("Event reminder proxy", () => {
 		);
 	});
 
-	it.each([202, 409, 503])(
+	it.each([202, 400, 409, 503])(
 		"preserves reminder status %i and the reviewed confirmation body",
 		async (status) => {
 			const body =
@@ -64,6 +64,7 @@ describe("Event reminder proxy", () => {
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
 						expectedVersion: "reviewed",
+						message: "Edited reminder\nSign up!",
 						confirmed: true,
 					}),
 				},
@@ -82,6 +83,7 @@ describe("Event reminder proxy", () => {
 					method: "POST",
 					body: JSON.stringify({
 						expectedVersion: "reviewed",
+						message: "Edited reminder\nSign up!",
 						confirmed: true,
 					}),
 				}),

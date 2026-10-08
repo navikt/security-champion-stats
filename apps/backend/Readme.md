@@ -141,7 +141,9 @@ unavailable status without hiding the event catalog. Failed lookups are also cac
 coalesce concurrent requests during outages; unavailable results have no successful-check timestamp.
 Non-Delta events have no signup status.
 Administrators preview manual Slack DMs at `GET /api/admin/events/{eventId}/reminders`, then submit
-`POST` with `expectedVersion` and `confirmed=true`. Delta-linked playbook entries are also supported.
+`POST` with `expectedVersion`, an editable `message` (nonblank, at most 4000 characters), and
+`confirmed=true`. The supplied message is sent unchanged; changing it does not reset event/participant
+delivery tracking. Delta-linked playbook entries are also supported.
 The backend rechecks the event, Delta roster, active participants, Slack identities and delivery state before
 queueing and before sending. Started events and unavailable rosters block sending. Registered participants
 and hosts are excluded; unresolved Slack identities are listed but skipped.

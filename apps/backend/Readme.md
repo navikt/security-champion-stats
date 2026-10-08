@@ -12,6 +12,18 @@ active status. Participants can leave voluntarily (`LEFT`) and self-rejoin witho
 administrator deactivation cannot be reversed by self-enrollment. Activity credits require active participation
 when the sync awards them. The scheduled Teamkatalogen sync refreshes profiles for existing participants without
 creating, deactivating, or restoring participation.
+Successful enrollment and voluntary rejoining queue a background `users.lookupByEmail` request using the
+participant's verified email. Eligible human, non-guest Slack accounts are persisted in the shared identity
+mapping table for scoring, membership and reminders. Existing mappings, including administrator mappings,
+are never overwritten; Slack failures never roll back enrollment.
+Unmapped active participants are backfilled and retried every six hours at minute 15 in Europe/Oslo
+(`slack.identity.cron`; `-` disables the scheduled retry). Missing/deactivated accounts and conflicts remain
+unresolved, with lookup outcomes in the audit trail. Enrollment and backfill share a cross-instance lock;
+busy workers defer the lookup to reconciliation. Lookup requests are serialized and paced at 1.3 seconds
+per attempt, below Slack's Tier 3 baseline, and HTTP 429 retries honor the full `Retry-After`.
+The lookup needs the existing `users:read.email` scope. Bulk membership/reminder reconciliation retains its
+paginated `users.list` snapshot to revalidate saved accounts and detect conflicts efficiently. Reminders still
+send through `chat.postMessage` with `chat:write`; no explicit `conversations.open` call is needed.
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.

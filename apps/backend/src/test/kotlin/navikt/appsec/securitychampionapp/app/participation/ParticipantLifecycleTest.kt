@@ -8,15 +8,19 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.mockito.kotlin.verifyNoInteractions
+import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 class ParticipantLifecycleTest {
     private val participants: ParticipantStore = mock()
     private val auditService: ProgramAuditService = mock()
+    private val events: ApplicationEventPublisher = mock()
     private val lifecycle = ParticipantLifecycle(
         participants = participants,
         profiles = ParticipantProfileSource { _, _ -> ParticipantProfileLookup.Unavailable },
         auditService = auditService,
+        events = events,
     )
 
     @Test
@@ -44,6 +48,29 @@ class ParticipantLifecycleTest {
             "person@nav.no",
             details = mapOf("status" to "ACTIVE"),
         )
+        verify(events).publishEvent(ParticipantEnrolledEvent(participantId))
+    }
+
+    @Test
+    fun `rejoining publishes identity lookup only after the membership update succeeds`() {
+        val id = UUID.randomUUID()
+        whenever(participants.findByNavNoEmail("person@nav.no")).thenReturn(participant(id).copy(status = ParticipationStatus.LEFT))
+        whenever(participants.rejoin("person@nav.no")).thenReturn(1)
+        assertEquals(EnrollmentOutcome.REJOINED, lifecycle.enroll("person@nav.no", "A12345", "person@nav.no"))
+        verify(events).publishEvent(ParticipantEnrolledEvent(id))
+    }
+
+    @Test
+    fun `failed rejoin existing membership and deactivation do not queue Slack work`() {
+        val id = UUID.randomUUID()
+        whenever(participants.findByNavNoEmail("person@nav.no"))
+            .thenReturn(participant(id).copy(status = ParticipationStatus.LEFT), participant(id),
+                participant(id).copy(status = ParticipationStatus.DEACTIVATED))
+        whenever(participants.rejoin("person@nav.no")).thenReturn(0)
+        assertEquals(EnrollmentOutcome.CONFLICT, lifecycle.enroll("person@nav.no", "A12345", "person@nav.no"))
+        assertEquals(EnrollmentOutcome.ALREADY_ENROLLED, lifecycle.enroll("person@nav.no", "A12345", "person@nav.no"))
+        assertEquals(EnrollmentOutcome.DEACTIVATED, lifecycle.enroll("person@nav.no", "A12345", "person@nav.no"))
+        verifyNoInteractions(events)
     }
 
     private fun participant(id: UUID) =

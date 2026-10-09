@@ -160,6 +160,7 @@ data class DeltaEventRegistrations(
     val eventUuid: UUID,
     val startTime: LocalDateTime,
     val participantEmails: Set<String>,
+    val title: String? = null,
 )
 
 enum class DeltaFailure(val summary: String) {
@@ -213,6 +214,7 @@ private data class DeltaFullEventResponse(
     fun toRegistrations() = DeltaEventRegistrations(
         eventUuid = event.id,
         startTime = parseTime(event.startTime),
+        title = event.title?.trim()?.takeIf(String::isNotEmpty),
         participantEmails = (participants.orEmpty() + hosts)
             .mapNotNull { it.email?.trim()?.takeIf(String::isNotEmpty) }
             .toSet(),

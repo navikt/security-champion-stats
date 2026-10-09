@@ -103,6 +103,21 @@ class GitHubApiClientTest {
     }
 
     @Test
+    fun `should retain a resolvable contribution reference when its description is empty or absent`() {
+        routes["/repos/navikt/security-playbook/pulls"] = "[${pr(42).replace("\"title\":\"Improve security guidance\",", "")}]"
+        routes["/repos/navikt/security-playbook/commits"] =
+            "[${commit(sha).replace("\"message\":\"Clarify threat modeling\\n\\nMore details\"", "\"message\":\"\"")}]"
+
+        val result = client.contributions(now.minusSeconds(3600), now)
+
+        assertThat(result).hasSize(2)
+        assertThat(result.first().title).isEqualTo("navikt/security-playbook #42")
+        assertThat(result.first().url).isEqualTo("https://github.com/navikt/security-playbook/pull/42")
+        assertThat(result.last().title).isEqualTo("navikt/security-playbook aaaaaaa")
+        assertThat(result.last().url).isEqualTo("https://github.com/navikt/security-playbook/commit/$sha")
+    }
+
+    @Test
     fun `should batch association lookups for a hundred commits without per commit REST requests`() {
         routes["/repos/navikt/security-playbook/commits"] =
             (1..100).joinToString(",", "[", "]") { commit(it.toString(16).padStart(40, '0')) }
@@ -294,6 +309,10 @@ class GitHubApiClientTest {
         assertThat(standalone.map { it.type })
             .containsExactly(ActivityCreditType.GITHUB_PULL_REQUEST, ActivityCreditType.GITHUB_COMMIT)
         assertThat(standalone.last().occurredAt).isEqualTo(Instant.parse("2026-10-06T11:30:00Z"))
+        assertThat(standalone.first().title).isEqualTo("navikt/security-playbook #1: Improve security guidance")
+        assertThat(standalone.first().url).isEqualTo("https://github.com/navikt/security-playbook/pull/1")
+        assertThat(standalone.last().title).isEqualTo("navikt/security-playbook aaaaaaa: Clarify threat modeling")
+        assertThat(standalone.last().url).isEqualTo("https://github.com/navikt/security-playbook/commit/$sha")
 
         routes["/repos/navikt/security-playbook/commits/$sha/pulls"] = """[${pr(1)}]"""
         assertThat(client.contributions(windowStart, now).map { it.type })
@@ -371,11 +390,11 @@ class GitHubApiClientTest {
     }
 
     private fun pr(number: Int, type: String = "User") =
-        """{"number":$number,"merged_at":"2026-10-06T11:30:00Z","user":${user(type)},"base":{"ref":"main"}}"""
+        """{"number":$number,"title":"Improve security guidance","merged_at":"2026-10-06T11:30:00Z","user":${user(type)},"base":{"ref":"main"}}"""
 
     private fun commit(sha: String, type: String = "User") =
         """{"sha":"$sha","author":${user(type)},"committer":${user()},
-            "commit":{"committer":{"date":"2026-10-06T11:30:00Z"}}}"""
+            "commit":{"message":"Clarify threat modeling\n\nMore details","committer":{"date":"2026-10-06T11:30:00Z"}}}"""
 
     private fun identities(
         nodes: String = """{"user":{"databaseId":10,"login":"person"},"samlIdentity":{"nameId":"person@nav.no"}}""",

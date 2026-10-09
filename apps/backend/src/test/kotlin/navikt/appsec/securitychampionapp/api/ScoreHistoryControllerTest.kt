@@ -83,6 +83,8 @@ class ScoreHistoryControllerTest {
                     membershipStatusAfter = null,
                     membershipReason = null,
                     tieIndex = 1,
+                    sourceUrl = "https://github.com/navikt/security-playbook/commit/${"a".repeat(40)}",
+                    sourceOccurredAt = Instant.parse("2026-10-01T09:00:00Z"),
                 ),
             ),
         )
@@ -93,7 +95,10 @@ class ScoreHistoryControllerTest {
             .andExpect(jsonPath("$.entries[0].occurredAt").value("2026-10-01T09:00:00Z"))
             .andExpect(jsonPath("$.entries[0].points").value(2))
             .andExpect(jsonPath("$.entries[0].id").doesNotExist())
-            .andExpect(jsonPath("$.entries[0].recordedAt").doesNotExist())
+            .andExpect(jsonPath("$.entries[0].recordedAt").value("2026-10-01T10:00:00Z"))
+            .andExpect(jsonPath("$.entries[0].displayName").value("Example contribution"))
+            .andExpect(jsonPath("$.entries[0].sourceOccurredAt").value("2026-10-01T09:00:00Z"))
+            .andExpect(jsonPath("$.entries[0].sourceUrl").value("https://github.com/navikt/security-playbook/commit/${"a".repeat(40)}"))
             .andExpect(jsonPath("$.entries[0].sourceRef").doesNotExist())
             .andExpect(jsonPath("$.entries[0].sourceReference").doesNotExist())
             .andExpect(jsonPath("$.entries[0].creditId").doesNotExist())

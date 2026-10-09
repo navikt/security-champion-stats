@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCredit
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.CreditSourceContext
 import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntry
 import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntryType
 import navikt.appsec.securitychampionapp.app.scoring.ScoreHistorySeason
@@ -329,7 +330,8 @@ class PostgresScoringLedger(
                 SELECT credit.id, 'CREDIT' AS type, credit.awarded_at AS recorded_at, credit.activity_at,
                     credit.season_id, season.starts_on, season.ends_on, credit.points,
                     credit.credit_type, credit.source_reference, NULL::uuid AS source_credit_id,
-                    NULL::text AS reason, NULL::text AS actor_nav_no_email, credit.revoked_at
+                    NULL::text AS reason, NULL::text AS actor_nav_no_email, credit.revoked_at,
+                    credit.source_name, credit.source_url, credit.source_occurred_at
                 FROM activity_credits AS credit
                 JOIN program_seasons AS season ON season.id = credit.season_id
                 WHERE credit.participant_id = ?
@@ -340,7 +342,8 @@ class PostgresScoringLedger(
                     adjustment.created_at, NULL::timestamptz,
                     adjustment.season_id, season.starts_on, season.ends_on, adjustment.points_delta,
                     credit.credit_type, credit.source_reference, adjustment.source_credit_id,
-                    adjustment.reason, adjustment.actor_nav_no_email, NULL::timestamptz
+                    adjustment.reason, adjustment.actor_nav_no_email, NULL::timestamptz,
+                    credit.source_name, credit.source_url, credit.source_occurred_at
                 FROM point_adjustments AS adjustment
                 JOIN program_seasons AS season ON season.id = adjustment.season_id
                 LEFT JOIN activity_credits AS credit ON credit.id = adjustment.source_credit_id
@@ -363,6 +366,9 @@ class PostgresScoringLedger(
                     reason = rs.getString("reason"),
                     actorNavNoEmail = rs.getString("actor_nav_no_email"),
                     revokedAt = rs.getTimestamp("revoked_at")?.toInstant(),
+                    displayName = rs.getString("source_name"),
+                    sourceUrl = rs.getString("source_url"),
+                    sourceOccurredAt = rs.getTimestamp("source_occurred_at")?.toInstant(),
                 )
             },
             participantId,
@@ -381,11 +387,12 @@ class PostgresScoringLedger(
                 WITH history AS (
                     SELECT credit.id::text AS id, 'CREDIT' AS type, credit.awarded_at AS recorded_at,
                         credit.activity_at, credit.season_id, credit.credit_type, credit.points,
-                        NULL::text AS display_name, credit.source_reference,
+                        credit.source_name AS display_name, credit.source_reference,
                         credit.id::text AS credit_id, NULL::text AS linked_credit_id,
                         NULL::text AS reason, NULL::text AS admin_name, credit.revoked_at,
                         NULL::text AS membership_action, NULL::text AS membership_status_before,
-                        NULL::text AS membership_status_after, NULL::text AS membership_reason
+                        NULL::text AS membership_status_after, NULL::text AS membership_reason,
+                        credit.source_url, credit.source_occurred_at
                     FROM activity_credits AS credit
                     WHERE credit.participant_id = ?
                     UNION ALL
@@ -393,10 +400,11 @@ class PostgresScoringLedger(
                         CASE WHEN adjustment.scoring_configuration_version IS NULL
                             THEN 'ADJUSTMENT' ELSE 'SCORING_RULE_CHANGE' END,
                         adjustment.created_at, NULL::timestamptz, adjustment.season_id,
-                        credit.credit_type, adjustment.points_delta, NULL::text,
+                        credit.credit_type, adjustment.points_delta, credit.source_name,
                         credit.source_reference, NULL::text, adjustment.source_credit_id::text,
                         adjustment.reason, adjustment.actor_nav_no_email, NULL::timestamptz,
-                        NULL::text, NULL::text, NULL::text, NULL::text
+                        NULL::text, NULL::text, NULL::text, NULL::text,
+                        credit.source_url, credit.source_occurred_at
                     FROM point_adjustments AS adjustment
                     LEFT JOIN activity_credits AS credit ON credit.id = adjustment.source_credit_id
                     WHERE adjustment.participant_id = ?
@@ -410,7 +418,7 @@ class PostgresScoringLedger(
                             WHEN 'PARTICIPANT_REJOINED' THEN 'rejoined'
                             ELSE 'left'
                         END,
-                        NULL::text, NULL::text, NULL::text
+                        NULL::text, NULL::text, NULL::text, NULL::text, NULL::timestamptz
                     FROM program_audit_events AS event
                     LEFT JOIN LATERAL (
                         SELECT season.id
@@ -432,7 +440,7 @@ class PostgresScoringLedger(
                         NULL::text, NULL::text, NULL::text, NULL::text, NULL::text, NULL::text,
                         NULL::timestamptz, 'status_changed',
                         event.before_values ->> 'status', event.after_values ->> 'status',
-                        event.after_values ->> 'reason'
+                        event.after_values ->> 'reason', NULL::text, NULL::timestamptz
                     FROM program_participant_audit AS event
                     LEFT JOIN LATERAL (
                         SELECT season.id
@@ -494,6 +502,8 @@ class PostgresScoringLedger(
                     membershipStatusAfter = rs.getString("membership_status_after"),
                     membershipReason = rs.getString("membership_reason"),
                     tieIndex = rs.getLong("tie_index"),
+                    sourceUrl = rs.getString("source_url"),
+                    sourceOccurredAt = rs.getTimestamp("source_occurred_at")?.toInstant(),
                 )
             },
             participantId,
@@ -519,6 +529,28 @@ class PostgresScoringLedger(
             { rs, _ -> rs.getObject("id", UUID::class.java) },
             participantId,
         ).isNotEmpty()
+
+    override fun updateCreditSource(
+        creditType: ActivityCreditType,
+        sourceReference: String,
+        source: CreditSourceContext,
+    ) {
+        jdbcTemplate.update(
+            """
+                UPDATE activity_credits
+                SET source_name = COALESCE(?, source_name), source_url = COALESCE(?, source_url),
+                    source_occurred_at = COALESCE(?::timestamptz, source_occurred_at)
+                WHERE credit_type = ? AND source_reference = ?
+                    AND (
+                        source_name IS DISTINCT FROM COALESCE(?, source_name)
+                        OR source_url IS DISTINCT FROM COALESCE(?, source_url)
+                        OR source_occurred_at IS DISTINCT FROM COALESCE(?::timestamptz, source_occurred_at)
+                    )
+            """.trimIndent(),
+            source.name, source.url, source.occurredAt?.let(Timestamp::from), creditType.name, sourceReference,
+            source.name, source.url, source.occurredAt?.let(Timestamp::from),
+        )
+    }
 
     @Transactional
     override fun awardCredit(

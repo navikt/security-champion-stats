@@ -97,6 +97,8 @@ class GitHubApiClient(
                     ActivityCreditType.GITHUB_PULL_REQUEST,
                     "navikt/security-playbook:pr:${positiveId(pr.path("number"))}",
                     mergedAt,
+                    contributionName("navikt/security-playbook #${positiveId(pr.path("number"))}", pr.path("title")),
+                    "https://github.com/navikt/security-playbook/pull/${positiveId(pr.path("number"))}",
                 )
             }
         }
@@ -124,10 +126,18 @@ class GitHubApiClient(
                     ActivityCreditType.GITHUB_COMMIT,
                     "navikt/security-playbook:commit:${sha.lowercase()}",
                     at,
+                    contributionName("navikt/security-playbook ${sha.take(7)}", commit.path("commit").path("message")),
+                    "https://github.com/navikt/security-playbook/commit/${sha.lowercase()}",
                 )
             }
         }
         return contributions.distinctBy { it.key }
+    }
+
+    private fun contributionName(reference: String, description: JsonNode): String {
+        val subject = description.takeIf { it.isString }?.asString()
+            ?.lineSequence()?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }
+        return if (subject == null) reference else "$reference: $subject"
     }
 
     private fun mergedPrCommits(shas: List<String>, branch: String): Set<String> {

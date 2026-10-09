@@ -138,6 +138,9 @@ export type ScoringHistoryEntry = {
 	reason: string | null;
 	actorNavNoEmail: string | null;
 	revokedAt: string | null;
+	displayName?: string | null;
+	sourceUrl?: string | null;
+	sourceOccurredAt?: string | null;
 };
 export type ParticipantScoringSeason = {
 	id: string;
@@ -184,6 +187,9 @@ export type ParticipantScoreHistoryEntry = {
 	action: "joined" | "left" | "rejoined" | "status_changed" | null;
 	membershipStatusBefore: string | null;
 	membershipStatusAfter: string | null;
+	recordedAt?: string;
+	sourceUrl?: string | null;
+	sourceOccurredAt?: string | null;
 };
 export type AdminScoreHistoryEntry = {
 	id: string;
@@ -205,6 +211,8 @@ export type AdminScoreHistoryEntry = {
 	membershipStatusAfter: string | null;
 	membershipReason: string | null;
 	ruleChange: boolean;
+	sourceUrl?: string | null;
+	sourceOccurredAt?: string | null;
 };
 export type ScoreHistoryPage<T> = {
 	entries: T[];

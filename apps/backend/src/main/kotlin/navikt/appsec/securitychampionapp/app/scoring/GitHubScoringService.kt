@@ -32,6 +32,10 @@ class GitHubScoringService(
         var duplicates = 0
         contributions.forEach { contribution ->
             if (contribution.occurredAt.isBefore(startsAt) || contribution.occurredAt.isAfter(now)) return@forEach
+            repository.updateCreditSource(
+                contribution.type, contribution.key,
+                CreditSourceContext(contribution.title, contribution.url, contribution.occurredAt),
+            )
             val participant = participants[contribution.accountId]
             if (participant == null) {
                 unmapped += contribution.accountId
@@ -47,6 +51,7 @@ class GitHubScoringService(
                     auditCorrelationId = correlationId,
                     activityAt = contribution.occurredAt,
                     expectedSeasonId = season.id,
+                    source = CreditSourceContext(contribution.title, contribution.url, contribution.occurredAt),
                 )
             ) {
                 CreditAwardResult.AWARDED -> awarded++

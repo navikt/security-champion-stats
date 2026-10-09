@@ -247,6 +247,8 @@ class ScoringService(
                         membershipStatusAfter = record.membershipStatusAfter,
                         membershipReason = record.membershipReason,
                         ruleChange = record.type == "SCORING_RULE_CHANGE",
+                        sourceUrl = record.sourceUrl,
+                        sourceOccurredAt = record.sourceOccurredAt,
                     )
                 },
                 nextCursor = nextCursor,
@@ -267,11 +269,19 @@ class ScoringService(
                         action = record.membershipAction,
                         membershipStatusBefore = record.membershipStatusBefore,
                         membershipStatusAfter = record.membershipStatusAfter,
+                        recordedAt = record.recordedAt,
+                        sourceUrl = record.sourceUrl,
+                        sourceOccurredAt = record.sourceOccurredAt,
                     )
                 },
                 nextCursor = nextCursor,
             )
         }
+    }
+
+    @Transactional
+    fun enrichCreditSource(creditType: ActivityCreditType, sourceReference: String, source: CreditSourceContext) {
+        repository.updateCreditSource(creditType, sourceReference, source)
     }
 
     @Transactional
@@ -281,6 +291,7 @@ class ScoringService(
         uniquenessKey: String,
         sourceReference: String,
         auditCorrelationId: UUID? = null,
+        source: CreditSourceContext? = null,
     ): CreditAwardResult {
         if (uniquenessKey.isBlank() || sourceReference.isBlank()) {
             throw InvalidScoringRequestException("A source reference and uniqueness key are required")
@@ -292,7 +303,8 @@ class ScoringService(
             sourceReference,
             auditCorrelationId,
         )
-        recordAward(participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, result)
+        if (source != null) repository.updateCreditSource(creditType, sourceReference, source)
+        recordAward(participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, result, source)
         return result
     }
 
@@ -305,6 +317,7 @@ class ScoringService(
         auditCorrelationId: UUID?,
         activityAt: Instant,
         expectedSeasonId: UUID,
+        source: CreditSourceContext? = null,
     ): CreditAwardResult {
         if (creditType !in setOf(ActivityCreditType.GITHUB_COMMIT, ActivityCreditType.GITHUB_PULL_REQUEST) ||
             uniquenessKey.isBlank() || sourceReference.isBlank()
@@ -314,7 +327,8 @@ class ScoringService(
         val result = repository.awardGitHubCredit(
             participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, activityAt, expectedSeasonId,
         )
-        recordAward(participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, result)
+        if (source != null) repository.updateCreditSource(creditType, sourceReference, source)
+        recordAward(participantId, creditType, uniquenessKey, sourceReference, auditCorrelationId, result, source)
         return result
     }
 
@@ -325,6 +339,7 @@ class ScoringService(
         sourceReference: String,
         auditCorrelationId: UUID?,
         result: CreditAwardResult,
+        source: CreditSourceContext?,
     ) {
         if (result == CreditAwardResult.AWARDED && auditService != null) {
             auditService.record(
@@ -336,6 +351,9 @@ class ScoringService(
                     "creditType" to creditType.name,
                     "points" to repository.creditPoints(participantId, creditType, uniquenessKey),
                     "sourceReference" to sourceReference,
+                    "sourceName" to source?.name,
+                    "sourceUrl" to source?.url,
+                    "sourceOccurredAt" to source?.occurredAt?.toString(),
                 ),
             )
         }
@@ -366,6 +384,7 @@ class ScoringService(
             details = mapOf(
                 "pointsDelta" to pointsDelta,
                 "reason" to reason.trim(),
+                "sourceCreditId" to sourceCreditId?.toString(),
             ),
         )
         return adjustment

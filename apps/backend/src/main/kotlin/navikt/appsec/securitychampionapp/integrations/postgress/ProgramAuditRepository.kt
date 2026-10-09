@@ -18,6 +18,32 @@ class ProgramAuditRepository(
     private val jdbcTemplate: JdbcTemplate,
     private val objectMapper: ObjectMapper,
 ) {
+    private val auditSourceJoin = """
+        LEFT JOIN LATERAL (
+            SELECT credit.source_name, credit.source_url, credit.source_occurred_at
+            FROM activity_credits AS credit
+            WHERE credit.participant_id = event.target_participant_id
+                AND (
+                    credit.id::text = event.details ->> 'creditId'
+                    OR credit.id::text = event.details ->> 'sourceCreditId'
+                    OR (
+                        credit.source_reference = event.details ->> 'sourceReference'
+                        AND credit.credit_type = event.details ->> 'creditType'
+                    )
+                )
+            ORDER BY credit.awarded_at DESC, credit.id DESC
+            LIMIT 1
+        ) AS source ON TRUE
+        LEFT JOIN event_contribution_claims AS claim ON claim.id::text = event.details ->> 'claimId'
+    """.trimIndent()
+    private val enrichedDetails = """
+        jsonb_strip_nulls(jsonb_build_object(
+            'sourceName', COALESCE(source.source_name, claim.name),
+            'sourceUrl', COALESCE(source.source_url, claim.links ->> 0),
+            'sourceOccurredAt', COALESCE(source.source_occurred_at, claim.start_date)
+        )) || jsonb_strip_nulls(event.details)
+    """.trimIndent()
+
     private val entryMapper = RowMapper { rs, _ ->
         val detailValues = objectMapper.readValue(rs.getString("details"), Map::class.java)
         ProgramAuditEntry(
@@ -67,12 +93,13 @@ class ProgramAuditRepository(
         val total = jdbcTemplate.queryForObject(
             """
                 SELECT COUNT(*)
-                FROM program_audit_events
+                FROM program_audit_events AS event
+                $auditSourceJoin
                 WHERE (CAST(? AS text) IS NULL OR (
                     action ILIKE ? ESCAPE '\'
                     OR outcome ILIKE ? ESCAPE '\'
                     OR COALESCE(actor_nav_no_email, '') ILIKE ? ESCAPE '\'
-                    OR details::text ILIKE ? ESCAPE '\'
+                    OR ($enrichedDetails)::text ILIKE ? ESCAPE '\'
                     OR COALESCE(correlation_id::text, '') ILIKE ? ESCAPE '\'
                     OR COALESCE(target_participant_id::text, '') ILIKE ? ESCAPE '\'
                 ))
@@ -100,15 +127,16 @@ class ProgramAuditRepository(
             """
                 SELECT event.id, event.created_at, event.action, event.outcome, event.actor_nav_no_email,
                     event.target_participant_id, participant.fullname AS target_participant_name,
-                    event.correlation_id, event.details
+                    event.correlation_id, ($enrichedDetails) AS details
                 FROM program_audit_events AS event
+                $auditSourceJoin
                 LEFT JOIN program_participants AS participant
                     ON participant.id = event.target_participant_id
                 WHERE (CAST(? AS text) IS NULL OR (
                     event.action ILIKE ? ESCAPE '\'
                     OR event.outcome ILIKE ? ESCAPE '\'
                     OR COALESCE(event.actor_nav_no_email, '') ILIKE ? ESCAPE '\'
-                    OR event.details::text ILIKE ? ESCAPE '\'
+                    OR ($enrichedDetails)::text ILIKE ? ESCAPE '\'
                     OR COALESCE(event.correlation_id::text, '') ILIKE ? ESCAPE '\'
                     OR COALESCE(event.target_participant_id::text, '') ILIKE ? ESCAPE '\'
                 ))

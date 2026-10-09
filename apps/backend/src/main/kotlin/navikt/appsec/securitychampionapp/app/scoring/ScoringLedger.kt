@@ -40,6 +40,8 @@ interface ScoringLedger {
 
     fun participantExists(participantId: UUID): Boolean
 
+    fun updateCreditSource(creditType: ActivityCreditType, sourceReference: String, source: CreditSourceContext)
+
     fun awardCredit(
         participantId: UUID,
         creditType: ActivityCreditType,

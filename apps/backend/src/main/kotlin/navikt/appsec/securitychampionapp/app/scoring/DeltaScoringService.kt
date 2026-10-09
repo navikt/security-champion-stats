@@ -98,6 +98,12 @@ class DeltaScoringService(
         var unmatchedRegistrations = 0
 
         eligibleEvents.forEach { event ->
+            val source = CreditSourceContext(
+                name = event.title,
+                url = "https://delta.nav.no/event/${event.eventUuid}",
+                occurredAt = event.startTime.atZone(DELTA_SCORING_ZONE).toInstant(),
+            )
+            scoringService.enrichCreditSource(ActivityCreditType.DELTA_REGISTRATION, event.eventUuid.toString(), source)
             event.participantEmails.map { it.normalizeEmail() }.toSet().forEach emailLoop@{ email ->
                 val participants = participantsByEmail[email] ?: return@emailLoop
                 val participant = participants.singleOrNull()
@@ -112,6 +118,7 @@ class DeltaScoringService(
                         uniquenessKey = event.eventUuid.toString(),
                         sourceReference = event.eventUuid.toString(),
                         auditCorrelationId = auditCorrelationId,
+                        source = source,
                     )
                 ) {
                     CreditAwardResult.AWARDED -> creditsAwarded++

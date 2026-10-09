@@ -14,6 +14,7 @@ import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationService
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
 import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.app.scoring.CreditSourceContext
 import navikt.appsec.securitychampionapp.app.scoring.PointAdjustment
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncSummary
@@ -158,6 +159,118 @@ class PostgresScoringLedgerTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @Test
+    fun `should use the source enrichment index to locate matching credits`() {
+        val participantId = createParticipant("indexed-source@nav.no")
+        val seasonId = repository.currentSeason().id
+        jdbcTemplate.update(
+            """
+                INSERT INTO activity_credits (
+                    participant_id, season_id, credit_type, uniqueness_key, source_reference, points
+                )
+                SELECT ?, ?, 'DELTA_REGISTRATION', 'source:' || number, 'source:' || number, 1
+                FROM generate_series(1, 5000) AS number
+            """.trimIndent(),
+            participantId, seasonId,
+        )
+        jdbcTemplate.execute("ANALYZE activity_credits")
+
+        val plan = jdbcTemplate.query(
+            """
+                EXPLAIN UPDATE activity_credits SET source_name = 'Security workshop'
+                WHERE credit_type = 'DELTA_REGISTRATION' AND source_reference = 'source:42'
+            """.trimIndent(),
+            { rs, _ -> rs.getString(1) },
+        ).joinToString("\n")
+
+        assertThat(plan).contains("activity_credits_source_enrichment_idx")
+            .contains("Index Cond:").contains("source_reference").contains("credit_type")
+    }
+
+    @Test
+    fun `should enrich existing source context across seasons without changing credits or corrections`() {
+        val participantId = createParticipant("source-history@nav.no")
+        val originalSeason = repository.currentSeason()
+        val reference = UUID.randomUUID().toString()
+        repository.awardCredit(participantId, ActivityCreditType.DELTA_REGISTRATION, reference, reference)
+        val original = repository.scoringHistoryForParticipant(participantId).single()
+        repository.addAdjustment(participantId, -1, "Correction", "admin@nav.no", original.id)
+        repository.resetManually(originalSeason.startsOn.plusDays(1), "New season", "admin@nav.no")
+        val source = CreditSourceContext(
+            "Security workshop", "https://delta.nav.no/event/$reference", original.recordedAt.minusSeconds(86400),
+        )
+
+        repository.updateCreditSource(ActivityCreditType.DELTA_REGISTRATION, reference, source)
+        repository.updateCreditSource(ActivityCreditType.DELTA_REGISTRATION, reference, source.copy(name = null))
+
+        val entries = repository.scoreHistoryPage(participantId, null, "all", null, 25)
+        assertThat(entries).hasSize(2)
+        assertThat(entries).allSatisfy {
+            assertThat(it.displayName).isEqualTo(source.name)
+            assertThat(it.sourceUrl).isEqualTo(source.url)
+            assertThat(it.sourceOccurredAt).isEqualTo(source.occurredAt)
+            assertThat(it.seasonId).isEqualTo(originalSeason.id)
+        }
+        val credit = entries.single { it.type == "CREDIT" }
+        assertThat(credit.recordedAt).isEqualTo(original.recordedAt)
+        assertThat(credit.activityAt).isEqualTo(original.activityAt)
+        assertThat(credit.points).isEqualTo(original.points)
+        assertThat(repository.scoringHistoryForParticipant(participantId)).allSatisfy {
+            assertThat(it.displayName).isEqualTo(source.name)
+            assertThat(it.sourceUrl).isEqualTo(source.url)
+        }
+        assertThat(repository.scoreForParticipant(participantId, originalSeason.id)).isZero()
+        assertThat(repository.scoreForParticipant(participantId, repository.currentSeason().id)).isZero()
+    }
+
+    @Test
+    fun `should backfill event claims Delta mappings and resolvable GitHub sources during migration`() {
+        flyway.clean()
+        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("32.0").load().migrate()
+        val participantId = createParticipant("migration-history@nav.no")
+        val season = repository.currentSeason()
+        val claimId = UUID.randomUUID()
+        val deltaId = UUID.randomUUID()
+        val eventAt = season.startsOn.atTime(12, 0).atZone(ZoneId.of("Europe/Oslo")).toInstant()
+        jdbcTemplate.update(
+            """
+                INSERT INTO event_contribution_claims (
+                    id, submitter_id, season_id, name, description, start_date, end_date,
+                    location, event_type, external_event, links, invitation_evidence
+                ) VALUES (?, ?, ?, 'Security meetup', 'Security content', ?, ?, 'Oslo', 'MEETUP',
+                    FALSE, '["https://example.org/meetup"]', 'Invited in advance')
+            """.trimIndent(),
+            claimId, participantId, season.id, Timestamp.from(eventAt), Timestamp.from(eventAt.plusSeconds(3600)),
+        )
+        jdbcTemplate.update(
+            """INSERT INTO program_delta_event_mappings
+                (program_event_name, delta_event_uuid, created_by_nav_no_email)
+                VALUES ('Delta workshop', ?, 'admin@nav.no')""",
+            deltaId,
+        )
+        insertCredit(participantId, season.id, "SECURITY_EVENT_CONTRIBUTION", "event-claim:$claimId", 5, season.startsOn)
+        insertCredit(participantId, season.id, "DELTA_REGISTRATION", deltaId.toString(), 1, season.startsOn)
+        insertCredit(participantId, season.id, "GITHUB_PULL_REQUEST", "navikt/security-playbook:pr:42", 3, season.startsOn)
+        insertCredit(participantId, season.id, "GITHUB_COMMIT", "navikt/security-playbook:commit:${"a".repeat(40)}", 1, season.startsOn)
+
+        flyway.migrate()
+
+        val history = repository.scoreHistoryPage(participantId, null, "credit", null, 25)
+        val claim = history.single { it.creditType == ActivityCreditType.SECURITY_EVENT_CONTRIBUTION }
+        assertThat(claim.displayName).isEqualTo("Security meetup")
+        assertThat(claim.sourceOccurredAt).isEqualTo(eventAt)
+        assertThat(claim.sourceUrl).isEqualTo("https://example.org/meetup")
+        val delta = history.single { it.creditType == ActivityCreditType.DELTA_REGISTRATION }
+        assertThat(delta.displayName).isEqualTo("Delta workshop")
+        assertThat(delta.sourceUrl).isEqualTo("https://delta.nav.no/event/$deltaId")
+        assertThat(delta.sourceOccurredAt).isNull()
+        assertThat(history.single { it.creditType == ActivityCreditType.GITHUB_PULL_REQUEST }.sourceUrl)
+            .isEqualTo("https://github.com/navikt/security-playbook/pull/42")
+        assertThat(history.single { it.creditType == ActivityCreditType.GITHUB_COMMIT }.displayName)
+            .isEqualTo("navikt/security-playbook commit aaaaaaa")
+        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(10)
     }
 
     @Test

@@ -12,6 +12,7 @@ import {
 } from "@navikt/ds-react";
 import { Apies } from "@/app/shared/hooks/Apies";
 import type { AuditCategory, AuditResponse } from "@/app/utils/Variables";
+import { CreditSource, hasCreditSource } from "./CreditSource";
 
 const FILTERS: { value: AuditCategory; label: string }[] = [
 	{ value: "all", label: "All" },
@@ -61,11 +62,12 @@ function numericValue(value: string): number | null {
 }
 
 function summary(details: Record<string, string>): string {
-	return Object.entries(details)
+	const metrics = Object.entries(details)
 		.filter(([, value]) => numericValue(value) !== null)
 		.slice(0, 3)
 		.map(([key, value]) => `${value} ${readable(key).toLowerCase()}`)
 		.join(" · ");
+	return [details.sourceName, metrics].filter(Boolean).join(" · ");
 }
 
 function initialQuery() {
@@ -249,7 +251,22 @@ export function AdminAuditView() {
 						<ol className="auditView__list">
 							{result.items.map((item) => {
 								const { time, date } = dateParts(item.createdAt);
-								const metrics = Object.entries(item.details);
+								const source = {
+									displayName: item.details.sourceName,
+									sourceUrl: item.details.sourceUrl,
+									sourceOccurredAt: item.details.sourceOccurredAt,
+									creditType:
+										item.details.creditType ??
+										(item.action.startsWith("EVENT_CLAIM_")
+											? "SECURITY_EVENT_CONTRIBUTION"
+											: null),
+								};
+								const metrics = Object.entries(item.details).filter(
+									([key]) =>
+										!["sourceName", "sourceUrl", "sourceOccurredAt"].includes(
+											key,
+										),
+								);
 								const hasWarning = metrics.some(
 									([key, value]) =>
 										WARNING_METRICS.has(key) && numericValue(value) !== 0,
@@ -313,6 +330,11 @@ export function AdminAuditView() {
 										</button>
 										{expanded && (
 											<div className="auditView__panel" id={panelId}>
+												{hasCreditSource(source) && (
+													<BodyShort>
+														<CreditSource {...source} />
+													</BodyShort>
+												)}
 												{metrics.length > 0 && (
 													<dl className="auditView__metrics">
 														{metrics.map(([key, value]) => {
@@ -347,9 +369,7 @@ export function AdminAuditView() {
 														{readable(item.outcome)}
 													</dd>
 													<dt>Actor</dt>
-													<dd>
-														{item.actorNavNoEmail || "System"}
-													</dd>
+													<dd>{item.actorNavNoEmail || "System"}</dd>
 													{item.correlationId && (
 														<>
 															<dt>Run ID</dt>

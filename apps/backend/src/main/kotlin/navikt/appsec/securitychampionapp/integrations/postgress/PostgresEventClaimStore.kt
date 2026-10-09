@@ -149,10 +149,12 @@ class PostgresEventClaimStore(
         val id = UUID.randomUUID()
         jdbc.update(
             """INSERT INTO activity_credits
-                (id, participant_id, season_id, credit_type, uniqueness_key, source_reference, points, activity_at)
-                SELECT ?, ?, ?, 'SECURITY_EVENT_CONTRIBUTION', ?, ?, points, ?
+                (id, participant_id, season_id, credit_type, uniqueness_key, source_reference, points, activity_at,
+                    source_name, source_url, source_occurred_at)
+                SELECT ?, ?, ?, 'SECURITY_EVENT_CONTRIBUTION', ?, ?, points, ?, ?, ?, ?
                 FROM program_activity_points WHERE credit_type = 'SECURITY_EVENT_CONTRIBUTION'""",
             id, participantId, claim.seasonId, "event-claim:${claim.id}", "event-claim:${claim.id}", Timestamp.from(claim.startDate),
+            claim.name, claim.links.first(), Timestamp.from(claim.startDate),
         )
         return id
     }

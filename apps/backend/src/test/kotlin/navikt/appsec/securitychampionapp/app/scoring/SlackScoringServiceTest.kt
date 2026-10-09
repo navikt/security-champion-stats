@@ -74,6 +74,7 @@ class SlackScoringServiceTest {
                 eq("2026-10-05"),
                 any(),
                 anyOrNull(),
+                anyOrNull(),
             )
         ).thenReturn(
             CreditAwardResult.AWARDED,
@@ -118,6 +119,7 @@ class SlackScoringServiceTest {
                 eq(ActivityCreditType.SLACK_WEEK),
                 any(),
                 any(),
+                anyOrNull(),
                 anyOrNull(),
             )
         )

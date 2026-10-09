@@ -14,11 +14,14 @@ activity types. The participant table supports name/email filtering, score histo
 adjustments, including corrections linked to an activity's season. Participant progress and leaderboards
 use the saved tiers, including in the Hacker theme, where the highest tier in a multi-tier progression
 receives top clearance.
-Use **View score history** beside a participant to inspect their current-season points,
-activity breakdown and full recorded scoring history across seasons. Filter by season and
-use **Show more** for longer histories. Entries include source references, dates in Oslo time,
-revoked credits, adjustment reasons and administrators, linked activities, and scoring-rule changes.
-This read-only ledger view includes records from before audit rollout; **Adjust points** is unchanged.
+Use **View score history** beside a participant to open the shared score-history drawer.
+Administrators can inspect season summaries and paginated entries, including source references,
+recorded and activity dates in Oslo time, revoked credits, adjustment reasons and administrators,
+linked activities, and scoring-rule changes. The drawer supports a `?history=<participant-id>` deep link;
+**Adjust points** closes it and opens the existing inline adjustment row. Participants see a separate
+privacy-safe history page with season summaries and filters; operational identifiers, source references,
+administrator identities, and adjustment reasons are not returned in their response. Both views start at
+the current season and can show records from before audit rollout.
 Activity values normally affect future credits; opt into current-season retroactive changes to append
 adjustments without rewriting original credits, manual corrections, or closed seasons. Zero-point
 activities are still recorded. If a preview becomes stale, reload configuration and preview again.

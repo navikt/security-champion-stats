@@ -8,6 +8,7 @@ import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntryType
+import navikt.appsec.securitychampionapp.app.scoring.ScoreHistoryCursor
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationRequest
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationService
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
@@ -157,6 +158,121 @@ class PostgresScoringLedgerTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @Test
+    fun `should page score history with stable cursors and include membership events`() {
+        val participantId = createParticipant("history-page@nav.no")
+        val season = repository.currentSeason()
+        repository.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "week:1", "source:1")
+        repository.awardCredit(participantId, ActivityCreditType.GITHUB_COMMIT, "commit:1", "source:2")
+        val recordedAt = Instant.parse("2026-10-09T10:00:00Z")
+        jdbcTemplate.update(
+            "UPDATE activity_credits SET awarded_at = ? WHERE participant_id = ?",
+            Timestamp.from(recordedAt),
+            participantId,
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_audit_events (created_at, action, outcome, target_participant_id)
+                VALUES (?, 'PARTICIPANT_ENROLLED', 'SUCCEEDED', ?)
+            """.trimIndent(),
+            Timestamp.from(recordedAt.minusSeconds(60)),
+            participantId,
+        )
+        jdbcTemplate.update(
+            "UPDATE program_audit_rollout SET started_at = ? WHERE singleton = TRUE",
+            Timestamp.from(recordedAt.minusSeconds(180)),
+        )
+        jdbcTemplate.update(
+            """
+                INSERT INTO program_participant_audit (
+                    participant_id, action, before_values, after_values, created_at
+                ) VALUES (
+                    ?, 'PARTICIPATION_STATUS_CHANGED',
+                    '{"status":"ACTIVE"}'::jsonb, '{"status":"DEACTIVATED"}'::jsonb, ?
+                )
+            """.trimIndent(),
+            participantId,
+            Timestamp.from(recordedAt.minusSeconds(181)),
+        )
+        listOf(
+            Triple(recordedAt.minusSeconds(45), "ACTIVE", "DEACTIVATED"),
+            Triple(recordedAt.minusSeconds(30), "ACTIVE", "DEACTIVATED"),
+            Triple(recordedAt.minusSeconds(15), "DEACTIVATED", "ACTIVE"),
+        ).forEachIndexed { index, (createdAt, before, after) ->
+            jdbcTemplate.update(
+                """
+                    INSERT INTO program_participant_audit (
+                        participant_id, actor_nav_no_email, action, before_values, after_values, created_at
+                    ) VALUES (
+                        ?, ?, 'PARTICIPATION_STATUS_CHANGED',
+                        jsonb_build_object('status', ?::text),
+                        jsonb_strip_nulls(jsonb_build_object('status', ?::text, 'reason', ?::text)),
+                        ?
+                    )
+                """.trimIndent(),
+                participantId,
+                if (index == 0) "admin@nav.no" else null,
+                before,
+                after,
+                if (index == 1) "SLACK_CHANNEL_DEPARTURE" else null,
+                Timestamp.from(createdAt),
+            )
+        }
+
+        val firstPage = repository.scoreHistoryPage(participantId, season.id, "all", null, 1)
+        val first = firstPage.single()
+        val second = repository.scoreHistoryPage(
+            participantId,
+            season.id,
+            "all",
+            ScoreHistoryCursor(first.recordedAt, first.tieIndex),
+            1,
+        ).single()
+        val membership = repository.scoreHistoryPage(participantId, season.id, "membership", null, 25)
+
+        assertThat(first.recordedAt).isEqualTo(recordedAt)
+        assertThat(second.recordedAt).isEqualTo(recordedAt)
+        assertThat(second.id).isNotEqualTo(first.id)
+        assertThat(membership).hasSize(4)
+        assertThat(membership.first().membershipAction).isEqualTo("status_changed")
+        assertThat(membership.first().membershipStatusBefore).isEqualTo("DEACTIVATED")
+        assertThat(membership.first().membershipStatusAfter).isEqualTo("ACTIVE")
+        val slackDeparture = membership.single { it.membershipReason == "SLACK_CHANNEL_DEPARTURE" }
+        assertThat(slackDeparture.membershipStatusBefore).isEqualTo("ACTIVE")
+        assertThat(slackDeparture.membershipStatusAfter).isEqualTo("DEACTIVATED")
+        assertThat(membership.single { it.membershipAction == "joined" }.seasonId).isEqualTo(season.id)
+    }
+
+    @Test
+    fun `should distinguish linked corrections from revoked credits in admin history`() {
+        val participantId = createParticipant("linked-history@nav.no")
+        val season = repository.currentSeason()
+        repository.awardCredit(participantId, ActivityCreditType.GITHUB_COMMIT, "commit:1", "source:1")
+        val creditId = repository.creditsForParticipant(participantId).single().id
+        val correction = repository.addAdjustment(
+            participantId,
+            -1,
+            "Correct linked activity",
+            "admin@nav.no",
+            creditId,
+        )
+        val revokedAt = Instant.parse("2026-10-09T10:15:00Z")
+        jdbcTemplate.update(
+            "UPDATE activity_credits SET revoked_at = ? WHERE id = ?",
+            Timestamp.from(revokedAt),
+            creditId,
+        )
+
+        val history = repository.scoreHistoryPage(participantId, season.id, "all", null, 25)
+        val adjustment = history.single { it.id == correction.id.toString() }
+        val credit = history.single { it.id == creditId.toString() }
+
+        assertThat(adjustment.linkedCreditId).isEqualTo(creditId.toString())
+        assertThat(adjustment.revokedAt).isNull()
+        assertThat(credit.linkedCreditId).isNull()
+        assertThat(credit.revokedAt).isEqualTo(revokedAt)
     }
 
     @ParameterizedTest

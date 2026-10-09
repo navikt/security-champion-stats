@@ -46,15 +46,32 @@ const configurationPreview: ScoringConfigurationPreview = {
 describe("ScoringManagementView", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
+		window.history.replaceState(null, "", "/appsec/scoring");
 	});
 
 	it("loads score history only when the participant history action is opened", async () => {
-		const getHistory = vi
-			.spyOn(Apies, "getParticipantScoringHistory")
+		const getSummary = vi
+			.spyOn(Apies, "getScoreHistorySummary")
 			.mockResolvedValue({
-				currentSeasonId: "season-1",
-				seasons: [],
+				points: 8,
+				tier: "Novice",
+				rank: 1,
+				breakdown: {
+					slack: 8,
+					deltaRegistration: 0,
+					githubCommit: 0,
+					githubPullRequest: 0,
+					securityEvent: 0,
+					adjustments: 0,
+					ruleChanges: 0,
+				},
+				seasons: [{ id: "season-1", startsOn: "2026-01-01", endsOn: null }],
+			});
+		const getHistory = vi
+			.spyOn(Apies, "getScoreHistoryPage")
+			.mockResolvedValue({
 				entries: [],
+				nextCursor: null,
 			});
 		const getCredits = vi.spyOn(Apies, "getParticipantCredits");
 		render(
@@ -75,15 +92,174 @@ describe("ScoringManagementView", () => {
 			}),
 		).toBeInTheDocument();
 		await waitFor(() =>
-			expect(getHistory).toHaveBeenCalledWith("participant-1"),
+			expect(getSummary).toHaveBeenCalledWith(
+				"admin",
+				"participant-1",
+				undefined,
+			),
+		);
+		expect(getHistory).toHaveBeenCalledWith(
+			"admin",
+			"participant-1",
+			expect.objectContaining({
+				season: "season-1",
+				type: "all",
+			}),
 		);
 		expect(getCredits).not.toHaveBeenCalled();
-		fireEvent.click(screen.getByRole("button", { name: "Close" }));
+		expect(window.location.search).toContain("history=participant-1");
+		fireEvent.click(
+			screen.getByRole("button", { name: "Close score history" }),
+		);
 		expect(
 			screen.queryByRole("dialog", {
 				name: "Score history for Example Person",
 			}),
 		).not.toBeInTheDocument();
+		expect(window.location.search).not.toContain("history=");
+	});
+
+	it("opens from the history query and transitions to inline adjustment", async () => {
+		window.history.replaceState(
+			null,
+			"",
+			"/appsec/scoring?history=participant-1",
+		);
+		vi.spyOn(Apies, "getScoreHistorySummary").mockResolvedValue({
+			points: 8,
+			tier: "Novice",
+			rank: 1,
+			breakdown: {
+				slack: 8,
+				deltaRegistration: 0,
+				githubCommit: 0,
+				githubPullRequest: 0,
+				securityEvent: 0,
+				adjustments: 0,
+				ruleChanges: 0,
+			},
+			seasons: [{ id: "season-1", startsOn: "2026-01-01", endsOn: null }],
+		});
+		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+			entries: [],
+			nextCursor: null,
+		});
+		vi.spyOn(Apies, "getParticipantCredits").mockResolvedValue([]);
+		render(
+			<ScoringManagementView
+				overview={overview}
+				onRefresh={vi.fn().mockResolvedValue(overview)}
+			/>,
+		);
+
+		await screen.findByRole("dialog", {
+			name: "Score history for Example Person",
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Adjust points" }));
+		expect(
+			await screen.findByLabelText("Adjust points for Example Person"),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("dialog", {
+				name: "Score history for Example Person",
+			}),
+		).not.toBeInTheDocument();
+		expect(window.location.search).not.toContain("history=");
+	});
+
+	it("expands admin entries to reveal copyable source and season details", async () => {
+		vi.spyOn(Apies, "getScoreHistorySummary").mockResolvedValue({
+			points: 8,
+			tier: "Novice",
+			rank: 1,
+			breakdown: {
+				slack: 0,
+				deltaRegistration: 0,
+				githubCommit: 8,
+				githubPullRequest: 0,
+				securityEvent: 0,
+				adjustments: 0,
+				ruleChanges: 0,
+			},
+			seasons: [{ id: "season-1", startsOn: "2026-01-01", endsOn: null }],
+		});
+		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+			entries: [
+				{
+					id: "credit-1",
+					kind: "credit",
+					recordedAt: "2026-10-06T10:00:00Z",
+					activityAt: "2026-10-05T12:00:00Z",
+					creditType: "GITHUB_COMMIT",
+					points: 8,
+					displayName: "Documentation update",
+					sourceRef: "navikt/repo:commit:abcdef",
+					creditId: "credit-1",
+					seasonId: "season-1",
+					reason: null,
+					adminName: null,
+					linkedCreditId: null,
+					revokedAt: "2026-10-07T10:00:00Z",
+					action: null,
+					membershipStatusBefore: null,
+					membershipStatusAfter: null,
+					membershipReason: null,
+					ruleChange: false,
+				},
+				{
+					id: "adjustment-1",
+					kind: "adjustment",
+					recordedAt: "2026-10-07T11:00:00Z",
+					activityAt: null,
+					creditType: "GITHUB_COMMIT",
+					points: -1,
+					displayName: null,
+					sourceRef: null,
+					creditId: null,
+					seasonId: "season-1",
+					reason: "Correct linked activity",
+					adminName: "admin@nav.no",
+					linkedCreditId: "credit-1",
+					revokedAt: null,
+					action: null,
+					membershipStatusBefore: null,
+					membershipStatusAfter: null,
+					membershipReason: null,
+					ruleChange: false,
+				},
+			],
+			nextCursor: null,
+		});
+		render(
+			<ScoringManagementView
+				overview={overview}
+				onRefresh={vi.fn().mockResolvedValue(overview)}
+			/>,
+		);
+
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "View score history for Example Person",
+			}),
+		);
+		const entry = await screen.findByRole("button", {
+			name: /GitHub commit/,
+		});
+		expect(screen.queryByText("credit-1")).not.toBeInTheDocument();
+		fireEvent.click(entry);
+
+		expect(screen.getByText("navikt/repo:commit:abcdef")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Copy source reference" }),
+		).toBeInTheDocument();
+		expect(screen.getByText("Activity date")).toBeInTheDocument();
+		expect(screen.getByText("Revoked at")).toBeInTheDocument();
+		expect(screen.getAllByText("Season")).toHaveLength(2);
+		fireEvent.click(entry);
+		fireEvent.click(screen.getByRole("button", { name: /Point adjustment/ }));
+		expect(screen.getByText("Linked activity")).toBeInTheDocument();
+		expect(screen.getByText("credit-1")).toBeInTheDocument();
+		expect(screen.queryByText("Revokes")).not.toBeInTheDocument();
 	});
 
 	it("links a signed inline adjustment to the selected activity", async () => {

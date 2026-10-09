@@ -119,6 +119,10 @@ class EventClaimIntegrationTest {
         assertThat(claim.editable).isFalse()
         assertThrows<EventClaimException> { review(claim, cohost) }
         assertThat(ledger.creditsForParticipant(cohost)).hasSize(1)
+        val history = ledger.scoreHistoryPage(cohost, season, "credit", null, 25).single()
+        assertThat(history.displayName).isEqualTo(request().name)
+        assertThat(history.sourceUrl).isEqualTo(request().links.first())
+        assertThat(history.sourceOccurredAt).isEqualTo(request().startDate)
     }
 
     @Test

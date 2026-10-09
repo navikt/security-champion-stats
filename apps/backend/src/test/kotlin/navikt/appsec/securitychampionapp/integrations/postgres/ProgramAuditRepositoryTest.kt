@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.CreditSourceContext
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
@@ -80,6 +81,29 @@ class ProgramAuditRepositoryTest {
     fun resetDatabase() {
         flyway.clean()
         flyway.migrate()
+    }
+
+    @Test
+    fun `should enrich and search historical audit references without rewriting the audit event`() {
+        val participantId = createParticipant("source-audit@nav.no")
+        val eventId = UUID.randomUUID().toString()
+        scoringRepository.awardCredit(participantId, ActivityCreditType.DELTA_REGISTRATION, eventId, eventId)
+        auditService.record(
+            "CREDIT_AWARDED", AuditOutcome.SUCCEEDED, targetParticipantId = participantId,
+            details = mapOf("creditType" to "DELTA_REGISTRATION", "sourceReference" to eventId),
+        )
+        val source = CreditSourceContext("Security workshop", "https://delta.nav.no/event/$eventId", Instant.now())
+        scoringRepository.updateCreditSource(ActivityCreditType.DELTA_REGISTRATION, eventId, source)
+
+        val (events, total) = repository.adminPage("Security workshop", 0, 10, "credits")
+
+        assertThat(total).isEqualTo(1)
+        assertThat(events.single().details).containsEntry("sourceName", source.name)
+            .containsEntry("sourceUrl", source.url)
+        assertThat(events.single().details["sourceOccurredAt"]).isNotBlank()
+        assertThat(jdbcTemplate.queryForObject(
+            "SELECT details ->> 'sourceName' FROM program_audit_events", String::class.java,
+        )).isNull()
     }
 
     @Test

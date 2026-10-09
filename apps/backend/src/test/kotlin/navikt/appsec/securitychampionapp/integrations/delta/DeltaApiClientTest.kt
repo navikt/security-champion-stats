@@ -291,6 +291,7 @@ class DeltaApiClientTest {
             EVENT_ID,
             LocalDateTime.parse("2026-10-03T10:00:00"),
             setOf("participant@nav.no", "host@nav.no"),
+            title = "Synthetic event",
         )
     }
 }

@@ -53,7 +53,7 @@ class GitHubScoringServiceTest {
         )
         whenever(
             scoring.awardGitHubCredit(
-                eq(participantId), any(), any(), any(), anyOrNull(), any(), eq(seasonId),
+                eq(participantId), any(), any(), any(), anyOrNull(), any(), eq(seasonId), any(),
             ),
         ).thenReturn(CreditAwardResult.AWARDED, CreditAwardResult.DUPLICATE)
 
@@ -62,9 +62,11 @@ class GitHubScoringServiceTest {
         assertThat(summary).isEqualTo(GitHubSyncSummary(9, 1, 1, 1))
         verify(scoring).awardGitHubCredit(
             participantId, pr.type, pr.key, pr.key, null, pr.occurredAt, seasonId,
+            CreditSourceContext(pr.title, pr.url, pr.occurredAt),
         )
         verify(scoring).awardGitHubCredit(
             participantId, commit.type, commit.key, commit.key, null, commit.occurredAt, seasonId,
+            CreditSourceContext(commit.title, commit.url, commit.occurredAt),
         )
         org.mockito.kotlin.verifyNoMoreInteractions(scoring)
     }
@@ -85,7 +87,7 @@ class GitHubScoringServiceTest {
             emptyMap(), mapOf(10L to MappedGitHubParticipant(10, participantId, true, enrolledAt)),
         )
         whenever(
-            scoring.awardGitHubCredit(eq(participantId), any(), any(), any(), anyOrNull(), eq(now), eq(seasonId)),
+            scoring.awardGitHubCredit(eq(participantId), any(), any(), any(), anyOrNull(), eq(now), eq(seasonId), any()),
         ).thenReturn(CreditAwardResult.AWARDED)
         assertThat(service.sync(now).unmappedAuthors).isEqualTo(1)
         assertThat(service.sync(now).creditsAwarded).isEqualTo(1)

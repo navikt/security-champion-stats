@@ -32,6 +32,12 @@ Administrators can inspect each participant's complete recorded scoring ledger a
 It returns season totals and activity breakdowns alongside dated credits, revocations, reasoned
 adjustments, their administrators and linked activities, and scoring-rule changes. Totals use
 the ledger's season assignment, not the date a later correction was recorded.
+Score history and audit entries include persisted source names, source links and event/activity dates,
+separate from recording dates. Delta sync captures event titles and start times; GitHub sync captures
+PR titles and commit subjects with repository references. Event contribution credits retain the claim's
+name and date. Existing claims/catalog entries are backfilled by migration; subsequent integration syncs
+enrich matching credits without changing points, seasons or deduplication keys. Sources no longer available
+may have only a resolvable reference or no descriptive context; history reads do not call external services.
 Administrators configure named tiers, point thresholds, and all five activity point values at
 `/appsec/scoring`. Zero-point activities still retain their qualifying credit and deduplication identity.
 Changes require a reason, an impact preview, and confirmation. Tier changes take effect immediately;

@@ -68,7 +68,10 @@ class EventClaimService(
         store.save(claimId, participant.id, existing?.seasonId ?: currentSeasonId, normalized, existing != null)
         audit.record(
             "EVENT_CLAIM_SUBMITTED", AuditOutcome.SUCCEEDED, email, participant.id,
-            details = mapOf("claimId" to claimId.toString()),
+            details = mapOf(
+                "claimId" to claimId.toString(), "sourceName" to normalized.name,
+                "sourceOccurredAt" to normalized.startDate.toString(), "sourceUrl" to normalized.links.first(),
+            ),
         )
         return requireNotNull(store.find(claimId))
     }
@@ -99,6 +102,9 @@ class EventClaimService(
                         "creditType" to ActivityCreditType.SECURITY_EVENT_CONTRIBUTION.name,
                         "points" to ledger.creditPoints(contributor.participantId, ActivityCreditType.SECURITY_EVENT_CONTRIBUTION, "event-claim:${claim.id}"),
                         "sourceReference" to "event-claim:${claim.id}",
+                        "sourceName" to claim.name,
+                        "sourceOccurredAt" to claim.startDate.toString(),
+                        "sourceUrl" to claim.links.first(),
                     ),
                 )
                 if (!claim.published) store.publish(claim)
@@ -120,7 +126,11 @@ class EventClaimService(
         store.review(id, request.copy(reason = request.reason.trim()), email, creditId)
         audit.record(
             "EVENT_CLAIM_${request.decision}", AuditOutcome.SUCCEEDED, email, contributor.participantId,
-            details = mapOf("claimId" to id.toString(), "reason" to request.reason.trim(), "creditId" to creditId?.toString()),
+            details = mapOf(
+                "claimId" to id.toString(), "reason" to request.reason.trim(), "creditId" to creditId?.toString(),
+                "sourceName" to claim.name, "sourceOccurredAt" to claim.startDate.toString(),
+                "sourceUrl" to claim.links.first(),
+            ),
         )
         return requireNotNull(store.find(id))
     }

@@ -29,6 +29,37 @@ afterEach(() => {
 });
 
 describe("AdminAuditView", () => {
+	it("shows an event name and date with a source link while retaining the technical reference", async () => {
+		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue({
+			...auditPage,
+			items: [
+				{
+					...auditPage.items[0],
+					action: "CREDIT_AWARDED",
+					details: {
+						creditType: "DELTA_REGISTRATION",
+						sourceName: "Security workshop",
+						sourceReference: "event-id",
+						sourceUrl: "https://delta.nav.no/event/event-id",
+						sourceOccurredAt: "2026-10-03T08:00:00Z",
+					},
+				},
+			],
+		});
+		render(<AdminAuditView />);
+
+		expect(
+			await screen.findByRole("link", { name: "Security workshop" }),
+		).toHaveAttribute("href", "https://delta.nav.no/event/event-id");
+		expect(screen.getByText(/Event:/)).toHaveTextContent(
+			"Event: 3 Oct 2026, 10:00",
+		);
+		expect(screen.getByText("event-id")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /Credit awarded.*Security workshop/ }),
+		).toHaveAttribute("aria-expanded", "true");
+	});
+
 	it("expands an accessible event row and filters the run through the search", async () => {
 		const getAdminAudit = vi
 			.spyOn(Apies, "getAdminAudit")
@@ -45,7 +76,9 @@ describe("AdminAuditView", () => {
 		expect(await screen.findAllByText("admin@nav.no")).toHaveLength(2);
 		expect(screen.getByText("Example Participant")).toBeInTheDocument();
 		expect(screen.getByText("participant-1")).toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Show all events in this run" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "Show all events in this run" }),
+		);
 
 		await waitFor(() => {
 			expect(getAdminAudit).toHaveBeenLastCalledWith(
@@ -84,25 +117,32 @@ describe("AdminAuditView", () => {
 			.spyOn(Apies, "getAdminAudit")
 			.mockImplementation(async (_query, category, page) => ({
 				...auditPage,
-				items: category === "all" || category === "syncs" ? auditPage.items : [],
+				items:
+					category === "all" || category === "syncs" ? auditPage.items : [],
 				page,
 			}));
 		render(<AdminAuditView />);
 
 		await screen.findAllByText("admin@nav.no");
 		fireEvent.click(screen.getByRole("radio", { name: "Syncs" }));
-		await waitFor(() => expect(getAdminAudit).toHaveBeenLastCalledWith("", "syncs", 0));
+		await waitFor(() =>
+			expect(getAdminAudit).toHaveBeenLastCalledWith("", "syncs", 0),
+		);
 
 		fireEvent.click(screen.getByRole("button", { name: "Older →" }));
-		await waitFor(() => expect(getAdminAudit).toHaveBeenLastCalledWith("", "syncs", 1));
+		await waitFor(() =>
+			expect(getAdminAudit).toHaveBeenLastCalledWith("", "syncs", 1),
+		);
 		expect(screen.getByText(/Showing 51–51 of 51 events/)).toBeInTheDocument();
 	});
 
 	it("does not reset an already selected page when the search debounce expires unchanged", async () => {
-		vi.spyOn(Apies, "getAdminAudit").mockImplementation(async (_query, _category, page) => ({
-			...auditPage,
-			page,
-		}));
+		vi.spyOn(Apies, "getAdminAudit").mockImplementation(
+			async (_query, _category, page) => ({
+				...auditPage,
+				page,
+			}),
+		);
 		render(<AdminAuditView />);
 
 		await screen.findByRole("button", { name: /Slack scoring sync completed/ });
@@ -119,14 +159,15 @@ describe("AdminAuditView", () => {
 		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue(auditPage);
 		render(<AdminAuditView />);
 		await screen.findByRole("button", { name: /Slack scoring sync completed/ });
-		expect(screen.getByRole("textbox", { name: /Search events/ })).toHaveAttribute(
-			"maxLength",
-			"100",
-		);
+		expect(
+			screen.getByRole("textbox", { name: /Search events/ }),
+		).toHaveAttribute("maxLength", "100");
 	});
 
 	it("reports errors rather than showing empty results", async () => {
-		vi.spyOn(Apies, "getAdminAudit").mockRejectedValue(new Error("Unavailable"));
+		vi.spyOn(Apies, "getAdminAudit").mockRejectedValue(
+			new Error("Unavailable"),
+		);
 		render(<AdminAuditView />);
 
 		expect(await screen.findByRole("alert")).toHaveTextContent(

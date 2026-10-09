@@ -30,6 +30,7 @@ import type {
 	ScoreHistorySeason,
 	ScoreSummary,
 } from "@/app/utils/Variables";
+import { CreditSource, sourceDescription } from "./CreditSource";
 
 type HistoryFilter = "all" | "credit" | "adjustment" | "membership";
 type HistoryVariant = "participant" | "admin";
@@ -43,6 +44,8 @@ type HistoryEntry = {
 	creditType: ParticipantScoreHistoryEntry["creditType"];
 	points: number | null;
 	displayName: string | null;
+	sourceUrl: string | null;
+	sourceOccurredAt: string | null;
 	action: ParticipantScoreHistoryEntry["action"];
 	sourceRef: string | null;
 	creditId: string | null;
@@ -201,7 +204,7 @@ function normalizeEntries(
 			return {
 				id: `${participantEntry.kind}:${participantEntry.occurredAt}:${indexOffset + index}`,
 				kind: participantEntry.kind,
-				recordedAt: participantEntry.occurredAt,
+				recordedAt: participantEntry.recordedAt ?? participantEntry.occurredAt,
 				activityAt:
 					participantEntry.kind === "credit"
 						? participantEntry.occurredAt
@@ -209,6 +212,8 @@ function normalizeEntries(
 				creditType: participantEntry.creditType,
 				points: participantEntry.points,
 				displayName: participantEntry.displayName,
+				sourceUrl: participantEntry.sourceUrl ?? null,
+				sourceOccurredAt: participantEntry.sourceOccurredAt ?? null,
 				action: participantEntry.action,
 				membershipStatusBefore: participantEntry.membershipStatusBefore,
 				membershipStatusAfter: participantEntry.membershipStatusAfter,
@@ -233,6 +238,8 @@ function normalizeEntries(
 			creditType: adminEntry.creditType,
 			points: adminEntry.points,
 			displayName: adminEntry.displayName,
+			sourceUrl: adminEntry.sourceUrl ?? null,
+			sourceOccurredAt: adminEntry.sourceOccurredAt ?? null,
 			action: adminEntry.action,
 			sourceRef: adminEntry.sourceRef,
 			creditId: adminEntry.creditId,
@@ -1067,6 +1074,11 @@ function ActivityRow({
 					<span className="scoreHistory__entryText">
 						<strong>{creditTitle(entry)}</strong>
 						<span className="scoreHistory__meta">{meta}</span>
+						{(entry.kind === "credit" || entry.displayName) && (
+							<span className="scoreHistory__meta">
+								<CreditSource {...entry} />
+							</span>
+						)}
 					</span>
 					{displayPoints !== null && (
 						<strong className={pointsColor(entry)}>{displayPoints}</strong>
@@ -1079,12 +1091,11 @@ function ActivityRow({
 
 function entryMeta(entry: HistoryEntry, variant: HistoryVariant): string {
 	if (entry.kind === "credit") {
-		const occurred = entry.activityAt ?? entry.recordedAt;
-		const time = `Activity ${osloShortDateFormatter.format(new Date(occurred))}, ${osloTimeFormatter.format(new Date(occurred))}`;
+		const recorded = `Recorded ${osloShortDateFormatter.format(new Date(entry.recordedAt))}, ${osloTimeFormatter.format(new Date(entry.recordedAt))}`;
 		if (variant === "participant") {
-			return entry.displayName ? `${time} · ${entry.displayName}` : time;
+			return recorded;
 		}
-		return `Activity ${osloShortDateFormatter.format(new Date(occurred))}, ${osloTimeFormatter.format(new Date(occurred))} · recorded ${osloTimeFormatter.format(new Date(entry.recordedAt))}`;
+		return [recorded, sourceDescription(entry)].filter(Boolean).join(" · ");
 	}
 	if (entry.kind === "membership") {
 		if (entry.action === "status_changed") {
@@ -1158,6 +1169,7 @@ function EntryDetails({
 
 	if (entry.kind === "credit") {
 		fields.push(
+			{ label: "Event or change", value: <CreditSource {...entry} /> },
 			{
 				label: "Activity date",
 				value: entry.activityAt
@@ -1202,7 +1214,10 @@ function EntryDetails({
 			fields.push({
 				label: "Linked activity",
 				value: (
-					<CodeChip label="linked credit ID" value={entry.linkedCreditId} />
+					<>
+						<CreditSource {...entry} />{" "}
+						<CodeChip label="linked credit ID" value={entry.linkedCreditId} />
+					</>
 				),
 			});
 		}

@@ -193,6 +193,9 @@ describe("ScoringManagementView", () => {
 					creditType: "GITHUB_COMMIT",
 					points: 8,
 					displayName: "Documentation update",
+					sourceUrl:
+						"https://github.com/navikt/security-playbook/commit/abcdef",
+					sourceOccurredAt: "2026-10-05T12:00:00Z",
 					sourceRef: "navikt/repo:commit:abcdef",
 					creditId: "credit-1",
 					seasonId: "season-1",
@@ -213,7 +216,10 @@ describe("ScoringManagementView", () => {
 					activityAt: null,
 					creditType: "GITHUB_COMMIT",
 					points: -1,
-					displayName: null,
+					displayName: "Documentation update",
+					sourceUrl:
+						"https://github.com/navikt/security-playbook/commit/abcdef",
+					sourceOccurredAt: "2026-10-05T12:00:00Z",
 					sourceRef: null,
 					creditId: null,
 					seasonId: "season-1",
@@ -248,6 +254,12 @@ describe("ScoringManagementView", () => {
 		expect(screen.queryByText("credit-1")).not.toBeInTheDocument();
 		fireEvent.click(entry);
 
+		expect(
+			screen.getByRole("link", { name: "Documentation update" }),
+		).toHaveAttribute(
+			"href",
+			"https://github.com/navikt/security-playbook/commit/abcdef",
+		);
 		expect(screen.getByText("navikt/repo:commit:abcdef")).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "Copy source reference" }),
@@ -258,6 +270,9 @@ describe("ScoringManagementView", () => {
 		fireEvent.click(entry);
 		fireEvent.click(screen.getByRole("button", { name: /Point adjustment/ }));
 		expect(screen.getByText("Linked activity")).toBeInTheDocument();
+		expect(
+			screen.getByRole("link", { name: "Documentation update" }),
+		).toBeInTheDocument();
 		expect(screen.getByText("credit-1")).toBeInTheDocument();
 		expect(screen.queryByText("Revokes")).not.toBeInTheDocument();
 	});

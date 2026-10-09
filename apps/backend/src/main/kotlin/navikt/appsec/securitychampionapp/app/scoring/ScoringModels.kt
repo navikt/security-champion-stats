@@ -12,6 +12,12 @@ enum class ActivityCreditType {
     SECURITY_EVENT_CONTRIBUTION,
 }
 
+data class CreditSourceContext(
+    val name: String?,
+    val url: String?,
+    val occurredAt: Instant?,
+)
+
 data class SeasonSummary(
     val id: UUID,
     val startsOn: LocalDate,
@@ -93,6 +99,9 @@ data class ScoringHistoryEntry(
     val reason: String?,
     val actorNavNoEmail: String?,
     val revokedAt: Instant?,
+    val displayName: String? = null,
+    val sourceUrl: String? = null,
+    val sourceOccurredAt: Instant? = null,
 )
 
 data class ParticipantScoringHistory(
@@ -172,6 +181,8 @@ data class ScoreHistoryRecord(
     val membershipStatusAfter: String?,
     val membershipReason: String?,
     val tieIndex: Long,
+    val sourceUrl: String? = null,
+    val sourceOccurredAt: Instant? = null,
 )
 
 data class ScoreHistoryCursor(
@@ -188,6 +199,9 @@ data class ParticipantScoreHistoryEntry(
     val action: String?,
     val membershipStatusBefore: String?,
     val membershipStatusAfter: String?,
+    val recordedAt: Instant = occurredAt,
+    val sourceUrl: String? = null,
+    val sourceOccurredAt: Instant? = null,
 )
 
 data class AdminScoreHistoryEntry(
@@ -210,6 +224,8 @@ data class AdminScoreHistoryEntry(
     val membershipStatusAfter: String?,
     val membershipReason: String?,
     val ruleChange: Boolean,
+    val sourceUrl: String?,
+    val sourceOccurredAt: Instant?,
 )
 
 data class ScoreHistoryPage<T>(

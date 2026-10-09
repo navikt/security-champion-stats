@@ -15,6 +15,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -51,7 +52,7 @@ class DeltaScoringServiceTest {
         whenever(mappingRepository.findAll()).thenReturn(emptyList())
         activeParticipants(participant(participantId, "participant@nav.no"))
         whenever(eventSource.pastEventsInCategory(7))
-            .thenReturn(listOf(event(eventId, "2026-10-03T10:00:00", " PARTICIPANT@NAV.NO ", "other@nav.no")))
+            .thenReturn(listOf(event(eventId, "2026-10-03T10:00:00", " PARTICIPANT@NAV.NO ", "other@nav.no").copy(title = "Security workshop")))
         awardReturns(eventId, CreditAwardResult.AWARDED)
 
         val summary = service.sync()
@@ -61,6 +62,10 @@ class DeltaScoringServiceTest {
         assertThat(summary.unmatchedRegistrations).isZero()
         verify(statusRepository).recordStarted(now)
         verify(statusRepository).recordSucceeded(now, summary)
+        verify(scoringService).enrichCreditSource(
+            ActivityCreditType.DELTA_REGISTRATION, eventId.toString(),
+            CreditSourceContext("Security workshop", "https://delta.nav.no/event/$eventId", Instant.parse("2026-10-03T08:00:00Z")),
+        )
     }
 
     @Test
@@ -82,7 +87,7 @@ class DeltaScoringServiceTest {
         val summary = service.sync()
 
         assertThat(summary.eventsScanned).isZero()
-        verify(scoringService, never()).awardCredit(any(), any(), any(), any(), anyOrNull())
+        verify(scoringService, never()).awardCredit(any(), any(), any(), any(), anyOrNull(), anyOrNull())
     }
 
     @Test
@@ -103,6 +108,7 @@ class DeltaScoringServiceTest {
             ActivityCreditType.DELTA_REGISTRATION,
             eventId.toString(),
             eventId.toString(),
+            source = CreditSourceContext(null, "https://delta.nav.no/event/$eventId", Instant.parse("2026-10-03T08:00:00Z")),
         )
     }
 
@@ -143,7 +149,7 @@ class DeltaScoringServiceTest {
         val summary = service.sync()
 
         assertThat(summary.unmatchedRegistrations).isEqualTo(1)
-        verify(scoringService, never()).awardCredit(any(), any(), any(), any(), anyOrNull())
+        verify(scoringService, never()).awardCredit(any(), any(), any(), any(), anyOrNull(), anyOrNull())
     }
 
     @Test
@@ -207,10 +213,12 @@ class DeltaScoringServiceTest {
     private fun awardReturns(eventId: UUID, result: CreditAwardResult) {
         whenever(
             scoringService.awardCredit(
-                participantId,
-                ActivityCreditType.DELTA_REGISTRATION,
-                eventId.toString(),
-                eventId.toString(),
+                eq(participantId),
+                eq(ActivityCreditType.DELTA_REGISTRATION),
+                eq(eventId.toString()),
+                eq(eventId.toString()),
+                anyOrNull(),
+                any(),
             )
         ).thenReturn(result)
     }

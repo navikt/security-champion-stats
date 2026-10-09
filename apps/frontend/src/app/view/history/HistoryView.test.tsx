@@ -68,6 +68,51 @@ beforeEach(() => {
 });
 
 describe("participant score history", () => {
+	it("shows the event name date and usable source separately from the scoring date", async () => {
+		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+			entries: [
+				{
+					...participantEntries[0],
+					creditType: "DELTA_REGISTRATION",
+					recordedAt: "2026-10-06T10:00:00Z",
+					displayName: "Security workshop",
+					sourceUrl: "https://delta.nav.no/event/event-id",
+					sourceOccurredAt: "2026-10-03T08:00:00Z",
+				},
+			],
+			nextCursor: null,
+		});
+		render(<HistoryView />);
+
+		expect(
+			await screen.findByRole("link", { name: "Security workshop" }),
+		).toHaveAttribute("href", "https://delta.nav.no/event/event-id");
+		expect(screen.getByText(/Event:/)).toHaveTextContent(
+			"Event: 3 Oct 2026, 10:00",
+		);
+		expect(screen.getByText(/Recorded 6 Oct, 12:00/)).toBeInTheDocument();
+		expect(screen.queryByText("event-id")).not.toBeInTheDocument();
+	});
+
+	it("does not invent an event date when historical source context is unavailable", async () => {
+		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+			entries: [
+				{
+					...participantEntries[0],
+					creditType: "SECURITY_EVENT_CONTRIBUTION",
+					displayName: null,
+				},
+			],
+			nextCursor: null,
+		});
+		render(<HistoryView />);
+
+		expect(
+			await screen.findByText("Event details unavailable"),
+		).toBeInTheDocument();
+		expect(screen.queryByText(/Event:/)).not.toBeInTheDocument();
+	});
+
 	it("shows summary and safe participant entries without operational details", async () => {
 		render(<HistoryView />);
 

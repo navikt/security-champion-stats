@@ -15,4 +15,6 @@ data class GitHubContribution(
     val type: ActivityCreditType,
     val key: String,
     val occurredAt: Instant,
+    val title: String? = null,
+    val url: String? = null,
 )

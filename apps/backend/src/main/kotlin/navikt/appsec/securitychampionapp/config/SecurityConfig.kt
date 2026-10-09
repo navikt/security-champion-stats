@@ -59,7 +59,6 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/auth/**",
                     "/actuator/health",
-                    "/internal/local-auth/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs/**"

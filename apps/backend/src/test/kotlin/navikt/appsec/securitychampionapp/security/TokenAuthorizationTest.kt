@@ -101,6 +101,14 @@ class TokenAuthorizationTest {
     }
 
     @Test
+    fun `should require a validated token on the internal local auth path`() {
+        mockMvc.perform(get("/internal/local-auth/introspect"))
+            .andExpect(status().isUnauthorized)
+
+        verify(tokenClient, never()).validate(any(), any(), any())
+    }
+
+    @Test
     fun `should allow admin access for a validated token with the configured group`() {
         whenever(tokenClient.validate(any(), any(), any())).thenReturn(validToken())
         whenever(participantRepository.findAllParticipants())

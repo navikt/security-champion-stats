@@ -35,7 +35,6 @@ class TokenIntrospection(
     private val publicPaths = listOf(
         "/auth",
         "/actuator/health",
-        "/internal/local-auth",
         "/swagger-ui",
         "/swagger-ui.html",
         "/v3/api-docs"

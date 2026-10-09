@@ -18,7 +18,7 @@ import {
 	VStack,
 } from "@navikt/ds-react";
 import { useEffect, useState } from "react";
-import { CreditSource } from "@/app/view/history/CreditSource";
+import { CreditSource, hasCreditSource } from "@/app/view/history/CreditSource";
 
 const ACTIVITY_TYPES: ActivityCredit["creditType"][] = [
 	"SLACK_WEEK",
@@ -250,8 +250,7 @@ export function ParticipantScoreHistoryModal({
 															{dateTime.format(new Date(entry.recordedAt))}
 														</time>
 													</BodyShort>
-													{(entry.type === "CREDIT" ||
-														entry.sourceCreditId) && (
+													{hasCreditSource(entry) && (
 														<BodyShort size="small">
 															<CreditSource {...entry} />
 														</BodyShort>

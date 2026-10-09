@@ -42,6 +42,14 @@ export function safeSourceUrl(value?: string | null): string | null {
 	}
 }
 
+export function hasCreditSource(source: Source): boolean {
+	return Boolean(
+		sourceDescription(source) ||
+			safeSourceUrl(source.sourceUrl) ||
+			source.sourceOccurredAt,
+	);
+}
+
 export function CreditSource(source: Source) {
 	const description = sourceDescription(source);
 	const url = safeSourceUrl(source.sourceUrl);

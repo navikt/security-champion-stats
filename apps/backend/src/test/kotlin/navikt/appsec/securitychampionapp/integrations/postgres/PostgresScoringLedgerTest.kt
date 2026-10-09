@@ -162,6 +162,34 @@ class PostgresScoringLedgerTest {
     }
 
     @Test
+    fun `should use the source enrichment index to locate matching credits`() {
+        val participantId = createParticipant("indexed-source@nav.no")
+        val seasonId = repository.currentSeason().id
+        jdbcTemplate.update(
+            """
+                INSERT INTO activity_credits (
+                    participant_id, season_id, credit_type, uniqueness_key, source_reference, points
+                )
+                SELECT ?, ?, 'DELTA_REGISTRATION', 'source:' || number, 'source:' || number, 1
+                FROM generate_series(1, 5000) AS number
+            """.trimIndent(),
+            participantId, seasonId,
+        )
+        jdbcTemplate.execute("ANALYZE activity_credits")
+
+        val plan = jdbcTemplate.query(
+            """
+                EXPLAIN UPDATE activity_credits SET source_name = 'Security workshop'
+                WHERE credit_type = 'DELTA_REGISTRATION' AND source_reference = 'source:42'
+            """.trimIndent(),
+            { rs, _ -> rs.getString(1) },
+        ).joinToString("\n")
+
+        assertThat(plan).contains("activity_credits_source_enrichment_idx")
+            .contains("Index Cond:").contains("source_reference").contains("credit_type")
+    }
+
+    @Test
     fun `should enrich existing source context across seasons without changing credits or corrections`() {
         val participantId = createParticipant("source-history@nav.no")
         val originalSeason = repository.currentSeason()

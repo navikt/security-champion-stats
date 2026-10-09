@@ -68,6 +68,21 @@ beforeEach(() => {
 });
 
 describe("participant score history", () => {
+	it("omits the empty source line for Slack credits without source context", async () => {
+		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+			entries: [{ ...participantEntries[0], displayName: null }],
+			nextCursor: null,
+		});
+		const { container } = render(<HistoryView />);
+		await screen.findByText(/Recorded 6 Oct/);
+
+		const metadata = container.querySelectorAll(
+			".scoreHistory__entryStatic .scoreHistory__meta",
+		);
+		expect(metadata).toHaveLength(1);
+		expect(metadata[0]).toHaveTextContent("Recorded");
+	});
+
 	it("shows the event name date and usable source separately from the scoring date", async () => {
 		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
 			entries: [

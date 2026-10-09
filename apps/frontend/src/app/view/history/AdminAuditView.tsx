@@ -12,7 +12,7 @@ import {
 } from "@navikt/ds-react";
 import { Apies } from "@/app/shared/hooks/Apies";
 import type { AuditCategory, AuditResponse } from "@/app/utils/Variables";
-import { CreditSource } from "./CreditSource";
+import { CreditSource, hasCreditSource } from "./CreditSource";
 
 const FILTERS: { value: AuditCategory; label: string }[] = [
 	{ value: "all", label: "All" },
@@ -251,6 +251,16 @@ export function AdminAuditView() {
 						<ol className="auditView__list">
 							{result.items.map((item) => {
 								const { time, date } = dateParts(item.createdAt);
+								const source = {
+									displayName: item.details.sourceName,
+									sourceUrl: item.details.sourceUrl,
+									sourceOccurredAt: item.details.sourceOccurredAt,
+									creditType:
+										item.details.creditType ??
+										(item.action.startsWith("EVENT_CLAIM_")
+											? "SECURITY_EVENT_CONTRIBUTION"
+											: null),
+								};
 								const metrics = Object.entries(item.details).filter(
 									([key]) =>
 										!["sourceName", "sourceUrl", "sourceOccurredAt"].includes(
@@ -320,21 +330,9 @@ export function AdminAuditView() {
 										</button>
 										{expanded && (
 											<div className="auditView__panel" id={panelId}>
-												{(item.details.sourceName ||
-													item.details.sourceUrl ||
-													item.details.creditType) && (
+												{hasCreditSource(source) && (
 													<BodyShort>
-														<CreditSource
-															displayName={item.details.sourceName}
-															sourceUrl={item.details.sourceUrl}
-															sourceOccurredAt={item.details.sourceOccurredAt}
-															creditType={
-																item.details.creditType ??
-																(item.action.startsWith("EVENT_CLAIM_")
-																	? "SECURITY_EVENT_CONTRIBUTION"
-																	: null)
-															}
-														/>
+														<CreditSource {...source} />
 													</BodyShort>
 												)}
 												{metrics.length > 0 && (

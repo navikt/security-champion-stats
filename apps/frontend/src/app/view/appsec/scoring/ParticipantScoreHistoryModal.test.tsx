@@ -98,6 +98,32 @@ const history: ParticipantScoringHistory = {
 describe("ParticipantScoreHistoryModal", () => {
 	afterEach(() => vi.restoreAllMocks());
 
+	it("omits empty source paragraphs for Slack credits and their linked corrections", async () => {
+		vi.spyOn(Apies, "getParticipantScoringHistory").mockResolvedValue({
+			...history,
+			entries: history.entries.map((entry) => ({
+				...entry,
+				creditType: "SLACK_WEEK",
+			})),
+		});
+		render(
+			<ParticipantScoreHistoryModal
+				participant={participant}
+				onClose={vi.fn()}
+			/>,
+		);
+		const entries = await screen.findByRole("list", {
+			name: "Scoring history entries",
+		});
+
+		for (const paragraph of entries.querySelectorAll("p")) {
+			expect(paragraph.textContent?.trim()).not.toBe("");
+		}
+		expect(
+			within(entries).getAllByText("Linked credit ID: credit-1"),
+		).toHaveLength(2);
+	});
+
 	it("shows the full ledger and a reconciled breakdown with corrections in their original season", async () => {
 		vi.spyOn(Apies, "getParticipantScoringHistory").mockResolvedValue(history);
 		render(

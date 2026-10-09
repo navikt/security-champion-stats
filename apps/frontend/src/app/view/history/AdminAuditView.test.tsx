@@ -29,6 +29,41 @@ afterEach(() => {
 });
 
 describe("AdminAuditView", () => {
+	it("omits an empty source paragraph for Slack credit audits", async () => {
+		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue({
+			...auditPage,
+			items: [
+				{
+					...auditPage.items[0],
+					action: "CREDIT_AWARDED",
+					details: { creditType: "SLACK_WEEK", points: "1" },
+				},
+			],
+		});
+		const { container } = render(<AdminAuditView />);
+		await screen.findByRole("button", { name: /Credit awarded/ });
+
+		expect(container.querySelector(".auditView__panel > p")).toBeNull();
+		expect(screen.getByText("SLACK_WEEK")).toBeInTheDocument();
+	});
+
+	it("shows date-only source context even without a source name URL or credit type", async () => {
+		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue({
+			...auditPage,
+			items: [
+				{
+					...auditPage.items[0],
+					details: { sourceOccurredAt: "2026-10-03T08:00:00Z" },
+				},
+			],
+		});
+		render(<AdminAuditView />);
+
+		expect(await screen.findByText(/Activity:/)).toHaveTextContent(
+			"3 Oct 2026, 10:00",
+		);
+	});
+
 	it("shows an event name and date with a source link while retaining the technical reference", async () => {
 		vi.spyOn(Apies, "getAdminAudit").mockResolvedValue({
 			...auditPage,

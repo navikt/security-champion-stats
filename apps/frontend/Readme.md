@@ -27,6 +27,8 @@ where available. Event/activity dates are distinct from the date points were rec
 in administrator details, not participant descriptions. Older entries without source context explicitly
 show that event/change details are unavailable; integration syncs enrich existing credits without awarding
 duplicate points.
+Source rows appear only when they contain a description, usable link, date or event/change fallback;
+Slack credits without source context do not add blank rows.
 Activity values normally affect future credits; opt into current-season retroactive changes to append
 adjustments without rewriting original credits, manual corrections, or closed seasons. Zero-point
 activities are still recorded. If a preview becomes stale, reload configuration and preview again.

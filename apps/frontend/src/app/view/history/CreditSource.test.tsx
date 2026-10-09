@@ -1,6 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it } from "vitest";
-import { CreditSource } from "./CreditSource";
+import { CreditSource, hasCreditSource } from "./CreditSource";
+
+it.each([
+	[{ creditType: "SLACK_WEEK" }, false],
+	[{ creditType: "SLACK_WEEK", displayName: "Weekly participation" }, true],
+	[{ sourceUrl: "javascript:alert(1)" }, false],
+	[{ sourceUrl: "https://delta.nav.no/event/example" }, true],
+	[{ sourceOccurredAt: "2026-10-03T08:00:00Z" }, true],
+	[{ creditType: "DELTA_REGISTRATION" }, true],
+	[{ creditType: "SECURITY_EVENT_CONTRIBUTION" }, true],
+	[{ creditType: "GITHUB_COMMIT" }, true],
+	[{ creditType: "GITHUB_PULL_REQUEST" }, true],
+] as const)(
+	"matches source visibility to rendered content for %j",
+	(source, visible) => {
+		const { container } = render(<CreditSource {...source} />);
+		expect(hasCreditSource(source)).toBe(visible);
+		expect(Boolean(container.textContent)).toBe(visible);
+	},
+);
 
 it("describes the specific GitHub change instead of exposing its internal source key", () => {
 	render(

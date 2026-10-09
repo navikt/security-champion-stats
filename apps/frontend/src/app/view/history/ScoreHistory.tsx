@@ -30,7 +30,11 @@ import type {
 	ScoreHistorySeason,
 	ScoreSummary,
 } from "@/app/utils/Variables";
-import { CreditSource, sourceDescription } from "./CreditSource";
+import {
+	CreditSource,
+	hasCreditSource,
+	sourceDescription,
+} from "./CreditSource";
 
 type HistoryFilter = "all" | "credit" | "adjustment" | "membership";
 type HistoryVariant = "participant" | "admin";
@@ -1074,7 +1078,7 @@ function ActivityRow({
 					<span className="scoreHistory__entryText">
 						<strong>{creditTitle(entry)}</strong>
 						<span className="scoreHistory__meta">{meta}</span>
-						{(entry.kind === "credit" || entry.displayName) && (
+						{hasCreditSource(entry) && (
 							<span className="scoreHistory__meta">
 								<CreditSource {...entry} />
 							</span>
@@ -1168,8 +1172,13 @@ function EntryDetails({
 	const fields: { label: string; value: React.ReactNode }[] = [];
 
 	if (entry.kind === "credit") {
+		if (hasCreditSource(entry)) {
+			fields.push({
+				label: "Event or change",
+				value: <CreditSource {...entry} />,
+			});
+		}
 		fields.push(
-			{ label: "Event or change", value: <CreditSource {...entry} /> },
 			{
 				label: "Activity date",
 				value: entry.activityAt

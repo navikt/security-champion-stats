@@ -167,115 +167,130 @@ describe("ScoringManagementView", () => {
 		expect(window.location.search).not.toContain("history=");
 	});
 
-	it("expands admin entries to reveal copyable source and season details", async () => {
-		vi.spyOn(Apies, "getScoreHistorySummary").mockResolvedValue({
-			points: 8,
-			tier: "Novice",
-			rank: 1,
-			breakdown: {
-				slack: 0,
-				deltaRegistration: 0,
-				githubCommit: 8,
-				githubPullRequest: 0,
-				securityEvent: 0,
-				adjustments: 0,
-				ruleChanges: 0,
-			},
-			seasons: [{ id: "season-1", startsOn: "2026-01-01", endsOn: null }],
-		});
-		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
-			entries: [
-				{
-					id: "credit-1",
-					kind: "credit",
-					recordedAt: "2026-10-06T10:00:00Z",
-					activityAt: "2026-10-05T12:00:00Z",
-					creditType: "GITHUB_COMMIT",
-					points: 8,
-					displayName: "Documentation update",
-					sourceUrl:
-						"https://github.com/navikt/security-playbook/commit/abcdef",
-					sourceOccurredAt: "2026-10-05T12:00:00Z",
-					sourceRef: "navikt/repo:commit:abcdef",
-					creditId: "credit-1",
-					seasonId: "season-1",
-					reason: null,
-					adminName: null,
-					linkedCreditId: null,
-					revokedAt: "2026-10-07T10:00:00Z",
-					action: null,
-					membershipStatusBefore: null,
-					membershipStatusAfter: null,
-					membershipReason: null,
-					ruleChange: false,
+	it.each(["GITHUB_COMMIT", "SLACK_WEEK"] as const)(
+		"expands %s entries without empty source fields",
+		async (creditType) => {
+			vi.spyOn(Apies, "getScoreHistorySummary").mockResolvedValue({
+				points: 8,
+				tier: "Novice",
+				rank: 1,
+				breakdown: {
+					slack: 0,
+					deltaRegistration: 0,
+					githubCommit: 8,
+					githubPullRequest: 0,
+					securityEvent: 0,
+					adjustments: 0,
+					ruleChanges: 0,
 				},
-				{
-					id: "adjustment-1",
-					kind: "adjustment",
-					recordedAt: "2026-10-07T11:00:00Z",
-					activityAt: null,
-					creditType: "GITHUB_COMMIT",
-					points: -1,
-					displayName: "Documentation update",
-					sourceUrl:
-						"https://github.com/navikt/security-playbook/commit/abcdef",
-					sourceOccurredAt: "2026-10-05T12:00:00Z",
-					sourceRef: null,
-					creditId: null,
-					seasonId: "season-1",
-					reason: "Correct linked activity",
-					adminName: "admin@nav.no",
-					linkedCreditId: "credit-1",
-					revokedAt: null,
-					action: null,
-					membershipStatusBefore: null,
-					membershipStatusAfter: null,
-					membershipReason: null,
-					ruleChange: false,
-				},
-			],
-			nextCursor: null,
-		});
-		render(
-			<ScoringManagementView
-				overview={overview}
-				onRefresh={vi.fn().mockResolvedValue(overview)}
-			/>,
-		);
+				seasons: [{ id: "season-1", startsOn: "2026-01-01", endsOn: null }],
+			});
+			vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+				entries: [
+					{
+						id: "credit-1",
+						kind: "credit",
+						recordedAt: "2026-10-06T10:00:00Z",
+						activityAt: "2026-10-05T12:00:00Z",
+						creditType,
+						points: 8,
+						displayName:
+							creditType === "GITHUB_COMMIT" ? "Documentation update" : null,
+						sourceUrl:
+							creditType === "GITHUB_COMMIT"
+								? "https://github.com/navikt/security-playbook/commit/abcdef"
+								: null,
+						sourceOccurredAt:
+							creditType === "GITHUB_COMMIT" ? "2026-10-05T12:00:00Z" : null,
+						sourceRef: "navikt/repo:commit:abcdef",
+						creditId: "credit-1",
+						seasonId: "season-1",
+						reason: null,
+						adminName: null,
+						linkedCreditId: null,
+						revokedAt: "2026-10-07T10:00:00Z",
+						action: null,
+						membershipStatusBefore: null,
+						membershipStatusAfter: null,
+						membershipReason: null,
+						ruleChange: false,
+					},
+					{
+						id: "adjustment-1",
+						kind: "adjustment",
+						recordedAt: "2026-10-07T11:00:00Z",
+						activityAt: null,
+						creditType: "GITHUB_COMMIT",
+						points: -1,
+						displayName: "Documentation update",
+						sourceUrl:
+							"https://github.com/navikt/security-playbook/commit/abcdef",
+						sourceOccurredAt: "2026-10-05T12:00:00Z",
+						sourceRef: null,
+						creditId: null,
+						seasonId: "season-1",
+						reason: "Correct linked activity",
+						adminName: "admin@nav.no",
+						linkedCreditId: "credit-1",
+						revokedAt: null,
+						action: null,
+						membershipStatusBefore: null,
+						membershipStatusAfter: null,
+						membershipReason: null,
+						ruleChange: false,
+					},
+				],
+				nextCursor: null,
+			});
+			render(
+				<ScoringManagementView
+					overview={overview}
+					onRefresh={vi.fn().mockResolvedValue(overview)}
+				/>,
+			);
 
-		fireEvent.click(
-			screen.getByRole("button", {
-				name: "View score history for Example Person",
-			}),
-		);
-		const entry = await screen.findByRole("button", {
-			name: /GitHub commit/,
-		});
-		expect(screen.queryByText("credit-1")).not.toBeInTheDocument();
-		fireEvent.click(entry);
+			fireEvent.click(
+				screen.getByRole("button", {
+					name: "View score history for Example Person",
+				}),
+			);
+			const entry = await screen.findByRole("button", {
+				name:
+					creditType === "GITHUB_COMMIT"
+						? /GitHub commit/
+						: /Slack participation/,
+			});
+			expect(screen.queryByText("credit-1")).not.toBeInTheDocument();
+			fireEvent.click(entry);
 
-		expect(
-			screen.getByRole("link", { name: "Documentation update" }),
-		).toHaveAttribute(
-			"href",
-			"https://github.com/navikt/security-playbook/commit/abcdef",
-		);
-		expect(screen.getByText("navikt/repo:commit:abcdef")).toBeInTheDocument();
-		expect(
-			screen.getByRole("button", { name: "Copy source reference" }),
-		).toBeInTheDocument();
-		expect(screen.getByText("Activity date")).toBeInTheDocument();
-		expect(screen.getByText("Revoked at")).toBeInTheDocument();
-		expect(screen.getAllByText("Season")).toHaveLength(2);
-		fireEvent.click(entry);
-		fireEvent.click(screen.getByRole("button", { name: /Point adjustment/ }));
-		expect(screen.getByText("Linked activity")).toBeInTheDocument();
-		expect(
-			screen.getByRole("link", { name: "Documentation update" }),
-		).toBeInTheDocument();
-		expect(screen.getByText("credit-1")).toBeInTheDocument();
-		expect(screen.queryByText("Revokes")).not.toBeInTheDocument();
-	});
+			if (creditType === "GITHUB_COMMIT") {
+				expect(
+					screen.getByRole("link", { name: "Documentation update" }),
+				).toHaveAttribute(
+					"href",
+					"https://github.com/navikt/security-playbook/commit/abcdef",
+				);
+				expect(screen.getByText("Event or change")).toBeInTheDocument();
+			} else {
+				expect(screen.queryByText("Event or change")).not.toBeInTheDocument();
+			}
+			expect(screen.getByText("navikt/repo:commit:abcdef")).toBeInTheDocument();
+			expect(
+				screen.getByRole("button", { name: "Copy source reference" }),
+			).toBeInTheDocument();
+			expect(screen.getByText("Activity date")).toBeInTheDocument();
+			expect(screen.getByText("Revoked at")).toBeInTheDocument();
+			expect(screen.getAllByText("Season")).toHaveLength(2);
+			fireEvent.click(entry);
+			fireEvent.click(screen.getByRole("button", { name: /Point adjustment/ }));
+			expect(screen.getByText("Linked activity")).toBeInTheDocument();
+			expect(
+				screen.getByRole("link", { name: "Documentation update" }),
+			).toBeInTheDocument();
+			expect(screen.getByText("credit-1")).toBeInTheDocument();
+			expect(screen.queryByText("Revokes")).not.toBeInTheDocument();
+		},
+	);
 
 	it("links a signed inline adjustment to the selected activity", async () => {
 		vi.spyOn(Apies, "getParticipantCredits").mockResolvedValue([

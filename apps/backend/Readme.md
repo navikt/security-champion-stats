@@ -38,6 +38,7 @@ PR titles and commit subjects with repository references. Event contribution cre
 name and date. Existing claims/catalog entries are backfilled by migration; subsequent integration syncs
 enrich matching credits without changing points, seasons or deduplication keys. Sources no longer available
 may have only a resolvable reference or no descriptive context; history reads do not call external services.
+Source enrichment uses an index on credit type and source reference to avoid scanning the ledger for each source.
 Administrators configure named tiers, point thresholds, and all five activity point values at
 `/appsec/scoring`. Zero-point activities still retain their qualifying credit and deduplication identity.
 Changes require a reason, an impact preview, and confirmation. Tier changes take effect immediately;

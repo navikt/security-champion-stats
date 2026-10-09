@@ -3,6 +3,9 @@ slack:
   sc-channel-id: ""
   scoring:
     cron: "-"
+  channel-participation:
+    enabled: false
+    cron: "-"
   membership:
     enabled: false
     cron: "-"

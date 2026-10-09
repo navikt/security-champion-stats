@@ -12,6 +12,10 @@ enum class ParticipationStatus {
     DEACTIVATED,
 }
 
+enum class DeactivationReason {
+    SLACK_CHANNEL_DEPARTURE,
+}
+
 data class ProgramParticipant(
     val id: UUID,
     val navNoEmail: String,
@@ -21,6 +25,7 @@ data class ProgramParticipant(
     val teams: List<String>,
     val status: ParticipationStatus,
     val createdAt: String,
+    val deactivationReason: DeactivationReason? = null,
 )
 
 data class ParticipantProfile(

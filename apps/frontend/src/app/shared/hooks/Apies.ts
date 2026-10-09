@@ -18,6 +18,7 @@ import type {
 	SlackMembershipConfiguration,
 	SlackMembershipPreview,
 	SlackMembershipAnnouncement,
+	SlackChannelParticipationOverview,
 	HistoryPage,
 	AuditResponse,
 	AuditCategory,
@@ -62,6 +63,15 @@ export const Apies = {
 			throw new Error("We couldn't fetch audit events. Try again.");
 		}
 		return response.json();
+	},
+	getSlackChannelParticipation: async (): Promise<SlackChannelParticipationOverview> => {
+		const res = await fetch("/api/admin/slack/channel-participation");
+		if (!res.ok) throw new Error("We couldn't load channel participation. Try again.");
+		return res.json();
+	},
+	triggerSlackChannelParticipationCheck: async (): Promise<number> => {
+		const res = await fetch("/api/admin/slack/channel-participation/check", { method: "POST" });
+		return res.status;
 	},
 	getSlackMembershipConfiguration: async (): Promise<SlackMembershipConfiguration> => {
 		const res = await fetch("/api/admin/slack/membership");

@@ -11,6 +11,7 @@ class SlackIntegrationException(operation: Operation, errorCode: String?) :
         GROUP_MEMBERS("usergroups.users.list"),
         GROUP_UPDATE("usergroups.users.update"),
         POST_MESSAGE("chat.postMessage"),
+        CHANNEL_MEMBERS("conversations.members"),
     }
 
     companion object {

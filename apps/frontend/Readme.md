@@ -21,7 +21,9 @@ adjustments without rewriting original credits, manual corrections, or closed se
 activities are still recorded. If a preview becomes stale, reload configuration and preview again.
 The admin program dashboard summarizes participation and points by activity, highlights items needing attention,
 shows weekly points and Slack/Delta/GitHub sync health, and lets administrators trigger enabled syncs.
-The Slack administration page (`/appsec/slack`) also manages group membership operations.
+The Slack administration page (`/appsec/slack`) shows channel participation first: active participants outside the
+program channel, participants deactivated after leaving it with their notice status, and unresolved Slack accounts.
+Administrators can queue a channel check there. The page also manages account mappings and group membership operations.
 All operations go through authenticated frontend API proxies; no manually obtained backend token is needed.
 It shows enabled/dry-run configuration, previews group additions/removals and unresolved participants,
 and lets administrators save verified Slack account mappings for participants who have not posted messages.

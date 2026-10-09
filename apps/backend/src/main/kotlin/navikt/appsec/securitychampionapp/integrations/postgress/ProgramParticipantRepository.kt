@@ -1,5 +1,6 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
+import navikt.appsec.securitychampionapp.app.participation.DeactivationReason
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.app.participation.ProgramParticipant
@@ -26,6 +27,7 @@ class ProgramParticipantRepository(
             teams = teams,
             status = ParticipationStatus.valueOf(rs.getString("status")),
             createdAt = rs.getString("created_at"),
+            deactivationReason = rs.getString("deactivation_reason")?.let(DeactivationReason::valueOf),
         )
     }
 
@@ -134,7 +136,7 @@ class ProgramParticipantRepository(
             ),
             changed AS (
                 UPDATE program_participants AS participant
-                SET status = ?, updated_at = NOW()
+                SET status = ?, deactivation_reason = NULL, updated_at = NOW()
                 FROM target
                 WHERE participant.id = target.id
                 RETURNING participant.id, participant.status

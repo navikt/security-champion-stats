@@ -12,7 +12,7 @@ vi.mock("@/app/view/HomeView", () => ({
 afterEach(() => vi.restoreAllMocks());
 
 describe("Slack administration page", () => {
-	it("mounts membership operations alongside existing mappings for administrators", async () => {
+	it("mounts channel participation, mappings and membership operations for administrators", async () => {
 		authenticated(true);
 		vi.spyOn(Apies, "getAdminParticipants").mockResolvedValue([]);
 		vi.spyOn(Apies, "getSlackMappingOverview").mockResolvedValue({
@@ -24,11 +24,23 @@ describe("Slack administration page", () => {
 			dryRun: true,
 		});
 		vi.spyOn(Apies, "getSlackMembershipAnnouncements").mockResolvedValue([]);
+		vi.spyOn(Apies, "getSlackChannelParticipation").mockResolvedValue({
+			enabled: false,
+			channelConfigured: true,
+			lastAttemptAt: null,
+			lastSuccessAt: null,
+			outcome: null,
+			failureSummary: null,
+			participants: [],
+		});
 
 		render(<Page />);
 
 		expect(
-			await screen.findByRole("heading", { name: "Manage Slack mappings" }),
+			await screen.findByRole("heading", { level: 1, name: "Slack administration" }),
+		).toBeInTheDocument();
+		expect(
+			await screen.findByText("Channel monitoring is disabled."),
 		).toBeInTheDocument();
 		expect(
 			await screen.findByText("Membership sync is disabled."),
@@ -43,6 +55,7 @@ describe("Slack administration page", () => {
 		const mappings = vi.spyOn(Apies, "getSlackMappingOverview");
 		const configuration = vi.spyOn(Apies, "getSlackMembershipConfiguration");
 		const announcements = vi.spyOn(Apies, "getSlackMembershipAnnouncements");
+		const channel = vi.spyOn(Apies, "getSlackChannelParticipation");
 
 		render(<Page />);
 
@@ -51,6 +64,7 @@ describe("Slack administration page", () => {
 			expect(mappings).not.toHaveBeenCalled();
 			expect(configuration).not.toHaveBeenCalled();
 			expect(announcements).not.toHaveBeenCalled();
+			expect(channel).not.toHaveBeenCalled();
 		});
 	});
 });

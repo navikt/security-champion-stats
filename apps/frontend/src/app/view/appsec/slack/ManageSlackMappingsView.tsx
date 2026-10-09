@@ -79,7 +79,7 @@ export function ManageSlackMappingsView({
 	return (
 		<VStack gap="space-24">
 			<VStack gap="space-4">
-				<Heading level="1" size="xlarge">Manage Slack mappings</Heading>
+				<Heading level="2" size="large">Account mappings</Heading>
 				<BodyShort>
 					Explicitly map Slack account IDs to program participants. Names are not used to infer identity.
 				</BodyShort>
@@ -89,7 +89,7 @@ export function ManageSlackMappingsView({
 
 			<section aria-labelledby="unmapped-heading">
 				<VStack gap="space-16">
-					<Heading level="2" size="large" id="unmapped-heading">Unmapped Slack accounts</Heading>
+					<Heading level="3" size="medium" id="unmapped-heading">Unmapped Slack accounts</Heading>
 					<Table size="small">
 						<Table.Header>
 							<Table.Row>
@@ -149,7 +149,7 @@ export function ManageSlackMappingsView({
 
 			<section aria-labelledby="mapped-heading">
 				<VStack gap="space-16">
-					<Heading level="2" size="large" id="mapped-heading">Approved mappings</Heading>
+					<Heading level="3" size="medium" id="mapped-heading">Approved mappings</Heading>
 					<Table size="small">
 						<Table.Header>
 							<Table.Row>

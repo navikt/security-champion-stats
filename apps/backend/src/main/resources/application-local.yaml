@@ -31,6 +31,9 @@ spring:
 graph:
   apiUrl: http://localhost:8081/mock/graph
 slack:
+  channel-participation:
+    enabled: false
+    cron: "-"
   membership:
     enabled: false
     cron: "-"

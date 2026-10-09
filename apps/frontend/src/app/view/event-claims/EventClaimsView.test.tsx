@@ -7,6 +7,7 @@ import {
 	within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
 import { useMe } from "@/app/shared/hooks/UseMe";
 import { Apies } from "@/app/shared/hooks/Apies";
 import {
@@ -93,6 +94,99 @@ afterEach(() => {
 });
 
 describe("Event claims", () => {
+	it.each([false, true])(
+		"starts fully approved claims closed and allows expanding them (admin: %s)",
+		async (admin) => {
+			vi.mocked(EventClaimsApi.overview).mockResolvedValue({
+				...overview,
+				claims: [
+					{
+						...claim,
+						contributors: claim.contributors.map((contributor) => ({
+							...contributor,
+							status: "APPROVED",
+							creditId: `credit-${contributor.participantId}`,
+						})),
+					},
+				],
+			});
+			render(<EventClaimsView admin={admin} />);
+			const card = await screen.findByRole("region", {
+				name: "Security workshop",
+			});
+			const toggle = within(card).getByRole("button", { expanded: false });
+			expect(toggle).toHaveAttribute("aria-expanded", "false");
+			expect(within(card).getByText("Approved")).toHaveAttribute(
+				"data-color",
+				"success",
+			);
+			expect(card).toHaveTextContent("2 approved");
+			expect(within(card).queryByRole("article")).not.toBeInTheDocument();
+			const user = userEvent.setup();
+			toggle.focus();
+			await user.keyboard("{Enter}");
+			expect(toggle).toHaveAttribute("aria-expanded", "true");
+			expect(within(card).getByRole("article")).toHaveTextContent(
+				claim.description,
+			);
+			await user.keyboard(" ");
+			expect(toggle).toHaveAttribute("aria-expanded", "false");
+		},
+	);
+
+	it.each([
+		["PENDING", "PENDING", "Pending review", "warning", "2 pending"],
+		[
+			"APPROVED",
+			"PENDING",
+			"Partially approved",
+			"warning",
+			"1 pending, 1 approved",
+		],
+		[
+			"APPROVED",
+			"REJECTED",
+			"Partially approved",
+			"warning",
+			"1 approved, 1 rejected",
+		],
+		["REJECTED", "REJECTED", "Rejected", "danger", "2 rejected"],
+		["REVOKED", "REVOKED", "Revoked", "danger", "2 revoked"],
+		["REJECTED", "REVOKED", "Not approved", "danger", "1 rejected, 1 revoked"],
+	] as const)(
+		"keeps %s/%s claims open with a %s summary even when published",
+		async (firstStatus, secondStatus, label, color, summary) => {
+			vi.mocked(EventClaimsApi.overview).mockResolvedValue({
+				...overview,
+				claims: [
+					{
+						...claim,
+						published: true,
+						contributors: [
+							{ ...claim.contributors[0], status: firstStatus },
+							{ ...claim.contributors[1], status: secondStatus },
+						],
+					},
+				],
+			});
+			render(<EventClaimsView admin />);
+			const card = await screen.findByRole("region", {
+				name: "Security workshop",
+			});
+			const toggle = within(card).getByRole("button", { expanded: true });
+			expect(toggle).toHaveAttribute("aria-expanded", "true");
+			expect(within(card).getByText(label)).toHaveAttribute(
+				"data-color",
+				color,
+			);
+			expect(card).toHaveTextContent(summary);
+			expect(screen.getByText(claim.description)).toBeVisible();
+			fireEvent.click(toggle);
+			expect(toggle).toHaveAttribute("aria-expanded", "false");
+			expect(within(card).getByText(label)).toBeVisible();
+		},
+	);
+
 	it("shows current-season past events newest first with dates", () => {
 		const meetup = {
 			id: "",
@@ -256,6 +350,64 @@ describe("Event claims", () => {
 		).not.toBeInTheDocument();
 	});
 
+	it("keeps the final approval confirmation visible and preserves a manual collapse on refresh", async () => {
+		const partlyApproved: EventClaim = {
+			...claim,
+			contributors: [
+				{
+					...claim.contributors[0],
+					status: "APPROVED",
+					creditId: "credit-host",
+				},
+				claim.contributors[1],
+			],
+		};
+		const fullyApproved: EventClaim = {
+			...partlyApproved,
+			version: 2,
+			contributors: partlyApproved.contributors.map((contributor) => ({
+				...contributor,
+				status: "APPROVED",
+				creditId: `credit-${contributor.participantId}`,
+			})),
+		};
+		vi.mocked(EventClaimsApi.overview).mockResolvedValue({
+			...overview,
+			claims: [partlyApproved],
+		});
+		vi.mocked(EventClaimsApi.review).mockResolvedValue(fullyApproved);
+		render(<EventClaimsView admin />);
+		const card = await screen.findByRole("region", { name: claim.name });
+		const toggle = within(card).getByRole("button", { expanded: true });
+		fireEvent.change(screen.getByLabelText(`Review reason for ${claim.name}`), {
+			target: { value: "Verified delivery and invitation" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Approve Co-host" }));
+		expect(await within(card).findByRole("status")).toHaveTextContent(
+			"Contribution approved.",
+		);
+		expect(within(card).getByText("Approved")).toHaveAttribute(
+			"data-color",
+			"success",
+		);
+		expect(toggle).toHaveAttribute("aria-expanded", "true");
+		fireEvent.click(toggle);
+		vi.mocked(EventClaimsApi.overview).mockResolvedValue({
+			...overview,
+			claims: [fullyApproved],
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Refresh claims" }));
+		await waitFor(() =>
+			expect(EventClaimsApi.overview).toHaveBeenCalledTimes(2),
+		);
+		await waitFor(() =>
+			expect(
+				screen.getByRole("button", { name: "Refresh claims" }),
+			).not.toBeDisabled(),
+		);
+		expect(toggle).toHaveAttribute("aria-expanded", "false");
+	});
+
 	it("requires confirmation before revoking credit", async () => {
 		vi.mocked(EventClaimsApi.overview).mockResolvedValue({
 			...overview,
@@ -274,6 +426,11 @@ describe("Event claims", () => {
 		});
 		const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
 		render(<EventClaimsView admin />);
+		fireEvent.click(
+			within(
+				await screen.findByRole("region", { name: "Security workshop" }),
+			).getByRole("button", { expanded: false }),
+		);
 		await screen.findByRole("button", { name: "Revoke credit for Co-host" });
 		fireEvent.change(
 			screen.getByLabelText("Review reason for Security workshop"),

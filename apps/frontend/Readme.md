@@ -47,6 +47,9 @@ contribution value in the event's season and the first approval publishes the ev
 Approved claims are locked; administrators can revoke credit with a reason and confirmation without
 removing the public event. Review history remains visible to contributors and administrators, with
 subject names retained when a contributor is removed from a revised claim or becomes inactive.
+Both claim pages use collapsible cards with event dates, colored approval labels, and contributor-status
+counts in the header. Fully approved claims start closed; other claims start open. Expand a card to view
+evidence, review history, or available actions. Publication does not imply that all contributors are approved.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
 The favicon is a locally bundled copy of the Security Champion logo from

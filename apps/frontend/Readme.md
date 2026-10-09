@@ -58,6 +58,8 @@ counts in the header. Fully approved claims start closed; other claims start ope
 evidence, review history, or available actions. Publication does not imply that all contributors are approved.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
+Page content aligns left within the main layout's shared responsive gutters. The `.hubRedesign` wrapper
+keeps history, dashboard, and audit pages left-aligned while retaining their maximum content width.
 The favicon is a locally bundled copy of the Security Champion logo from
 https://sikkerhet.nav.no/img/SecurityChampion.svg (`src/app/icon.svg`).
 The optional Hacker theme adds a Matrix-inspired overview and shell; its rain, CRT, and phosphor

@@ -508,6 +508,629 @@ html.hacker .hubRedesign {
 	gap: var(--ax-space-16);
 }
 
+.scoringView {
+	gap: var(--ax-space-20);
+}
+
+.scoringView__header {
+	gap: var(--ax-space-4);
+}
+
+.scoringView__header > p {
+	margin: 0;
+}
+
+.scoringView__notice {
+	color: var(--hub-accent);
+}
+
+.scoringView__season {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ax-space-16) var(--ax-space-32);
+	border-radius: var(--ax-radius-12);
+}
+
+.scoringView__seasonInfo,
+.scoringView__nextSeason {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ax-space-8) var(--ax-space-12);
+}
+
+.scoringView__seasonInfo {
+	min-width: max-content;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--ax-space-4);
+}
+
+.scoringView__seasonTitle,
+.scoringView__participantStatus {
+	display: flex;
+	align-items: center;
+	gap: var(--ax-space-8);
+}
+
+.scoringView__seasonTitle h2,
+.scoringView__paneHeader h3,
+.scoringView__participantsHeader h2 {
+	margin: 0;
+}
+
+.scoringView__nextSeason {
+	min-width: 0;
+	padding-inline-start: var(--ax-space-24);
+	border-inline-start: 1px solid var(--hub-border);
+}
+
+.scoringView__dateField {
+	width: min(100%, 13rem);
+}
+
+.scoringView__reset {
+	display: flex;
+	flex: 1 1 18rem;
+	justify-content: flex-end;
+}
+
+.scoringView__resetConfirm {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--ax-space-8);
+}
+
+.scoringView__warning,
+.scoringView__error {
+	color: var(--hub-danger);
+}
+
+.scoringView__errorBlock {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ax-space-8);
+}
+
+.scoringView__resetReason {
+	width: min(100%, 16rem);
+}
+
+.scoringView__saved {
+	color: var(--hub-accent);
+	font-weight: 600;
+}
+
+.scoringView__rules,
+.scoringView__participants {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	border-radius: var(--ax-radius-12);
+}
+
+.scoringView__rulesHeader {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ax-space-4);
+	padding: var(--ax-space-16) var(--ax-space-20) var(--ax-space-12);
+}
+
+.scoringView__rulesHeader h2,
+.scoringView__rulesHeader p {
+	margin: 0;
+}
+
+.scoringView__rulesPanes {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 23.75rem), 1fr));
+	gap: 1px;
+	background: var(--hub-border);
+	border-block: 1px solid var(--hub-border);
+}
+
+.scoringView__pane {
+	min-width: 0;
+	padding: var(--ax-space-16) var(--ax-space-20);
+	background: var(--hub-surface);
+}
+
+.scoringView__paneHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--ax-space-8);
+	margin-block-end: var(--ax-space-12);
+}
+
+.scoringView__tierTable {
+	width: 100%;
+	table-layout: fixed;
+}
+
+.scoringView__tierRow {
+	display: grid;
+	grid-template-columns: var(--ax-space-20) minmax(5rem, 1fr) minmax(
+			5.5rem,
+			7rem
+		) minmax(2.5rem, 4.375rem) var(--ax-space-28);
+	gap: var(--ax-space-8);
+	align-items: center;
+	border-block-end: 1px solid var(--hub-border-subtle);
+}
+
+.scoringView__tierTable th,
+.scoringView__tierTable td {
+	min-width: 0;
+	padding: var(--ax-space-4) 0;
+	vertical-align: middle;
+}
+
+.scoringView__tierRow--header {
+	color: var(--hub-text-muted);
+	font-size: var(--ax-font-size-small);
+	font-weight: 600;
+}
+
+.scoringView__alignEnd {
+	text-align: end;
+}
+
+.scoringView__compactField {
+	min-width: 0;
+}
+
+.scoringView__compactField input,
+.scoringView__numberInput input {
+	min-width: 0;
+	font-size: var(--ax-font-size-small);
+}
+
+.scoringView__numberInput {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	border: 1px solid var(--hub-border-strong);
+	border-radius: var(--ax-radius-8);
+	background: var(--hub-bg);
+}
+
+.scoringView__numberInput > div {
+	min-width: 0;
+	flex: 1;
+}
+
+.scoringView__numberInput input {
+	border: 0;
+	background: transparent;
+}
+
+.scoringView__numberInput > span {
+	flex: 0 0 auto;
+	padding-inline: var(--ax-space-8);
+	color: var(--hub-text-muted);
+	font-size: var(--ax-font-size-small);
+}
+
+.scoringView__numberInput[data-invalid="true"] {
+	border-color: var(--hub-danger);
+}
+
+.scoringView__tierTable tbody tr:first-child .scoringView__numberInput {
+	opacity: 0.6;
+}
+
+.scoringView__numberInput[data-warning="true"] {
+	border-color: color-mix(
+		in srgb,
+		var(--hub-warning) 60%,
+		var(--hub-border-strong)
+	);
+}
+
+.scoringView__validation {
+	margin-block-start: var(--ax-space-8);
+	color: var(--hub-danger);
+	font-size: var(--ax-font-size-small);
+}
+
+.scoringView__addTier {
+	margin-block-start: var(--ax-space-8);
+}
+
+.scoringView__activities > * + * {
+	border-block-start: 1px solid var(--hub-border-subtle);
+}
+
+.scoringView__activityRow {
+	display: grid;
+	grid-template-columns: var(--ax-space-8) minmax(0, 1fr) minmax(5.5rem, 6rem);
+	gap: var(--ax-space-8);
+	align-items: center;
+	padding-block: var(--ax-space-6);
+}
+
+.scoringView__activityDot {
+	width: var(--ax-space-8);
+	height: var(--ax-space-8);
+	border-radius: var(--ax-radius-2);
+}
+
+.scoringView__activityDot--slack {
+	background: var(--sc-info);
+}
+
+.scoringView__activityDot--event {
+	background: var(--sc-primary);
+}
+
+.scoringView__activityDot--commit {
+	background: var(--sc-success);
+}
+
+.scoringView__activityDot--pullRequest {
+	background: var(--sc-warning);
+}
+
+.scoringView__activityDot--securityEvent {
+	background: var(--sc-danger);
+}
+
+.scoringView__activityName {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.scoringView__wasValue {
+	color: var(--hub-warning);
+}
+
+.scoringView__changeBar {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ax-space-8);
+	padding: var(--ax-space-12) var(--ax-space-20);
+	border-block-start: 1px solid var(--hub-border);
+	background: var(--hub-inset);
+}
+
+.scoringView__changeRow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ax-space-8) var(--ax-space-12);
+}
+
+.scoringView__changeRow > p {
+	margin: 0;
+}
+
+.scoringView__unsaved {
+	color: var(--hub-warning);
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.scoringView__reasonField {
+	min-width: min(100%, 13.75rem);
+	flex: 1 1 13.75rem;
+}
+
+.scoringView__retroactiveHelp {
+	margin: calc(-1 * var(--ax-space-8)) 0 0
+		calc(var(--ax-space-32) + var(--ax-space-4));
+	color: var(--hub-text-secondary);
+}
+
+.scoringView__preview {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ax-space-16);
+	margin-block-start: var(--ax-space-8);
+}
+
+.scoringView__previewGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.25rem), 1fr));
+	gap: var(--ax-space-20);
+}
+
+.scoringView__previewGrid h4 {
+	margin-block: 0 var(--ax-space-8);
+}
+
+.scoringView__previewList {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ax-space-4);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.scoringView__previewList li {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: var(--ax-space-4) var(--ax-space-12);
+}
+
+.scoringView__previewValue {
+	font-variant-numeric: tabular-nums;
+	text-align: end;
+}
+
+.scoringView__previewNote {
+	margin-block-start: var(--ax-space-8);
+	color: var(--hub-text-secondary);
+}
+
+.scoringView__previewActions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: var(--ax-space-8);
+}
+
+.scoringView__participantsHeader {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--ax-space-12);
+	padding: var(--ax-space-16) var(--ax-space-20);
+}
+
+.scoringView__participantsHeader > div:first-child {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ax-space-4);
+}
+
+.scoringView__participantTools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ax-space-8);
+}
+
+.scoringView__activeFilter {
+	display: flex;
+	align-items: center;
+	gap: var(--ax-space-2);
+	min-width: 0;
+	margin: 0;
+	padding: var(--ax-space-2);
+	border: 1px solid var(--hub-border-strong);
+	border-radius: var(--ax-radius-8);
+	background: var(--hub-bg);
+}
+
+.scoringView__filterLegend {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	clip-path: inset(50%);
+}
+
+.scoringView__activeFilter button[aria-pressed="true"] {
+	background: var(--hub-hover);
+	font-weight: 600;
+}
+
+.scoringView__search {
+	width: min(100%, 20rem);
+}
+
+.scoringView__participantTable {
+	max-width: 100%;
+	overflow-x: auto;
+	border-block-start: 1px solid var(--hub-border);
+}
+
+.scoringView__participantTable table {
+	min-width: 45rem;
+}
+
+.scoringView__participantTable th,
+.scoringView__participantTable td {
+	vertical-align: middle;
+}
+
+.scoringView__participantTable tbody tr:hover {
+	background: var(--hub-hover);
+}
+
+.scoringView__participantIdentity {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.scoringView__participantIdentity strong {
+	font-size: var(--ax-font-size-medium);
+}
+
+.scoringView__participantIdentity span {
+	overflow: hidden;
+	color: var(--hub-text-secondary);
+	font-size: var(--ax-font-size-small);
+	text-overflow: ellipsis;
+}
+
+.scoringView__participantStatus {
+	color: var(--hub-accent);
+	white-space: nowrap;
+}
+
+.scoringView__participantRow--inactive .scoringView__participantStatus {
+	color: var(--hub-text-secondary);
+}
+
+.scoringView__statusDot {
+	display: inline-block;
+	width: var(--ax-space-6);
+	height: var(--ax-space-6);
+	border-radius: var(--ax-radius-full);
+	background: var(--hub-accent);
+}
+
+.scoringView__statusDot--inactive {
+	background: var(--hub-text-muted);
+}
+
+.scoringView__tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+.scoringView__points {
+	font-weight: 700;
+}
+
+.scoringView__participantActions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ax-space-4);
+}
+
+.scoringView__participantTable .scoringView__adjustCell {
+	padding: 0;
+	background: var(--hub-inset);
+}
+
+.scoringView__adjustRow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--ax-space-8);
+	padding: var(--ax-space-12) var(--ax-space-20) var(--ax-space-12)
+		var(--ax-space-56);
+}
+
+.scoringView__adjustLabel {
+	align-self: center;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.scoringView__adjustDelta {
+	width: 5.625rem;
+}
+
+.scoringView__adjustReason {
+	min-width: min(100%, 13.75rem);
+	flex: 1 1 13.75rem;
+}
+
+.scoringView__sourceCredit {
+	min-width: min(100%, 18rem);
+}
+
+.scoringView__adjustPreview {
+	align-self: center;
+	color: var(--hub-text-secondary);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.scoringView__adjustRow > p[role="alert"] {
+	flex: 1 0 100%;
+}
+
+.scoringView__participantRow--highlighted {
+	animation: scoringParticipantHighlight 1.5s ease-out;
+}
+
+@keyframes scoringParticipantHighlight {
+	from {
+		background: var(--hub-accent-soft);
+	}
+	to {
+		background: transparent;
+	}
+}
+
+@media (max-width: 50rem) {
+	.scoringView__season {
+		align-items: flex-start;
+	}
+
+	.scoringView__nextSeason {
+		padding-inline-start: 0;
+		border-inline-start: 0;
+	}
+
+	.scoringView__reset {
+		flex-basis: 100%;
+		justify-content: flex-start;
+	}
+}
+
+@media (max-width: 48rem) {
+	.scoringView__participantsHeader {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.scoringView__participantTools,
+	.scoringView__search {
+		width: 100%;
+	}
+
+	.scoringView__participantTable table {
+		min-width: 45rem;
+	}
+
+	.scoringView__adjustRow {
+		padding-inline: var(--ax-space-12);
+	}
+}
+
+@media (max-width: 30rem) {
+	.scoringView__seasonInfo {
+		min-width: 0;
+	}
+
+	.scoringView__tierRow {
+		grid-template-columns: var(--ax-space-16) minmax(3.5rem, 1fr) minmax(
+				4.25rem,
+				5rem
+			) minmax(2rem, 3rem) var(--ax-space-20);
+		gap: var(--ax-space-4);
+	}
+
+	.scoringView__pane {
+		padding-inline: var(--ax-space-12);
+	}
+
+	.scoringView__rulesHeader,
+	.scoringView__changeBar {
+		padding-inline: var(--ax-space-12);
+	}
+
+	.scoringView__activityRow {
+		grid-template-columns: var(--ax-space-8) minmax(0, 1fr) minmax(
+				4.25rem,
+				5.5rem
+			);
+		gap: var(--ax-space-4);
+	}
+
+	.scoringView__participantsHeader {
+		padding-inline: var(--ax-space-12);
+	}
+}
+
 .dashboardView__kpis {
 	width: 100%;
 }

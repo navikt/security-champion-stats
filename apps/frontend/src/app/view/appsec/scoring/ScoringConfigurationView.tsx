@@ -1,32 +1,57 @@
 "use client";
 
-import { Apies } from "@/app/shared/hooks/Apies";
-import type {
-	ActivityCredit,
-	ScoringConfiguration,
-	ScoringConfigurationPreview,
-	ScoringConfigurationRequest,
-	ScoringTier,
-} from "@/app/utils/Variables";
 import {
 	BodyShort,
+	Box,
 	Button,
 	Checkbox,
 	Heading,
-	Modal,
 	Table,
 	TextField,
-	VStack,
 } from "@navikt/ds-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Apies } from "@/app/shared/hooks/Apies";
+import type {
+	AdminParticipantScore,
+	ScoringConfiguration,
+	ScoringConfigurationPreview,
+	ScoringConfigurationRequest,
+} from "@/app/utils/Variables";
 
-const activityLabels: Record<ActivityCredit["creditType"], string> = {
-	SLACK_WEEK: "Weekly Slack participation",
-	DELTA_REGISTRATION: "Delta event registration",
-	GITHUB_COMMIT: "Standalone playbook commit",
-	GITHUB_PULL_REQUEST: "Merged playbook pull request",
-	SECURITY_EVENT_CONTRIBUTION: "Security-event contribution",
+const ACTIVITY_TYPES = [
+	{
+		creditType: "SLACK_WEEK",
+		label: "Weekly Slack participation",
+		color: "slack",
+	},
+	{
+		creditType: "DELTA_REGISTRATION",
+		label: "Delta event registration",
+		color: "event",
+	},
+	{
+		creditType: "GITHUB_COMMIT",
+		label: "Standalone playbook commit",
+		color: "commit",
+	},
+	{
+		creditType: "GITHUB_PULL_REQUEST",
+		label: "Merged playbook pull request",
+		color: "pullRequest",
+	},
+	{
+		creditType: "SECURITY_EVENT_CONTRIBUTION",
+		label: "Security-event contribution",
+		color: "securityEvent",
+	},
+] as const;
+
+type DraftTier = { id: number; name: string; points: string };
+type DraftActivity = {
+	creditType: ScoringConfiguration["activities"][number]["creditType"];
+	points: string;
 };
+type RuleChange = { label: string; oldValue: string; newValue: string };
 
 function wholeNumber(value: string): number | null {
 	const number = Number(value);
@@ -37,97 +62,306 @@ function wholeNumber(value: string): number | null {
 		: null;
 }
 
+function draftTiers(configuration: ScoringConfiguration): DraftTier[] {
+	return configuration.tiers.map((tier, index) => ({
+		id: index,
+		name: tier.name,
+		points: String(tier.points),
+	}));
+}
+
+function draftActivities(configuration: ScoringConfiguration): DraftActivity[] {
+	return ACTIVITY_TYPES.map(({ creditType }) => ({
+		creditType,
+		points: String(
+			configuration.activities.find(
+				(activity) => activity.creditType === creditType,
+			)?.points ?? 0,
+		),
+	}));
+}
+
+function tierValidationError(tiers: DraftTier[]): string | null {
+	if (tiers.length === 0 || tiers.length > 50) {
+		return "Use between 1 and 50 tiers.";
+	}
+	if (tiers.some((tier) => !tier.name.trim())) {
+		return "Every tier needs a name.";
+	}
+	if (tiers.some((tier) => tier.name.trim().length > 80)) {
+		return "Tier names must be 80 characters or fewer.";
+	}
+	if (
+		new Set(tiers.map((tier) => tier.name.trim().toLocaleLowerCase())).size !==
+		tiers.length
+	) {
+		return "Tier names must be unique.";
+	}
+	const minimums = tiers.map((tier) => wholeNumber(tier.points));
+	if (minimums.some((minimum) => minimum === null)) {
+		return "Enter a non-negative whole number for every tier minimum.";
+	}
+	if (minimums[0] !== 0) {
+		return "The first tier must start at zero points.";
+	}
+	if (
+		minimums.some((minimum, index) => {
+			const previous = minimums[index - 1];
+			return (
+				index > 0 &&
+				minimum !== null &&
+				previous !== null &&
+				previous !== undefined &&
+				minimum <= previous
+			);
+		})
+	) {
+		return "Tier minimums must increase in order.";
+	}
+	return null;
+}
+
+function buildRuleChanges(
+	saved: ScoringConfiguration,
+	tiers: DraftTier[],
+	activities: DraftActivity[],
+): RuleChange[] {
+	const changes: RuleChange[] = [];
+	const savedById = new Map(saved.tiers.map((tier, index) => [index, tier]));
+	const draftById = new Map(tiers.map((tier) => [tier.id, tier]));
+
+	for (const [id, before] of savedById) {
+		const after = draftById.get(id);
+		if (!after) {
+			changes.push({
+				label: `Tier "${before.name}"`,
+				oldValue: `from ${before.points}`,
+				newValue: "removed",
+			});
+			continue;
+		}
+		if (before.name !== after.name.trim()) {
+			changes.push({
+				label: `Tier ${after.name.trim() || before.name} name`,
+				oldValue: before.name,
+				newValue: after.name.trim(),
+			});
+		}
+		const points = wholeNumber(after.points);
+		if (points === null || before.points !== points) {
+			changes.push({
+				label: `Tier ${after.name.trim() || before.name} minimum`,
+				oldValue: String(before.points),
+				newValue: after.points,
+			});
+		}
+	}
+
+	for (const tier of tiers) {
+		if (savedById.has(tier.id)) continue;
+		changes.push({
+			label: `New tier "${tier.name.trim() || "unnamed"}"`,
+			oldValue: "—",
+			newValue: `from ${tier.points}`,
+		});
+	}
+
+	for (const activity of activities) {
+		const before =
+			saved.activities.find((item) => item.creditType === activity.creditType)
+				?.points ?? 0;
+		const points = wholeNumber(activity.points);
+		if (points === null || before !== points) {
+			const label =
+				ACTIVITY_TYPES.find((item) => item.creditType === activity.creditType)
+					?.label ?? activity.creditType;
+			changes.push({
+				label,
+				oldValue: String(before),
+				newValue: activity.points,
+			});
+		}
+	}
+	return changes;
+}
+
 export function ScoringConfigurationView({
 	configuration,
+	participants,
 	onRefresh,
 	onSaved,
 }: {
 	configuration: ScoringConfiguration;
-	onRefresh: () => Promise<void>;
+	participants: AdminParticipantScore[];
+	onRefresh: () => Promise<{ configuration: ScoringConfiguration } | null>;
 	onSaved: () => void;
 }) {
-	const [tiers, setTiers] = useState(() =>
-		configuration.tiers.map((tier, index) => ({
-			id: index,
-			name: tier.name,
-			points: String(tier.points),
-		})),
-	);
-	const [nextId, setNextId] = useState(tiers.length);
+	const [saved, setSaved] = useState(configuration);
+	const [tiers, setTiers] = useState(() => draftTiers(configuration));
 	const [activities, setActivities] = useState(() =>
-		configuration.activities.map((activity) => ({
-			creditType: activity.creditType,
-			points: String(activity.points),
-		})),
+		draftActivities(configuration),
 	);
-	const [retroactive, setRetroactive] = useState(false);
+	const [nextId, setNextId] = useState(configuration.tiers.length);
 	const [reason, setReason] = useState("");
-	const [error, setError] = useState<string | null>(null);
+	const [retroactive, setRetroactive] = useState(false);
 	const [busy, setBusy] = useState(false);
-	const [review, setReview] = useState<{
+	const [error, setError] = useState<string | null>(null);
+	const [preview, setPreview] = useState<{
 		request: ScoringConfigurationRequest;
-		preview: ScoringConfigurationPreview;
+		result: ScoringConfigurationPreview;
 	} | null>(null);
+	const [lastAppliedAt, setLastAppliedAt] = useState<Date | null>(null);
+	const newTierNameRef = useRef<HTMLInputElement>(null);
+	const previewBackRef = useRef<HTMLButtonElement>(null);
+	const previousVersion = useRef(configuration.version);
+
+	const changes = useMemo(
+		() => buildRuleChanges(saved, tiers, activities),
+		[saved, tiers, activities],
+	);
+	const dirty = changes.length > 0;
+
+	useEffect(() => {
+		if (configuration.version === previousVersion.current) return;
+		previousVersion.current = configuration.version;
+		setSaved(configuration);
+		setTiers(draftTiers(configuration));
+		setActivities(draftActivities(configuration));
+		setNextId(configuration.tiers.length);
+		setReason("");
+		setRetroactive(false);
+		setPreview(null);
+		setError(null);
+	}, [configuration]);
+
+	useEffect(() => {
+		if (!dirty) return;
+		const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			event.returnValue = "";
+		};
+		const confirmRouteChange = (event: MouseEvent) => {
+			if (
+				event.defaultPrevented ||
+				event.button !== 0 ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.shiftKey ||
+				event.altKey
+			) {
+				return;
+			}
+			const target = event.target;
+			if (!(target instanceof Element)) return;
+			const link = target.closest("a[href]");
+			if (
+				!(link instanceof HTMLAnchorElement) ||
+				link.target ||
+				link.hasAttribute("download")
+			) {
+				return;
+			}
+			const destination = new URL(link.href, window.location.href);
+			if (
+				destination.origin !== window.location.origin ||
+				(destination.pathname === window.location.pathname &&
+					destination.search === window.location.search &&
+					destination.hash === window.location.hash)
+			) {
+				return;
+			}
+			if (
+				!window.confirm(
+					"You have unsaved scoring changes. Leave this page without saving?",
+				)
+			) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+			}
+		};
+		window.addEventListener("beforeunload", warnBeforeUnload);
+		document.addEventListener("click", confirmRouteChange, true);
+		return () => {
+			window.removeEventListener("beforeunload", warnBeforeUnload);
+			document.removeEventListener("click", confirmRouteChange, true);
+		};
+	}, [dirty]);
+
+	const currentTierError = tierValidationError(tiers);
+	const activityErrors = activities.map((activity) =>
+		wholeNumber(activity.points) === null
+			? "Enter a non-negative whole number."
+			: null,
+	);
+	const valid =
+		currentTierError === null && activityErrors.every((item) => !item);
+	const normalizedTiers = tiers.map((tier) => ({
+		name: tier.name.trim(),
+		points: wholeNumber(tier.points),
+	}));
+	const normalizedActivities = activities.map((activity) => ({
+		creditType: activity.creditType,
+		points: wholeNumber(activity.points),
+	}));
+	const tierNameDuplicates = new Set<string>();
+	const seenNames = new Set<string>();
+	for (const tier of tiers) {
+		const name = tier.name.trim().toLocaleLowerCase();
+		if (seenNames.has(name)) tierNameDuplicates.add(name);
+		seenNames.add(name);
+	}
+	const hasValidThresholds =
+		currentTierError === null &&
+		normalizedTiers.every(
+			(tier): tier is { name: string; points: number } => tier.points !== null,
+		);
+
+	const membersInTier = (index: number) => {
+		if (!hasValidThresholds) return "—";
+		const from = normalizedTiers[index].points;
+		const next = normalizedTiers[index + 1]?.points ?? Infinity;
+		if (from === null || next === null) return "—";
+		return String(
+			participants.filter(
+				(participant) =>
+					participant.active &&
+					participant.points >= from &&
+					participant.points < next,
+			).length,
+		);
+	};
+
+	const closePreview = () => setPreview(null);
+
+	const updateTier = (id: number, change: Partial<DraftTier>) => {
+		setTiers((current) =>
+			current.map((tier) => (tier.id === id ? { ...tier, ...change } : tier)),
+		);
+		setPreview(null);
+		setError(null);
+	};
 
 	const previewChanges = async () => {
-		if (busy) return;
-		setError(null);
-		const parsedTiers = tiers
-			.map((tier) => ({
-				name: tier.name.trim(),
-				points: wholeNumber(tier.points),
-			}))
-			.sort((a, b) => (a.points ?? -1) - (b.points ?? -1));
-		if (
-			parsedTiers.length === 0 ||
-			parsedTiers.length > 50 ||
-			!parsedTiers.every((tier): tier is ScoringTier => tier.points !== null) ||
-			parsedTiers[0].points !== 0 ||
-			parsedTiers.some((tier) => !tier.name || tier.name.length > 80) ||
-			new Set(parsedTiers.map((tier) => tier.name.toLowerCase())).size !==
-				parsedTiers.length ||
-			new Set(parsedTiers.map((tier) => tier.points)).size !==
-				parsedTiers.length
-		) {
-			setError(
-				"Use 1-50 unique tier names and distinct whole-number thresholds starting at zero.",
-			);
-			return;
-		}
-		const parsedActivities = activities.map((activity) => ({
-			creditType: activity.creditType,
-			points: wholeNumber(activity.points),
-		}));
-		if (
-			!parsedActivities.every(
-				(activity): activity is ScoringConfiguration["activities"][number] =>
-					activity.points !== null,
-			)
-		) {
-			setError("Enter a non-negative whole number for every activity.");
-			return;
-		}
-		if (!reason.trim() || reason.length > 1000) {
-			setError("Enter a reason of up to 1000 characters.");
-			return;
-		}
+		if (busy || !dirty || !valid || !reason.trim()) return;
 		const request: ScoringConfigurationRequest = {
-			expectedVersion: configuration.version,
-			tiers: parsedTiers.map((tier) => ({
+			expectedVersion: saved.version,
+			tiers: normalizedTiers.map((tier) => ({
 				name: tier.name,
-				points: tier.points,
+				points: tier.points ?? 0,
 			})),
-			activities: parsedActivities.map((activity) => ({
+			activities: normalizedActivities.map((activity) => ({
 				creditType: activity.creditType,
-				points: activity.points,
+				points: activity.points ?? 0,
 			})),
 			applyRetroactively: retroactive,
 			reason: reason.trim(),
 		};
 		setBusy(true);
+		setError(null);
 		try {
-			const preview = await Apies.previewScoringConfiguration(request);
-			setReview({ request, preview });
+			const result = await Apies.previewScoringConfiguration(request);
+			setPreview({ request, result });
+			requestAnimationFrame(() => previewBackRef.current?.focus());
 		} catch (cause) {
 			setError(
 				cause instanceof Error
@@ -139,14 +373,49 @@ export function ScoringConfigurationView({
 		}
 	};
 
-	const saveChanges = async () => {
-		if (!review || busy) return;
+	const discardChanges = () => {
+		setTiers(draftTiers(saved));
+		setActivities(draftActivities(saved));
+		setReason("");
+		setRetroactive(false);
+		setPreview(null);
+		setError(null);
+	};
+
+	const reloadConfiguration = async () => {
+		if (busy) return;
+		setBusy(true);
+		setError(null);
+		try {
+			const overview = await onRefresh();
+			if (!overview) {
+				setError("We couldn't reload scoring. Try again.");
+				return;
+			}
+			const current = overview.configuration;
+			previousVersion.current = current.version;
+			setSaved(current);
+			setTiers(draftTiers(current));
+			setActivities(draftActivities(current));
+			setNextId(current.tiers.length);
+			setReason("");
+			setRetroactive(false);
+			setPreview(null);
+		} catch {
+			setError("We couldn't reload scoring. Try again.");
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	const applyChanges = async () => {
+		if (!preview || busy) return;
 		setBusy(true);
 		setError(null);
 		try {
 			const status = await Apies.saveScoringConfiguration({
-				...review.request,
-				previewToken: review.preview.token,
+				...preview.request,
+				previewToken: preview.result.token,
 			});
 			if (status !== 200) {
 				setError(
@@ -154,249 +423,497 @@ export function ScoringConfigurationView({
 						? "Scoring changed. Reload the configuration and preview again."
 						: "We couldn't save the scoring changes. Try again.",
 				);
-				setReview(null);
 				return;
 			}
-			setReview(null);
+			const applied: ScoringConfiguration = {
+				version: saved.version + 1,
+				tiers: preview.request.tiers,
+				activities: preview.request.activities,
+			};
+			setSaved(applied);
+			setTiers(draftTiers(applied));
+			setActivities(draftActivities(applied));
+			setReason("");
+			setRetroactive(false);
+			setPreview(null);
+			setLastAppliedAt(new Date());
 			onSaved();
-			try {
-				await onRefresh();
-			} catch {
+			const overview = await onRefresh();
+			if (!overview) {
 				setError(
 					"Scoring was saved, but we couldn't refresh the dashboard. Reload configuration.",
 				);
 			}
 		} catch {
-			setError(
-				"We couldn't save the scoring changes. Reload the configuration before retrying.",
-			);
-			setReview(null);
+			setError("We couldn't save the scoring changes. Try again.");
 		} finally {
 			setBusy(false);
 		}
 	};
 
 	return (
-		<section aria-labelledby="scoring-configuration-heading">
-			<VStack gap="space-24">
-				<Heading level="2" size="large" id="scoring-configuration-heading">
-					Scoring rules and tiers
+		<Box
+			as="section"
+			aria-labelledby="scoring-configuration-heading"
+			className="hubRedesign__card scoringView__rules"
+			background="default"
+			borderColor="neutral-subtle"
+			borderWidth="1"
+			borderRadius="12"
+		>
+			<header className="scoringView__rulesHeader">
+				<Heading level="2" size="medium" id="scoring-configuration-heading">
+					Scoring rules
 				</Heading>
-				<BodyShort>
-					Tiers are shared across the program and update immediately. Activity
-					rules change point values, not which activities qualify. A zero-point
+				<BodyShort className="hubRedesign__muted">
+					Rules change point values, not which activities qualify. A zero-point
 					activity is still recorded.
 				</BodyShort>
-				<form
-					onSubmit={(event) => {
-						event.preventDefault();
-						void previewChanges();
-					}}
+			</header>
+
+			<div className="scoringView__rulesPanes">
+				<section
+					className="scoringView__pane"
+					aria-labelledby="scoring-tiers-heading"
 				>
-					<VStack gap="space-24">
-						<Heading level="3" size="medium">
-							Named tiers
+					<div className="scoringView__paneHeader">
+						<Heading level="3" size="small" id="scoring-tiers-heading">
+							Tiers
 						</Heading>
-						<BodyShort>
-							Enter each tier's minimum points. The first threshold must be
-							zero.
+						<BodyShort size="small" className="hubRedesign__muted">
+							Minimum points · first tier starts at 0
 						</BodyShort>
-						{tiers.map((tier, index) => (
-							<VStack gap="space-8" key={tier.id}>
-								<TextField
-									label={`Tier ${index + 1} name`}
-									value={tier.name}
-									maxLength={80}
-									onChange={(event) =>
-										setTiers(
-											tiers.map((item) =>
-												item.id === tier.id
-													? { ...item, name: event.target.value }
-													: item,
-											),
-										)
-									}
-								/>
-								<TextField
-									label={`Tier ${index + 1} minimum points`}
-									inputMode="numeric"
-									value={tier.points}
-									onChange={(event) =>
-										setTiers(
-											tiers.map((item) =>
-												item.id === tier.id
-													? { ...item, points: event.target.value }
-													: item,
-											),
-										)
-									}
-								/>
-								<Button
-									type="button"
-									variant="secondary"
-									size="small"
-									onClick={() =>
-										setTiers(tiers.filter((item) => item.id !== tier.id))
-									}
-								>
-									Remove tier {index + 1}
-								</Button>
-							</VStack>
-						))}
-						<Button
-							type="button"
-							variant="secondary"
-							onClick={() => {
-								setTiers([...tiers, { id: nextId, name: "", points: "" }]);
-								setNextId(nextId + 1);
-							}}
-						>
-							Add tier
-						</Button>
-						<Heading level="3" size="medium">
+					</div>
+					<Table
+						size="small"
+						className="scoringView__tierTable"
+						aria-label="Scoring tiers"
+					>
+						<Table.Header>
+							<Table.Row className="scoringView__tierRow scoringView__tierRow--header">
+								<Table.HeaderCell scope="col">#</Table.HeaderCell>
+								<Table.HeaderCell scope="col">Name</Table.HeaderCell>
+								<Table.HeaderCell scope="col">From</Table.HeaderCell>
+								<Table.HeaderCell scope="col" align="right">
+									Members
+								</Table.HeaderCell>
+								<Table.HeaderCell scope="col" aria-label="Actions" />
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{tiers.map((tier, index) => {
+								const duplicate = tierNameDuplicates.has(
+									tier.name.trim().toLocaleLowerCase(),
+								);
+								const minimum = wholeNumber(tier.points);
+								const previousMinimum =
+									index > 0 ? wholeNumber(tiers[index - 1].points) : null;
+								const minimumError =
+									minimum === null
+										? "Enter a non-negative whole number."
+										: previousMinimum !== null && minimum <= previousMinimum
+											? "Must be greater than the previous tier."
+											: undefined;
+								return (
+									<Table.Row className="scoringView__tierRow" key={tier.id}>
+										<Table.HeaderCell scope="row" className="hubRedesign__dim">
+											{index + 1}
+										</Table.HeaderCell>
+										<Table.DataCell>
+											<TextField
+												ref={
+													tier.id === nextId - 1 && index === tiers.length - 1
+														? newTierNameRef
+														: undefined
+												}
+												className="scoringView__compactField"
+												label={`Tier ${index + 1} name`}
+												hideLabel
+												value={tier.name}
+												maxLength={80}
+												error={
+													!tier.name.trim()
+														? "Enter a tier name."
+														: duplicate
+															? "Tier names must be unique."
+															: undefined
+												}
+												aria-invalid={!tier.name.trim() || duplicate}
+												onChange={(event) =>
+													updateTier(tier.id, { name: event.target.value })
+												}
+											/>
+										</Table.DataCell>
+										<Table.DataCell>
+											<div
+												className="scoringView__numberInput"
+												data-invalid={minimumError ? "true" : undefined}
+											>
+												<TextField
+													className="scoringView__compactField"
+													label={`Tier ${index + 1} minimum points`}
+													hideLabel
+													type="number"
+													inputMode="numeric"
+													min="0"
+													step="1"
+													readOnly={index === 0}
+													value={index === 0 ? "0" : tier.points}
+													error={minimumError}
+													aria-invalid={Boolean(minimumError)}
+													onChange={(event) =>
+														updateTier(tier.id, {
+															points: event.target.value,
+														})
+													}
+												/>
+												<span aria-hidden="true">pts</span>
+											</div>
+										</Table.DataCell>
+										<Table.DataCell
+											align="right"
+											className="scoringView__tabular"
+										>
+											{membersInTier(index)}
+										</Table.DataCell>
+										<Table.DataCell>
+											<Button
+												type="button"
+												size="xsmall"
+												variant="tertiary"
+												data-color="neutral"
+												disabled={index === 0}
+												aria-label={`Remove tier ${tier.name || index + 1}`}
+												onClick={() => {
+													setTiers((current) =>
+														current.filter((item) => item.id !== tier.id),
+													);
+													setPreview(null);
+													setError(null);
+												}}
+											>
+												×
+											</Button>
+										</Table.DataCell>
+									</Table.Row>
+								);
+							})}
+						</Table.Body>
+					</Table>
+					{currentTierError && (
+						<BodyShort className="scoringView__validation" role="alert">
+							{currentTierError}
+						</BodyShort>
+					)}
+					<Button
+						type="button"
+						size="small"
+						variant="tertiary"
+						className="scoringView__addTier"
+						disabled={tiers.length >= 50}
+						onClick={() => {
+							const lastMin = wholeNumber(tiers.at(-1)?.points ?? "0") ?? 0;
+							setTiers((current) => [
+								...current,
+								{
+									id: nextId,
+									name: "",
+									points: String(lastMin + 100),
+								},
+							]);
+							setNextId((value) => value + 1);
+							setPreview(null);
+							setError(null);
+							requestAnimationFrame(() => newTierNameRef.current?.focus());
+						}}
+					>
+						+ Add tier
+					</Button>
+				</section>
+
+				<section
+					className="scoringView__pane"
+					aria-labelledby="scoring-activities-heading"
+				>
+					<div className="scoringView__paneHeader">
+						<Heading level="3" size="small" id="scoring-activities-heading">
 							Activity points
 						</Heading>
-						{activities.map((activity) => (
+						<BodyShort size="small" className="hubRedesign__muted">
+							Per qualifying activity
+						</BodyShort>
+					</div>
+					<div className="scoringView__activities">
+						{activities.map((activity, index) => {
+							const details = ACTIVITY_TYPES.find(
+								(item) => item.creditType === activity.creditType,
+							);
+							if (!details) return null;
+							const original =
+								saved.activities.find(
+									(item) => item.creditType === activity.creditType,
+								)?.points ?? 0;
+							const changed = wholeNumber(activity.points) !== original;
+							return (
+								<div
+									className="scoringView__activityRow"
+									key={activity.creditType}
+								>
+									<span
+										className={`scoringView__activityDot scoringView__activityDot--${details.color}`}
+										aria-hidden="true"
+									/>
+									<div className="scoringView__activityName">
+										<span>{details.label}</span>
+										{changed && (
+											<BodyShort size="small" className="scoringView__wasValue">
+												was {original}
+											</BodyShort>
+										)}
+									</div>
+									<div
+										className="scoringView__numberInput"
+										data-warning={changed ? "true" : undefined}
+									>
+										<TextField
+											className="scoringView__compactField"
+											label={`${details.label} points`}
+											hideLabel
+											value={activity.points}
+											type="number"
+											inputMode="numeric"
+											min="0"
+											step="1"
+											aria-invalid={Boolean(activityErrors[index])}
+											error={activityErrors[index] ?? undefined}
+											onChange={(event) => {
+												setActivities((current) =>
+													current.map((item) =>
+														item.creditType === activity.creditType
+															? { ...item, points: event.target.value }
+															: item,
+													),
+												);
+												setPreview(null);
+												setError(null);
+											}}
+										/>
+										<span aria-hidden="true">pts</span>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</section>
+			</div>
+
+			<footer className="scoringView__changeBar">
+				{dirty ? (
+					<>
+						<div className="scoringView__changeRow">
+							<BodyShort
+								className="scoringView__unsaved"
+								role="status"
+								aria-live="polite"
+							>
+								{changes.length} unsaved{" "}
+								{changes.length === 1 ? "change" : "changes"}
+							</BodyShort>
 							<TextField
-								key={activity.creditType}
-								label={`${activityLabels[activity.creditType]} points`}
-								inputMode="numeric"
-								value={activity.points}
-								onChange={(event) =>
-									setActivities(
-										activities.map((item) =>
-											item.creditType === activity.creditType
-												? { ...item, points: event.target.value }
-												: item,
-										),
-									)
+								className="scoringView__reasonField"
+								label="Reason for change (required)"
+								hideLabel
+								value={reason}
+								maxLength={1000}
+								placeholder="Reason for change (required)"
+								error={
+									reason.length > 1000
+										? "Reason must be 1000 characters or fewer."
+										: undefined
 								}
+								onChange={(event) => {
+									setReason(event.target.value);
+									setPreview(null);
+									setError(null);
+								}}
 							/>
-						))}
+							<Button
+								type="button"
+								variant="secondary"
+								data-color="neutral"
+								disabled={busy}
+								onClick={discardChanges}
+							>
+								Discard
+							</Button>
+							<Button
+								type="button"
+								disabled={busy || !valid || !reason.trim()}
+								loading={busy && !preview}
+								onClick={() => void previewChanges()}
+							>
+								Preview changes
+							</Button>
+						</div>
 						<Checkbox
 							checked={retroactive}
-							onChange={(event) => setRetroactive(event.target.checked)}
+							onChange={(event) => {
+								setRetroactive(event.target.checked);
+								setPreview(null);
+							}}
 						>
-							Also apply activity point values to current-season credits
+							Also re-value current-season credits
 						</Checkbox>
-						<BodyShort>
-							Without this option, existing credits keep their points. With it,
-							differences are recorded as adjustments, including credits held by
-							inactive participants. Manual corrections and closed seasons are
-							unchanged.
+						<BodyShort size="small" className="scoringView__retroactiveHelp">
+							Off: existing credits keep their points. On: differences are
+							recorded as adjustments, including for inactive participants.
+							Manual corrections and closed seasons are never changed.
 						</BodyShort>
-						<TextField
-							label="Reason for scoring changes"
-							value={reason}
-							maxLength={1000}
-							onChange={(event) => setReason(event.target.value)}
-						/>
-						{error && <BodyShort role="alert">{error}</BodyShort>}
-						<Button type="submit" loading={busy}>
-							Preview scoring changes
-						</Button>
+					</>
+				) : (
+					<div className="scoringView__changeRow">
+						<BodyShort
+							className="hubRedesign__muted"
+							role="status"
+							aria-live="polite"
+						>
+							{lastAppliedAt
+								? "Changes applied just now."
+								: "All rules are saved."}
+						</BodyShort>
 						<Button
 							type="button"
-							variant="secondary"
+							variant="tertiary"
+							disabled={busy}
 							loading={busy}
-							onClick={async () => {
-								if (busy) return;
-								setBusy(true);
-								try {
-									await onRefresh();
-								} catch {
-									setError("We couldn't reload scoring. Try again.");
-								} finally {
-									setBusy(false);
-								}
-							}}
+							onClick={() => void reloadConfiguration()}
 						>
 							Reload configuration
 						</Button>
-					</VStack>
-				</form>
-			</VStack>
-			<Modal
-				open={review !== null}
-				onClose={() => {
-					if (!busy) setReview(null);
-				}}
-				header={{ heading: "Confirm scoring changes" }}
-				width="medium"
-			>
-				<Modal.Body>
-					{review && (
-						<VStack gap="space-16">
-							<BodyShort>
-								Current season started on {review.preview.season.startsOn}.
-							</BodyShort>
-							<BodyShort>
-								{review.preview.affectedCredits} credits will receive
-								adjustments. Total point change: {review.preview.pointsDelta}.
-							</BodyShort>
-							<BodyShort>
-								{review.preview.participants.length} participants will have
-								changed points or tiers.
-							</BodyShort>
-							<BodyShort>
-								{review.request.applyRetroactively
-									? "Current-season credits will use the new activity point values."
-									: "Activity point changes apply only to newly awarded credits."}{" "}
-								Manual corrections and closed seasons remain unchanged.
-							</BodyShort>
-							<BodyShort>Reason: {review.request.reason}</BodyShort>
-							{review.preview.participants.length > 0 && (
-								<div style={{ overflowX: "auto" }}>
-									<Table size="small">
-										<Table.Header>
-											<Table.Row>
-												<Table.HeaderCell scope="col">
-													Participant
-												</Table.HeaderCell>
-												<Table.HeaderCell scope="col">
-													Points before / after
-												</Table.HeaderCell>
-												<Table.HeaderCell scope="col">
-													Tier before / after
-												</Table.HeaderCell>
-											</Table.Row>
-										</Table.Header>
-										<Table.Body>
-											{review.preview.participants.map((participant) => (
-												<Table.Row key={participant.participantId}>
-													<Table.HeaderCell scope="row">
-														{participant.fullName}
-													</Table.HeaderCell>
-													<Table.DataCell>
-														{participant.pointsBefore} /{" "}
-														{participant.pointsAfter}
-													</Table.DataCell>
-													<Table.DataCell>
-														{participant.levelBefore} / {participant.levelAfter}
-													</Table.DataCell>
-												</Table.Row>
-											))}
-										</Table.Body>
-									</Table>
-								</div>
-							)}
-						</VStack>
-					)}
-				</Modal.Body>
-				<Modal.Footer>
-					<Button type="button" loading={busy} onClick={saveChanges}>
-						Confirm and save scoring
-					</Button>
-					<Button
-						type="button"
-						variant="secondary"
-						disabled={busy}
-						onClick={() => setReview(null)}
+					</div>
+				)}
+
+				{error && (
+					<div className="scoringView__errorBlock">
+						<BodyShort className="scoringView__error" role="alert">
+							{error}
+						</BodyShort>
+						{error.includes("Scoring changed") && (
+							<Button
+								type="button"
+								size="small"
+								variant="tertiary"
+								disabled={busy}
+								loading={busy}
+								onClick={() => void reloadConfiguration()}
+							>
+								Reload configuration
+							</Button>
+						)}
+					</div>
+				)}
+
+				{preview && (
+					<Box
+						className="scoringView__preview"
+						background="default"
+						borderColor="neutral-subtle"
+						borderWidth="1"
+						borderRadius="8"
+						padding="space-16"
 					>
-						Cancel
-					</Button>
-				</Modal.Footer>
-			</Modal>
-		</section>
+						<div className="scoringView__previewGrid">
+							<section aria-labelledby="scoring-preview-rules-heading">
+								<Heading
+									level="4"
+									size="xsmall"
+									id="scoring-preview-rules-heading"
+								>
+									Rule changes
+								</Heading>
+								{changes.length === 0 ? (
+									<BodyShort className="hubRedesign__muted">
+										No rule changes.
+									</BodyShort>
+								) : (
+									<ul className="scoringView__previewList">
+										{changes.map((change) => (
+											<li key={`${change.label}-${change.oldValue}`}>
+												<span>{change.label}</span>
+												<span className="scoringView__previewValue">
+													{change.oldValue} → <strong>{change.newValue}</strong>
+												</span>
+											</li>
+										))}
+									</ul>
+								)}
+							</section>
+							<section aria-labelledby="scoring-preview-participants-heading">
+								<Heading
+									level="4"
+									size="xsmall"
+									id="scoring-preview-participants-heading"
+								>
+									Tier changes for participants
+								</Heading>
+								{preview.result.participants.length === 0 ? (
+									<BodyShort className="hubRedesign__muted">
+										No one changes tier.
+									</BodyShort>
+								) : (
+									<ul className="scoringView__previewList">
+										{preview.result.participants.map((participant) => (
+											<li key={participant.participantId}>
+												<span>{participant.fullName}</span>
+												<span className="scoringView__previewValue">
+													{participant.levelBefore === participant.levelAfter
+														? "No tier change"
+														: `${participant.levelBefore} → ${participant.levelAfter}`}
+													{participant.pointsBefore !==
+														participant.pointsAfter &&
+														` · ${participant.pointsBefore} → ${participant.pointsAfter} (${participant.pointsAfter > participant.pointsBefore ? "+" : ""}${participant.pointsAfter - participant.pointsBefore})`}
+												</span>
+											</li>
+										))}
+									</ul>
+								)}
+								<BodyShort size="small" className="scoringView__previewNote">
+									{preview.request.applyRetroactively
+										? `${preview.result.affectedCredits} current-season credits will be re-valued; differences are recorded as adjustments.`
+										: "Existing credits keep their points; new values apply to future activity."}
+								</BodyShort>
+								{preview.request.applyRetroactively && (
+									<BodyShort size="small" className="hubRedesign__muted">
+										Total point change:{" "}
+										{preview.result.pointsDelta > 0 ? "+" : ""}
+										{preview.result.pointsDelta}
+									</BodyShort>
+								)}
+							</section>
+						</div>
+						<div className="scoringView__previewActions">
+							<Button
+								ref={previewBackRef}
+								type="button"
+								variant="secondary"
+								data-color="neutral"
+								disabled={busy}
+								onClick={closePreview}
+							>
+								Back to editing
+							</Button>
+							<Button
+								type="button"
+								data-color="accent"
+								loading={busy}
+								onClick={() => void applyChanges()}
+							>
+								Apply changes
+							</Button>
+						</div>
+					</Box>
+				)}
+			</footer>
+		</Box>
 	);
 }

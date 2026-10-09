@@ -7,10 +7,13 @@ correct season scores, schedule or start a new season, map Slack accounts, and c
 categories or single owner-confirmed Delta event UUIDs. Delta registration sync is disabled until
 production access and eligible public event identifiers are confirmed.
 API proxies preserve backend status, response body, and content type; proxy-local errors use RFC 9457 Problem Details.
-The scoring dashboard (`/appsec/scoring`) lets administrators add, rename, and remove tiers, set minimum
-point thresholds, and configure points for the five existing activity types. Participant progress and
-leaderboards use the saved tiers, including in the Hacker theme, where the highest tier in a multi-tier
-progression receives top clearance. Preview and confirm changes with a reason.
+The scoring dashboard (`/appsec/scoring`) presents season controls and scoring rules in compact,
+responsive cards, with an inline preview before administrators apply changes. Administrators can add,
+rename, and remove tiers, set minimum point thresholds, and configure points for the five existing
+activity types. The participant table supports name/email filtering, score history, and inline point
+adjustments, including corrections linked to an activity's season. Participant progress and leaderboards
+use the saved tiers, including in the Hacker theme, where the highest tier in a multi-tier progression
+receives top clearance.
 Use **View score history** beside a participant to inspect their current-season points,
 activity breakdown and full recorded scoring history across seasons. Filter by season and
 use **Show more** for longer histories. Entries include source references, dates in Oslo time,

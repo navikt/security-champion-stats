@@ -1,6 +1,16 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Apies } from "@/app/shared/hooks/Apies";
+import type {
+	ParticipantScoreHistoryEntry,
+	ScoreHistoryPage,
+} from "@/app/utils/Variables";
 import { HistoryView } from "./HistoryView";
 
 const seasons = [
@@ -29,6 +39,8 @@ const participantEntries = [
 		points: 4,
 		displayName: "Weekly participation",
 		action: null,
+		membershipStatusBefore: null,
+		membershipStatusAfter: null,
 	},
 	{
 		kind: "adjustment" as const,
@@ -37,6 +49,8 @@ const participantEntries = [
 		points: 4,
 		displayName: null,
 		action: null,
+		membershipStatusBefore: null,
+		membershipStatusAfter: null,
 	},
 ];
 
@@ -141,5 +155,94 @@ describe("participant score history", () => {
 		expect(await screen.findByRole("alert")).toHaveTextContent(
 			"We couldn't load score history",
 		);
+	});
+
+	it("ignores an older-page response after the season changes", async () => {
+		let resolveOlder!: (
+			page: ScoreHistoryPage<ParticipantScoreHistoryEntry>,
+		) => void;
+		const olderPage = new Promise<
+			ScoreHistoryPage<ParticipantScoreHistoryEntry>
+		>((resolve) => {
+			resolveOlder = resolve;
+		});
+		const getPage = vi.spyOn(Apies, "getScoreHistoryPage");
+		getPage
+			.mockResolvedValueOnce({
+				entries: participantEntries,
+				nextCursor: "old-cursor",
+			})
+			.mockImplementationOnce(() => olderPage)
+			.mockResolvedValueOnce({
+				entries: [
+					{
+						...participantEntries[0],
+						displayName: "New season entry",
+					},
+				],
+				nextCursor: "new-cursor",
+			})
+			.mockResolvedValue({
+				entries: [participantEntries[1]],
+				nextCursor: null,
+			});
+
+		render(<HistoryView />);
+		await screen.findByText(/Weekly participation/);
+		fireEvent.click(screen.getByRole("button", { name: "Load older" }));
+		fireEvent.change(screen.getByLabelText("Season"), {
+			target: { value: "season-2025" },
+		});
+		expect(await screen.findByText(/New season entry/)).toBeInTheDocument();
+		await act(async () => {
+			resolveOlder({
+				entries: [
+					{
+						...participantEntries[0],
+						displayName: "Stale response",
+					},
+				],
+				nextCursor: "stale-cursor",
+			});
+		});
+
+		expect(screen.queryByText(/Stale response/)).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Load older" }));
+		await waitFor(() =>
+			expect(getPage).toHaveBeenLastCalledWith(
+				"participant",
+				undefined,
+				expect.objectContaining({
+					season: "season-2025",
+					cursor: "new-cursor",
+				}),
+			),
+		);
+	});
+
+	it("shows participant membership status transitions without admin details", async () => {
+		vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
+			entries: [
+				{
+					kind: "membership",
+					occurredAt: "2026-10-06T10:00:00Z",
+					creditType: null,
+					points: null,
+					displayName: null,
+					action: "status_changed",
+					membershipStatusBefore: "ACTIVE",
+					membershipStatusAfter: "DEACTIVATED",
+				},
+			],
+			nextCursor: null,
+		});
+		render(<HistoryView />);
+
+		expect(
+			await screen.findByText("Participation status changed"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("Your participation status changed"),
+		).toBeInTheDocument();
 	});
 });

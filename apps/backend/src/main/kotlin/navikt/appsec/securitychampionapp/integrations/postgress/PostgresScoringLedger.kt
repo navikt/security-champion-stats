@@ -382,9 +382,10 @@ class PostgresScoringLedger(
                     SELECT credit.id::text AS id, 'CREDIT' AS type, credit.awarded_at AS recorded_at,
                         credit.activity_at, credit.season_id, credit.credit_type, credit.points,
                         NULL::text AS display_name, credit.source_reference,
-                        credit.id::text AS credit_id, NULL::text AS reason,
-                        NULL::text AS admin_name, NULL::text AS revokes_credit_id,
-                        NULL::text AS membership_action
+                        credit.id::text AS credit_id, NULL::text AS linked_credit_id,
+                        NULL::text AS reason, NULL::text AS admin_name, credit.revoked_at,
+                        NULL::text AS membership_action, NULL::text AS membership_status_before,
+                        NULL::text AS membership_status_after, NULL::text AS membership_reason
                     FROM activity_credits AS credit
                     WHERE credit.participant_id = ?
                     UNION ALL
@@ -393,8 +394,9 @@ class PostgresScoringLedger(
                             THEN 'ADJUSTMENT' ELSE 'SCORING_RULE_CHANGE' END,
                         adjustment.created_at, NULL::timestamptz, adjustment.season_id,
                         credit.credit_type, adjustment.points_delta, NULL::text,
-                        credit.source_reference, NULL::text, adjustment.reason,
-                        adjustment.actor_nav_no_email, adjustment.source_credit_id::text, NULL::text
+                        credit.source_reference, NULL::text, adjustment.source_credit_id::text,
+                        adjustment.reason, adjustment.actor_nav_no_email, NULL::timestamptz,
+                        NULL::text, NULL::text, NULL::text, NULL::text
                     FROM point_adjustments AS adjustment
                     LEFT JOIN activity_credits AS credit ON credit.id = adjustment.source_credit_id
                     WHERE adjustment.participant_id = ?
@@ -402,11 +404,13 @@ class PostgresScoringLedger(
                     SELECT event.id::text, 'MEMBERSHIP', event.created_at,
                         NULL::timestamptz, membership_season.id, NULL::text, NULL::integer,
                         NULL::text, NULL::text, NULL::text, NULL::text, NULL::text, NULL::text,
+                        NULL::timestamptz,
                         CASE event.action
                             WHEN 'PARTICIPANT_ENROLLED' THEN 'joined'
                             WHEN 'PARTICIPANT_REJOINED' THEN 'rejoined'
                             ELSE 'left'
-                        END
+                        END,
+                        NULL::text, NULL::text, NULL::text
                     FROM program_audit_events AS event
                     LEFT JOIN LATERAL (
                         SELECT season.id
@@ -422,6 +426,30 @@ class PostgresScoringLedger(
                     WHERE event.target_participant_id = ?
                         AND event.outcome = 'SUCCEEDED'
                         AND event.action IN ('PARTICIPANT_ENROLLED', 'PARTICIPANT_LEFT', 'PARTICIPANT_REJOINED')
+                    UNION ALL
+                    SELECT ('membership-status:' || event.id)::text, 'MEMBERSHIP', event.created_at,
+                        NULL::timestamptz, membership_season.id, NULL::text, NULL::integer,
+                        NULL::text, NULL::text, NULL::text, NULL::text, NULL::text, NULL::text,
+                        NULL::timestamptz, 'status_changed',
+                        event.before_values ->> 'status', event.after_values ->> 'status',
+                        event.after_values ->> 'reason'
+                    FROM program_participant_audit AS event
+                    LEFT JOIN LATERAL (
+                        SELECT season.id
+                        FROM program_seasons AS season
+                        WHERE (event.created_at AT TIME ZONE 'Europe/Oslo')::date >= season.starts_on
+                            AND (
+                                season.ends_on IS NULL
+                                OR (event.created_at AT TIME ZONE 'Europe/Oslo')::date <= season.ends_on
+                            )
+                        ORDER BY season.starts_on DESC
+                        LIMIT 1
+                    ) AS membership_season ON TRUE
+                    WHERE event.participant_id = ?
+                        AND event.action = 'PARTICIPATION_STATUS_CHANGED'
+                        AND event.created_at >= (
+                            SELECT started_at FROM program_audit_rollout WHERE singleton = TRUE
+                        )
                 ),
                 numbered AS (
                     SELECT history.*,
@@ -457,13 +485,18 @@ class PostgresScoringLedger(
                     displayName = rs.getString("display_name"),
                     sourceReference = rs.getString("source_reference"),
                     creditId = rs.getString("credit_id"),
+                    linkedCreditId = rs.getString("linked_credit_id"),
                     reason = rs.getString("reason"),
                     adminName = rs.getString("admin_name"),
-                    revokesCreditId = rs.getString("revokes_credit_id"),
+                    revokedAt = rs.getTimestamp("revoked_at")?.toInstant(),
                     membershipAction = rs.getString("membership_action"),
+                    membershipStatusBefore = rs.getString("membership_status_before"),
+                    membershipStatusAfter = rs.getString("membership_status_after"),
+                    membershipReason = rs.getString("membership_reason"),
                     tieIndex = rs.getLong("tie_index"),
                 )
             },
+            participantId,
             participantId,
             participantId,
             participantId,

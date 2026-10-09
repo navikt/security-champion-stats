@@ -49,6 +49,8 @@ beforeEach(() => {
 								points: 1,
 								displayName: null,
 								action: null,
+								membershipStatusBefore: null,
+								membershipStatusAfter: null,
 							},
 						],
 						nextCursor: null,

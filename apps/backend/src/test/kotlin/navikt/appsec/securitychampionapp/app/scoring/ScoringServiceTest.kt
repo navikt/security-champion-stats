@@ -118,6 +118,74 @@ class ScoringServiceTest {
     }
 
     @Test
+    fun `should calculate tier and rank from the selected history season`() {
+        val participant = UUID.randomUUID()
+        val previous = season.copy(
+            id = UUID.randomUUID(),
+            startsOn = LocalDate.of(2025, 1, 1),
+            endsOn = LocalDate.of(2025, 12, 31),
+        )
+        whenever(repository.configuration()).thenReturn(
+            defaultScoringConfiguration.copy(
+                tiers = listOf(ScoringTier("Starter", 0), ScoringTier("Champion", 5)),
+            ),
+        )
+        whenever(repository.participantExists(participant)).thenReturn(true)
+        whenever(repository.currentSeason()).thenReturn(season)
+        whenever(repository.scoreForParticipant(participant, season.id)).thenReturn(10L)
+        whenever(repository.scoreHistorySeasons()).thenReturn(
+            listOf(
+                ScoreHistorySeason(season.id, season.startsOn, season.endsOn),
+                ScoreHistorySeason(previous.id, previous.startsOn, previous.endsOn),
+            ),
+        )
+        whenever(repository.scoresForSeason(previous.id, activeOnly = true)).thenReturn(
+            listOf(score(participant, "Person", 0L)),
+        )
+
+        listOf(0, -1).forEach { points ->
+            val selectedRecord = ScoringHistoryEntry(
+                UUID.randomUUID(),
+                ScoringHistoryEntryType.ADJUSTMENT,
+                Instant.parse("2026-10-01T12:00:00Z"),
+                null,
+                previous.id,
+                previous.startsOn,
+                previous.endsOn,
+                points,
+                null,
+                null,
+                null,
+                "historical correction",
+                "admin@nav.no",
+                null,
+            )
+            whenever(repository.scoringHistoryForParticipant(participant)).thenReturn(
+                listOf(
+                    selectedRecord,
+                    selectedRecord.copy(
+                        id = UUID.randomUUID(),
+                        seasonId = season.id,
+                        seasonStartsOn = season.startsOn,
+                        seasonEndsOn = null,
+                        points = 10,
+                    ),
+                ),
+            )
+
+            val summary = service.scoreSummaryForParticipant(
+                participant,
+                previous.id.toString(),
+                admin = false,
+            ) as ParticipantScoreSummary
+
+            assertEquals(points.toLong(), summary.points)
+            assertEquals("Starter", summary.tier)
+            assertEquals(null, summary.rank)
+        }
+    }
+
+    @Test
     fun `should return an empty current season without inventing history entries`() {
         val participant = UUID.randomUUID()
         whenever(repository.participantExists(participant)).thenReturn(true)

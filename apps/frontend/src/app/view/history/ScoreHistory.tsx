@@ -49,7 +49,11 @@ type HistoryEntry = {
 	seasonId: string | null;
 	reason: string | null;
 	adminName: string | null;
-	revokesCreditId: string | null;
+	linkedCreditId: string | null;
+	revokedAt: string | null;
+	membershipStatusBefore: string | null;
+	membershipStatusAfter: string | null;
+	membershipReason: string | null;
 	ruleChange: boolean;
 };
 
@@ -206,12 +210,16 @@ function normalizeEntries(
 				points: participantEntry.points,
 				displayName: participantEntry.displayName,
 				action: participantEntry.action,
+				membershipStatusBefore: participantEntry.membershipStatusBefore,
+				membershipStatusAfter: participantEntry.membershipStatusAfter,
 				sourceRef: null,
 				creditId: null,
 				seasonId: null,
 				reason: null,
 				adminName: null,
-				revokesCreditId: null,
+				linkedCreditId: null,
+				revokedAt: null,
+				membershipReason: null,
 				ruleChange: false,
 			};
 		}
@@ -231,7 +239,11 @@ function normalizeEntries(
 			seasonId: adminEntry.seasonId,
 			reason: adminEntry.reason,
 			adminName: adminEntry.adminName,
-			revokesCreditId: adminEntry.revokesCreditId,
+			linkedCreditId: adminEntry.linkedCreditId,
+			revokedAt: adminEntry.revokedAt,
+			membershipStatusBefore: adminEntry.membershipStatusBefore,
+			membershipStatusAfter: adminEntry.membershipStatusAfter,
+			membershipReason: adminEntry.membershipReason,
 			ruleChange: adminEntry.ruleChange,
 		};
 	});
@@ -301,6 +313,8 @@ function creditTitle(entry: HistoryEntry): string {
 	if (entry.ruleChange) return "Scoring-rule change";
 	if (entry.kind === "adjustment") return "Point adjustment";
 	if (entry.kind === "membership") {
+		if (entry.action === "status_changed")
+			return "Participation status changed";
 		if (entry.action === "joined") return "Joined the program";
 		if (entry.action === "rejoined") return "Rejoined the program";
 		return "Left the program";
@@ -350,11 +364,18 @@ export function ScoreHistory({
 	const loadedRequest = useRef("");
 	const currentRequest = useRef(0);
 	const closeButtonRef = useRef<HTMLButtonElement>(null);
+	const activeSelection = useRef("");
+	activeSelection.current = `${variant}:${participantId ?? ""}:${season}:${filter}`;
 
 	useEffect(() => {
 		const syncFromUrl = () => {
-			setSeason(readSearchParam("season") ?? "");
-			setFilter(readHistoryFilter(variant));
+			const nextSeason = readSearchParam("season") ?? "";
+			const nextFilter = readHistoryFilter(variant);
+			if (nextSeason !== season || nextFilter !== filter) {
+				currentRequest.current++;
+			}
+			setSeason(nextSeason);
+			setFilter(nextFilter);
 			if (variant === "admin" && readSearchParam("type") === "membership") {
 				updateHistoryUrl("type", "all");
 			}
@@ -362,7 +383,7 @@ export function ScoreHistory({
 		syncFromUrl();
 		window.addEventListener("popstate", syncFromUrl);
 		return () => window.removeEventListener("popstate", syncFromUrl);
-	}, [variant]);
+	}, [filter, season, variant]);
 
 	useEffect(() => {
 		const requestKey = `${variant}:${participantId ?? ""}:${season}:${filter}:${attempt}`;
@@ -374,6 +395,7 @@ export function ScoreHistory({
 		setSummary(null);
 		setEntries([]);
 		setNextCursor(null);
+		setLoadingMore(false);
 		void (async () => {
 			try {
 				const resultSummary = await Apies.getScoreHistorySummary(
@@ -425,6 +447,7 @@ export function ScoreHistory({
 		})();
 		return () => {
 			active = false;
+			if (currentRequest.current === requestId) currentRequest.current++;
 		};
 	}, [attempt, filter, participantId, season, variant]);
 
@@ -436,10 +459,14 @@ export function ScoreHistory({
 		);
 	}, [summary]);
 
-	const changeSeason = useCallback((value: string) => {
-		setSeason(value);
-		updateHistoryUrl("season", value);
-	}, []);
+	const changeSeason = useCallback(
+		(value: string) => {
+			if (value !== season) currentRequest.current++;
+			setSeason(value);
+			updateHistoryUrl("season", value);
+		},
+		[season],
+	);
 
 	const changeFilter = useCallback(
 		(value: string) => {
@@ -448,14 +475,17 @@ export function ScoreHistory({
 				(variant === "admin" && value === "membership")
 			)
 				return;
+			if (value !== filter) currentRequest.current++;
 			setFilter(value as HistoryFilter);
 			updateHistoryUrl("type", value);
 		},
-		[variant],
+		[filter, variant],
 	);
 
 	const loadOlder = async () => {
 		if (!nextCursor || loadingMore) return;
+		const requestId = currentRequest.current;
+		const requestSelection = activeSelection.current;
 		setLoadingMore(true);
 		try {
 			const result =
@@ -480,16 +510,33 @@ export function ScoreHistory({
 								limit: PAGE_SIZE,
 							},
 						);
+			if (
+				requestId !== currentRequest.current ||
+				requestSelection !== activeSelection.current
+			) {
+				return;
+			}
 			setEntries((current) => [
 				...current,
 				...normalizeEntries(variant, result.entries, current.length),
 			]);
 			setNextCursor(result.nextCursor);
 		} catch (error) {
+			if (
+				requestId !== currentRequest.current ||
+				requestSelection !== activeSelection.current
+			) {
+				return;
+			}
 			console.error("Failed to load older score history:", error);
 			setFailed(true);
 		} finally {
-			setLoadingMore(false);
+			if (
+				requestId === currentRequest.current &&
+				requestSelection === activeSelection.current
+			) {
+				setLoadingMore(false);
+			}
 		}
 	};
 
@@ -1006,7 +1053,12 @@ function ActivityRow({
 						</span>
 					</button>
 					{expanded && (
-						<EntryDetails entry={entry} seasons={seasons} id={detailsId} />
+						<EntryDetails
+							entry={entry}
+							variant={variant}
+							seasons={seasons}
+							id={detailsId}
+						/>
 					)}
 				</>
 			) : (
@@ -1035,6 +1087,11 @@ function entryMeta(entry: HistoryEntry, variant: HistoryVariant): string {
 		return `Activity ${osloShortDateFormatter.format(new Date(occurred))}, ${osloTimeFormatter.format(new Date(occurred))} · recorded ${osloTimeFormatter.format(new Date(entry.recordedAt))}`;
 	}
 	if (entry.kind === "membership") {
+		if (entry.action === "status_changed") {
+			return variant === "participant"
+				? "Your participation status changed"
+				: "Participation status changed";
+		}
 		if (entry.action === "joined") return "You became an active participant";
 		if (entry.action === "rejoined") return "You rejoined the program";
 		return "You left the program";
@@ -1084,10 +1141,12 @@ function EntryIcon({ entry }: { entry: HistoryEntry }) {
 
 function EntryDetails({
 	entry,
+	variant,
 	seasons,
 	id,
 }: {
 	entry: HistoryEntry;
+	variant: HistoryVariant;
 	seasons: ScoreHistorySeason[];
 	id: string;
 }) {
@@ -1123,6 +1182,12 @@ function EntryDetails({
 				value: <CodeChip label="credit ID" value={entry.creditId} />,
 			});
 		}
+		if (entry.revokedAt) {
+			fields.push({
+				label: "Revoked at",
+				value: osloDateTimeFormatter.format(new Date(entry.revokedAt)),
+			});
+		}
 	} else if (entry.kind === "adjustment") {
 		fields.push(
 			{ label: "Reason", value: entry.reason || "—" },
@@ -1133,13 +1198,21 @@ function EntryDetails({
 			},
 			{ label: "Season", value: seasonValue },
 		);
-		if (entry.revokesCreditId) {
+		if (entry.linkedCreditId) {
 			fields.push({
-				label: "Revokes",
+				label: "Linked activity",
 				value: (
-					<CodeChip label="revoked credit ID" value={entry.revokesCreditId} />
+					<CodeChip label="linked credit ID" value={entry.linkedCreditId} />
 				),
 			});
+		}
+	} else if (entry.kind === "membership" && entry.action === "status_changed") {
+		fields.push({
+			label: "Status",
+			value: `${entry.membershipStatusBefore ?? "Unknown"} → ${entry.membershipStatusAfter ?? "Unknown"}`,
+		});
+		if (variant === "admin" && entry.membershipReason) {
+			fields.push({ label: "Reason", value: entry.membershipReason });
 		}
 	}
 

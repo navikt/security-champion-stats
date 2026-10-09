@@ -129,13 +129,17 @@ export const Apies = {
 									? "PARTICIPANT_ENROLLED"
 									: entry.action === "rejoined"
 										? "PARTICIPANT_REJOINED"
-										: "PARTICIPANT_LEFT",
+										: entry.action === "status_changed"
+											? "PARTICIPATION_STATUS_CHANGED"
+											: "PARTICIPANT_LEFT",
 					outcome: "SUCCEEDED",
 					recordedAt: entry.occurredAt,
 					occurredAt: entry.occurredAt,
 					details: {
 						creditType: entry.creditType,
 						points: entry.points,
+						beforeStatus: entry.membershipStatusBefore,
+						afterStatus: entry.membershipStatusAfter,
 					},
 				})),
 				nextCursor: result.nextCursor,

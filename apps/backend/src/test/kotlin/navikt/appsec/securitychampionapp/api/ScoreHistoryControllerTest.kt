@@ -74,10 +74,14 @@ class ScoreHistoryControllerTest {
                     displayName = "Example contribution",
                     sourceReference = "private/source-reference",
                     creditId = "internal-credit-id",
+                    linkedCreditId = "internal-linked-credit-id",
                     reason = "private adjustment reason",
                     adminName = "private-admin@nav.no",
-                    revokesCreditId = "internal-revoked-id",
+                    revokedAt = Instant.parse("2026-10-01T11:00:00Z"),
                     membershipAction = null,
+                    membershipStatusBefore = null,
+                    membershipStatusAfter = null,
+                    membershipReason = null,
                     tieIndex = 1,
                 ),
             ),
@@ -96,7 +100,11 @@ class ScoreHistoryControllerTest {
             .andExpect(jsonPath("$.entries[0].seasonId").doesNotExist())
             .andExpect(jsonPath("$.entries[0].reason").doesNotExist())
             .andExpect(jsonPath("$.entries[0].adminName").doesNotExist())
-            .andExpect(jsonPath("$.entries[0].revokesCreditId").doesNotExist())
+            .andExpect(jsonPath("$.entries[0].linkedCreditId").doesNotExist())
+            .andExpect(jsonPath("$.entries[0].revokedAt").doesNotExist())
+            .andExpect(jsonPath("$.entries[0].membershipStatusBefore").doesNotExist())
+            .andExpect(jsonPath("$.entries[0].membershipStatusAfter").doesNotExist())
+            .andExpect(jsonPath("$.entries[0].membershipReason").doesNotExist())
         verify(scoringRepository).scoreHistoryPage(participantId, null, "all", null, 26)
     }
 

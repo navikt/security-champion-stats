@@ -136,8 +136,8 @@ class ScoringService(
 
         val records = repository.scoringHistoryForParticipant(participantId)
         val selectedRecords = records.filter { season == null || it.seasonId == season }
-        val currentPoints = repository.scoreForParticipant(participantId, currentSeason.id)
-        val rank = season?.let { seasonId ->
+        val points = selectedRecords.sumOf { it.points.toLong() }
+        val rank = season?.takeIf { points > 0 }?.let { seasonId ->
             ranked(repository.scoresForSeason(seasonId, activeOnly = true))
                 .firstOrNull { it.participantId == participantId }
                 ?.rank
@@ -148,11 +148,10 @@ class ScoringService(
         val manualAdjustments = selectedRecords
             .filter { it.type == ScoringHistoryEntryType.ADJUSTMENT }
             .sumOf { it.points.toLong() }
-        val points = selectedRecords.sumOf { it.points.toLong() }
 
         val summary = ScoreSummary(
             points = points,
-            tier = repository.configuration().levelFor(currentPoints),
+            tier = repository.configuration().levelFor(points),
             rank = rank,
             breakdown = ScoreBreakdown(
                 slack = selectedRecords.pointsFor(ActivityCreditType.SLACK_WEEK),
@@ -240,8 +239,12 @@ class ScoringService(
                         seasonId = record.seasonId,
                         reason = record.reason,
                         adminName = record.adminName,
-                        revokesCreditId = record.revokesCreditId,
+                        linkedCreditId = record.linkedCreditId,
+                        revokedAt = record.revokedAt,
                         action = record.membershipAction,
+                        membershipStatusBefore = record.membershipStatusBefore,
+                        membershipStatusAfter = record.membershipStatusAfter,
+                        membershipReason = record.membershipReason,
                         ruleChange = record.type == "SCORING_RULE_CHANGE",
                     )
                 },
@@ -261,6 +264,8 @@ class ScoringService(
                         points = record.points,
                         displayName = record.displayName,
                         action = record.membershipAction,
+                        membershipStatusBefore = record.membershipStatusBefore,
+                        membershipStatusAfter = record.membershipStatusAfter,
                     )
                 },
                 nextCursor = nextCursor,

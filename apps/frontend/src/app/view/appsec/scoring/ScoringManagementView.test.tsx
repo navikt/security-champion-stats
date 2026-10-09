@@ -198,8 +198,33 @@ describe("ScoringManagementView", () => {
 					seasonId: "season-1",
 					reason: null,
 					adminName: null,
-					revokesCreditId: null,
+					linkedCreditId: null,
+					revokedAt: "2026-10-07T10:00:00Z",
 					action: null,
+					membershipStatusBefore: null,
+					membershipStatusAfter: null,
+					membershipReason: null,
+					ruleChange: false,
+				},
+				{
+					id: "adjustment-1",
+					kind: "adjustment",
+					recordedAt: "2026-10-07T11:00:00Z",
+					activityAt: null,
+					creditType: "GITHUB_COMMIT",
+					points: -1,
+					displayName: null,
+					sourceRef: null,
+					creditId: null,
+					seasonId: "season-1",
+					reason: "Correct linked activity",
+					adminName: "admin@nav.no",
+					linkedCreditId: "credit-1",
+					revokedAt: null,
+					action: null,
+					membershipStatusBefore: null,
+					membershipStatusAfter: null,
+					membershipReason: null,
 					ruleChange: false,
 				},
 			],
@@ -228,7 +253,13 @@ describe("ScoringManagementView", () => {
 			screen.getByRole("button", { name: "Copy source reference" }),
 		).toBeInTheDocument();
 		expect(screen.getByText("Activity date")).toBeInTheDocument();
+		expect(screen.getByText("Revoked at")).toBeInTheDocument();
 		expect(screen.getAllByText("Season")).toHaveLength(2);
+		fireEvent.click(entry);
+		fireEvent.click(screen.getByRole("button", { name: /Point adjustment/ }));
+		expect(screen.getByText("Linked activity")).toBeInTheDocument();
+		expect(screen.getByText("credit-1")).toBeInTheDocument();
+		expect(screen.queryByText("Revokes")).not.toBeInTheDocument();
 	});
 
 	it("links a signed inline adjustment to the selected activity", async () => {

@@ -163,10 +163,14 @@ data class ScoreHistoryRecord(
     val displayName: String?,
     val sourceReference: String?,
     val creditId: String?,
+    val linkedCreditId: String?,
     val reason: String?,
     val adminName: String?,
-    val revokesCreditId: String?,
+    val revokedAt: Instant?,
     val membershipAction: String?,
+    val membershipStatusBefore: String?,
+    val membershipStatusAfter: String?,
+    val membershipReason: String?,
     val tieIndex: Long,
 )
 
@@ -182,6 +186,8 @@ data class ParticipantScoreHistoryEntry(
     val points: Int?,
     val displayName: String?,
     val action: String?,
+    val membershipStatusBefore: String?,
+    val membershipStatusAfter: String?,
 )
 
 data class AdminScoreHistoryEntry(
@@ -197,8 +203,12 @@ data class AdminScoreHistoryEntry(
     val seasonId: UUID?,
     val reason: String?,
     val adminName: String?,
-    val revokesCreditId: String?,
+    val linkedCreditId: String?,
+    val revokedAt: Instant?,
     val action: String?,
+    val membershipStatusBefore: String?,
+    val membershipStatusAfter: String?,
+    val membershipReason: String?,
     val ruleChange: Boolean,
 )
 

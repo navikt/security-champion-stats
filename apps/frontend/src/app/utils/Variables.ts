@@ -181,7 +181,9 @@ export type ParticipantScoreHistoryEntry = {
 	creditType: ActivityCredit["creditType"] | null;
 	points: number | null;
 	displayName: string | null;
-	action: "joined" | "left" | "rejoined" | null;
+	action: "joined" | "left" | "rejoined" | "status_changed" | null;
+	membershipStatusBefore: string | null;
+	membershipStatusAfter: string | null;
 };
 export type AdminScoreHistoryEntry = {
 	id: string;
@@ -196,8 +198,12 @@ export type AdminScoreHistoryEntry = {
 	seasonId: string | null;
 	reason: string | null;
 	adminName: string | null;
-	revokesCreditId: string | null;
-	action: "joined" | "left" | "rejoined" | null;
+	linkedCreditId: string | null;
+	revokedAt: string | null;
+	action: "joined" | "left" | "rejoined" | "status_changed" | null;
+	membershipStatusBefore: string | null;
+	membershipStatusAfter: string | null;
+	membershipReason: string | null;
 	ruleChange: boolean;
 };
 export type ScoreHistoryPage<T> = {

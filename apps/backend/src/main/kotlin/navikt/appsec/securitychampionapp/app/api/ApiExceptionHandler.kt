@@ -30,6 +30,7 @@ import org.springframework.web.context.request.ServletWebRequest
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import java.net.URI
+import java.sql.SQLException
 
 @RestControllerAdvice
 class ApiExceptionHandler {
@@ -120,15 +121,28 @@ class ApiExceptionHandler {
 
     @ExceptionHandler(DataAccessException::class)
     fun databaseFailure(exception: DataAccessException, request: WebRequest): ResponseEntity<ProblemDetail> {
-        logger.error("Database request failed", exception)
+        val sqlException = generateSequence<Throwable>(exception) { it.cause }.filterIsInstance<SQLException>().firstOrNull()
+        // Only the first line: PostgreSQL appends "Detail:" lines that may contain row values.
+        val databaseMessage = sqlException?.message?.lineSequence()?.firstOrNull()?.trim()
+        logger.error(
+            "Database request failed for {}: {} (SQLState {}): {}",
+            request.describe(),
+            exception.javaClass.simpleName,
+            sqlException?.sqlState ?: "unknown",
+            databaseMessage ?: "no database error message",
+            exception,
+        )
         return internalError(request)
     }
 
     @ExceptionHandler(Exception::class)
     fun unexpectedFailure(exception: Exception, request: WebRequest): ResponseEntity<ProblemDetail> {
-        logger.error("API request failed", exception)
+        logger.error("API request failed for {}: {}", request.describe(), exception.javaClass.name, exception)
         return internalError(request)
     }
+
+    private fun WebRequest.describe(): String =
+        (this as? ServletWebRequest)?.request?.let { "${it.method} ${it.requestURI}" } ?: "unknown request"
 
     private fun internalError(request: WebRequest): ResponseEntity<ProblemDetail> =
         problem(

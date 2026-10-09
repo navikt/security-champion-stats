@@ -276,6 +276,31 @@ class PostgresScoringLedgerTest {
     }
 
     @ParameterizedTest
+    @ValueSource(booleans = [true, false])
+    fun `should summarize participant scores against the database`(admin: Boolean) {
+        val participantId = createParticipant("summary@nav.no")
+        val season = repository.currentSeason()
+        insertCredit(participantId, season.id, "GITHUB_PULL_REQUEST", "pull:summary", 3, season.startsOn)
+        repository.addAdjustment(participantId, 2, "Manual bonus", "admin@nav.no", null)
+        val service = ProxyFactory(ScoringService(repository)).apply {
+            isProxyTargetClass = true
+            addAdvice(TransactionInterceptor().apply {
+                transactionManager = this@PostgresScoringLedgerTest.transactionManager
+                transactionAttributeSource = AnnotationTransactionAttributeSource()
+            })
+        }.proxy as ScoringService
+
+        val current = service.scoreSummaryForParticipant(participantId, null, admin)
+        val all = service.scoreSummaryForParticipant(participantId, "all", admin)
+        val selected = service.scoreSummaryForParticipant(participantId, season.id.toString(), admin)
+
+        assertThat(listOf(current, all, selected)).allSatisfy {
+            assertThat(it).hasFieldOrPropertyWithValue("points", 5L)
+        }
+        assertThat(current).hasFieldOrPropertyWithValue("rank", 1)
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = ["ACTIVE", "DEACTIVATED", "LEFT"])
     fun `should read the entire participant ledger across seasons with linked corrections`(status: String) {
         val participantId = createParticipant("history@nav.no")

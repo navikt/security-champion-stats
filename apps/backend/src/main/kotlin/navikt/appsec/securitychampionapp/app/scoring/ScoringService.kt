@@ -109,7 +109,8 @@ class ScoringService(
         return ParticipantScoringHistory(currentSeason.id, seasons, entries)
     }
 
-    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    // Not read-only: configuration() takes a FOR SHARE lock, which PostgreSQL rejects in read-only transactions.
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     fun scoreSummaryForParticipant(
         participantId: UUID,
         selectedSeason: String?,

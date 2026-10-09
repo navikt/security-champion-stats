@@ -65,12 +65,14 @@ counts in the header. Fully approved claims start closed; other claims start ope
 evidence, review history, or available actions. Publication does not imply that all contributors are approved.
 The sidebar contains shared navigation, an admin-only Administration section, and theme controls with
 the signed-in user's initials at the bottom.
+The desktop sidebar fills the viewport height without an extra page-footer gap.
 Page content aligns left within the main layout's shared responsive gutters. The `.hubRedesign` wrapper
 keeps history, dashboard, and audit pages left-aligned while retaining their maximum content width.
 The favicon is a locally bundled copy of the Security Champion logo from
 https://sikkerhet.nav.no/img/SecurityChampion.svg (`src/app/icon.svg`).
 The optional Hacker theme adds a Matrix-inspired overview and shell; its rain, CRT, and phosphor
 preferences are available only while Hacker is selected.
+Switching back to Light, Dark, or System removes Hacker styling immediately without a refresh.
 Event listings include cached playbook events, with date-only ranges shown without invented times.
 Delta and manual events take priority over same-day internal playbook entries; unrelated external entries remain visible.
 Active participants see **Signed up**, **Not signed up**, **Hosting**, or **Signup status unavailable** for

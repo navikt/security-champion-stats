@@ -107,7 +107,12 @@ function useHackerPreferences() {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
 	return (
-		<NextThemeProvider attribute="class" enableSystem storageKey="scs-theme">
+		<NextThemeProvider
+			attribute="class"
+			themes={["light", "dark", "hacker"]}
+			enableSystem
+			storageKey="scs-theme"
+		>
 			<HackerPreferencesProvider>{children}</HackerPreferencesProvider>
 		</NextThemeProvider>
 	);

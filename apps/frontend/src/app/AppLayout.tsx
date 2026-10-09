@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 	return (
 		<>
 			<HackerBackdrop />
-			<Page className={"appLayout"}>
+			<Page className={"appLayout"} contentBlockPadding="none">
 				<div className="appBody">
 					<SideNavigation me={me} />
 					<Page.Block as="main" gutters className="appMain">

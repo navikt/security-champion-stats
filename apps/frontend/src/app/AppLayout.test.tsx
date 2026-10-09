@@ -55,6 +55,17 @@ function renderLayout() {
 }
 
 describe("sidebar layout", () => {
+	it("does not add Page footer padding below the full-height sidebar", () => {
+		renderLayout();
+
+		const sidebar = screen.getByRole("complementary");
+		const page = sidebar.closest(".appLayout");
+		expect(page).toBeInTheDocument();
+		expect(
+			page?.querySelector(".aksel-page__content--padding"),
+		).not.toBeInTheDocument();
+	});
+
 	it("shows shared navigation and bottom controls without a top bar or visible full name", () => {
 		renderLayout();
 

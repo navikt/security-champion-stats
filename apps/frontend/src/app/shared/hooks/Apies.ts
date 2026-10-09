@@ -1,30 +1,33 @@
 import type {
-	AdminProgramParticipant,
 	ActivityCredit,
-	ParticipantScoringHistory,
-	AdminScoringOverview,
 	AdminDashboardOverview,
-	DeltaEventMapping,
+	AdminProgramParticipant,
+	AdminScoreHistoryEntry,
+	AdminScoringOverview,
+	AuditCategory,
+	AuditResponse,
 	DeltaCategory,
 	DeltaEligibleCategory,
+	DeltaEventMapping,
+	HistoryPage,
 	LeaderboardEntry,
 	Me,
+	ParticipantScoreHistoryEntry,
+	ParticipantScoringHistory,
 	ParticipantSeasonScore,
 	ProgramParticipant,
 	ProgramParticipantSummary,
 	SCData,
+	ScoreHistoryPage,
+	ScoreSummary,
+	ScoringConfigurationPreview,
+	ScoringConfigurationRequest,
 	SecurityEvent,
+	SlackChannelParticipationOverview,
 	SlackMappingOverview,
+	SlackMembershipAnnouncement,
 	SlackMembershipConfiguration,
 	SlackMembershipPreview,
-	SlackMembershipAnnouncement,
-	SlackChannelParticipationOverview,
-	HistoryPage,
-	AuditResponse,
-	AuditCategory,
-	ParticipantHistoryEntry,
-	ScoringConfigurationRequest,
-	ScoringConfigurationPreview,
 } from "../../utils/Variables";
 
 export const Apies = {
@@ -107,7 +110,38 @@ export const Apies = {
 	getHistory: async (admin: boolean, search: string, cursor: string | null): Promise<HistoryPage> => {
 		const query = new URLSearchParams({ size: "50", page: cursor || "0" });
 		if (search) query.set("q", search);
-		const res = await fetch(admin ? `/api/admin/audit?${query}` : "/api/history");
+		if (!admin) {
+			const result =
+				await Apies.getScoreHistoryPage<ParticipantScoreHistoryEntry>(
+					"participant",
+					undefined,
+					{ type: "all", limit: 25 },
+				);
+			return {
+				entries: result.entries.map((entry, index) => ({
+					id: `${entry.kind}:${entry.occurredAt}:${index}`,
+					action:
+						entry.kind === "credit"
+							? "CREDIT_AWARDED"
+							: entry.kind === "adjustment"
+								? "POINTS_ADJUSTED"
+								: entry.action === "joined"
+									? "PARTICIPANT_ENROLLED"
+									: entry.action === "rejoined"
+										? "PARTICIPANT_REJOINED"
+										: "PARTICIPANT_LEFT",
+					outcome: "SUCCEEDED",
+					recordedAt: entry.occurredAt,
+					occurredAt: entry.occurredAt,
+					details: {
+						creditType: entry.creditType,
+						points: entry.points,
+					},
+				})),
+				nextCursor: result.nextCursor,
+			};
+		}
+		const res = await fetch(`/api/admin/audit?${query}`);
 		if (!res.ok) {
 			console.error("Failed to fetch history, status: ", res.status);
 			throw new Error("We couldn't fetch history. Try again.");
@@ -129,24 +163,55 @@ export const Apies = {
 				nextCursor: (result.page + 1) * result.size < result.total ? String(result.page + 1) : null,
 			};
 		}
-		const entries: ParticipantHistoryEntry[] = await res.json();
-		return {
-			entries: entries.map((entry) => ({
-				id: entry.id,
-				action: entry.action,
-				outcome: "SUCCEEDED",
-				recordedAt: entry.occurredAt,
-				occurredAt: entry.occurredAt,
-				details: {
-					status: entry.status,
-					creditType: entry.creditType,
-					points: entry.points,
-					sourceReference: entry.sourceReference,
-					reason: entry.reason,
-				},
-			})),
-			nextCursor: null,
-		};
+		throw new Error("Unexpected history request state");
+	},
+	getScoreHistorySummary: async (
+		variant: "participant" | "admin",
+		participantId?: string,
+		season?: string,
+	): Promise<ScoreSummary> => {
+		let path: string;
+		if (variant === "participant") {
+			path = "/api/me/score-summary";
+		} else {
+			if (!participantId)
+				throw new Error("A participant is required to load admin score history.");
+			path = `/api/participants/${encodeURIComponent(participantId)}/score-summary`;
+		}
+		const query = new URLSearchParams();
+		if (season) query.set("season", season);
+		const res = await fetch(`${path}${query.size ? `?${query}` : ""}`);
+		if (!res.ok)
+			throw new Error("We couldn't load the scoring summary. Try again.");
+		return res.json();
+	},
+	getScoreHistoryPage: async <
+		T extends ParticipantScoreHistoryEntry | AdminScoreHistoryEntry,
+	>(
+		variant: "participant" | "admin",
+		participantId: string | undefined,
+		options: {
+			season?: string;
+			type: "all" | "credit" | "adjustment" | "membership";
+			cursor?: string | null;
+			limit?: number;
+		},
+	): Promise<ScoreHistoryPage<T>> => {
+		let path: string;
+		if (variant === "participant") {
+			path = "/api/me/score-history";
+		} else {
+			if (!participantId)
+				throw new Error("A participant is required to load admin score history.");
+			path = `/api/participants/${encodeURIComponent(participantId)}/score-history`;
+		}
+		const query = new URLSearchParams({ type: options.type });
+		if (options.season) query.set("season", options.season);
+		if (options.cursor) query.set("cursor", options.cursor);
+		if (options.limit) query.set("limit", String(options.limit));
+		const res = await fetch(`${path}?${query}`);
+		if (!res.ok) throw new Error("We couldn't load score history. Try again.");
+		return res.json();
 	},
 	getAdminDashboard: async (): Promise<AdminDashboardOverview | null> => {
 		const res = await fetch("/api/admin/dashboard/overview");

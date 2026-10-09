@@ -21,7 +21,7 @@ import type {
 	AdminParticipantScore,
 	AdminScoringOverview,
 } from "@/app/utils/Variables";
-import { ParticipantScoreHistoryModal } from "./ParticipantScoreHistoryModal";
+import { ScoreHistory } from "@/app/view/history/ScoreHistory";
 import { ScoringConfigurationView } from "./ScoringConfigurationView";
 
 const dateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -94,6 +94,7 @@ export function ScoringManagementView({
 		useState<AdminParticipantScore | null>(null);
 	const [historyParticipant, setHistoryParticipant] =
 		useState<AdminParticipantScore | null>(null);
+	const historyTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
 	const [credits, setCredits] = useState<ActivityCredit[]>([]);
 	const [creditsLoading, setCreditsLoading] = useState(false);
 	const [creditsFailed, setCreditsFailed] = useState(false);
@@ -157,6 +158,24 @@ export function ScoringManagementView({
 		},
 		[],
 	);
+
+	useEffect(() => {
+		const syncHistoryFromUrl = () => {
+			const participantId = new URLSearchParams(window.location.search).get(
+				"history",
+			);
+			setHistoryParticipant(
+				participantId
+					? (overview.participants.find(
+							(participant) => participant.participantId === participantId,
+						) ?? null)
+					: null,
+			);
+		};
+		syncHistoryFromUrl();
+		window.addEventListener("popstate", syncHistoryFromUrl);
+		return () => window.removeEventListener("popstate", syncHistoryFromUrl);
+	}, [overview.participants]);
 
 	const sortedParticipants = useMemo(() => {
 		const ordered = [...overview.participants].sort(
@@ -281,6 +300,20 @@ export function ScoringManagementView({
 				requestAnimationFrame(() => adjustmentInputRef.current?.focus());
 			}
 		}
+	};
+
+	const openScoreHistory = (participant: AdminParticipantScore) => {
+		const url = new URL(window.location.href);
+		url.searchParams.set("history", participant.participantId);
+		window.history.pushState(window.history.state, "", url);
+		setHistoryParticipant(participant);
+	};
+
+	const closeScoreHistory = () => {
+		const url = new URL(window.location.href);
+		url.searchParams.delete("history");
+		window.history.replaceState(window.history.state, "", url);
+		setHistoryParticipant(null);
 	};
 
 	const addAdjustment = async () => {
@@ -680,12 +713,24 @@ export function ScoringManagementView({
 										<Table.DataCell>
 											<div className="scoringView__participantActions">
 												<Button
+													ref={(element) => {
+														if (element) {
+															historyTriggerRefs.current.set(
+																participant.participantId,
+																element,
+															);
+														} else {
+															historyTriggerRefs.current.delete(
+																participant.participantId,
+															);
+														}
+													}}
 													type="button"
 													size="xsmall"
 													variant="tertiary"
 													data-color="info"
 													aria-label={`View score history for ${participantName(participant)}`}
-													onClick={() => setHistoryParticipant(participant)}
+													onClick={() => openScoreHistory(participant)}
 												>
 													History
 												</Button>
@@ -868,10 +913,18 @@ export function ScoringManagementView({
 			</Box>
 
 			{historyParticipant && (
-				<ParticipantScoreHistoryModal
+				<ScoreHistory
 					key={historyParticipant.participantId}
-					participant={historyParticipant}
-					onClose={() => setHistoryParticipant(null)}
+					variant="admin"
+					participantId={historyParticipant.participantId}
+					participantName={participantName(historyParticipant)}
+					participantEmail={historyParticipant.email}
+					returnFocusTo={() =>
+						historyTriggerRefs.current.get(historyParticipant.participantId) ??
+						null
+					}
+					onClose={closeScoreHistory}
+					onAdjust={() => void openAdjustment(historyParticipant)}
 				/>
 			)}
 		</main>

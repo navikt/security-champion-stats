@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Isolation
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
+import java.util.Base64
 import java.util.UUID
 
 private val PROGRAM_TIME_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
@@ -106,6 +107,165 @@ class ScoringService(
             )
         }.sortedByDescending { it.startsOn }
         return ParticipantScoringHistory(currentSeason.id, seasons, entries)
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    fun scoreSummaryForParticipant(
+        participantId: UUID,
+        selectedSeason: String?,
+        admin: Boolean,
+    ): Any {
+        if (!repository.participantExists(participantId)) throw ScoringTargetNotFoundException()
+        val currentSeason = repository.currentSeason()
+        val availableSeasons = repository.scoreHistorySeasons()
+        val season = when {
+            selectedSeason == null -> currentSeason.id
+            selectedSeason == "all" -> null
+            else -> {
+                val seasonId = try {
+                    UUID.fromString(selectedSeason)
+                } catch (_: IllegalArgumentException) {
+                    throw InvalidScoringRequestException("The season ID is invalid")
+                }
+                if (availableSeasons.none { it.id == seasonId }) {
+                    throw InvalidScoringRequestException("The season does not exist")
+                }
+                seasonId
+            }
+        }
+
+        val records = repository.scoringHistoryForParticipant(participantId)
+        val selectedRecords = records.filter { season == null || it.seasonId == season }
+        val currentPoints = repository.scoreForParticipant(participantId, currentSeason.id)
+        val rank = season?.let { seasonId ->
+            ranked(repository.scoresForSeason(seasonId, activeOnly = true))
+                .firstOrNull { it.participantId == participantId }
+                ?.rank
+        }
+        val ruleChanges = selectedRecords
+            .filter { it.type == ScoringHistoryEntryType.SCORING_RULE_CHANGE }
+            .sumOf { it.points.toLong() }
+        val manualAdjustments = selectedRecords
+            .filter { it.type == ScoringHistoryEntryType.ADJUSTMENT }
+            .sumOf { it.points.toLong() }
+        val points = selectedRecords.sumOf { it.points.toLong() }
+
+        val summary = ScoreSummary(
+            points = points,
+            tier = repository.configuration().levelFor(currentPoints),
+            rank = rank,
+            breakdown = ScoreBreakdown(
+                slack = selectedRecords.pointsFor(ActivityCreditType.SLACK_WEEK),
+                deltaRegistration = selectedRecords.pointsFor(ActivityCreditType.DELTA_REGISTRATION),
+                githubCommit = selectedRecords.pointsFor(ActivityCreditType.GITHUB_COMMIT),
+                githubPullRequest = selectedRecords.pointsFor(ActivityCreditType.GITHUB_PULL_REQUEST),
+                securityEvent = selectedRecords.pointsFor(ActivityCreditType.SECURITY_EVENT_CONTRIBUTION),
+                adjustments = manualAdjustments + if (admin) 0 else ruleChanges,
+                ruleChanges = if (admin) ruleChanges else 0,
+            ),
+            seasons = availableSeasons,
+        )
+        return if (admin) {
+            summary
+        } else {
+            ParticipantScoreSummary(
+                points = summary.points,
+                tier = summary.tier,
+                rank = summary.rank,
+                breakdown = ParticipantScoreBreakdown(
+                    slack = summary.breakdown.slack,
+                    deltaRegistration = summary.breakdown.deltaRegistration,
+                    githubCommit = summary.breakdown.githubCommit,
+                    githubPullRequest = summary.breakdown.githubPullRequest,
+                    securityEvent = summary.breakdown.securityEvent,
+                    adjustments = summary.breakdown.adjustments,
+                ),
+                seasons = summary.seasons,
+            )
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun participantScoreHistoryPage(
+        participantId: UUID,
+        season: String?,
+        type: String?,
+        cursor: String?,
+        limit: Int?,
+        admin: Boolean,
+    ): ScoreHistoryPage<*> {
+        if (!repository.participantExists(participantId)) throw ScoringTargetNotFoundException()
+        val pageSize = limit ?: 25
+        if (pageSize !in 1..25) throw InvalidScoringRequestException("The page size must be between 1 and 25")
+        val normalizedType = type ?: "all"
+        if (normalizedType !in setOf("all", "credit", "adjustment", "membership")) {
+            throw InvalidScoringRequestException("The history type is invalid")
+        }
+        val seasonId = when {
+            season == null || season == "all" -> null
+            else -> try {
+                UUID.fromString(season)
+            } catch (_: IllegalArgumentException) {
+                throw InvalidScoringRequestException("The season ID is invalid")
+            }
+        }
+        if (seasonId != null && repository.scoreHistorySeasons().none { it.id == seasonId }) {
+            throw InvalidScoringRequestException("The season does not exist")
+        }
+        val decodedCursor = cursor?.let(::decodeScoreHistoryCursor)
+        val records = repository.scoreHistoryPage(
+            participantId = participantId,
+            seasonId = seasonId,
+            type = normalizedType,
+            cursor = decodedCursor,
+            limit = pageSize + 1,
+        )
+        val hasMore = records.size > pageSize
+        val pageRecords = records.take(pageSize)
+        val nextCursor = if (hasMore) encodeScoreHistoryCursor(pageRecords.last()) else null
+
+        return if (admin) {
+            ScoreHistoryPage(
+                entries = pageRecords.map { record ->
+                    AdminScoreHistoryEntry(
+                        id = record.id,
+                        kind = record.type.toHistoryKind(),
+                        recordedAt = record.recordedAt,
+                        activityAt = record.activityAt,
+                        creditType = record.creditType,
+                        points = record.points,
+                        displayName = record.displayName,
+                        sourceRef = record.sourceReference,
+                        creditId = record.creditId,
+                        seasonId = record.seasonId,
+                        reason = record.reason,
+                        adminName = record.adminName,
+                        revokesCreditId = record.revokesCreditId,
+                        action = record.membershipAction,
+                        ruleChange = record.type == "SCORING_RULE_CHANGE",
+                    )
+                },
+                nextCursor = nextCursor,
+            )
+        } else {
+            ScoreHistoryPage(
+                entries = pageRecords.map { record ->
+                    ParticipantScoreHistoryEntry(
+                        kind = record.type.toHistoryKind(),
+                        occurredAt = if (record.type == "CREDIT") {
+                            record.activityAt ?: record.recordedAt
+                        } else {
+                            record.recordedAt
+                        },
+                        creditType = record.creditType,
+                        points = record.points,
+                        displayName = record.displayName,
+                        action = record.membershipAction,
+                    )
+                },
+                nextCursor = nextCursor,
+            )
+        }
     }
 
     @Transactional
@@ -262,6 +422,40 @@ class ScoringService(
             previousPoints = score.points
             RankedScore(score.participantId, score.fullName, score.points, currentRank)
         }
+    }
+
+    private fun List<ScoringHistoryEntry>.pointsFor(type: ActivityCreditType): Long =
+        filter { it.type == ScoringHistoryEntryType.CREDIT && it.creditType == type }
+            .sumOf { it.points.toLong() }
+
+    private fun String.toHistoryKind(): String = when (this) {
+        "CREDIT" -> "credit"
+        "MEMBERSHIP" -> "membership"
+        else -> "adjustment"
+    }
+
+    private fun encodeScoreHistoryCursor(record: ScoreHistoryRecord): String {
+        val value = "${record.recordedAt}|${record.tieIndex}"
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray())
+    }
+
+    private fun decodeScoreHistoryCursor(value: String): ScoreHistoryCursor {
+        val decoded = try {
+            String(Base64.getUrlDecoder().decode(value))
+        } catch (_: IllegalArgumentException) {
+            throw InvalidScoringRequestException("The history cursor is invalid")
+        }
+        val parts = decoded.split("|", limit = 2)
+        if (parts.size != 2) throw InvalidScoringRequestException("The history cursor is invalid")
+        val timestamp = try {
+            Instant.parse(parts[0])
+        } catch (_: java.time.format.DateTimeParseException) {
+            throw InvalidScoringRequestException("The history cursor is invalid")
+        }
+        val tieIndex = parts[1].toLongOrNull()
+            ?: throw InvalidScoringRequestException("The history cursor is invalid")
+        if (tieIndex < 1) throw InvalidScoringRequestException("The history cursor is invalid")
+        return ScoreHistoryCursor(timestamp, tieIndex)
     }
 
     private data class RankedScore(

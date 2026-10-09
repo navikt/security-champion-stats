@@ -65,6 +65,10 @@ class SecurityConfig(
                     "/v3/api-docs/**"
                 ).permitAll()
                 it.requestMatchers("/api/admin/**").hasRole(ADMIN_ROLE)
+                it.requestMatchers(
+                    "/api/participants/*/score-summary",
+                    "/api/participants/*/score-history",
+                ).hasRole(ADMIN_ROLE)
                 it.anyRequest().authenticated()
             }
             .addFilterBefore(introspectionFilter, BasicAuthenticationFilter::class.java )

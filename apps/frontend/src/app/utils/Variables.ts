@@ -153,6 +153,57 @@ export type ParticipantScoringHistory = {
 	seasons: ParticipantScoringSeason[];
 	entries: ScoringHistoryEntry[];
 };
+export type ScoreHistorySeason = {
+	id: string;
+	startsOn: string;
+	endsOn: string | null;
+};
+export type ScoreBreakdown = {
+	slack: number;
+	deltaRegistration: number;
+	githubCommit: number;
+	githubPullRequest: number;
+	securityEvent: number;
+	adjustments: number;
+	ruleChanges?: number;
+};
+export type ScoreSummary = {
+	points: number;
+	tier: string;
+	rank: number | null;
+	breakdown: ScoreBreakdown;
+	seasons: ScoreHistorySeason[];
+};
+export type ScoreHistoryKind = "credit" | "adjustment" | "membership";
+export type ParticipantScoreHistoryEntry = {
+	kind: ScoreHistoryKind;
+	occurredAt: string;
+	creditType: ActivityCredit["creditType"] | null;
+	points: number | null;
+	displayName: string | null;
+	action: "joined" | "left" | "rejoined" | null;
+};
+export type AdminScoreHistoryEntry = {
+	id: string;
+	kind: ScoreHistoryKind;
+	recordedAt: string;
+	activityAt: string | null;
+	creditType: ActivityCredit["creditType"] | null;
+	points: number | null;
+	displayName: string | null;
+	sourceRef: string | null;
+	creditId: string | null;
+	seasonId: string | null;
+	reason: string | null;
+	adminName: string | null;
+	revokesCreditId: string | null;
+	action: "joined" | "left" | "rejoined" | null;
+	ruleChange: boolean;
+};
+export type ScoreHistoryPage<T> = {
+	entries: T[];
+	nextCursor: string | null;
+};
 export type ScoringTier = { name: string; points: number };
 export type ScoringConfiguration = {
 	version: number;

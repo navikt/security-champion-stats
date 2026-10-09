@@ -15,6 +15,8 @@ interface ScoringLedger {
 
     fun currentSeason(): SeasonSummary
 
+    fun scoreHistorySeasons(): List<ScoreHistorySeason>
+
     fun scoresForCurrentSeason(activeOnly: Boolean = false): List<ParticipantSeasonScore>
 
     fun scoresForSeason(
@@ -27,6 +29,14 @@ interface ScoringLedger {
     fun creditsForParticipant(participantId: UUID): List<ActivityCredit>
 
     fun scoringHistoryForParticipant(participantId: UUID): List<ScoringHistoryEntry>
+
+    fun scoreHistoryPage(
+        participantId: UUID,
+        seasonId: UUID?,
+        type: String,
+        cursor: ScoreHistoryCursor?,
+        limit: Int,
+    ): List<ScoreHistoryRecord>
 
     fun participantExists(participantId: UUID): Boolean
 

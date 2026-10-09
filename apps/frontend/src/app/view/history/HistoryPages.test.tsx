@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Apies } from "@/app/shared/hooks/Apies";
-import PersonalHistoryPage from "@/app/history/page";
 import AdminHistoryPage from "@/app/appsec/audit/page";
+import PersonalHistoryPage from "@/app/history/page";
+import { Apies } from "@/app/shared/hooks/Apies";
 
 const state = vi.hoisted(() => ({
 	loading: false,
@@ -23,6 +23,24 @@ beforeEach(() => {
 	state.me.isParticipant = true;
 	state.me.isAdmin = false;
 	vi.spyOn(Apies, "getHistory").mockResolvedValue({
+		entries: [],
+		nextCursor: null,
+	});
+	vi.spyOn(Apies, "getScoreHistorySummary").mockResolvedValue({
+		points: 0,
+		tier: "Novice",
+		rank: null,
+		breakdown: {
+			slack: 0,
+			deltaRegistration: 0,
+			githubCommit: 0,
+			githubPullRequest: 0,
+			securityEvent: 0,
+			adjustments: 0,
+		},
+		seasons: [{ id: "season", startsOn: "2026-01-01", endsOn: null }],
+	});
+	vi.spyOn(Apies, "getScoreHistoryPage").mockResolvedValue({
 		entries: [],
 		nextCursor: null,
 	});
@@ -58,8 +76,12 @@ beforeEach(() => {
 describe("History page access", () => {
 	it("lets an inactive enrolled participant access their own history", async () => {
 		render(<PersonalHistoryPage />);
-		expect(await screen.findByText("No history entries yet.")).toBeInTheDocument();
-		expect(Apies.getHistory).toHaveBeenCalledWith(false, "", null);
+		expect(await screen.findByText("Nothing here yet.")).toBeInTheDocument();
+		expect(Apies.getScoreHistorySummary).toHaveBeenCalledWith(
+			"participant",
+			undefined,
+			undefined,
+		);
 	});
 
 	it("does not fetch history for an employee who has not enrolled", () => {
@@ -68,7 +90,7 @@ describe("History page access", () => {
 		expect(
 			screen.getByText("Join the program to view your history."),
 		).toBeInTheDocument();
-		expect(Apies.getHistory).not.toHaveBeenCalled();
+		expect(Apies.getScoreHistorySummary).not.toHaveBeenCalled();
 	});
 
 	it("does not fetch the audit trail for a non-admin", () => {
@@ -83,7 +105,9 @@ describe("History page access", () => {
 		state.me.isParticipant = false;
 		state.me.isAdmin = true;
 		render(<AdminHistoryPage />);
-		expect(await screen.findByText("No events match your search.")).toBeInTheDocument();
+		expect(
+			await screen.findByText("No events match your search."),
+		).toBeInTheDocument();
 		expect(Apies.getAdminAudit).toHaveBeenCalledWith("", "all", 0);
 	});
 });

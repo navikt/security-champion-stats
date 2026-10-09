@@ -42,8 +42,8 @@ spec:
     limits:
       memory: 128Mi
     requests:
-      cpu: 10m
-      memory: 96Mi
+      cpu: 50m
+      memory: 160Mi
   observability:
     logging:
       destinations:

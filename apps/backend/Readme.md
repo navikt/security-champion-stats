@@ -115,6 +115,30 @@ Known Slack rejections remain pending with a persisted retry time (15 minutes by
 `Retry-After`). Recipient-specific rejections do not block later announcements; shared configuration/rate-limit
 failures stop the batch. Completed delivery records expire after 12 months.
 
+### Slack channel participation
+
+Security Champions are expected to stay in the program channel (`SLACK_SC_CHANNEL_ID`). A scheduled check reads
+the complete, paginated `conversations.members` list and compares it with active participants' resolved Slack accounts.
+An active participant who was previously observed in the channel and is now absent is deactivated
+(`deactivation_reason = SLACK_CHANNEL_DEPARTURE`) and receives one private Slack message. When they rejoin, the next
+check reactivates them automatically. Administrator status changes clear the reason and are never reversed.
+
+The first observation of a participant is a silent baseline: participants already outside the channel, newly enrolled
+participants and unresolved Slack identities are listed for review only. An empty or failed member read aborts the
+check, and more departures than `SLACK_CHANNEL_PARTICIPATION_MAX_DEPARTURES` in one check abort it without changes.
+Ambiguous message deliveries are marked unconfirmed and never automatically resent.
+
+| Variable | Purpose and default |
+|---|---|
+| `SLACK_CHANNEL_PARTICIPATION_ENABLED` | Enable scheduled and manual checks; `false` |
+| `SLACK_CHANNEL_PARTICIPATION_CRON` | 09:00 and 15:00 Europe/Oslo; `-` disables scheduling |
+| `SLACK_CHANNEL_PARTICIPATION_MAX_DEPARTURES` | Maximum deactivations per check; `5` |
+
+The Slack token additionally needs `channels:read` (public channel) or `groups:read` (private channel) and
+`chat:write`. Results, check health and notice status are shown at `GET /api/admin/slack/channel-participation`
+and on the frontend Slack administration page; `POST .../check` queues a manual check. Sent and cancelled notice
+records expire after 12 months.
+
 ### Other integrations
 
 The admin dashboard reports season-wide activity metrics and persisted Slack/Delta sync health.

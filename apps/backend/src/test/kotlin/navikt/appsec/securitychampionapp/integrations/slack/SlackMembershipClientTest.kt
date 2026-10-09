@@ -3,6 +3,8 @@ package navikt.appsec.securitychampionapp.integrations.slack
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.chat.ChatPostMessageRequest
+import com.slack.api.methods.request.conversations.ConversationsMembersRequest
+import com.slack.api.methods.response.conversations.ConversationsMembersResponse
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersUpdateRequest
 import com.slack.api.methods.request.users.UsersInfoRequest
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest
@@ -168,6 +170,58 @@ class SlackMembershipClientTest {
         assertThat(request.firstValue.isUnfurlMedia).isFalse()
         assertThat(request.firstValue.metadataAsString).contains("security_champion_event_reminder", deliveryId.toString())
         verifyNoMoreInteractions(client)
+    }
+
+    @Test
+    fun `channel members are read across every page`() {
+        whenever(client.conversationsMembers(any<ConversationsMembersRequest>())).thenReturn(
+            ConversationsMembersResponse().apply {
+                isOk = true
+                members = listOf("U_ONE")
+                responseMetadata = ResponseMetadata().apply { nextCursor = "next" }
+            },
+            ConversationsMembersResponse().apply { isOk = true; members = listOf("U_TWO") },
+        )
+
+        assertThat(service.channelMembers("C_CHANNEL")).containsExactlyInAnyOrder("U_ONE", "U_TWO")
+
+        val requests = argumentCaptor<ConversationsMembersRequest>()
+        verify(client, times(2)).conversationsMembers(requests.capture())
+        assertThat(requests.allValues.map { it.channel }).containsOnly("C_CHANNEL")
+        assertThat(requests.secondValue.cursor).isEqualTo("next")
+    }
+
+    @Test
+    fun `failed or looping channel member reads never yield a partial membership`() {
+        whenever(client.conversationsMembers(any<ConversationsMembersRequest>())).thenReturn(
+            ConversationsMembersResponse().apply { isOk = false; error = "missing_scope" },
+        )
+        assertThatThrownBy { service.channelMembers("C_CHANNEL") }.isInstanceOf(SlackIntegrationException::class.java)
+
+        val looping = ConversationsMembersResponse().apply {
+            isOk = true
+            members = listOf("U_ONE")
+            responseMetadata = ResponseMetadata().apply { nextCursor = "same" }
+        }
+        whenever(client.conversationsMembers(any<ConversationsMembersRequest>())).thenReturn(looping)
+        assertThatThrownBy { service.channelMembers("C_CHANNEL") }.isInstanceOf(SlackIntegrationException::class.java)
+    }
+
+    @Test
+    fun `channel departure notice is a direct message referencing the channel`() {
+        val deliveryId = UUID.randomUUID()
+        whenever(client.chatPostMessage(any<ChatPostMessageRequest>()))
+            .thenReturn(ChatPostMessageResponse().apply { isOk = true; ts = "123.456" })
+
+        assertThat(service.notifyChannelDeparture("U_PERSON", "C_CHANNEL", deliveryId)).isEqualTo("123.456")
+
+        val request = argumentCaptor<ChatPostMessageRequest>()
+        verify(client).chatPostMessage(request.capture())
+        assertThat(request.firstValue.channel).isEqualTo("U_PERSON")
+        assertThat(request.firstValue.text).contains("<#C_CHANNEL>", "deaktivert", "automatisk")
+        assertThat(request.firstValue.isUnfurlLinks).isFalse()
+        assertThat(request.firstValue.metadataAsString)
+            .contains("security_champion_channel_departure", deliveryId.toString())
     }
 
     @Test

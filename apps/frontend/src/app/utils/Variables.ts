@@ -255,6 +255,27 @@ export type SlackMembershipAnnouncement = {
 	kind: "WELCOME" | "REMOVAL";
 	status: "PENDING" | "SENDING" | "SENT" | "SUPPRESSED" | "CANCELLED" | "UNCERTAIN";
 };
+export type SlackChannelAttentionCategory =
+	| "NOT_IN_CHANNEL"
+	| "DEACTIVATED_AFTER_LEAVING"
+	| "IDENTITY_UNRESOLVED";
+export type SlackChannelParticipant = {
+	participantId: string;
+	name: string;
+	email: string;
+	category: SlackChannelAttentionCategory;
+	absentSince: string | null;
+	notificationStatus: "PENDING" | "SENDING" | "SENT" | "CANCELLED" | "UNCERTAIN" | null;
+};
+export type SlackChannelParticipationOverview = {
+	enabled: boolean;
+	channelConfigured: boolean;
+	lastAttemptAt: string | null;
+	lastSuccessAt: string | null;
+	outcome: "RUNNING" | "SUCCEEDED" | "PARTIAL_FAILURE" | "FAILED" | null;
+	failureSummary: string | null;
+	participants: SlackChannelParticipant[];
+};
 export type DeltaEventMapping = {
 	id: string;
 	programEventName: string;

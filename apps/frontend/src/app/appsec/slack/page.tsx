@@ -7,7 +7,8 @@ import { MainView } from "@/app/view/HomeView";
 import Loading from "@/app/view/Loading";
 import { ManageSlackMappingsView } from "@/app/view/appsec/slack/ManageSlackMappingsView";
 import { ManageSlackMembershipView } from "@/app/view/appsec/slack/ManageSlackMembershipView";
-import { BodyShort, VStack } from "@navikt/ds-react";
+import { SlackChannelParticipationView } from "@/app/view/appsec/slack/SlackChannelParticipationView";
+import { BodyShort, Heading, VStack } from "@navikt/ds-react";
 import { useCallback, useEffect, useState } from "react";
 
 export default function Page() {
@@ -48,6 +49,10 @@ export default function Page() {
 	}
 	return (
 		<VStack gap="space-32">
+			<Heading level="1" size="xlarge">
+				Slack administration
+			</Heading>
+			<SlackChannelParticipationView />
 			<ManageSlackMappingsView
 				participants={participants}
 				overview={overview}

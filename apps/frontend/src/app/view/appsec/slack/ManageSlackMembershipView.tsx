@@ -204,7 +204,7 @@ export function ManageSlackMembershipView({
 		<section aria-labelledby="slack-membership-heading">
 			<VStack gap="space-16">
 				<Heading level="2" size="large" id="slack-membership-heading">
-					Slack membership
+					User-group sync
 				</Heading>
 				<BodyShort>
 					Application enrollment controls group membership. Teamkatalogen roles

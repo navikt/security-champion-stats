@@ -3,6 +3,7 @@ package navikt.appsec.securitychampionapp.integrations.slack
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.SlackApiException
 import com.slack.api.methods.request.chat.ChatPostMessageRequest
+import com.slack.api.methods.request.conversations.ConversationsMembersRequest
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersListRequest
 import com.slack.api.methods.request.usergroups.users.UsergroupsUsersUpdateRequest
 import com.slack.api.methods.request.users.UsersListRequest
@@ -21,7 +22,7 @@ class SlackMembershipClient(
     private val client: MethodsClient,
     private val mappings: SlackIdentityMappingRepository,
     private val requests: SlackApiService,
-) : SlackMembershipGateway, SlackParticipantDirectory, EventReminderGateway {
+) : SlackMembershipGateway, SlackParticipantDirectory, EventReminderGateway, SlackChannelGateway {
     override fun members(usergroupId: String): Set<String> {
         val response = requests.call(SlackIntegrationException.Operation.GROUP_MEMBERS) {
             client.usergroupsUsersList(UsergroupsUsersListRequest.builder().usergroup(usergroupId).build())
@@ -110,6 +111,43 @@ class SlackMembershipClient(
                 ).build(),
         )
     }
+
+    override fun channelMembers(channelId: String): Set<String> {
+        val members = mutableSetOf<String>()
+        val cursors = mutableSetOf<String>()
+        var cursor = ""
+        do {
+            val response = requests.call(SlackIntegrationException.Operation.CHANNEL_MEMBERS) {
+                client.conversationsMembers(
+                    ConversationsMembersRequest.builder().channel(channelId).limit(200).cursor(cursor).build(),
+                )
+            }
+            if (response?.isOk != true || response.members == null) {
+                throw SlackIntegrationException(SlackIntegrationException.Operation.CHANNEL_MEMBERS, response?.error)
+            }
+            members.addAll(response.members)
+            cursor = response.responseMetadata?.nextCursor?.trim().orEmpty()
+            if (cursor.isNotEmpty() && !cursors.add(cursor)) {
+                throw SlackIntegrationException(SlackIntegrationException.Operation.CHANNEL_MEMBERS, "repeated_cursor")
+            }
+        } while (cursor.isNotEmpty())
+        return members
+    }
+
+    override fun notifyChannelDeparture(slackUserId: String, channelId: String, deliveryId: UUID): String =
+        postMessage(
+            ChatPostMessageRequest.builder().channel(slackUserId)
+                .text(
+                    "Hei! Vi forventer at alle Security Champions er med i <#$channelId> og følger med på det som " +
+                        "deles der. Du er ikke lenger medlem av kanalen, så deltakelsen din i Security Champion-" +
+                        "programmet er deaktivert. Historikken og poengene dine er tatt vare på. Blir du med i " +
+                        "kanalen igjen, aktiveres deltakelsen automatisk ved neste kontroll.",
+                )
+                .unfurlLinks(false).unfurlMedia(false)
+                .metadataAsString(
+                    """{"event_type":"security_champion_channel_departure","event_payload":{"delivery_id":"$deliveryId"}}""",
+                ).build(),
+        )
 
     override fun remind(slackUserId: String, text: String, deliveryId: UUID): String =
         postMessage(

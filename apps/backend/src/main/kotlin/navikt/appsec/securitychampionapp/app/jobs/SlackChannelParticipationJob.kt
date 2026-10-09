@@ -49,13 +49,14 @@ class SlackChannelParticipationJob(
             return SlackChannelParticipationOverview(properties.enabled, false, null, null, null, null, emptyList())
         }
         val status = repository.status(channelId)
+        val interrupted = status?.outcome == "RUNNING" && !lock.isLocked(SLACK_CHANNEL_PARTICIPATION_LOCK_KEY)
         return SlackChannelParticipationOverview(
             enabled = properties.enabled,
             channelConfigured = true,
             lastAttemptAt = status?.lastAttemptAt,
             lastSuccessAt = status?.lastSuccessAt,
-            outcome = status?.outcome,
-            failureSummary = status?.failureSummary,
+            outcome = if (interrupted) "FAILED" else status?.outcome,
+            failureSummary = if (interrupted) "Slack channel check was interrupted" else status?.failureSummary,
             participants = repository.attentionItems(channelId),
         )
     }

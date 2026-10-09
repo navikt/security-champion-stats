@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.postgress
 
 import navikt.appsec.securitychampionapp.app.membership.*
+import navikt.appsec.securitychampionapp.app.participation.DeactivationReason
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.support.TransactionTemplate
@@ -84,7 +85,7 @@ class SlackChannelParticipationRepository(
         ) == 1
         if (!changed) return false
         recordStatusChange(participantId, "ACTIVE", "DEACTIVATED")
-        cancelPendingNotices(participantId)
+        cancelOpenNotices(participantId)
         jdbc.update(
             """
                 INSERT INTO slack_channel_departure_notices (participant_id, channel_id, slack_user_id)
@@ -106,7 +107,7 @@ class SlackChannelParticipationRepository(
         ) == 1
         if (!changed) return false
         recordStatusChange(participantId, "DEACTIVATED", "ACTIVE")
-        cancelPendingNotices(participantId)
+        cancelOpenNotices(participantId)
         return true
     }
 
@@ -117,19 +118,22 @@ class SlackChannelParticipationRepository(
                     participant_id, actor_nav_no_email, action, before_values, after_values
                 ) VALUES (
                     ?, NULL, 'PARTICIPATION_STATUS_CHANGED',
-                    jsonb_build_object('status', ?::text),
-                    jsonb_build_object('status', ?::text, 'reason', 'SLACK_CHANNEL_DEPARTURE')
+                    jsonb_strip_nulls(jsonb_build_object('status', ?::text, 'reason', ?::text)),
+                    jsonb_strip_nulls(jsonb_build_object('status', ?::text, 'reason', ?::text))
                 )
             """.trimIndent(),
-            participantId, before, after,
+            participantId, before, reasonFor(before), after, reasonFor(after),
         )
     }
 
-    private fun cancelPendingNotices(participantId: UUID) {
+    private fun reasonFor(status: String): String? =
+        DeactivationReason.SLACK_CHANNEL_DEPARTURE.name.takeIf { status == "DEACTIVATED" }
+
+    private fun cancelOpenNotices(participantId: UUID) {
         jdbc.update(
             """
                 UPDATE slack_channel_departure_notices SET status = 'CANCELLED', updated_at = NOW()
-                WHERE participant_id = ? AND status = 'PENDING'
+                WHERE participant_id = ? AND status IN ('PENDING', 'UNCERTAIN')
             """.trimIndent(),
             participantId,
         )
@@ -189,8 +193,10 @@ class SlackChannelParticipationRepository(
     override fun outstandingNotices(channelId: String): Int =
         jdbc.queryForObject(
             """
-                SELECT COUNT(*) FROM slack_channel_departure_notices
-                WHERE channel_id = ? AND status IN ('PENDING', 'SENDING', 'UNCERTAIN')
+                SELECT COUNT(*) FROM slack_channel_departure_notices n
+                JOIN program_participants p ON p.id = n.participant_id
+                WHERE n.channel_id = ? AND n.status IN ('PENDING', 'SENDING', 'UNCERTAIN')
+                    AND p.status = 'DEACTIVATED' AND p.deactivation_reason = 'SLACK_CHANNEL_DEPARTURE'
             """.trimIndent(),
             Int::class.java,
             channelId,

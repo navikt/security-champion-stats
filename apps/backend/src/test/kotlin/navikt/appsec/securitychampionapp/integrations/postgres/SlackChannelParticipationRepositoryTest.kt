@@ -109,6 +109,49 @@ class SlackChannelParticipationRepositoryTest {
     }
 
     @Test
+    fun `status history places the departure reason on the deactivated side`() {
+        val id = enroll("leaver")
+        repository.apply("C_CHANNEL", now, departure(id))
+        repository.apply("C_CHANNEL", now, ChannelCheckPlan(emptyList(), emptyMap(), setOf(id)))
+
+        val history = jdbc.queryForList(
+            """
+                SELECT before_values::text AS before, after_values::text AS after FROM program_participant_audit
+                WHERE participant_id = ? ORDER BY id
+            """.trimIndent(),
+            id,
+        ).map { it["before"] to it["after"] }
+
+        assertThat(history).containsExactly(
+            """{"status": "ACTIVE"}""" to """{"reason": "SLACK_CHANNEL_DEPARTURE", "status": "DEACTIVATED"}""",
+            """{"reason": "SLACK_CHANNEL_DEPARTURE", "status": "DEACTIVATED"}""" to """{"status": "ACTIVE"}""",
+        )
+    }
+
+    @Test
+    fun `stale unconfirmed notices neither linger after return nor count once the reason is cleared`() {
+        val returned = enroll("returned")
+        val adminHandled = enroll("handled")
+        listOf(returned, adminHandled).forEach {
+            repository.apply("C_CHANNEL", now, departure(it))
+            repository.updateNotice(repository.dueNotices("C_CHANNEL").first { n -> n.participantId == it }.id,
+                ChannelNoticeStatus.UNCERTAIN)
+        }
+        assertThat(repository.outstandingNotices("C_CHANNEL")).isEqualTo(2)
+
+        repository.apply("C_CHANNEL", now, ChannelCheckPlan(emptyList(), emptyMap(), setOf(returned)))
+        participants.updateStatus(adminHandled, true, "admin@nav.no")
+
+        assertThat(
+            jdbc.queryForObject(
+                "SELECT status FROM slack_channel_departure_notices WHERE participant_id = ?",
+                String::class.java, returned,
+            ),
+        ).isEqualTo("CANCELLED")
+        assertThat(repository.outstandingNotices("C_CHANNEL")).isZero()
+    }
+
+    @Test
     fun `administrator status changes remove the channel-departure reason`() {
         val id = enroll("leaver")
         repository.apply("C_CHANNEL", now, departure(id))

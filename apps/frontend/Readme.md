@@ -102,6 +102,10 @@ To get started with the frontend application, follow these steps:
 3. Open your browser and navigate to `http://localhost:3000` to see the application in action.
 4. Run tests with `pnpm run test`.
 
+Dependency updates use a seven-day release cooldown, enforced by pnpm's
+`minimumReleaseAge: 10080` (minutes) and Dependabot. The workspace lists explicit
+exceptions to this cooldown in `minimumReleaseAgeExclude`.
+
 ## Technologies Used
 - React: A JavaScript library for building user interfaces.
 - TypeScript: A typed superset of JavaScript that compiles to plain JavaScript.

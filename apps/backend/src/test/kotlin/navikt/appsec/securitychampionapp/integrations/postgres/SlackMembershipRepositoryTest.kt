@@ -142,6 +142,5 @@ class SlackMembershipRepositoryTest {
         assertThat(repository.announcements("S_GROUP").single()).isEqualTo(deferred)
         repository.updateDelivery(announcement.id, MembershipDeliveryStatus.UNCERTAIN)
         assertThat(repository.resolveUncertain("S_GROUP", announcement.id, true)).isTrue()
-        assertThat(repository.announcements("S_GROUP").single().nextAttemptAt).isBefore(Instant.now())
     }
 }

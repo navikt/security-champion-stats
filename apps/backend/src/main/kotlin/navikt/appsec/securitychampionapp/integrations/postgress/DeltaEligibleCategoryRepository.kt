@@ -40,7 +40,7 @@ class DeltaEligibleCategoryRepository(
             categoryId,
             categoryName,
             actorNavNoEmail,
-        )!!
+        )
         jdbcTemplate.update(
             """
                 INSERT INTO program_scoring_audit (actor_nav_no_email, action, before_values, after_values)

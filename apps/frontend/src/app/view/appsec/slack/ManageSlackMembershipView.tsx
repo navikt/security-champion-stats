@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/noNoninteractiveTabindex: Keyboard focus enables scrolling wide tables and focusing confirmation.
 "use client";
 
 import { Apies } from "@/app/shared/hooks/Apies";
@@ -65,6 +66,7 @@ export function ManageSlackMembershipView({
 	useEffect(() => {
 		void refresh();
 	}, [refresh]);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: participant changes invalidate the current preview.
 	useEffect(() => {
 		setPreview(null);
 		setConfirmation(null);
@@ -264,10 +266,9 @@ export function ManageSlackMembershipView({
 					<BodyShort role="status">Loading membership operations...</BodyShort>
 				)}
 				{confirmation && (
-					<div
+					<section
 						ref={confirmationRegion}
 						tabIndex={-1}
-						role="region"
 						aria-label="Confirm membership action"
 					>
 						<VStack gap="space-8">
@@ -300,7 +301,7 @@ export function ManageSlackMembershipView({
 								Cancel
 							</Button>
 						</VStack>
-					</div>
+					</section>
 				)}
 				{preview && (
 					<VStack gap="space-8">
@@ -371,8 +372,7 @@ export function ManageSlackMembershipView({
 							Uncertain deliveries require a Slack check before retrying or
 							suppressing.
 						</BodyShort>
-						<div
-							role="region"
+						<section
 							aria-label="Outstanding membership announcements"
 							tabIndex={0}
 							style={{ overflowX: "auto" }}
@@ -453,7 +453,7 @@ export function ManageSlackMembershipView({
 									)}
 								</Table.Body>
 							</Table>
-						</div>
+						</section>
 					</VStack>
 				)}
 			</VStack>

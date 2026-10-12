@@ -1,4 +1,4 @@
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 
 export function sortEventsByDate(events: SecurityEvent[]): SecurityEvent[] {
 	return [...events].sort((a, b) => compareEvents(a, b));

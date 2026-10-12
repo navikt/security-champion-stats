@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Apies } from "@/app/shared/hooks/Apies";
-import { Me, ProgramParticipant } from "@/app/utils/Variables";
+import type { Me, ProgramParticipant } from "@/app/utils/Variables";
 import { MembershipView } from "./MembershipView";
 
 const me: Me = {

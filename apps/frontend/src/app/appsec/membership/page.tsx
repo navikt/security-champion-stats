@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import Loading from "@/app/view/Loading";
 import { MainView } from "@/app/view/HomeView";
 import { ManageParticipantsView } from "@/app/view/appsec/membership/ManageParticipantsView";
-import { AdminProgramParticipant } from "@/app/utils/Variables";
+import type { AdminProgramParticipant } from "@/app/utils/Variables";
 
 export default function Page() {
 	const { me, loading } = useMe();

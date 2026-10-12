@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getBackendToken, getServerEnv } from "../../utils/Validation";
 import { AUTHENTICATED_FAILED, INTERNAL_ERROR, MISSING_GROUP } from "../../utils/Variables";
 import { parseAzureUserToken } from "@navikt/oasis";
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 			displayName: parse.name?.trim() || null,
 		});
 	} catch (error) {
-		console.error("Validation error, then validating user," + error);
+		console.error(`Validation error, then validating user,${error}`);
 		return problemResponse(
 			500,
 			"Internal server error",

@@ -1,0 +1,5 @@
+if git diff --cached --quiet -- apps/frontend; then
+	exit 0
+fi
+
+pnpm --dir apps/frontend lint

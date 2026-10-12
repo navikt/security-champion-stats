@@ -100,7 +100,8 @@ To get started with the frontend application, follow these steps:
 1. Install dependencies: `pnpm install` (make sure you have pnpm installed globally, avoid using npm)
 2. Run `pnpm run dev:local` together with the backend for a full local environment.
 3. Open your browser and navigate to `http://localhost:3000` to see the application in action.
-4. Run tests with `pnpm run test`.
+4. Run tests with `pnpm run test` and lint with `pnpm run lint`.
+   Installing frontend dependencies also configures a pre-commit hook that runs the lint check.
 
 Dependency updates use a seven-day release cooldown, enforced by pnpm's
 `minimumReleaseAge: 10080` (minutes) and Dependabot. The workspace lists explicit
@@ -112,7 +113,7 @@ exceptions to this cooldown in `minimumReleaseAgeExclude`.
 - Next.js: A React framework using the App Router for server-side rendering and routing.
 - Tailwind CSS: A utility-first CSS framework for styling the application.
 - NAV Aksel (`@navikt/ds-react`): NAV's design system component library.
-- chart.js / react-chartjs-2: For rendering statistics charts.
+- Biome: Frontend linting.
 - Vitest: A fast unit test runner.
 - Grafana Faro: Web observability and tracing.
 

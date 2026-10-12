@@ -1,4 +1,4 @@
-import { ProgramParticipantSummary } from "@/app/utils/Variables";
+import type { ProgramParticipantSummary } from "@/app/utils/Variables";
 import { Detail, Tag } from "@navikt/ds-react";
 import { getInitials } from "@/app/utils/GetInitials";
 import "../../style/community/CommunityView.css";

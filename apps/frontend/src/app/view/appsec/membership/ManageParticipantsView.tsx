@@ -1,6 +1,6 @@
 "use client";
 
-import { AdminProgramParticipant } from "@/app/utils/Variables";
+import type { AdminProgramParticipant } from "@/app/utils/Variables";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { BodyShort, Button, Heading, Modal, Table, TextField, VStack } from "@navikt/ds-react";
 import { useRef, useState } from "react";

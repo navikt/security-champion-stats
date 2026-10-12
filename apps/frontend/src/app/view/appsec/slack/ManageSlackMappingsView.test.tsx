@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Apies } from "@/app/shared/hooks/Apies";
-import { AdminProgramParticipant, SlackMappingOverview } from "@/app/utils/Variables";
+import type { AdminProgramParticipant, SlackMappingOverview } from "@/app/utils/Variables";
 import { ManageSlackMappingsView } from "./ManageSlackMappingsView";
 
 const participants: AdminProgramParticipant[] = [

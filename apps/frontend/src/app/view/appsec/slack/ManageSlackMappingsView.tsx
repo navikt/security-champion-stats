@@ -1,7 +1,7 @@
 "use client";
 
 import { Apies } from "@/app/shared/hooks/Apies";
-import {
+import type {
 	AdminProgramParticipant,
 	SlackMappingOverview,
 } from "@/app/utils/Variables";

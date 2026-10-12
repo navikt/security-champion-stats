@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Apies } from "@/app/shared/hooks/Apies";
-import { DeltaCategory, DeltaEligibleCategory, DeltaEventMapping } from "@/app/utils/Variables";
+import type { DeltaCategory, DeltaEligibleCategory, DeltaEventMapping } from "@/app/utils/Variables";
 import { ManageDeltaEventMappingsView } from "./ManageDeltaEventMappingsView";
 
 const mappings: DeltaEventMapping[] = [];

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import MembersTable from "./MembersTable";
-import { Member } from "@/app/utils/Variables";
+import type { Member } from "@/app/utils/Variables";
 
 const members: Member[] = [
 	{

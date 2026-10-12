@@ -434,6 +434,7 @@ html.hacker .hackerMembership .sc-membership-card__status__inactive {
 	background: var(--panel-head);
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: The selectors target separate components. */
 .hackerLeaderboard__row > span {
 	min-width: 0;
 	padding: 10px 8px;
@@ -449,6 +450,7 @@ html.hacker .hackerMembership .sc-membership-card__status__inactive {
 	flex-direction: column;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: The selectors target separate components. */
 .hackerLeaderboard__operative strong {
 	color: var(--text-strong);
 	font-weight: 600;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SecurityEvent } from "./Variables";
+import type { SecurityEvent } from "./Variables";
 import {
 	formatEventDate,
 	getNextEvent,

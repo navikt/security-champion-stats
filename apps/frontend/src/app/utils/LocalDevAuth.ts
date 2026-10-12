@@ -20,8 +20,8 @@ export function createLocalDevToken(
 }
 
 export function createLocalParserResult() {
-	const username = process.env["LOCAL_DEV_EMAIL"] ?? "local.user@nav.no";
-	const groupIds = [process.env["APPSEC_ID"] ?? "1234567", "12345", "11111111"];
+	const username = process.env.LOCAL_DEV_EMAIL ?? "local.user@nav.no";
+	const groupIds = [process.env.APPSEC_ID ?? "1234567", "12345", "11111111"];
 	return {
 		oid: "SomeValue",
 		NAVident: "D112345",

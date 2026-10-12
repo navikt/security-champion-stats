@@ -1,5 +1,5 @@
 import "../../style/events/EventsView.css";
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { Detail, Heading } from "@navikt/ds-react";
 import { EventListItem } from "@/app/view/events/EventListItem";
 

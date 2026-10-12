@@ -71,6 +71,9 @@ export function EventClaimForm({
 					],
 				},
 	);
+	const [contributorKeys, setContributorKeys] = useState(() =>
+		Array.from({ length: form.contributors.length }, () => crypto.randomUUID()),
+	);
 	const [start, setStart] = useState(
 		claim ? localDateTime(claim.startDate) : "",
 	);
@@ -274,7 +277,7 @@ export function EventClaimForm({
 					onChange={(event) => update("invitationEvidence", event.target.value)}
 				/>
 				{form.contributors.map((contributor, index) => (
-					<fieldset key={index}>
+					<fieldset key={contributorKeys[index]}>
 						<legend>Contributor {index + 1}</legend>
 						<VStack gap="space-12">
 							<Select
@@ -328,12 +331,17 @@ export function EventClaimForm({
 									type="button"
 									variant="tertiary"
 									onClick={() =>
-										update(
-											"contributors",
-											form.contributors.filter(
-												(_, position) => position !== index,
-											),
-										)
+										{
+											setContributorKeys((current) =>
+												current.filter((_, position) => position !== index),
+											);
+											update(
+												"contributors",
+												form.contributors.filter(
+													(_, position) => position !== index,
+												),
+											);
+										}
 									}
 								>
 									Remove contributor {index + 1}
@@ -346,12 +354,13 @@ export function EventClaimForm({
 					type="button"
 					variant="secondary"
 					disabled={form.contributors.length >= 20}
-					onClick={() =>
+					onClick={() => {
+						setContributorKeys((current) => [...current, crypto.randomUUID()]);
 						update("contributors", [
 							...form.contributors,
 							{ participantId: "", contribution: "" },
-						])
-					}
+						]);
+					}}
 				>
 					Add co-host or presenter
 				</Button>

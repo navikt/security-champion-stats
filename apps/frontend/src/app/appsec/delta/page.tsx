@@ -2,7 +2,7 @@
 
 import { Apies } from "@/app/shared/hooks/Apies";
 import { useMe } from "@/app/shared/hooks/UseMe";
-import { DeltaCategory, DeltaEligibleCategory, DeltaEventMapping } from "@/app/utils/Variables";
+import type { DeltaCategory, DeltaEligibleCategory, DeltaEventMapping } from "@/app/utils/Variables";
 import { MainView } from "@/app/view/HomeView";
 import Loading from "@/app/view/Loading";
 import { ManageDeltaEventMappingsView } from "@/app/view/appsec/delta/ManageDeltaEventMappingsView";

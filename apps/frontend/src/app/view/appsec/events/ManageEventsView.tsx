@@ -1,6 +1,6 @@
 "use client";
 
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { useState } from "react";
 import { BodyShort, Button, Heading, Select, VStack } from "@navikt/ds-react";
 import { EventList } from "@/app/view/events/EventList";

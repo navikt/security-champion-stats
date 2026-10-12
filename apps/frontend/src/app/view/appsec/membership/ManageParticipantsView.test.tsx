@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Apies } from "@/app/shared/hooks/Apies";
-import { AdminProgramParticipant } from "@/app/utils/Variables";
+import type { AdminProgramParticipant } from "@/app/utils/Variables";
 import { ManageParticipantsView } from "./ManageParticipantsView";
 
 const participants: AdminProgramParticipant[] = [

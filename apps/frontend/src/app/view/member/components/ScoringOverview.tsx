@@ -10,7 +10,7 @@ import {
 	Tag,
 } from "@navikt/ds-react";
 import { Apies } from "@/app/shared/hooks/Apies";
-import {
+import type {
 	LeaderboardEntry,
 	ParticipantSeasonScore,
 } from "@/app/utils/Variables";
@@ -112,7 +112,7 @@ function Leaderboard({
 									isCurrentUser ? "sc-scoring-overview__leaderboardRow--self" : "",
 									selfOutsideTop && index === top.length ? "sc-scoring-overview__leaderboardRow--separated" : "",
 								].filter(Boolean).join(" ")}
-								key={`${entry.rank}-${entry.fullName}-${index}`}
+								key={`${entry.rank}-${entry.fullName}`}
 							>
 								<span className="sc-scoring-overview__rank">{entry.rank}</span>
 								<div className="sc-scoring-overview__person">

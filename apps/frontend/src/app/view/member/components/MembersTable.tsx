@@ -1,6 +1,6 @@
 "use client";
 
-import { Member } from "@/app/utils/Variables";
+import type { Member } from "@/app/utils/Variables";
 
 function MembersTable({
 	members,
@@ -33,7 +33,7 @@ function MembersTable({
 
 	return (
 		<div className="membersTable">
-			<table role={"table"} aria-label={"Members"}>
+			<table aria-label={"Members"}>
 				<colgroup>
 					<col className={"membersTable__col-name"} />
 					{showScores && <col className={"membersTable__col-points"} />}

@@ -1576,6 +1576,7 @@ html.hacker .hubRedesign {
 	flex-direction: column;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: The selectors target separate components. */
 .scoringView__participantIdentity strong {
 	font-size: var(--ax-font-size-medium);
 }
@@ -1871,6 +1872,7 @@ html.hacker .hubRedesign {
 	border-radius: inherit;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: The selectors target separate components. */
 .dashboardView__activityRow > strong {
 	text-align: right;
 	font-variant-numeric: tabular-nums;

@@ -14,7 +14,7 @@ import {
 	useDatepicker,
 	VStack,
 } from "@navikt/ds-react";
-import { SecurityEvent, SecurityEventType } from "@/app/utils/Variables";
+import type { SecurityEvent, SecurityEventType } from "@/app/utils/Variables";
 
 interface AddEventModalProps {
 	open: boolean;

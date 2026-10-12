@@ -62,6 +62,7 @@ export function ParticipantScoreHistoryModal({
 	const [selectedSeason, setSelectedSeason] = useState("all");
 	const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt triggers a retry after failure.
 	useEffect(() => {
 		let current = true;
 		setLoading(true);

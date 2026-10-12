@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { EventListItem } from "./EventListItem";
 
 afterEach(() => {

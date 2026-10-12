@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createLocalDevToken } from "../utils/LocalDevAuth";
 import { getToken, requestOboToken } from "@navikt/oasis";
 import { AUTHENTICATED_FAILED } from "./Variables";
@@ -36,7 +36,7 @@ export async function getBackendToken(request: NextRequest): Promise<string> {
 		const oboResult = await requestOboToken(accessToken, backendScope);
 
 		if (!oboResult.ok) {
-			console.error("Error from obo: " + oboResult.error);
+			console.error(`Error from obo: ${oboResult.error}`);
 			return AUTHENTICATED_FAILED;
 		}
 		return oboResult.token;

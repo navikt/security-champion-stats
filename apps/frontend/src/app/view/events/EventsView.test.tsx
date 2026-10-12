@@ -1,6 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { EventsView } from "./EventsView";
 
 const nextEvent: SecurityEvent = {

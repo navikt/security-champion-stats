@@ -4,7 +4,7 @@ import { useMe } from "@/app/shared/hooks/UseMe";
 import { MainView } from "@/app/view/HomeView";
 import Loading from "@/app/view/Loading";
 import { useEffect, useState } from "react";
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { Apies } from "@/app/shared/hooks/Apies";
 import { ManageEventsView } from "@/app/view/appsec/events/ManageEventsView";
 

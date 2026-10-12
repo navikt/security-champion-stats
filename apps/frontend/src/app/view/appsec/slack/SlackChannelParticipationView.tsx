@@ -1,3 +1,4 @@
+// biome-ignore-all lint/a11y/noNoninteractiveTabindex: Keyboard focus enables horizontal scrolling of the table.
 "use client";
 
 import { Apies } from "@/app/shared/hooks/Apies";
@@ -128,8 +129,7 @@ export function SlackChannelParticipationView() {
 					(overview.participants.length === 0 ? (
 						<BodyShort>All checked participants are in the channel.</BodyShort>
 					) : (
-						<div
-							role="region"
+						<section
 							aria-label="Participants needing attention"
 							tabIndex={0}
 							style={{ overflowX: "auto" }}
@@ -164,7 +164,7 @@ export function SlackChannelParticipationView() {
 									))}
 								</Table.Body>
 							</Table>
-						</div>
+						</section>
 					))}
 			</VStack>
 		</section>

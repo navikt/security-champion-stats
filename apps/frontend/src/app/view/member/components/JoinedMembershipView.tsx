@@ -1,6 +1,6 @@
 import { BodyShort, Button, Heading } from "@navikt/ds-react";
 import Link from "next/link";
-import { ProgramParticipant } from "@/app/utils/Variables";
+import type { ProgramParticipant } from "@/app/utils/Variables";
 
 export function JoinedMembershipView({
 	participant,

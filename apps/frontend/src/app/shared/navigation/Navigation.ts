@@ -1,4 +1,4 @@
-import { ComponentType, SVGProps } from "react";
+import type { ComponentType, SVGProps } from "react";
 import { CalendarIcon, HouseIcon, PersonGroupIcon } from "@navikt/aksel-icons";
 
 export interface ModuleNavLink {

@@ -1,4 +1,4 @@
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { formatEventDate } from "@/app/utils/eventUtils";
 import { CalendarIcon, ChevronRightIcon } from "@navikt/aksel-icons";
 import { Detail, Link, Tag } from "@navikt/ds-react";

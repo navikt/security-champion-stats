@@ -1,5 +1,5 @@
 import { BodyShort, Button, Detail, Heading, Tag } from "@navikt/ds-react";
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 import { formatEventDate } from "@/app/utils/eventUtils";
 import "../../style/events/EventsView.css";
 import { CalendarIcon, ClockIcon, LocationPinIcon } from "@navikt/aksel-icons";

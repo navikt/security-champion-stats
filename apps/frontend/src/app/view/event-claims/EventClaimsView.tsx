@@ -221,8 +221,10 @@ function ClaimCard({
 								Review history
 							</Heading>
 							<ul>
-								{claim.reviews.map((entry, index) => (
-									<li key={index}>
+								{claim.reviews.map((entry) => (
+									<li
+										key={`${entry.participantId}-${entry.createdAt}-${entry.decision}`}
+									>
 										{entry.fullName || "Contributor"}:{" "}
 										{entry.decision.toLowerCase()} - {entry.reason} (
 										{new Date(entry.createdAt).toLocaleString()})

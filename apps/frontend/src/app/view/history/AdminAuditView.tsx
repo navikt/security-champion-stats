@@ -127,7 +127,7 @@ export function AdminAuditView() {
 			setAuditUrl(normalized, category);
 		}, 250);
 		return () => window.clearTimeout(timer);
-	}, [query]);
+	}, [query, search, category]);
 
 	useEffect(() => {
 		let current = true;

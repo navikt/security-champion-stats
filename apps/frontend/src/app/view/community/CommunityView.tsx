@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ProgramParticipantSummary } from "@/app/utils/Variables";
+import type { ProgramParticipantSummary } from "@/app/utils/Variables";
 import { BodyShort, Heading, Search } from "@navikt/ds-react";
 import { CommunityMemberRow } from "@/app/view/community/CommunityMemberRow";
 import "../../style/community/CommunityView.css";

@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ManageEventsView } from "./ManageEventsView";
-import { SecurityEvent } from "@/app/utils/Variables";
+import type { SecurityEvent } from "@/app/utils/Variables";
 
 beforeAll(() => {
 	Object.defineProperties(HTMLDialogElement.prototype, {

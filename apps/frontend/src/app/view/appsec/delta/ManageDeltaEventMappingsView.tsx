@@ -1,7 +1,7 @@
 "use client";
 
 import { Apies } from "@/app/shared/hooks/Apies";
-import { DeltaCategory, DeltaEligibleCategory, DeltaEventMapping } from "@/app/utils/Variables";
+import type { DeltaCategory, DeltaEligibleCategory, DeltaEventMapping } from "@/app/utils/Variables";
 import {
 	BodyShort,
 	Button,

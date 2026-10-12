@@ -1,6 +1,6 @@
 import { BodyShort } from "@navikt/ds-react";
 import { useCallback, useEffect, useState } from "react";
-import {
+import type {
 	HistoryEntry,
 	Me,
 	ParticipantSeasonScore,

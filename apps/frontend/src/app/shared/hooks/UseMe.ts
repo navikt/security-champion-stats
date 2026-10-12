@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Me } from "../../utils/Variables";
+import type { Me } from "../../utils/Variables";
 import { Apies } from "./Apies";
 
 export function notifyMembershipChanged(me: Me) {

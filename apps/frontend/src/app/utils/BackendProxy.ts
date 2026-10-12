@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getBackendToken, getServerEnv } from "@/app/utils/Validation";
 import { AUTHENTICATED_FAILED } from "@/app/utils/Variables";
 

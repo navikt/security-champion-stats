@@ -16,6 +16,7 @@ jackson-module = "3.2.3"
 
 #Spring backend
 spring-web = { module = "org.springframework.boot:spring-boot-starter-web", version.ref = "spring-boot" }
+spring-web-jetty = { module = "org.springframework.boot:spring-boot-starter-jetty", version.ref = "spring-boot" }
 spring-boot-data = { module = "org.springframework.boot:spring-boot-starter-data-jpa", version.ref = "spring-boot" }
 spring-security = { module = "org.springframework.boot:spring-boot-starter-security", version.ref = "spring-boot" }
 spring-oauth = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server", version.ref = "spring-boot" }
@@ -59,6 +60,7 @@ mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "
 spring = [
     "spring-boot-data",
     "spring-web",
+    "spring-web-jetty",
     "spring-webclient",
     "spring-security",
     "spring-oauth",

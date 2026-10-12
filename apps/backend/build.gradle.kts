@@ -13,7 +13,10 @@ group = "no.navikt.appsec.securitychampionstats"
 
 dependencies {
 
-    implementation(libs.bundles.spring)
+    implementation(libs.bundles.spring) {
+        exclude("org.springframework.boot", "spring-boot-starter-tomcat")
+    }
+
     implementation(libs.bundles.flyway)
 
     implementation(kotlin("reflect"))

@@ -4,7 +4,7 @@
 	"description": "frontend for security champion stats",
 	"main": "index.js",
 	"scripts": {
-		"prepare": "cd ../.. && apps/frontend/node_modules/.bin/husky .husky",
+		"prepare": "if [ -e ../../.git ]; then cd ../.. && apps/frontend/node_modules/.bin/husky .husky; fi",
 		"test": "vitest run",
 		"lint": "biome lint src",
 		"lint:fix": "biome lint --write src",

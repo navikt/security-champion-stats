@@ -2,9 +2,7 @@ package navikt.appsec.securitychampionapp.integrations.teamCatalog.dto
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonInclude
-import lombok.Data
 
-@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class TeamCatalogTeam(
@@ -13,7 +11,6 @@ data class TeamCatalogTeam(
     val id: String,
 )
 
-@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class MemberResponse(
@@ -21,15 +18,12 @@ data class MemberResponse(
     val resource: ResourceResponse
 )
 
-
-@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class TeamResponse(
     val content: List<TeamCatalogTeam>
 )
 
-@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class ResourceResponse(
@@ -38,7 +32,6 @@ data class ResourceResponse(
     val email: String?
 )
 
-@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class MemberWithTeamData(

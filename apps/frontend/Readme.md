@@ -37,6 +37,8 @@ shows weekly points and Slack/Delta/GitHub sync health, and lets administrators 
 The Slack administration page (`/appsec/slack`) shows channel participation first: active participants outside the
 program channel, participants deactivated after leaving it with their notice status, and unresolved Slack accounts.
 Administrators can queue a channel check there. The page also manages account mappings and group membership operations.
+Unmapped accounts show Slack display names (or real names when display names are absent) alongside account IDs;
+names are review context only. Approved mappings are collapsed by default and show a count.
 All operations go through authenticated frontend API proxies; no manually obtained backend token is needed.
 It shows enabled/dry-run configuration, previews group additions/removals and unresolved participants,
 and lets administrators save verified Slack account mappings for participants who have not posted messages.
@@ -44,7 +46,8 @@ Preview is read-only and available while sync is disabled once backend Slack des
 Manual write-enabled sync requires a resolved preview and confirmation; queued sync outcomes appear in the audit trail.
 The frontend submits the reviewed preview version. The backend rejects stale previews with HTTP 409;
 refresh operations and preview again if enrollment, account mappings or Slack membership changed.
-Use **Refresh operations** to reload outstanding announcements. Only uncertain deliveries have retry/suppress controls,
+Use **Refresh operations** to reload **Membership messages awaiting delivery**: welcome-channel messages for new
+participants and admin-channel notices about deactivated participants. Only unconfirmed deliveries have retry/suppress controls,
 and both require confirmation after checking Slack. Retrying authorizes a later sync and may produce duplicate messages.
 Membership sync remains disabled by default; follow the backend README cutover procedure before enabling writes.
 The overview brings together membership status, season points, level, rank, recent activity, events, and the

@@ -308,6 +308,69 @@ class SlackApiServiceTest {
     }
 
     @Test
+    fun `should prefer display names and fall back to real names without exposing email`() {
+        val profile = User.Profile().apply {
+            displayName = " Display Name "
+            realName = "Profile Real Name"
+            email = "synthetic@nav.no"
+        }
+        whenever(client.usersInfo(any<UsersInfoRequest>())).thenReturn(
+            UsersInfoResponse().apply {
+                isOk = true
+                user = User().apply {
+                    this.profile = profile
+                    realName = "Account Real Name"
+                }
+            },
+        )
+
+        assertThat(service.fetchUserDisplayName("U_SYNTHETIC")).isEqualTo("Display Name")
+        profile.displayName = " "
+        assertThat(service.fetchUserDisplayName("U_SYNTHETIC")).isEqualTo("Profile Real Name")
+        profile.realName = ""
+        assertThat(service.fetchUserDisplayName("U_SYNTHETIC")).isEqualTo("Account Real Name")
+    }
+
+    @Test
+    fun `should return no name for missing names or nonexistent Slack users`() {
+        whenever(client.usersInfo(any<UsersInfoRequest>())).thenReturn(
+            UsersInfoResponse().apply { isOk = true; user = User() },
+            UsersInfoResponse().apply { error = "user_not_found" },
+        )
+
+        assertThat(service.fetchUserDisplayName("U_UNNAMED")).isNull()
+        assertThat(service.fetchUserDisplayName("U_GONE")).isNull()
+    }
+
+    @Test
+    fun `should fail name lookup explicitly for Slack errors and incomplete responses`() {
+        whenever(client.usersInfo(any<UsersInfoRequest>())).thenReturn(
+            UsersInfoResponse().apply { error = "missing_scope" },
+            UsersInfoResponse().apply { isOk = true },
+        ).thenThrow(java.io.IOException("Network unavailable"))
+
+        assertThatThrownBy { service.fetchUserDisplayName("U_SYNTHETIC") }
+            .isInstanceOf(SlackIntegrationException::class.java).hasMessageContaining("missing_scope")
+        assertThatThrownBy { service.fetchUserDisplayName("U_SYNTHETIC") }
+            .isInstanceOf(SlackIntegrationException::class.java).hasMessageContaining("incomplete_response")
+        assertThatThrownBy { service.fetchUserDisplayName("U_SYNTHETIC") }
+            .isInstanceOf(SlackIntegrationException::class.java).hasMessageContaining("network_error")
+    }
+
+    @Test
+    fun `should retry name lookup when rate limited`() {
+        whenever(client.usersInfo(any<UsersInfoRequest>()))
+            .thenThrow(rateLimited("7"))
+            .thenReturn(UsersInfoResponse().apply {
+                isOk = true
+                user = User().apply { profile = User.Profile().apply { displayName = "Example Person" } }
+            })
+
+        assertThat(service.fetchUserDisplayName("U_SYNTHETIC")).isEqualTo("Example Person")
+        assertThat(sleeps).containsExactly(Duration.ofSeconds(7))
+    }
+
+    @Test
     fun `should return the profile email for a Slack user`() {
         whenever(client.usersInfo(any<UsersInfoRequest>())).thenReturn(
             UsersInfoResponse().apply {

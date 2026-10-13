@@ -7,6 +7,7 @@ import com.slack.api.methods.request.conversations.ConversationsRepliesRequest
 import com.slack.api.methods.request.users.UsersInfoRequest
 import com.slack.api.methods.request.users.UsersLookupByEmailRequest
 import com.slack.api.model.Message
+import com.slack.api.model.User
 import navikt.appsec.securitychampionapp.app.scoring.SlackActivityMessage
 import navikt.appsec.securitychampionapp.app.membership.SlackParticipantLookup
 import org.slf4j.LoggerFactory
@@ -87,14 +88,25 @@ class SlackApiService(
         return messages
     }
 
-    fun fetchUserEmail(userId: String): String? {
+    fun fetchUserEmail(userId: String): String? =
+        fetchUser(userId)?.profile?.email?.takeIf { it.isNotBlank() }
+
+    fun fetchUserDisplayName(userId: String): String? {
+        val user = fetchUser(userId) ?: return null
+        return sequenceOf(user.profile?.displayName, user.profile?.realName, user.realName)
+            .mapNotNull { it?.trim()?.takeIf(String::isNotBlank) }
+            .firstOrNull()
+    }
+
+    private fun fetchUser(userId: String): User? {
         val request = UsersInfoRequest.builder().user(userId).build()
         val response = call(SlackIntegrationException.Operation.USERS_INFO) { client.usersInfo(request) }
         if (response?.error == "user_not_found") return null
         if (response == null || !response.isOk) {
             throw SlackIntegrationException(SlackIntegrationException.Operation.USERS_INFO, response?.error)
         }
-        return response.user?.profile?.email?.takeIf { it.isNotBlank() }
+        return response.user
+            ?: throw SlackIntegrationException(SlackIntegrationException.Operation.USERS_INFO, "incomplete_response")
     }
 
     @Synchronized

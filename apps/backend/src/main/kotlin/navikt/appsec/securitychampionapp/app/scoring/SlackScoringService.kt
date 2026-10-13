@@ -19,7 +19,12 @@ class SlackScoringService(
 ) {
     fun mappingOverview(): SlackMappingOverview {
         val (mappings, unmappedAuthors) = mappingRepository.mappingOverview()
-        return SlackMappingOverview(mappings, unmappedAuthors)
+        return SlackMappingOverview(
+            mappings,
+            unmappedAuthors.map { author ->
+                author.copy(displayName = slackApiService.fetchUserDisplayName(author.slackUserId))
+            },
+        )
     }
 
     fun addMapping(

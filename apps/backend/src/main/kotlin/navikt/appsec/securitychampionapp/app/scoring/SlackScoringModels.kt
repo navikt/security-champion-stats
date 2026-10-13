@@ -25,6 +25,7 @@ data class UnmappedSlackAuthor(
     val slackUserId: String,
     val firstSeenAt: Instant,
     val lastSeenAt: Instant,
+    val displayName: String? = null,
 )
 
 data class MappedSlackParticipant(

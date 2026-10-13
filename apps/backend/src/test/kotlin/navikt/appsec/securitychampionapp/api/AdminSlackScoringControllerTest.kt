@@ -7,6 +7,8 @@ import navikt.appsec.securitychampionapp.app.api.AdminSlackScoringController
 import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
+import navikt.appsec.securitychampionapp.app.scoring.SlackMappingOverview
+import navikt.appsec.securitychampionapp.app.scoring.UnmappedSlackAuthor
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
@@ -31,6 +33,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import java.time.Instant
 import java.util.UUID
 
 @WebMvcTest(AdminSlackScoringController::class)
@@ -48,6 +52,29 @@ class AdminSlackScoringControllerTest {
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
+    @Test
+    fun `should return Slack display names alongside unmapped account IDs to admins`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        val now = Instant.parse("2026-10-05T08:00:00Z")
+        whenever(slackScoringService.mappingOverview()).thenReturn(
+            SlackMappingOverview(emptyList(), listOf(UnmappedSlackAuthor("U_SYNTHETIC", now, now, "Example Person"))),
+        )
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/slack"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.unmappedAuthors[0].slackUserId").value("U_SYNTHETIC"))
+            .andExpect(jsonPath("$.unmappedAuthors[0].displayName").value("Example Person"))
+            .andExpect(jsonPath("$.unmappedAuthors[0].firstSeenAt").value(now.toString()))
+    }
+
+    @Test
+    fun `should not expose the mapping overview to non-admins`() {
+        mockAuthenticatedUser(USER_ROLE)
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/admin/slack"))
+            .andExpect(status().isForbidden)
+    }
 
     @Test
     fun `should create an explicitly approved Slack mapping as an admin`() {

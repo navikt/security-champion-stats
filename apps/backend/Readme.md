@@ -66,6 +66,9 @@ Slack scoring awards one weekly credit for qualifying messages in the configured
 The Slack adapter reads channel history and thread replies; test doubles exist only under `src/test`.
 Sync maps unmapped authors automatically when their Slack profile email (`users.info`, needs `users:read.email`)
 is a `@nav.no` address matching a participant's `nav_no_email`; administrators map the rest and review unmapped authors.
+The admin mapping overview fetches unmapped authors' Slack display names through `users.info` (`users:read`),
+falling back to real names. Missing names remain unset; lookup failures fail the request explicitly.
+Names are display-only and do not change email-based identity matching or approved mappings.
 Slack membership sync replaces the standalone `security-champion-slackbot`: all active application participants
 belong to the configured user group, regardless of their Teamkatalogen role. Welcome announcements go to the
 configured welcome channel; departure/deactivation notices go to the admin channel. Both are suppressed when

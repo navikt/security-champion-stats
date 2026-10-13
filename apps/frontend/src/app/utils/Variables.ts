@@ -295,6 +295,7 @@ export type SlackAccountMapping = {
 };
 export type UnmappedSlackAuthor = {
 	slackUserId: string;
+	displayName?: string | null;
 	firstSeenAt: string;
 	lastSeenAt: string;
 };

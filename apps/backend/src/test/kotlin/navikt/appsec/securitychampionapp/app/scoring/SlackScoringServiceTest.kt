@@ -2,7 +2,9 @@ package navikt.appsec.securitychampionapp.app.scoring
 
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import navikt.appsec.securitychampionapp.integrations.slack.SlackApiService
+import navikt.appsec.securitychampionapp.integrations.slack.SlackIntegrationException
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
@@ -21,6 +23,42 @@ class SlackScoringServiceTest {
     private val mappingRepository = mock<SlackIdentityMappingRepository>()
     private val scoringService = mock<ScoringService>()
     private val service = SlackScoringService(slackApiService, mappingRepository, scoringService)
+
+    @Test
+    fun `should enrich unmapped accounts with names without inferring participant identity`() {
+        val now = Instant.parse("2026-10-05T08:00:00Z")
+        val mappings = listOf(SlackAccountMapping("U_MAPPED", UUID.randomUUID(), "Example Person", "person@nav.no", now))
+        val authors = listOf(
+            UnmappedSlackAuthor("U_NAMED", now, now),
+            UnmappedSlackAuthor("U_UNNAMED", now, now),
+        )
+        whenever(mappingRepository.mappingOverview()).thenReturn(mappings to authors)
+        whenever(slackApiService.fetchUserDisplayName("U_NAMED")).thenReturn("Example Person")
+
+        val overview = service.mappingOverview()
+
+        assertThat(overview.mappings).isEqualTo(mappings)
+        assertThat(overview.unmappedAuthors).containsExactly(
+            authors[0].copy(displayName = "Example Person"),
+            authors[1],
+        )
+        verify(slackApiService, never()).fetchUserDisplayName("U_MAPPED")
+        verify(mappingRepository, never()).addMappingByNavNoEmail(any(), any(), any())
+        verify(mappingRepository, never()).addMapping(any(), any(), any())
+    }
+
+    @Test
+    fun `should not hide Slack name lookup failures behind an unnamed overview`() {
+        val now = Instant.parse("2026-10-05T08:00:00Z")
+        whenever(mappingRepository.mappingOverview()).thenReturn(
+            emptyList<SlackAccountMapping>() to listOf(UnmappedSlackAuthor("U_SYNTHETIC", now, now)),
+        )
+        whenever(slackApiService.fetchUserDisplayName("U_SYNTHETIC"))
+            .thenThrow(SlackIntegrationException(SlackIntegrationException.Operation.USERS_INFO, "missing_scope"))
+
+        assertThatThrownBy { service.mappingOverview() }
+            .isInstanceOf(SlackIntegrationException::class.java)
+    }
 
     @Test
     fun `should award at most one credit per participant week and retain unresolved authors`() {

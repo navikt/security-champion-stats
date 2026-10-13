@@ -18,6 +18,23 @@ import {
 } from "@navikt/ds-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const messageTypeLabels: Record<SlackMembershipAnnouncement["kind"], string> = {
+	WELCOME: "Welcome message (welcome channel)",
+	REMOVAL: "Participant deactivated (admin channel)",
+};
+
+const deliveryStatusLabels: Record<
+	SlackMembershipAnnouncement["status"],
+	string
+> = {
+	PENDING: "Waiting for delivery",
+	SENDING: "Sending",
+	SENT: "Sent",
+	SUPPRESSED: "Will not be sent",
+	CANCELLED: "Cancelled",
+	UNCERTAIN: "Delivery unconfirmed — check Slack",
+};
+
 export function ManageSlackMembershipView({
 	participants,
 	onRefresh,
@@ -137,21 +154,21 @@ export function ManageSlackMembershipView({
 				setError(
 					status === 409
 						? "Delivery changed or a sync is running. Refresh operations before trying again."
-						: "We couldn't resolve announcement delivery. Try again.",
+						: "We couldn't resolve message delivery. Try again.",
 				);
 				return;
 			}
 			setNotice(
 				retry
 					? "Retry authorized for the next membership sync. No message has been sent by this action."
-					: "Announcement suppressed. It will not be retried.",
+					: "Message suppressed. It will not be retried.",
 			);
 			setAnnouncements(null);
 			setAnnouncements(await Apies.getSlackMembershipAnnouncements());
 		} catch {
 			setAnnouncements(null);
 			setError(
-				"We couldn't confirm delivery resolution or refresh announcements. Refresh operations before trying again.",
+				"We couldn't confirm delivery resolution or refresh membership messages. Refresh operations before trying again.",
 			);
 		} finally {
 			setBusy(false);
@@ -210,7 +227,7 @@ export function ManageSlackMembershipView({
 				</Heading>
 				<BodyShort>
 					Application enrollment controls group membership. Teamkatalogen roles
-					only filter announcements.
+					only determine whether membership messages should be sent.
 				</BodyShort>
 				{configuration && (
 					<VStack gap="space-8">
@@ -222,7 +239,7 @@ export function ManageSlackMembershipView({
 						<BodyShort>
 							{configuration.dryRun
 								? "Dry-run mode: sync will not change Slack membership or delivery state."
-								: "Write mode: sync can replace the entire Slack group and send announcements."}
+								: "Write mode: sync can replace the entire Slack group and send membership messages."}
 						</BodyShort>
 						{!configuration.dryRun && (
 							<BodyShort>
@@ -274,10 +291,10 @@ export function ManageSlackMembershipView({
 						<VStack gap="space-8">
 							<BodyShort role="alert">
 								{confirmation.kind === "sync"
-									? "This sync can replace group membership and send announcements. Confirm the preview and that the old bot is stopped."
+									? "This sync can replace group membership and send membership messages. Confirm the preview and that the old bot is stopped."
 									: confirmation.retry
-										? `Retrying announcement ${confirmation.id} may send a duplicate. Check Slack before authorizing another attempt.`
-										: `Suppress announcement ${confirmation.id} after confirming it was delivered or is no longer wanted.`}
+										? `Retrying membership message ${confirmation.id} may send a duplicate. Check Slack before authorizing another attempt.`
+										: `Suppress membership message ${confirmation.id} after confirming it was delivered or is no longer wanted.`}
 							</BodyShort>
 							<Button
 								disabled={busy}
@@ -365,15 +382,20 @@ export function ManageSlackMembershipView({
 				{announcements && (
 					<VStack gap="space-8">
 						<Heading level="3" size="small">
-							Outstanding announcements ({announcements.length})
+							Membership messages awaiting delivery ({announcements.length})
 						</Heading>
 						<BodyShort>
-							Pending announcements wait for role verification or a later sync.
-							Uncertain deliveries require a Slack check before retrying or
-							suppressing.
+							These are automatic Slack messages about program membership
+							changes: welcome messages for new participants in the welcome
+							channel, and notices about deactivated participants in the admin
+							channel. Messages wait for Teamkatalogen role verification or the
+							next membership sync. If delivery is unconfirmed, Slack may
+							already have received the message. Check the relevant channel
+							before retrying to avoid duplicates, or suppress the message to
+							prevent another delivery attempt.
 						</BodyShort>
 						<section
-							aria-label="Outstanding membership announcements"
+							aria-label="Membership messages awaiting delivery"
 							tabIndex={0}
 							style={{ overflowX: "auto" }}
 						>
@@ -384,7 +406,7 @@ export function ManageSlackMembershipView({
 											Participant / Slack account
 										</Table.HeaderCell>
 										<Table.HeaderCell scope="col">
-											Announcement / delivery ID
+											Message type / delivery ID
 										</Table.HeaderCell>
 										<Table.HeaderCell scope="col">Status</Table.HeaderCell>
 										<Table.HeaderCell scope="col">Action</Table.HeaderCell>
@@ -399,11 +421,13 @@ export function ManageSlackMembershipView({
 												{announcement.slackUserId}
 											</Table.HeaderCell>
 											<Table.DataCell>
-												{announcement.kind}
+												{messageTypeLabels[announcement.kind]}
 												<br />
 												{announcement.id}
 											</Table.DataCell>
-											<Table.DataCell>{announcement.status}</Table.DataCell>
+											<Table.DataCell>
+												{deliveryStatusLabels[announcement.status]}
+											</Table.DataCell>
 											<Table.DataCell>
 												{announcement.status === "UNCERTAIN" ? (
 													<VStack gap="space-8">
@@ -411,7 +435,7 @@ export function ManageSlackMembershipView({
 															size="small"
 															variant="secondary"
 															disabled={busy}
-															aria-label={`Retry announcement ${announcement.id}`}
+															aria-label={`Retry membership message ${announcement.id}`}
 															onClick={() =>
 																setConfirmation({
 																	kind: "delivery",
@@ -426,7 +450,7 @@ export function ManageSlackMembershipView({
 															size="small"
 															variant="secondary"
 															disabled={busy}
-															aria-label={`Suppress announcement ${announcement.id}`}
+															aria-label={`Suppress membership message ${announcement.id}`}
 															onClick={() =>
 																setConfirmation({
 																	kind: "delivery",
@@ -447,7 +471,7 @@ export function ManageSlackMembershipView({
 									{announcements.length === 0 && (
 										<Table.Row>
 											<Table.DataCell colSpan={4}>
-												No outstanding announcements.
+												No membership messages are awaiting delivery.
 											</Table.DataCell>
 										</Table.Row>
 									)}

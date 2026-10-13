@@ -126,15 +126,37 @@ describe("Slack membership administration", () => {
 			.mockResolvedValue(204);
 		render(<ManageSlackMembershipView participants={[]} onRefresh={vi.fn()} />);
 
+		expect(
+			await screen.findByRole("heading", {
+				name: "Membership messages awaiting delivery (2)",
+			}),
+		).toBeVisible();
+		expect(
+			screen.getByRole("cell", { name: /Welcome message \(welcome channel\)/ }),
+		).toBeVisible();
+		expect(
+			screen.getByRole("cell", {
+				name: /Participant deactivated \(admin channel\)/,
+			}),
+		).toBeVisible();
+		expect(screen.getByText("Waiting for delivery")).toBeVisible();
+		expect(
+			screen.getByText("Delivery unconfirmed — check Slack"),
+		).toBeVisible();
+		expect(
+			screen.getByText(/Slack may already have received the message/),
+		).toBeVisible();
 		fireEvent.click(
 			await screen.findByRole("button", {
-				name: "Retry announcement delivery-1",
+				name: "Retry membership message delivery-1",
 			}),
 		);
 		expect(resolve).not.toHaveBeenCalled();
 		expect(screen.getByText(/may send a duplicate/)).toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Retry announcement delivery-2" }),
+			screen.queryByRole("button", {
+				name: "Retry membership message delivery-2",
+			}),
 		).not.toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "Confirm retry" }));
 
@@ -239,7 +261,7 @@ describe("Slack membership administration", () => {
 
 		fireEvent.click(
 			await screen.findByRole("button", {
-				name: "Suppress announcement delivery-1",
+				name: "Suppress membership message delivery-1",
 			}),
 		);
 		expect(
@@ -255,12 +277,12 @@ describe("Slack membership administration", () => {
 		);
 		await waitFor(() =>
 			expect(screen.getByRole("status")).toHaveTextContent(
-				"Announcement suppressed",
+				"Message suppressed",
 			),
 		);
 		expect(
 			screen.queryByRole("button", {
-				name: "Suppress announcement delivery-1",
+				name: "Suppress membership message delivery-1",
 			}),
 		).not.toBeInTheDocument();
 	});
@@ -326,7 +348,7 @@ describe("Slack membership administration", () => {
 
 		fireEvent.click(
 			await screen.findByRole("button", {
-				name: "Retry announcement delivery-1",
+				name: "Retry membership message delivery-1",
 			}),
 		);
 		fireEvent.click(screen.getByRole("button", { name: "Confirm retry" }));

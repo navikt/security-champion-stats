@@ -5,7 +5,15 @@ import type {
 	AdminProgramParticipant,
 	SlackMappingOverview,
 } from "@/app/utils/Variables";
-import { BodyShort, Button, Heading, Select, Table, VStack } from "@navikt/ds-react";
+import {
+	BodyShort,
+	Button,
+	ExpansionCard,
+	Heading,
+	Select,
+	Table,
+	VStack,
+} from "@navikt/ds-react";
 import { useState } from "react";
 
 export function ManageSlackMappingsView({
@@ -17,7 +25,9 @@ export function ManageSlackMappingsView({
 	overview: SlackMappingOverview;
 	onRefresh: () => Promise<void>;
 }) {
-	const [selectedParticipants, setSelectedParticipants] = useState<Record<string, string>>({});
+	const [selectedParticipants, setSelectedParticipants] = useState<
+		Record<string, string>
+	>({});
 	const [busySlackUserId, setBusySlackUserId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [notice, setNotice] = useState<string | null>(null);
@@ -35,7 +45,9 @@ export function ManageSlackMappingsView({
 		try {
 			const status = await Apies.addSlackMapping(slackUserId, participantId);
 			if (status === 409) {
-				setError("This Slack account or participant already has a mapping. Review the existing mappings.");
+				setError(
+					"This Slack account or participant already has a mapping. Review the existing mappings.",
+				);
 				return;
 			}
 			if (status !== 201) {
@@ -79,9 +91,13 @@ export function ManageSlackMappingsView({
 	return (
 		<VStack gap="space-24">
 			<VStack gap="space-4">
-				<Heading level="2" size="large">Account mappings</Heading>
+				<Heading level="2" size="large">
+					Account mappings
+				</Heading>
 				<BodyShort>
-					Explicitly map Slack account IDs to program participants. Names are not used to infer identity.
+					Review the Slack name and account ID, then choose the correct program
+					participant. Names help you review accounts; mappings are saved using
+					the account ID.
 				</BodyShort>
 			</VStack>
 			{notice && <BodyShort role="status">{notice}</BodyShort>}
@@ -89,11 +105,15 @@ export function ManageSlackMappingsView({
 
 			<section aria-labelledby="unmapped-heading">
 				<VStack gap="space-16">
-					<Heading level="3" size="medium" id="unmapped-heading">Unmapped Slack accounts</Heading>
+					<Heading level="3" size="medium" id="unmapped-heading">
+						Unmapped Slack accounts
+					</Heading>
 					<Table size="small">
 						<Table.Header>
 							<Table.Row>
-								<Table.HeaderCell scope="col">Slack account ID</Table.HeaderCell>
+								<Table.HeaderCell scope="col">
+									Slack name / account ID
+								</Table.HeaderCell>
 								<Table.HeaderCell scope="col">First seen</Table.HeaderCell>
 								<Table.HeaderCell scope="col">Participant</Table.HeaderCell>
 								<Table.HeaderCell scope="col">Action</Table.HeaderCell>
@@ -102,8 +122,13 @@ export function ManageSlackMappingsView({
 						<Table.Body>
 							{overview.unmappedAuthors.map((author) => (
 								<Table.Row key={author.slackUserId}>
-									<Table.HeaderCell scope="row">{author.slackUserId}</Table.HeaderCell>
-									<Table.DataCell>{new Date(author.firstSeenAt).toLocaleString()}</Table.DataCell>
+									<Table.HeaderCell scope="row">
+										{author.displayName || "Name unavailable"} <br />
+										{author.slackUserId}
+									</Table.HeaderCell>
+									<Table.DataCell>
+										{new Date(author.firstSeenAt).toLocaleString()}
+									</Table.DataCell>
 									<Table.DataCell>
 										<Select
 											label={`Participant for Slack account ${author.slackUserId}`}
@@ -119,7 +144,8 @@ export function ManageSlackMappingsView({
 											<option value="">Select participant</option>
 											{participants.map((participant) => (
 												<option key={participant.id} value={participant.id}>
-													{participant.fullname || "Name unavailable"} — {participant.email}
+													{participant.fullname || "Name unavailable"} —{" "}
+													{participant.email}
 													{participant.active ? "" : " (deactivated)"}
 												</option>
 											))}
@@ -139,7 +165,9 @@ export function ManageSlackMappingsView({
 							))}
 							{overview.unmappedAuthors.length === 0 && (
 								<Table.Row>
-									<Table.DataCell colSpan={4}>No unmapped Slack accounts need review.</Table.DataCell>
+									<Table.DataCell colSpan={4}>
+										No unmapped Slack accounts need review.
+									</Table.DataCell>
 								</Table.Row>
 							)}
 						</Table.Body>
@@ -147,13 +175,21 @@ export function ManageSlackMappingsView({
 				</VStack>
 			</section>
 
-			<section aria-labelledby="mapped-heading">
-				<VStack gap="space-16">
-					<Heading level="3" size="medium" id="mapped-heading">Approved mappings</Heading>
+			<ExpansionCard
+				aria-label={`Approved mappings (${overview.mappings.length})`}
+			>
+				<ExpansionCard.Header>
+					<ExpansionCard.Title as="h3">
+						Approved mappings ({overview.mappings.length})
+					</ExpansionCard.Title>
+				</ExpansionCard.Header>
+				<ExpansionCard.Content>
 					<Table size="small">
 						<Table.Header>
 							<Table.Row>
-								<Table.HeaderCell scope="col">Slack account ID</Table.HeaderCell>
+								<Table.HeaderCell scope="col">
+									Slack account ID
+								</Table.HeaderCell>
 								<Table.HeaderCell scope="col">Participant</Table.HeaderCell>
 								<Table.HeaderCell scope="col">Email</Table.HeaderCell>
 								<Table.HeaderCell scope="col">Action</Table.HeaderCell>
@@ -162,8 +198,12 @@ export function ManageSlackMappingsView({
 						<Table.Body>
 							{overview.mappings.map((mapping) => (
 								<Table.Row key={mapping.slackUserId}>
-									<Table.HeaderCell scope="row">{mapping.slackUserId}</Table.HeaderCell>
-									<Table.DataCell>{mapping.participantName || "Name unavailable"}</Table.DataCell>
+									<Table.HeaderCell scope="row">
+										{mapping.slackUserId}
+									</Table.HeaderCell>
+									<Table.DataCell>
+										{mapping.participantName || "Name unavailable"}
+									</Table.DataCell>
 									<Table.DataCell>{mapping.participantEmail}</Table.DataCell>
 									<Table.DataCell>
 										<Button
@@ -180,13 +220,15 @@ export function ManageSlackMappingsView({
 							))}
 							{overview.mappings.length === 0 && (
 								<Table.Row>
-									<Table.DataCell colSpan={4}>No Slack accounts are mapped.</Table.DataCell>
+									<Table.DataCell colSpan={4}>
+										No Slack accounts are mapped.
+									</Table.DataCell>
 								</Table.Row>
 							)}
 						</Table.Body>
 					</Table>
-				</VStack>
-			</section>
+				</ExpansionCard.Content>
+			</ExpansionCard>
 		</VStack>
 	);
 }

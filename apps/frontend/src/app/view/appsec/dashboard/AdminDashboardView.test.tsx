@@ -13,6 +13,14 @@ const overview: AdminDashboardOverview = {
 	},
 	today: "2026-10-05",
 	activeParticipantCount: 7,
+	participantStats: {
+		engagedCount: 5,
+		enrolledCount: 2,
+		tiers: [
+			{ name: "Bronze", count: 6 },
+			{ name: "Silver", count: 1 },
+		],
+	},
 	eventRegistrationCount: 3,
 	pointsByCreditType: [
 		{ creditType: "SLACK_WEEK", points: 5 },
@@ -92,6 +100,22 @@ describe("AdminDashboardView", () => {
 			"/appsec/audit?category=syncs&q=unmatchedRegistrations",
 		);
 		expect(screen.queryByRole("heading", { name: "Program administration" })).not.toBeInTheDocument();
+	});
+
+	it("shows participant stats with engaged, enrolled and tier counts", () => {
+		render(
+			<AdminDashboardView
+				overview={overview}
+				onTriggerSync={vi.fn()}
+				triggeringSync={null}
+				triggerError={null}
+			/>,
+		);
+
+		const section = screen.getByRole("region", { name: "Participants" });
+		expect(section).toHaveTextContent("5 with points");
+		expect(section).toHaveTextContent("2 enrolled with 0 points");
+		expect(screen.getByRole("list", { name: "Participants per tier" })).toHaveTextContent("Bronze: 6");
 	});
 
 	it("keeps weeks visible when category activity nets to zero", () => {

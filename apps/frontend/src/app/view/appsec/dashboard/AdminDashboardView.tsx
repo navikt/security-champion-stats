@@ -258,6 +258,33 @@ export function AdminDashboardView({
 				/>
 			</HGrid>
 
+			<Box
+				as="section"
+				aria-labelledby="participants-heading"
+				className="hubRedesign__card dashboardView__card"
+				background="default"
+				borderColor="neutral-subtle"
+				borderWidth="1"
+				borderRadius="8"
+				padding="space-20"
+			>
+				<Heading level="2" size="medium" id="participants-heading">
+					Participants
+				</Heading>
+				<BodyShort>
+					<strong>{overview.participantStats.engagedCount}</strong> with points
+					· <strong>{overview.participantStats.enrolledCount}</strong> enrolled
+					with 0 points
+				</BodyShort>
+				<ul aria-label="Participants per tier">
+					{overview.participantStats.tiers.map((tier) => (
+						<li key={tier.name}>
+							{tier.name}: <strong>{tier.count}</strong>
+						</li>
+					))}
+				</ul>
+			</Box>
+
 			<div className="hubRedesign__grid">
 				<Box
 					as="section"

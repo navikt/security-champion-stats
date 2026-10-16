@@ -7,6 +7,8 @@ import navikt.appsec.securitychampionapp.app.api.AdminDashboardController
 import navikt.appsec.securitychampionapp.app.dashboard.AdminDashboardOverview
 import navikt.appsec.securitychampionapp.app.dashboard.AdminDashboardService
 import navikt.appsec.securitychampionapp.app.dashboard.CreditTypeTotal
+import navikt.appsec.securitychampionapp.app.dashboard.ParticipantStats
+import navikt.appsec.securitychampionapp.app.dashboard.TierParticipantCount
 import navikt.appsec.securitychampionapp.app.dashboard.WeeklyCreditTotals
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
@@ -64,6 +66,7 @@ class AdminDashboardControllerTest {
                 ),
                 today = LocalDate.parse("2026-10-05"),
                 activeParticipantCount = 4,
+                participantStats = ParticipantStats(3, 1, listOf(TierParticipantCount("Bronze", 4))),
                 eventRegistrationCount = 3,
                 pointsByCreditType = listOf(CreditTypeTotal("DELTA_REGISTRATION", 3)),
                 weeklyTotals = listOf(

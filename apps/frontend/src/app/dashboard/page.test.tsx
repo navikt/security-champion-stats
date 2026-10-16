@@ -38,6 +38,7 @@ function overview(
 		},
 		today: "2026-10-05",
 		activeParticipantCount: 1,
+		participantStats: { engagedCount: 0, enrolledCount: 1, tiers: [] },
 		eventRegistrationCount: 0,
 		pointsByCreditType: [],
 		weeklyTotals: [],

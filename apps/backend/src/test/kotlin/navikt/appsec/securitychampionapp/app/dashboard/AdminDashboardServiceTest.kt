@@ -4,7 +4,10 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.DeltaSyncStatusView
 import navikt.appsec.securitychampionapp.app.scoring.GitHubScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.GitHubSyncStatusView
+import navikt.appsec.securitychampionapp.app.scoring.ParticipantSeasonScore
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfiguration
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
+import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.SlackScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncStatusView
@@ -48,6 +51,15 @@ class AdminDashboardServiceTest {
                 ),
             ),
         )
+        whenever(scoringRepository.scoresForSeason(season.id, true)).thenReturn(
+            listOf(
+                ParticipantSeasonScore(UUID.randomUUID(), "A", "a@nav.no", true, 0),
+                ParticipantSeasonScore(UUID.randomUUID(), "B", "b@nav.no", true, 120),
+            ),
+        )
+        whenever(scoringRepository.configuration()).thenReturn(
+            ScoringConfiguration(1, listOf(ScoringTier("Bronze", 0), ScoringTier("Silver", 100)), emptyList()),
+        )
         whenever(slackStatusService.status()).thenReturn(emptySlackStatus())
         whenever(deltaStatusService.status()).thenReturn(emptyDeltaStatus())
         whenever(gitHubStatusService.status()).thenReturn(GitHubSyncStatusView(false, null, null, null, 0, 0, 0, 0, null))
@@ -67,6 +79,13 @@ class AdminDashboardServiceTest {
         val overview = service.overview()
 
         assertThat(overview.activeParticipantCount).isEqualTo(2)
+        assertThat(overview.participantStats).isEqualTo(
+            ParticipantStats(
+                engagedCount = 1,
+                enrolledCount = 1,
+                tiers = listOf(TierParticipantCount("Bronze", 1), TierParticipantCount("Silver", 1)),
+            ),
+        )
         assertThat(overview.eventRegistrationCount).isEqualTo(1)
         assertThat(overview.pointsByCreditType).contains(
             CreditTypeTotal("DELTA_REGISTRATION", 1),

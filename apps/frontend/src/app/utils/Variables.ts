@@ -263,6 +263,11 @@ export type AdminDashboardOverview = {
 	season: SeasonSummary;
 	today: string;
 	activeParticipantCount: number;
+	participantStats: {
+		engagedCount: number;
+		enrolledCount: number;
+		tiers: { name: string; count: number }[];
+	};
 	eventRegistrationCount: number;
 	pointsByCreditType: AdminDashboardCreditTotal[];
 	weeklyTotals: AdminDashboardWeeklyTotals[];

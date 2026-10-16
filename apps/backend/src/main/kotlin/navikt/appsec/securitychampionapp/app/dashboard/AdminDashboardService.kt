@@ -16,6 +16,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.TemporalAdjusters
+import java.util.UUID
 
 private val ADMIN_DASHBOARD_ZONE = ZoneId.of("Europe/Oslo")
 
@@ -29,10 +30,22 @@ data class WeeklyCreditTotals(
     val pointsByCreditType: Map<String, Long>,
 )
 
+data class TierParticipantCount(
+    val name: String,
+    val count: Int,
+)
+
+data class ParticipantStats(
+    val engagedCount: Int,
+    val enrolledCount: Int,
+    val tiers: List<TierParticipantCount>,
+)
+
 data class AdminDashboardOverview(
     val season: SeasonSummary,
     val today: LocalDate,
     val activeParticipantCount: Int,
+    val participantStats: ParticipantStats,
     val eventRegistrationCount: Long,
     val pointsByCreditType: List<CreditTypeTotal>,
     val weeklyTotals: List<WeeklyCreditTotals>,
@@ -73,6 +86,7 @@ class AdminDashboardService(
             season = season,
             today = today,
             activeParticipantCount = metrics.activeParticipantCount,
+            participantStats = participantStats(season.id),
             eventRegistrationCount = metrics.eventRegistrationCount,
             pointsByCreditType = creditTypes.map {
                 CreditTypeTotal(it, metrics.pointsByCreditType[it] ?: 0L)
@@ -81,6 +95,18 @@ class AdminDashboardService(
             slack = slackStatusService.status(),
             delta = deltaStatusService.status(),
             github = gitHubStatusService.status(),
+        )
+    }
+
+    private fun participantStats(seasonId: UUID): ParticipantStats {
+        val scores = scoringRepository.scoresForSeason(seasonId, activeOnly = true)
+        val configuration = scoringRepository.configuration()
+        val byTier = scores.groupingBy { configuration.levelFor(it.points) }.eachCount()
+        val engaged = scores.count { it.points > 0 }
+        return ParticipantStats(
+            engagedCount = engaged,
+            enrolledCount = scores.size - engaged,
+            tiers = configuration.tiers.sortedBy { it.points }.map { TierParticipantCount(it.name, byTier[it.name] ?: 0) },
         )
     }
 

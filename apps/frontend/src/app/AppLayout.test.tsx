@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
 		isAdmin: false,
 		isParticipant: true,
 		isActive: true,
+		teamCatalogRolesEnabled: true,
 	} as Me,
 }));
 
@@ -42,6 +43,7 @@ beforeEach(() => {
 	state.me.isAdmin = false;
 	state.me.isParticipant = true;
 	state.me.displayName = "Ada Lovelace";
+	state.me.teamCatalogRolesEnabled = true;
 });
 
 function renderLayout() {
@@ -163,6 +165,17 @@ describe("sidebar layout", () => {
 
 		await user.keyboard("{Enter}");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
+	});
+
+	it("hides Teamkatalogen role links when the feature is disabled", async () => {
+		state.me.teamCatalogRolesEnabled = false;
+		state.me.isAdmin = true;
+		const user = userEvent.setup();
+		renderLayout();
+		await user.click(screen.getByRole("button", { name: "Administration" }));
+
+		expect(screen.queryByRole("link", { name: "My Teamkatalogen roles" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: "Teamkatalogen role status" })).not.toBeInTheDocument();
 	});
 
 	it.each(["/dashboard", "/appsec/scoring"])(

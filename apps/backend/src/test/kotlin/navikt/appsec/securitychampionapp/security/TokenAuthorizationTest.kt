@@ -21,6 +21,7 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
+import navikt.appsec.securitychampionapp.config.TeamCatalogRoleConfig
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.security.web.FilterChainProxy
@@ -39,7 +40,7 @@ import java.util.Base64
     AdminController::class,
     properties = ["spring.security.token-validation.groups=test-admin-group"],
 )
-@Import(SecurityConfig::class, TokenIntrospection::class, ParticipantLifecycle::class)
+@Import(SecurityConfig::class, TokenIntrospection::class, ParticipantLifecycle::class, TeamCatalogRoleConfig::class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 class TokenAuthorizationTest {

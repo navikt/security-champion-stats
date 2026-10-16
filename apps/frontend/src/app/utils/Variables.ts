@@ -11,6 +11,7 @@ export type Me = {
 	isAdmin: boolean;
 	isParticipant: boolean;
 	isActive: boolean;
+	teamCatalogRolesEnabled?: boolean;
 };
 export type Member = {
 	id: string;

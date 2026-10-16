@@ -5,6 +5,7 @@ import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleAccessExc
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleSaveResult
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleService
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleState
+import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRolesDisabledException
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogChampionStatusOverview
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import org.springframework.http.HttpStatus
@@ -51,13 +52,25 @@ class TeamCatalogRoleController(
 
     @GetMapping("/admin/team-catalog/roles")
     fun championStatus(): TeamCatalogChampionStatusOverview =
-        teamCatalogRoleService.championStatus()
+        try {
+            teamCatalogRoleService.championStatus()
+        } catch (_: TeamCatalogRolesDisabledException) {
+            throw rolesDisabled()
+        }
+
+    private fun rolesDisabled() = ApiRequestException(
+        HttpStatus.NOT_FOUND,
+        "Not found",
+        "Teamkatalogen role management is not enabled",
+    )
 
     private fun <T> withPrincipal(action: (AppPrincipal) -> T): T =
         try {
             action(
                 requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal,
             )
+        } catch (_: TeamCatalogRolesDisabledException) {
+            throw rolesDisabled()
         } catch (_: TeamCatalogRoleAccessException) {
             throw ApiRequestException(
                 HttpStatus.FORBIDDEN,

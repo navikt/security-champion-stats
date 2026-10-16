@@ -47,7 +47,8 @@ Active participants can use **My Teamkatalogen roles** (`/team-catalog`) to sele
 teams carry the Security Champion tag. The page previews role changes in dry-run mode, reports per-team outcomes,
 and supports adding or removing tags without enrolling or changing program membership. Administrators can use
 **Teamkatalogen role status** (`/appsec/team-catalog`) to distinguish participants confirmed to be missing the tag
-from those whose role status is unknown.
+from those whose role status is unknown. Both pages and their navigation links appear only when the backend reports
+`teamCatalogRolesEnabled` (`TEAM_CATALOG_ROLE_UPDATES_ENABLED=true`).
 Manual write-enabled sync requires a resolved preview and confirmation; queued sync outcomes appear in the audit trail.
 The frontend submits the reviewed preview version. The backend rejects stale previews with HTTP 409;
 refresh operations and preview again if enrollment, account mappings or Slack membership changed.

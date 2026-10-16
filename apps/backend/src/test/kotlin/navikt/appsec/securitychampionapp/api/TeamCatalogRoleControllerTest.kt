@@ -9,6 +9,7 @@ import navikt.appsec.securitychampionapp.app.membership.TeamCatalogChampionStatu
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogChampionStatusOverview
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleSaveResult
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleService
+import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRolesDisabledException
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleState
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogTeamMembership
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
@@ -115,6 +116,19 @@ class TeamCatalogRoleControllerTest {
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.participants[0].status").value("ABSENT"))
             .andExpect(jsonPath("$.participants[0].email").doesNotExist())
+    }
+
+    @Test
+    fun `disabled feature returns not found for participant and admin endpoints`() {
+        authenticated(USER_ROLE)
+        whenever(service.currentTeams("person@nav.no", "A12345")).thenThrow(TeamCatalogRolesDisabledException())
+        mvc.perform(get("/api/team-catalog/roles"))
+            .andExpect(status().isNotFound)
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+
+        authenticated(ADMIN_ROLE)
+        whenever(service.championStatus()).thenThrow(TeamCatalogRolesDisabledException())
+        mvc.perform(get("/api/admin/team-catalog/roles")).andExpect(status().isNotFound)
     }
 
     @Test

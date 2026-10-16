@@ -108,9 +108,11 @@ updates only changed teams through `PUT /team/v2/{id}` while preserving the comp
 per-team and may partially succeed; retries are safe. The self-service endpoint returns a redacted payload preview,
 not unrelated team members' identifiers or roles. Administrators can inspect active participants with a confirmed
 missing role separately from participants whose Teamkatalogen status is unknown.
-Team role writes are disabled by default (`TEAM_CATALOG_ROLE_UPDATES_ENABLED=false`) and dry-run is enabled by
-default (`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=true`). Enable writes only after reviewing dry-run previews and backend
-tests; both flags are server-side and cannot be overridden by a frontend request.
+Team role management is hidden by default (`TEAM_CATALOG_ROLE_UPDATES_ENABLED=false`): the endpoints return 404 and
+`/api/validate` reports `teamCatalogRolesEnabled=false`, so the frontend hides the pages and navigation. When enabled,
+dry-run is on by default (`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=true`) and saving only previews changes. Set
+`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=false` to write to Teamkatalogen, but only after reviewing dry-run previews and
+backend tests; both flags are server-side and cannot be overridden by a frontend request.
 Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
 Resolve mapping problems in the same page: review approved mappings and enter verified Slack IDs for unresolved participants.
 Compare the preview with the existing group (128 members at planning time), stop the old bot,

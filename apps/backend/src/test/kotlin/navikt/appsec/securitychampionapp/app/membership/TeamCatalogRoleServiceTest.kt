@@ -48,11 +48,46 @@ class TeamCatalogRoleServiceTest {
             store,
             management,
             ChampionRoleSource { emptyMap() },
-            TeamCatalogRoleProperties(),
+            TeamCatalogRoleProperties(enabled = true),
         )
 
         assertThatThrownBy { service.currentTeams("person@nav.no", "A12345") }
             .isInstanceOf(TeamCatalogRoleAccessException::class.java)
+    }
+
+    @Test
+    fun `disabled feature rejects every operation before touching Teamkatalogen`() {
+        val service = TeamCatalogRoleService(
+            store,
+            management,
+            ChampionRoleSource { emptyMap() },
+            TeamCatalogRoleProperties(enabled = false, dryRun = true),
+        )
+
+        assertThatThrownBy { service.currentTeams("person@nav.no", "A12345") }
+            .isInstanceOf(TeamCatalogRolesDisabledException::class.java)
+        assertThatThrownBy { service.saveSelection("person@nav.no", "A12345", setOf("team-1")) }
+            .isInstanceOf(TeamCatalogRolesDisabledException::class.java)
+        assertThatThrownBy { service.championStatus() }
+            .isInstanceOf(TeamCatalogRolesDisabledException::class.java)
+        org.mockito.kotlin.verifyNoInteractions(management)
+    }
+
+    @Test
+    fun `writes happen only when enabled and dry run is off`() {
+        whenever(store.findByNavNoEmail("person@nav.no")).thenReturn(participant(ParticipationStatus.ACTIVE))
+        whenever(management.memberships("person@nav.no", "A12345")).thenReturn(emptyList())
+        val service = TeamCatalogRoleService(
+            store,
+            management,
+            ChampionRoleSource { emptyMap() },
+            TeamCatalogRoleProperties(enabled = true, dryRun = false),
+        )
+
+        val state = service.currentTeams("person@nav.no", "A12345")
+
+        assertThat(state.writeEnabled).isTrue()
+        assertThat(state.dryRun).isFalse()
     }
 
     @Test
@@ -66,7 +101,7 @@ class TeamCatalogRoleServiceTest {
             store,
             management,
             ChampionRoleSource { mapOf("person@nav.no" to ChampionRole.ABSENT) },
-            TeamCatalogRoleProperties(),
+            TeamCatalogRoleProperties(enabled = true),
         )
 
         assertThat(service.championStatus().participants.map { it.status })

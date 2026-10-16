@@ -27,10 +27,19 @@ function isActivePath(pathName: string, href: string): boolean {
 		: pathName === href || pathName.startsWith(`${href}/`);
 }
 
-function AdministrationNavigation({ pathName }: { pathName: string }) {
+function AdministrationNavigation({
+	pathName,
+	teamCatalogRolesEnabled,
+}: {
+	pathName: string;
+	teamCatalogRolesEnabled: boolean;
+}) {
+	const links = administrationLinks.filter(
+		(item) => teamCatalogRolesEnabled || item.path !== "/appsec/team-catalog",
+	);
 	const { theme } = useTheme();
 	const [expanded, setExpanded] = useState(
-		administrationLinks.some((item) => isActivePath(pathName, item.path)),
+		links.some((item) => isActivePath(pathName, item.path)),
 	);
 
 	return (
@@ -52,7 +61,7 @@ function AdministrationNavigation({ pathName }: { pathName: string }) {
 			</Button>
 			<div id="administration-navigation" hidden={!expanded}>
 				<div className="sideNavigation__adminLinks">
-					{administrationLinks.map((item) => {
+					{links.map((item) => {
 						const isActive = isActivePath(pathName, item.path);
 						return (
 							<Link
@@ -80,7 +89,7 @@ export function SideNavigation({ me }: { me: Me }) {
 	const pathName = usePathname();
 	const { theme } = useTheme();
 	const hacker = theme === "hacker";
-	const paths = navigation(me.isActive);
+	const paths = navigation(me.isActive && me.teamCatalogRolesEnabled === true);
 	const userLabel = `Signed in as ${me.displayName || me.username || "Name unavailable"}`;
 
 	return (
@@ -170,7 +179,11 @@ export function SideNavigation({ me }: { me: Me }) {
 					</Link>
 				)}
 				{me.isAdmin && (
-					<AdministrationNavigation key={pathName} pathName={pathName} />
+					<AdministrationNavigation
+						key={pathName}
+						pathName={pathName}
+						teamCatalogRolesEnabled={me.teamCatalogRolesEnabled === true}
+					/>
 				)}
 			</nav>
 			{hacker && (

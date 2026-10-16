@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service
 
 class TeamCatalogRoleAccessException : RuntimeException()
 
+class TeamCatalogRolesDisabledException : RuntimeException()
+
 @Service
 class TeamCatalogRoleService(
     private val participants: ParticipantStore,
@@ -15,11 +17,12 @@ class TeamCatalogRoleService(
     private val properties: TeamCatalogRoleProperties,
 ) {
     fun currentTeams(email: String, navIdent: String): TeamCatalogRoleState {
+        requireEnabled()
         requireActiveParticipant(email)
         return TeamCatalogRoleState(
             teams = roles.memberships(email, navIdent),
-            writeEnabled = properties.enabled && !properties.dryRun,
-            dryRun = !properties.enabled || properties.dryRun,
+            writeEnabled = !properties.dryRun,
+            dryRun = properties.dryRun,
         )
     }
 
@@ -28,8 +31,9 @@ class TeamCatalogRoleService(
         navIdent: String,
         selectedTeamIds: Set<String>,
     ): TeamCatalogRoleSaveResult {
+        requireEnabled()
         requireActiveParticipant(email)
-        val writeEnabled = properties.enabled && !properties.dryRun
+        val writeEnabled = !properties.dryRun
         return roles.saveSelection(email, navIdent, selectedTeamIds, writeEnabled).copy(
             writeEnabled = writeEnabled,
             dryRun = !writeEnabled,
@@ -37,6 +41,7 @@ class TeamCatalogRoleService(
     }
 
     fun championStatus(): TeamCatalogChampionStatusOverview {
+        requireEnabled()
         val roleSnapshot = roleSource.fetchRoles()
         val activeParticipants = participants.findActiveParticipants()
         return TeamCatalogChampionStatusOverview(
@@ -47,6 +52,10 @@ class TeamCatalogRoleService(
                 )
             },
         )
+    }
+
+    private fun requireEnabled() {
+        if (!properties.enabled) throw TeamCatalogRolesDisabledException()
     }
 
     private fun requireActiveParticipant(email: String) {

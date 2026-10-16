@@ -102,6 +102,15 @@ The frontend exchanges the session token and proxies all membership requests; op
 Accounts are resolved from a complete, paginated Slack `users.list` snapshot; failed or incomplete reads abort the sync.
 Approved Slack mappings take precedence; otherwise accounts are matched by verified participant email.
 Role verification uses Teamkatalogen's unpaged `/team?status=ACTIVE` endpoint and rejects incomplete or paged responses.
+Active participants can manage their Security Champion role tags on their current active teams. The backend fetches
+their membership from `/member/membership/byUserEmail`, validates selected team IDs against that fresh response, and
+updates only changed teams through `PUT /team/v2/{id}` while preserving the complete TeamRequest data. Updates are
+per-team and may partially succeed; retries are safe. The self-service endpoint returns a redacted payload preview,
+not unrelated team members' identifiers or roles. Administrators can inspect active participants with a confirmed
+missing role separately from participants whose Teamkatalogen status is unknown.
+Team role writes are disabled by default (`TEAM_CATALOG_ROLE_UPDATES_ENABLED=false`) and dry-run is enabled by
+default (`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=true`). Enable writes only after reviewing dry-run previews and backend
+tests; both flags are server-side and cannot be overridden by a frontend request.
 Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
 Resolve mapping problems in the same page: review approved mappings and enter verified Slack IDs for unresolved participants.
 Compare the preview with the existing group (128 members at planning time), stop the old bot,

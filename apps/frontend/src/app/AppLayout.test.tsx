@@ -73,7 +73,7 @@ describe("sidebar layout", () => {
 		expect(sidebar).toContainElement(
 			screen.getByRole("link", { name: "Sec Hub" }),
 		);
-		for (const label of ["Overview", "Events", "Community", "My history"]) {
+		for (const label of ["Overview", "Events", "Community", "My Teamkatalogen roles", "My history"]) {
 			const link = screen.getByRole("link", { name: label });
 			expect(sidebar).toContainElement(link);
 			expect(link.querySelector(".sideNavigation__icon")).toHaveAttribute(
@@ -154,6 +154,7 @@ describe("sidebar layout", () => {
 			["Manage participants", "/appsec/membership"],
 			["Scoring dashboard", "/appsec/scoring"],
 			["Slack administration", "/appsec/slack"],
+			["Teamkatalogen role status", "/appsec/team-catalog"],
 			["Manage Delta mappings", "/appsec/delta"],
 			["Audit trail", "/appsec/audit"],
 		]) {

@@ -80,7 +80,7 @@ export function SideNavigation({ me }: { me: Me }) {
 	const pathName = usePathname();
 	const { theme } = useTheme();
 	const hacker = theme === "hacker";
-	const paths = navigation();
+	const paths = navigation(me.isActive);
 	const userLabel = `Signed in as ${me.displayName || me.username || "Name unavailable"}`;
 
 	return (

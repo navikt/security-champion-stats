@@ -67,6 +67,11 @@ slack:
       cron: ${SLACK_CHANNEL_PARTICIPATION_CRON:0 0 9,15 * * *}
       max-departures-per-check: ${SLACK_CHANNEL_PARTICIPATION_MAX_DEPARTURES:5}
 
+team-catalog:
+  roles:
+    enabled: ${TEAM_CATALOG_ROLE_UPDATES_ENABLED:false}
+    dry-run: ${TEAM_CATALOG_ROLE_UPDATES_DRY_RUN:true}
+
 delta:
   events:
     enabled: ${DELTA_EVENTS_ENABLED:false}

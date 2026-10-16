@@ -43,6 +43,11 @@ All operations go through authenticated frontend API proxies; no manually obtain
 It shows enabled/dry-run configuration, previews group additions/removals and unresolved participants,
 and lets administrators save verified Slack account mappings for participants who have not posted messages.
 Preview is read-only and available while sync is disabled once backend Slack destinations are configured.
+Active participants can use **My Teamkatalogen roles** (`/team-catalog`) to select which of their current active
+teams carry the Security Champion tag. The page previews role changes in dry-run mode, reports per-team outcomes,
+and supports adding or removing tags without enrolling or changing program membership. Administrators can use
+**Teamkatalogen role status** (`/appsec/team-catalog`) to distinguish participants confirmed to be missing the tag
+from those whose role status is unknown.
 Manual write-enabled sync requires a resolved preview and confirmation; queued sync outcomes appear in the audit trail.
 The frontend submits the reviewed preview version. The backend rejects stale previews with HTTP 409;
 refresh operations and preview again if enrollment, account mappings or Slack membership changed.

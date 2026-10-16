@@ -1,6 +1,7 @@
 package navikt.appsec.securitychampionapp.integrations.teamCatalog
 
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ProductAreaResponse
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamCatalogDetailedTeamResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamResponse
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ResourceLoader
@@ -36,6 +37,21 @@ class TeamCatalogMock(
             }
         } catch (e: Exception) {
             logger.error("Failed to load Teamkatalogen team members mock response", e)
+            emptyList()
+        }
+    }
+
+    fun loadMockDetailedTeamMembers(productAreaResponse: ProductAreaResponse): List<TeamCatalogDetailedTeamResponse> {
+        return try {
+            productAreaResponse.content.map { productArea ->
+                resourceLoader.getResource("classpath:mock/teamCatalog/team_catalog_fetch_team_${productArea.id}.json")
+                    .inputStream
+                    .use { inputStream ->
+                        objectMapper.readValue(inputStream, TeamCatalogDetailedTeamResponse::class.java)
+                    }
+            }
+        } catch (e: Exception) {
+            logger.error("Failed to load Teamkatalogen detailed team mock response", e)
             emptyList()
         }
     }

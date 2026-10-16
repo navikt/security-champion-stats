@@ -23,6 +23,7 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import java.time.Duration
+import java.util.concurrent.TimeoutException
 
 private const val SECURITY_CHAMPION_ROLE = "SECURITY_CHAMPION"
 
@@ -31,6 +32,7 @@ class TeamCatalogRoleClient(
     private val externalServiceWebClient: WebClient,
     private val teamCatalogMock: TeamCatalogMock,
     private val environment: Environment,
+    private val requestTimeout: Duration = Duration.ofSeconds(30),
 ) : TeamCatalogRoleManagement {
     private val logger = LoggerFactory.getLogger(TeamCatalogRoleClient::class.java)
 
@@ -98,7 +100,7 @@ class TeamCatalogRoleClient(
                         .bodyValue(planned.request)
                         .retrieve()
                         .toBodilessEntity()
-                        .block(Duration.ofSeconds(30))
+                        .block(requestTimeout)
                     TeamCatalogRoleUpdateStatus.UPDATED
                 } catch (e: WebClientResponseException) {
                     logger.warn(
@@ -113,6 +115,10 @@ class TeamCatalogRoleClient(
                         planned.team.id,
                         e.javaClass.simpleName,
                     )
+                    TeamCatalogRoleUpdateStatus.FAILED
+                } catch (e: IllegalStateException) {
+                    if (e.cause !is TimeoutException) throw e
+                    logger.warn("Teamkatalogen role update timed out for team {}", planned.team.id)
                     TeamCatalogRoleUpdateStatus.FAILED
                 }
             }
@@ -145,7 +151,7 @@ class TeamCatalogRoleClient(
                 .uri { builder -> builder.path("/member/membership/byUserEmail").queryParam("email", email).build() }
                 .retrieve()
                 .bodyToMono<TeamCatalogMembershipResponse>()
-                .block(Duration.ofSeconds(30)),
+                .block(requestTimeout),
         ) { "Teamkatalogen membership response was empty" }.teams
     }
 

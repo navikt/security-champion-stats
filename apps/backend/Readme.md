@@ -109,7 +109,8 @@ per-team and may partially succeed; retries are safe. The self-service endpoint 
 not unrelated team members' identifiers or roles. Administrators can inspect active participants with a confirmed
 missing role separately from participants whose Teamkatalogen status is unknown.
 Team role management is hidden by default (`TEAM_CATALOG_ROLE_UPDATES_ENABLED=false`): the endpoints return 404 and
-`/api/validate` reports `teamCatalogRolesEnabled=false`, so the frontend hides the pages and navigation. When enabled,
+`/api/validate` reports `teamCatalogRolesEnabled=false`, so the frontend hides the pages and navigation. The NAIS
+manifest enables the feature with dry-run on. When enabled,
 dry-run is on by default (`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=true`) and saving only previews changes. Set
 `TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=false` to write to Teamkatalogen, but only after reviewing dry-run previews and
 backend tests; both flags are server-side and cannot be overridden by a frontend request.

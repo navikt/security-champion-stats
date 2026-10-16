@@ -22,7 +22,7 @@ spec:
     - name: SLACK_MEMBERSHIP_USERGROUP_ID
       value: S01MX7W3LB0
     - name: TEAM_CATALOG_ROLE_UPDATES_ENABLED
-      value: "false"
+      value: "true"
     - name: TEAM_CATALOG_ROLE_UPDATES_DRY_RUN
       value: "true"
     - name: DELTA_SCORING_ENABLED

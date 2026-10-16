@@ -102,6 +102,18 @@ The frontend exchanges the session token and proxies all membership requests; op
 Accounts are resolved from a complete, paginated Slack `users.list` snapshot; failed or incomplete reads abort the sync.
 Approved Slack mappings take precedence; otherwise accounts are matched by verified participant email.
 Role verification uses Teamkatalogen's unpaged `/team?status=ACTIVE` endpoint and rejects incomplete or paged responses.
+Active participants can manage their Security Champion role tags on their current active teams. The backend fetches
+their membership from `/member/membership/byUserEmail`, validates selected team IDs against that fresh response, and
+updates only changed teams through `PUT /team/v2/{id}` while preserving the complete TeamRequest data. Updates are
+per-team and may partially succeed; retries are safe. The self-service endpoint returns a redacted payload preview,
+not unrelated team members' identifiers or roles. Administrators can inspect active participants with a confirmed
+missing role separately from participants whose Teamkatalogen status is unknown.
+Team role management is hidden by default (`TEAM_CATALOG_ROLE_UPDATES_ENABLED=false`): the endpoints return 404 and
+`/api/validate` reports `teamCatalogRolesEnabled=false`, so the frontend hides the pages and navigation. The NAIS
+manifest enables the feature with dry-run on. When enabled,
+dry-run is on by default (`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=true`) and saving only previews changes. Set
+`TEAM_CATALOG_ROLE_UPDATES_DRY_RUN=false` to write to Teamkatalogen, but only after reviewing dry-run previews and
+backend tests; both flags are server-side and cannot be overridden by a frontend request.
 Multiple mappings, conflicting identities, inactive accounts, bots, and guests block group replacement.
 Resolve mapping problems in the same page: review approved mappings and enter verified Slack IDs for unresolved participants.
 Compare the preview with the existing group (128 members at planning time), stop the old bot,
@@ -231,12 +243,13 @@ sequenceDiagram
 ## How to run
 To run the backend application, follow these steps:
 1. Make sure you have Java 25 installed on your machine.
-2. Start the local database: `docker compose up -d postgres`
+2. Start the local database and the Teamkatalogen stub: `docker compose up -d postgres team-catalog-stub`
 3. Run the application with the local profile: `./gradlew bootRun --args='--spring.profiles.active=local'`
 4. To run tests, use the command: `./gradlew test`
 5. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
 
-Tests inherit the main configuration and apply `application-test.yaml` overrides.
+The local profile calls a WireMock Teamkatalogen stub on `http://localhost:8089` (`team-catalog.url`); production code
+contains no mock data or profile-specific branches. Tests inherit the main configuration and apply `application-test.yaml` overrides.
 `ApplicationStartupTest` boots the production profile with main configuration and Testcontainers PostgreSQL.
 Scheduled Slack sync is disabled locally and in tests. Local manual sync uses real Slack access;
 set `SLACK_TOKEN` and `SLACK_SC_CHANNEL_ID` to use it.
@@ -312,9 +325,10 @@ src/main/kotlin/.../
 
 src/main/resources/
 ├── application.yaml                # Main configuration
-├── application-local.yaml          # Local dev overrides (mocked Teamkatalogen)
-├── db/migration/                   # Flyway SQL migrations
-└── mock/                           # Static Teamkatalogen responses (local profile)
+├── application-local.yaml          # Local dev overrides (Teamkatalogen stub URL)
+└── db/migration/                   # Flyway SQL migrations
+
+src/test/resources/team-catalog-stub/  # WireMock mappings and fixtures for the local Teamkatalogen stub and tests
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
 ```

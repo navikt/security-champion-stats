@@ -16,6 +16,7 @@ const state = vi.hoisted(() => ({
 		isAdmin: false,
 		isParticipant: true,
 		isActive: true,
+		teamCatalogRolesEnabled: true,
 	} as Me,
 }));
 
@@ -42,6 +43,7 @@ beforeEach(() => {
 	state.me.isAdmin = false;
 	state.me.isParticipant = true;
 	state.me.displayName = "Ada Lovelace";
+	state.me.teamCatalogRolesEnabled = true;
 });
 
 function renderLayout() {
@@ -73,7 +75,7 @@ describe("sidebar layout", () => {
 		expect(sidebar).toContainElement(
 			screen.getByRole("link", { name: "Sec Hub" }),
 		);
-		for (const label of ["Overview", "Events", "Community", "My history"]) {
+		for (const label of ["Overview", "Events", "Community", "My Teamkatalogen roles", "My history"]) {
 			const link = screen.getByRole("link", { name: label });
 			expect(sidebar).toContainElement(link);
 			expect(link.querySelector(".sideNavigation__icon")).toHaveAttribute(
@@ -154,6 +156,7 @@ describe("sidebar layout", () => {
 			["Manage participants", "/appsec/membership"],
 			["Scoring dashboard", "/appsec/scoring"],
 			["Slack administration", "/appsec/slack"],
+			["Teamkatalogen role status", "/appsec/team-catalog"],
 			["Manage Delta mappings", "/appsec/delta"],
 			["Audit trail", "/appsec/audit"],
 		]) {
@@ -162,6 +165,17 @@ describe("sidebar layout", () => {
 
 		await user.keyboard("{Enter}");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
+	});
+
+	it("hides Teamkatalogen role links when the feature is disabled", async () => {
+		state.me.teamCatalogRolesEnabled = false;
+		state.me.isAdmin = true;
+		const user = userEvent.setup();
+		renderLayout();
+		await user.click(screen.getByRole("button", { name: "Administration" }));
+
+		expect(screen.queryByRole("link", { name: "My Teamkatalogen roles" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("link", { name: "Teamkatalogen role status" })).not.toBeInTheDocument();
 	});
 
 	it.each(["/dashboard", "/appsec/scoring"])(

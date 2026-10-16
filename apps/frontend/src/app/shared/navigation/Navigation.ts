@@ -29,12 +29,13 @@ export const administrationLinks: ModuleNavLink[] = [
 	{ label: "Manage participants", path: "/appsec/membership" },
 	{ label: "Scoring dashboard", path: "/appsec/scoring" },
 	{ label: "Slack administration", path: "/appsec/slack" },
+	{ label: "Teamkatalogen role status", path: "/appsec/team-catalog" },
 	{ label: "Manage Delta mappings", path: "/appsec/delta" },
 	{ label: "Audit trail", path: "/appsec/audit" },
 ];
 
-export function navigation(): NavigationItem[] {
-	return [
+export function navigation(includeTeamCatalogRoles = false): NavigationItem[] {
+	const items: NavigationItem[] = [
 		{
 			id: "overview",
 			label: "Overview",
@@ -54,4 +55,13 @@ export function navigation(): NavigationItem[] {
 			icon: PersonGroupIcon,
 		},
 	];
+	if (includeTeamCatalogRoles) {
+		items.push({
+			id: "team-catalog",
+			label: "My Teamkatalogen roles",
+			path: "/team-catalog",
+			icon: PersonGroupIcon,
+		});
+	}
+	return items;
 }

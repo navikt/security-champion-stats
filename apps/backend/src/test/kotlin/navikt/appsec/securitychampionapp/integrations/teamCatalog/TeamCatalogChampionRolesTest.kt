@@ -4,8 +4,6 @@ import navikt.appsec.securitychampionapp.app.membership.ChampionRole
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.springframework.core.env.StandardEnvironment
 import org.springframework.http.HttpStatus
 import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
@@ -30,7 +28,7 @@ class TeamCatalogChampionRolesTest {
             assertThat(request.url().query).isEqualTo("status=ACTIVE")
             Mono.just(ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json").body(body).build())
         }.build()
-        val source = TeamCatalogChampionRoles(client, mock(), StandardEnvironment())
+        val source = TeamCatalogChampionRoles(client)
 
         assertThat(source.fetchRoles()).containsExactlyInAnyOrderEntriesOf(
             mapOf("person@nav.no" to ChampionRole.PRESENT, "other@nav.no" to ChampionRole.ABSENT),
@@ -43,7 +41,7 @@ class TeamCatalogChampionRolesTest {
             Mono.just(ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json")
                 .body("""{"paged":true,"pages":2,"totalElements":2,"content":[]}""").build())
         }.build()
-        val source = TeamCatalogChampionRoles(client, mock(), StandardEnvironment())
+        val source = TeamCatalogChampionRoles(client)
 
         assertThatThrownBy { source.fetchRoles() }.hasMessageContaining("incomplete")
     }
@@ -56,7 +54,7 @@ class TeamCatalogChampionRolesTest {
                     .body("""{"paged":false,"pages":1,"totalElements":0,"content":[]}""").build())
             }.build()
 
-            assertThatThrownBy { TeamCatalogChampionRoles(client, mock(), StandardEnvironment()).fetchRoles() }
+            assertThatThrownBy { TeamCatalogChampionRoles(client).fetchRoles() }
                 .isInstanceOf(RuntimeException::class.java)
         }
 
@@ -74,7 +72,7 @@ class TeamCatalogChampionRolesTest {
                 Mono.just(ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json")
                     .body("""{"paged":false,"pages":1,"totalElements":500,"content":[$teams]}""").build())
             }.build()
-            assertThat(TeamCatalogChampionRoles(client, mock(), StandardEnvironment()).fetchRoles())
+            assertThat(TeamCatalogChampionRoles(client).fetchRoles())
                 .containsEntry("person@nav.no", ChampionRole.PRESENT)
             assertThat(calls).isEqualTo(1)
         }
@@ -85,7 +83,7 @@ class TeamCatalogChampionRolesTest {
                 Mono.just(ClientResponse.create(HttpStatus.OK).header("Content-Type", "application/json")
                     .body("""{"paged":true,"pages":1,"totalElements":0,"content":[]}""").build())
             }.build()
-            assertThatThrownBy { TeamCatalogChampionRoles(client, mock(), StandardEnvironment()).fetchRoles() }
+            assertThatThrownBy { TeamCatalogChampionRoles(client).fetchRoles() }
                 .hasMessageContaining("incomplete")
         }
     }

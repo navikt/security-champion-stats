@@ -1,0 +1,44 @@
+{
+  "pageNumber": 0,
+  "pageSize": 20,
+  "pages": 1,
+  "numberOfElements": 2,
+  "totalElements": 2,
+  "paged": true,
+  "content": [
+    {
+      "id": "de66e50b-367d-41a1-92dd-af467f3e2688",
+      "name": "TEST Team Gamma",
+      "productAreaId": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "navIdent": "T000005",
+          "roles": ["DEVELOPER"],
+          "resource": {
+            "navIdent": "T000005",
+            "fullName": "TEST Developer Two",
+            "email": "test.developer.two@example.com"
+          }
+        }
+      ]
+    },
+    {
+      "id": "a182f064-dfe4-4633-a724-d8b4b21cd81d",
+      "name": "TEST Team Delta",
+      "productAreaId": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "navIdent": "T000006",
+          "roles": ["DESIGNER"],
+          "resource": {
+            "navIdent": "T000006",
+            "fullName": "TEST Designer",
+            "email": "test.designer@example.com"
+          }
+        }
+      ]
+    }
+  ]
+}

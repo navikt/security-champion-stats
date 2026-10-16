@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.app.api.dto.Me
+import navikt.appsec.securitychampionapp.config.TeamCatalogRoleProperties
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantSummary
 import navikt.appsec.securitychampionapp.app.api.dto.ProgramParticipantView
 import navikt.appsec.securitychampionapp.app.events.EventCatalogService
@@ -29,6 +30,7 @@ class Controller(
     private val participantLifecycle: ParticipantLifecycle,
     private val eventCatalogService: EventCatalogService,
     private val eventSignupService: EventSignupService,
+    private val teamCatalogRoleProperties: TeamCatalogRoleProperties,
 ) {
     @GetMapping("/health")
     fun healthCheck(): String = "OK"
@@ -60,6 +62,7 @@ class Controller(
                 isAdmin = isAdmin,
                 isParticipant = participant != null,
                 isActive = participant?.status == ParticipationStatus.ACTIVE,
+                teamCatalogRolesEnabled = teamCatalogRoleProperties.enabled,
             )
         )
     }

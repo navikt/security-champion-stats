@@ -28,6 +28,9 @@ spring:
       groups: local-admin-group
 
 
+team-catalog:
+  url: http://localhost:8089
+
 graph:
   apiUrl: http://localhost:8081/mock/graph
 slack:

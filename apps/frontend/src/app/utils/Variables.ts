@@ -11,6 +11,7 @@ export type Me = {
 	isAdmin: boolean;
 	isParticipant: boolean;
 	isActive: boolean;
+	teamCatalogRolesEnabled?: boolean;
 };
 export type Member = {
 	id: string;
@@ -34,6 +35,39 @@ export type ProgramParticipant = ProgramParticipantSummary & {
 	status: "ACTIVE" | "LEFT" | "DEACTIVATED";
 };
 export type AdminProgramParticipant = ProgramParticipant;
+export type TeamCatalogRoleTeam = {
+	id: string;
+	name: string;
+	isSecurityChampion: boolean;
+};
+export type TeamCatalogRolePayloadPreview = {
+	id: string;
+	name: string;
+	teamMemberCount: number;
+	currentMemberRoles: string[];
+};
+export type TeamCatalogRoleUpdate = {
+	teamId: string;
+	teamName: string;
+	operation: "ADD" | "REMOVE";
+	status: "PREVIEW" | "UPDATED" | "FAILED";
+	payloadPreview: TeamCatalogRolePayloadPreview;
+};
+export type TeamCatalogRoleState = {
+	teams: TeamCatalogRoleTeam[];
+	writeEnabled: boolean;
+	dryRun: boolean;
+};
+export type TeamCatalogRoleSaveResult = TeamCatalogRoleState & {
+	updates: TeamCatalogRoleUpdate[];
+};
+export type TeamCatalogChampionStatus = {
+	participantId: string;
+	status: "PRESENT" | "ABSENT" | "UNKNOWN";
+};
+export type TeamCatalogChampionStatusOverview = {
+	participants: TeamCatalogChampionStatus[];
+};
 export type HistoryEntry = {
 	id: string;
 	action: string;

@@ -28,6 +28,9 @@ import type {
 	SlackMembershipAnnouncement,
 	SlackMembershipConfiguration,
 	SlackMembershipPreview,
+	TeamCatalogChampionStatusOverview,
+	TeamCatalogRoleSaveResult,
+	TeamCatalogRoleState,
 } from "../../utils/Variables";
 
 export const Apies = {
@@ -258,6 +261,36 @@ export const Apies = {
 		if (!res.ok) {
 			console.error("Failed to fetch program participants, status: ", res.status);
 			return null;
+		}
+		return res.json();
+	},
+	getTeamCatalogRoles: async (): Promise<TeamCatalogRoleState> => {
+		const res = await fetch("/api/team-catalog/roles", { cache: "no-store" });
+		if (!res.ok) {
+			console.error("Failed to fetch Teamkatalogen roles, status:", res.status);
+			throw new Error("We couldn't fetch your Teamkatalogen teams. Try again.");
+		}
+		return res.json();
+	},
+	saveTeamCatalogRoles: async (selectedTeamIds: string[]): Promise<TeamCatalogRoleSaveResult> => {
+		const res = await fetch("/api/team-catalog/roles", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ selectedTeamIds }),
+		});
+		if (!res.ok) {
+			console.error("Failed to update Teamkatalogen roles, status:", res.status);
+			throw new Error(res.status === 400
+				? "Your Teamkatalogen membership changed. Reload the page and try again."
+				: "We couldn't update your Teamkatalogen roles. Try again.");
+		}
+		return res.json();
+	},
+	getTeamCatalogChampionStatus: async (): Promise<TeamCatalogChampionStatusOverview> => {
+		const res = await fetch("/api/admin/team-catalog/roles", { cache: "no-store" });
+		if (!res.ok) {
+			console.error("Failed to fetch Teamkatalogen role status, status:", res.status);
+			throw new Error("We couldn't fetch Teamkatalogen role status. Try again.");
 		}
 		return res.json();
 	},

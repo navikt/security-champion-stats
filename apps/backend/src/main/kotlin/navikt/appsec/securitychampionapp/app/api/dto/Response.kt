@@ -22,7 +22,7 @@ data class AddMember(val fullName: String, val email: String)
 data class SCdata(val timestamp: String, val amount: Int)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class Me(val username: String, val isAdmin: Boolean, val isParticipant: Boolean, val isActive: Boolean)
+data class Me(val username: String, val isAdmin: Boolean, val isParticipant: Boolean, val isActive: Boolean, val teamCatalogRolesEnabled: Boolean = false)
 
 data class ProgramParticipantSummary(
     val id: String,

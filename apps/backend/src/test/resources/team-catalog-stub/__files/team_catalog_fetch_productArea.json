@@ -1,0 +1,88 @@
+{
+  "pageNumber": 0,
+  "pageSize": 10,
+  "pages": 1,
+  "numberOfElements": 3,
+  "totalElements": 3,
+  "paged": true,
+  "content": [
+    {
+      "id": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "name": "TEST Product Area A",
+      "avdelingNomId": "TEST-DEPARTMENT-1",
+      "avdelingNavn": "TEST Department 1",
+      "nomId": "TEST-PRODUCT-AREA-A",
+      "areaType": "PRODUCT_AREA",
+      "description": "Fake product area used only for local development and tests.",
+      "slackChannel": "#test-product-area-a",
+      "tags": ["test"],
+      "members": [
+        {
+          "navIdent": "T000001",
+          "description": "Fake product lead.",
+          "roles": ["PRODUCT_LEAD"],
+          "teamPercent": 100,
+          "startDate": "2024-01-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "T000001",
+            "givenName": "TEST",
+            "familyName": "Product Lead",
+            "fullName": "TEST Product Lead",
+            "email": "test.product.lead@example.com",
+            "onLeave": false,
+            "resourceType": "INTERNAL"
+          }
+        }
+      ],
+      "status": "ACTIVE",
+      "defaultArea": true
+    },
+    {
+      "id": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "name": "TEST Product Area B",
+      "avdelingNomId": "TEST-DEPARTMENT-2",
+      "avdelingNavn": "TEST Department 2",
+      "nomId": "TEST-PRODUCT-AREA-B",
+      "areaType": "PRODUCT_AREA",
+      "description": "Fake product area used only for local development and tests.",
+      "slackChannel": "#test-product-area-b",
+      "tags": ["test"],
+      "members": [
+        {
+          "navIdent": "T000002",
+          "description": "Fake agile coach.",
+          "roles": ["AGILE_COACH"],
+          "teamPercent": 50,
+          "startDate": "2024-01-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "T000002",
+            "givenName": "TEST",
+            "familyName": "Agile Coach",
+            "fullName": "TEST Agile Coach",
+            "email": "test.agile.coach@example.com",
+            "onLeave": false,
+            "resourceType": "INTERNAL"
+          }
+        }
+      ],
+      "status": "ACTIVE",
+      "defaultArea": false
+    },
+    {
+      "id": "12967b8c-90a4-4c84-89a9-ab21d26dcbfd",
+      "name": "TEST Product Area C (inactive)",
+      "avdelingNomId": "TEST-DEPARTMENT-3",
+      "avdelingNavn": "TEST Department 3",
+      "nomId": "TEST-PRODUCT-AREA-C",
+      "areaType": "PRODUCT_AREA",
+      "description": "Fake inactive product area used only for local development and tests.",
+      "slackChannel": "#test-product-area-c",
+      "tags": ["test"],
+      "members": [],
+      "status": "INACTIVE",
+      "defaultArea": false
+    }
+  ]
+}

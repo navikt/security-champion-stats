@@ -2,17 +2,28 @@ package navikt.appsec.securitychampionapp.integrations.teamCatalog
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.springframework.core.env.StandardEnvironment
-import org.springframework.core.io.DefaultResourceLoader
+import org.springframework.core.io.ClassPathResource
+import org.springframework.http.HttpStatus
+import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
-import tools.jackson.databind.ObjectMapper
+import reactor.core.publisher.Mono
 
 class TeamCatalogTest {
-    private val environment = StandardEnvironment().apply { setActiveProfiles("test") }
     private val teamCatalog = TeamCatalog(
-        externalServiceWebClient = WebClient.builder().build(),
-        teamCatalogMock = TeamCatalogMock(ObjectMapper(), DefaultResourceLoader()),
-        environment = environment,
+        externalServiceWebClient = WebClient.builder().exchangeFunction { request ->
+            val file = when (request.url().path) {
+                "/productarea" -> "team_catalog_fetch_productArea.json"
+                "/team" -> "team_catalog_fetch_team_" +
+                    request.url().query.substringAfter("productAreaId=").substringBefore("&") + ".json"
+                else -> error("Unexpected Teamkatalogen request: ${request.url()}")
+            }
+            Mono.just(
+                ClientResponse.create(HttpStatus.OK)
+                    .header("Content-Type", "application/json")
+                    .body(ClassPathResource("team-catalog-stub/__files/$file").inputStream.readAllBytes().decodeToString())
+                    .build(),
+            )
+        }.build(),
     )
 
     @Test
@@ -20,8 +31,8 @@ class TeamCatalogTest {
         val members = teamCatalog.fetchAllMembersWithTeamData()
 
         assertThat(members.map { it.email }).contains(
-            "ada.lovelace@nav.no",
-            "mina.haugen@nav.no",
+            "local.user@nav.no",
+            "test.team.lead@example.com",
         )
     }
 }

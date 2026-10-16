@@ -27,6 +27,15 @@ services:
     networks:
       - postgres
 
+  team-catalog-stub:
+    image: wiremock/wiremock:3.13.1
+    container_name: team-catalog-stub
+    ports:
+      - "8089:8080"
+    volumes:
+      - ./src/test/resources/team-catalog-stub/mappings:/home/wiremock/mappings:ro
+      - ./src/test/resources/team-catalog-stub/__files:/home/wiremock/__files:ro
+
 ### VOLUMES ###
 volumes:
   postgres-data:

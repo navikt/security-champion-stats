@@ -7,8 +7,6 @@ import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.MemberWith
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.ProductAreaResponse
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamResponse
 import org.slf4j.LoggerFactory
-import org.springframework.core.env.Environment
-import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
@@ -16,12 +14,8 @@ import org.springframework.web.reactive.function.client.bodyToMono
 @Service
 class TeamCatalog(
     private val externalServiceWebClient: WebClient,
-    private val teamCatalogMock: TeamCatalogMock,
-    private val environment: Environment,
 ) : ParticipantProfileSource {
     private val logger = LoggerFactory.getLogger(TeamCatalog::class.java)
-
-    private fun useMockResponses(): Boolean = environment.acceptsProfiles(Profiles.of("local", "test"))
 
     private fun fetchAllProductAreas(): ProductAreaResponse =
         externalServiceWebClient
@@ -55,17 +49,8 @@ class TeamCatalog(
     }
 
     private fun fetchProfiles(): List<MemberWithTeamData> {
-        val productAreas = if (useMockResponses()) {
-            teamCatalogMock.loadMockProductAreas()
-        } else {
-            fetchAllProductAreas()
-        }
-
-        val teamsWithinProduct= if (useMockResponses()) {
-            teamCatalogMock.loadMockTeamMembers(productAreas)
-        } else {
-            fetchAllTeams(productAreas)
-        }
+        val productAreas = fetchAllProductAreas()
+        val teamsWithinProduct = fetchAllTeams(productAreas)
 
         val membersWithTeamData = linkedMapOf<String, MemberWithTeamData>()
 

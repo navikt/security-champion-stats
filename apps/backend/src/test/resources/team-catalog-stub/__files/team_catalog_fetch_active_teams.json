@@ -1,0 +1,87 @@
+{
+  "pageNumber": 0,
+  "pageSize": 20,
+  "pages": 1,
+  "numberOfElements": 4,
+  "totalElements": 4,
+  "paged": true,
+  "content": [
+    {
+      "id": "58aad466-96c4-42dc-b17a-615c36be7784",
+      "name": "TEST Team Alpha",
+      "productAreaId": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "navIdent": "A1234544426",
+          "roles": ["DEVELOPER", "SECURITY_CHAMPION"],
+          "resource": {
+            "navIdent": "A1234544426",
+            "fullName": "TEST Local User",
+            "email": "local.user@nav.no"
+          }
+        },
+        {
+          "navIdent": "T000003",
+          "roles": ["PRODUCT_LEAD"],
+          "resource": {
+            "navIdent": "T000003",
+            "fullName": "TEST Team Lead",
+            "email": "test.team.lead@example.com"
+          }
+        }
+      ]
+    },
+    {
+      "id": "12967b8c-90a4-4c84-89a9-ab21d26dcbfd",
+      "name": "TEST Team Beta",
+      "productAreaId": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "navIdent": "T000004",
+          "roles": ["DEVELOPER"],
+          "resource": {
+            "navIdent": "T000004",
+            "fullName": "TEST Developer",
+            "email": "test.developer@example.com"
+          }
+        }
+      ]
+    },
+    {
+      "id": "de66e50b-367d-41a1-92dd-af467f3e2688",
+      "name": "TEST Team Gamma",
+      "productAreaId": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "navIdent": "T000005",
+          "roles": ["DEVELOPER"],
+          "resource": {
+            "navIdent": "T000005",
+            "fullName": "TEST Developer Two",
+            "email": "test.developer.two@example.com"
+          }
+        }
+      ]
+    },
+    {
+      "id": "a182f064-dfe4-4633-a724-d8b4b21cd81d",
+      "name": "TEST Team Delta",
+      "productAreaId": "724974ca-a1fc-43b6-a52f-1c57a53ad722",
+      "status": "ACTIVE",
+      "members": [
+        {
+          "navIdent": "T000006",
+          "roles": ["DESIGNER"],
+          "resource": {
+            "navIdent": "T000006",
+            "fullName": "TEST Designer",
+            "email": "test.designer@example.com"
+          }
+        }
+      ]
+    }
+  ]
+}

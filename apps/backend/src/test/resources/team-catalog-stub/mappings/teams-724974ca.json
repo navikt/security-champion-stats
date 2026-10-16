@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/team",
+    "queryParameters": {
+      "productAreaId": {
+        "equalTo": "724974ca-a1fc-43b6-a52f-1c57a53ad722"
+      },
+      "status": {
+        "equalTo": "ACTIVE"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "team_catalog_fetch_team_724974ca-a1fc-43b6-a52f-1c57a53ad722.json"
+  }
+}

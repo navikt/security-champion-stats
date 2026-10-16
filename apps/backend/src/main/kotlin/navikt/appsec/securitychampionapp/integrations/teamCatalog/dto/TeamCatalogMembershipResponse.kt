@@ -9,11 +9,6 @@ data class TeamCatalogMembershipResponse(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class TeamCatalogDetailedTeamResponse(
-    val content: List<TeamCatalogDetailedTeam> = emptyList(),
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
 data class TeamCatalogDetailedTeam(
     val id: String,
     val name: String,

@@ -10,9 +10,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
-import org.springframework.core.env.StandardEnvironment
 import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.core.io.DefaultResourceLoader
 import tools.jackson.databind.json.JsonMapper
 import java.net.InetSocketAddress
 import java.time.Duration
@@ -113,8 +111,6 @@ class TeamCatalogRoleClientTest {
         server.start()
         client = TeamCatalogRoleClient(
             WebClient.builder().baseUrl("http://localhost:${server.address.port}").build(),
-            TeamCatalogMock(mapper, DefaultResourceLoader()),
-            StandardEnvironment(),
         )
     }
 
@@ -211,8 +207,6 @@ class TeamCatalogRoleClientTest {
         delayTeamOneMillis = 1_500
         val timeoutClient = TeamCatalogRoleClient(
             WebClient.builder().baseUrl("http://localhost:${server.address.port}").build(),
-            TeamCatalogMock(mapper, DefaultResourceLoader()),
-            StandardEnvironment(),
             Duration.ofMillis(300),
         )
 
@@ -221,17 +215,5 @@ class TeamCatalogRoleClientTest {
         assertThat(result.updates.map { it.status })
             .containsExactly(TeamCatalogRoleUpdateStatus.FAILED, TeamCatalogRoleUpdateStatus.UPDATED)
         assertThat(putBodies.keys).contains("team-2")
-    }
-
-    @Test
-    fun `uses detailed mock team memberships in local profiles`() {
-        val localEnvironment = StandardEnvironment().apply { setActiveProfiles("test") }
-        val localClient = TeamCatalogRoleClient(
-            WebClient.builder().baseUrl("http://unused").build(),
-            TeamCatalogMock(mapper, DefaultResourceLoader()),
-            localEnvironment,
-        )
-
-        assertThat(localClient.memberships("ada.lovelace@nav.no", "A123456")).isNotEmpty()
     }
 }

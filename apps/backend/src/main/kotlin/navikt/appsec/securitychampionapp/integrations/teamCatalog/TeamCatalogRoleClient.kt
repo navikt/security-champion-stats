@@ -15,8 +15,6 @@ import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamCatalo
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamCatalogOfficeHoursUpdateRequest
 import navikt.appsec.securitychampionapp.integrations.teamCatalog.dto.TeamCatalogTeamUpdateRequest
 import org.slf4j.LoggerFactory
-import org.springframework.core.env.Environment
-import org.springframework.core.env.Profiles
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientRequestException
@@ -30,8 +28,6 @@ private const val SECURITY_CHAMPION_ROLE = "SECURITY_CHAMPION"
 @Service
 class TeamCatalogRoleClient(
     private val externalServiceWebClient: WebClient,
-    private val teamCatalogMock: TeamCatalogMock,
-    private val environment: Environment,
     private val requestTimeout: Duration = Duration.ofSeconds(30),
 ) : TeamCatalogRoleManagement {
     private val logger = LoggerFactory.getLogger(TeamCatalogRoleClient::class.java)
@@ -140,12 +136,6 @@ class TeamCatalogRoleClient(
     }
 
     private fun fetchMemberships(email: String): List<TeamCatalogDetailedTeam> {
-        if (environment.acceptsProfiles(Profiles.of("local", "test"))) {
-            return teamCatalogMock
-                .loadMockDetailedTeamMembers(teamCatalogMock.loadMockProductAreas())
-                .flatMap { it.content }
-                .filter { team -> team.members.orEmpty().any { it.matches(email) } }
-        }
         return requireNotNull(
             externalServiceWebClient.get()
                 .uri { builder -> builder.path("/member/membership/byUserEmail").queryParam("email", email).build() }
@@ -162,9 +152,6 @@ class TeamCatalogRoleClient(
         check(matches.size <= 1) { "Teamkatalogen returned duplicate membership for a team member" }
         return matches.singleOrNull()
     }
-
-    private fun TeamCatalogDetailedMember.matches(email: String): Boolean =
-        resource?.email?.equals(email, ignoreCase = true) == true
 
     private fun TeamCatalogDetailedTeam.toUpdateRequest(
         navIdent: String,

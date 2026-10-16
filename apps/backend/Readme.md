@@ -242,12 +242,13 @@ sequenceDiagram
 ## How to run
 To run the backend application, follow these steps:
 1. Make sure you have Java 25 installed on your machine.
-2. Start the local database: `docker compose up -d postgres`
+2. Start the local database and the Teamkatalogen stub: `docker compose up -d postgres team-catalog-stub`
 3. Run the application with the local profile: `./gradlew bootRun --args='--spring.profiles.active=local'`
 4. To run tests, use the command: `./gradlew test`
 5. Swagger API documentation is available at `http://localhost:8080/swagger-ui.html` (no authentication required in local profile).
 
-Tests inherit the main configuration and apply `application-test.yaml` overrides.
+The local profile calls a WireMock Teamkatalogen stub on `http://localhost:8089` (`team-catalog.url`); production code
+contains no mock data or profile-specific branches. Tests inherit the main configuration and apply `application-test.yaml` overrides.
 `ApplicationStartupTest` boots the production profile with main configuration and Testcontainers PostgreSQL.
 Scheduled Slack sync is disabled locally and in tests. Local manual sync uses real Slack access;
 set `SLACK_TOKEN` and `SLACK_SC_CHANNEL_ID` to use it.
@@ -323,9 +324,10 @@ src/main/kotlin/.../
 
 src/main/resources/
 ├── application.yaml                # Main configuration
-├── application-local.yaml          # Local dev overrides (mocked Teamkatalogen)
-├── db/migration/                   # Flyway SQL migrations
-└── mock/                           # Static Teamkatalogen responses (local profile)
+├── application-local.yaml          # Local dev overrides (Teamkatalogen stub URL)
+└── db/migration/                   # Flyway SQL migrations
+
+src/test/resources/team-catalog-stub/  # WireMock mappings and fixtures for the local Teamkatalogen stub and tests
 
 gradle/libs.versions.toml           # Centralized dependency version catalog
 ```

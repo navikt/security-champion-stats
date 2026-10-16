@@ -12,6 +12,10 @@ deployed through the repository's GitHub Actions and NAIS configuration.
 
 ## Working agreements
 
+- Leave touched code better than you found it. When adding or changing a feature, also clean up the old code in the area
+  you touch that violates these guidelines (for example test or local data and profile branches in production code,
+  dead code, or misleading names), and update affected tests and docs. Do not widen the cleanup to unrelated areas;
+  list those separately as follow-ups.
 - Keep changes focused. Break larger work into testable steps and verify each step before proceeding.
 - For substantial or ambiguous changes, present the proposed approach and get approval before editing.
 - Do not add unrelated features, broad documentation, or comments that only restate the code.
@@ -22,6 +26,9 @@ deployed through the repository's GitHub Actions and NAIS configuration.
 ## Architecture and code
 
 - Keep dependencies directed inward: application logic should not depend on integration or web-framework details.
+- Keep production code (`src/main`) free of mock, fixture, test, or local-only data and logic. Do not branch on
+  `local` or `test` profiles in production classes. Put fixtures and stubs under `src/test`, and point local runs at
+  stubs through configuration (for example a base URL).
 - Use constructor injection for Spring dependencies. Introduce interfaces where they clarify an application boundary or
   improve testability; avoid abstractions without a clear purpose.
 - Keep persistence failures explicit. Do not convert unexpected database errors into empty results or success-shaped

@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/team",
+    "queryParameters": {
+      "status": {
+        "equalTo": "ACTIVE"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "team_catalog_fetch_active_teams.json"
+  },
+  "priority": 10
+}

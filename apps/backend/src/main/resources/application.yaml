@@ -68,6 +68,7 @@ slack:
       max-departures-per-check: ${SLACK_CHANNEL_PARTICIPATION_MAX_DEPARTURES:5}
 
 team-catalog:
+  url: ${TEAM_CATALOG_URL:http://team-catalog-backend.org.svc.cluster.local}
   roles:
     enabled: ${TEAM_CATALOG_ROLE_UPDATES_ENABLED:false}
     dry-run: ${TEAM_CATALOG_ROLE_UPDATES_DRY_RUN:true}

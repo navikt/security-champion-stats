@@ -1,0 +1,61 @@
+{
+  "teams": [
+    {
+      "id": "58aad466-96c4-42dc-b17a-615c36be7784",
+      "name": "TEST Team Alpha",
+      "description": "Fake team used only for local development and tests.",
+      "slackChannel": "#test-team-alpha",
+      "contactPersonIdent": "T000003",
+      "productAreaId": "f716b8cf-6527-44f5-b350-92a9c75bc47e",
+      "teamOwnerIdent": "T000003",
+      "clusterIds": [],
+      "teamType": "STREAM_ALIGNED",
+      "qaTime": "2026-01-01T00:00:00.000Z",
+      "naisTeams": ["test-team-alpha"],
+      "members": [
+        {
+          "navIdent": "A1234544426",
+          "description": "Fake developer and security champion.",
+          "roles": ["DEVELOPER", "SECURITY_CHAMPION"],
+          "teamPercent": 100,
+          "startDate": "2024-01-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "A1234544426",
+            "fullName": "TEST Local User",
+            "email": "local.user@nav.no"
+          }
+        },
+        {
+          "navIdent": "T000003",
+          "description": "Fake team lead.",
+          "roles": ["PRODUCT_LEAD"],
+          "teamPercent": 80,
+          "startDate": "2024-01-01",
+          "endDate": null,
+          "resource": {
+            "navIdent": "T000003",
+            "fullName": "TEST Team Lead",
+            "email": "test.team.lead@example.com"
+          }
+        }
+      ],
+      "tags": ["test"],
+      "officeHours": {
+        "location": {
+          "code": "TEST-LOCATION-1",
+          "type": "BUILDING"
+        },
+        "days": ["TUESDAY", "THURSDAY"],
+        "information": "Fake office hours."
+      },
+      "status": "ACTIVE",
+      "contactAddresses": [
+        {
+          "address": "test-team-alpha@example.com",
+          "type": "EPOST"
+        }
+      ]
+    }
+  ]
+}

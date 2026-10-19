@@ -33,7 +33,8 @@ data class ScoringConfigurationChanges(
         ): ScoringConfigurationChanges {
             val desiredPoints = request.activities.associate { it.creditType to it.points }
             val credits = if (request.applyRetroactively) {
-                pricedCredits.sortedBy { it.id }.map {
+                // Canonical UUID strings sort like PostgreSQL's unsigned uuid order, which the preview token was built on.
+                pricedCredits.sortedBy { it.id.toString() }.map {
                     CreditRepricing(
                         it.id,
                         it.participantId,

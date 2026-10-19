@@ -110,6 +110,26 @@ class ScoringConfigurationChangesTest {
     }
 
     @Test
+    fun `should keep the legacy token for credits on both sides of the signed uuid boundary`() {
+        val credits = listOf(
+            PricedCredit(UUID.fromString("80000000-0000-0000-0000-0000000000c2"), second, ActivityCreditType.SLACK_WEEK, 1),
+            PricedCredit(UUID.fromString("00000000-0000-0000-0000-0000000000c1"), first, ActivityCreditType.SLACK_WEEK, 1),
+        )
+
+        val changes = ScoringConfigurationChanges.calculate(
+            request(6), before, season, credits, listOf(score(first, 1), score(second, 1)),
+        )
+
+        assertThat(changes.credits.map { it.id.toString() }).containsExactly(
+            "00000000-0000-0000-0000-0000000000c1",
+            "80000000-0000-0000-0000-0000000000c2",
+        )
+        // Computed independently from the pre-extraction serialisation, where PostgreSQL ordered credits by unsigned uuid.
+        assertThat(changes.preview.token)
+            .isEqualTo("7a79fcf583e8598f574750f80defed2aa922d304e2e5e20b45eca1e4bfdf7b7b")
+    }
+
+    @Test
     fun `should not depend on the order of the loaded rows`() {
         val credits = listOf(credit(1, first, ActivityCreditType.SLACK_WEEK, 1), credit(2, second, ActivityCreditType.SLACK_WEEK, 1))
         val scores = listOf(score(first, 1), score(second, 1))

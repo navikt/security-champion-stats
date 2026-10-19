@@ -1,60 +1,27 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.events.ReminderDeliveryStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.EventReminderRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.*
-import org.springframework.jdbc.core.JdbcTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class EventReminderRepositoryTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbc: JdbcTemplate
+class EventReminderRepositoryTest : PostgresIntegrationTest() {
     private lateinit var repository: EventReminderRepository
     private lateinit var participants: ProgramParticipantRepository
-    private lateinit var flyway: Flyway
     private val eventId = UUID.randomUUID()
 
     @BeforeAll
     fun setup() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            maximumPoolSize = 2
-        }
-        jdbc = JdbcTemplate(dataSource)
-        repository = EventReminderRepository(jdbc)
-        participants = ProgramParticipantRepository(jdbc)
-        flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load()
+        repository = EventReminderRepository(jdbcTemplate)
+        participants = ProgramParticipantRepository(jdbcTemplate)
     }
-
-    @BeforeEach
-    fun reset() {
-        flyway.clean()
-        flyway.migrate()
-    }
-
-    @AfterAll
-    fun close() = dataSource.close()
 
     private fun enroll(): UUID {
         participants.enroll("synthetic@nav.no", "A12345", "synthetic@nav.no")
@@ -102,7 +69,7 @@ class EventReminderRepositoryTest {
         repository.finish(delivery, ReminderDeliveryStatus.FAILED, retryAfter = Duration.ofMinutes(15))
         assertThat(repository.deliveries(eventId).single().nextAttemptAt).isAfter(Instant.now().plusSeconds(890))
         assertThat(repository.claim(eventId, participantId, "U_SYNTHETIC", UUID.randomUUID())).isFalse()
-        jdbc.update("UPDATE event_reminder_deliveries SET next_attempt_at = NOW() - INTERVAL '1 second'")
+        jdbcTemplate.update("UPDATE event_reminder_deliveries SET next_attempt_at = NOW() - INTERVAL '1 second'")
         val retry = UUID.randomUUID()
         assertThat(repository.claim(eventId, participantId, "U_CHANGED", retry)).isTrue()
         repository.finish(retry, ReminderDeliveryStatus.SENT, "456.789")

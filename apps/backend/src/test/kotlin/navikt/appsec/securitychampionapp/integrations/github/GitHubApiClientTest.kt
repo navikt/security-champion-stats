@@ -20,11 +20,14 @@ import java.util.Base64
 import tools.jackson.databind.json.JsonMapper
 
 class GitHubApiClientTest {
+    private companion object {
+        val keyPair = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
+    }
+
     private lateinit var server: HttpServer
     private lateinit var tokens: GitHubAppTokenProvider
     private lateinit var client: GitHubApiClient
     private val now = Instant.parse("2026-10-06T12:00:00Z")
-    private val keyPair = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }.generateKeyPair()
     private val routes = mutableMapOf<String, String>()
     private val pageRoutes = mutableMapOf<Pair<String, Int>, String>()
     private val identityPages = ArrayDeque<String>()

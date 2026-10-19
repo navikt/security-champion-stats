@@ -1,66 +1,23 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
+import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
+import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
+import navikt.appsec.securitychampionapp.integrations.postgress.SlackIdentityMappingRepository
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.springframework.jdbc.core.JdbcTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ProgramParticipantRepositoryTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbcTemplate: JdbcTemplate
+class ProgramParticipantRepositoryTest : PostgresIntegrationTest() {
     private lateinit var repository: ProgramParticipantRepository
-    private lateinit var flyway: Flyway
 
     @BeforeAll
     fun setupRepository() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 2
-        }
-        jdbcTemplate = JdbcTemplate(dataSource)
         repository = ProgramParticipantRepository(jdbcTemplate)
-        flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .cleanDisabled(false)
-            .load()
-    }
-
-    @AfterAll
-    fun closeDataSource() {
-        dataSource.close()
-    }
-
-    @BeforeEach
-    fun resetDatabase() {
-        flyway.clean()
-        flyway.migrate()
     }
 
     @Test
@@ -194,6 +151,24 @@ class ProgramParticipantRepositoryTest {
             assertThat(jdbcTemplate.queryForMap("SELECT $column FROM $table")[column]).isNull()
         }
         assertThat(repository.findByNavNoEmail("other@nav.no")).isNotNull
+    }
+
+    @Test
+    fun `should remove Slack mappings and credits when permanently deleting a participant`() {
+        repository.enroll("deleted@nav.no", "A12345", "deleted@nav.no")
+        val participantId = requireNotNull(repository.findByNavNoEmail("deleted@nav.no")).id
+        val mappings = SlackIdentityMappingRepository(jdbcTemplate)
+        val scoring = PostgresScoringLedger(jdbcTemplate)
+        assertThat(mappings.addMapping("U_DELETED", participantId, "admin@nav.no")).isTrue()
+        assertThat(scoring.awardCredit(participantId, ActivityCreditType.SLACK_WEEK, "2026-10-05", "U_DELETED:message"))
+            .isEqualTo(CreditAwardResult.AWARDED)
+
+        assertThat(repository.permanentlyDelete(participantId)).isEqualTo(1)
+
+        assertThat(repository.findAllParticipants()).isEmpty()
+        assertThat(mappings.mappedParticipants()).isEmpty()
+        assertThat(scoring.participantExists(participantId)).isFalse()
+        assertThat(scoring.creditsForParticipant(participantId)).isEmpty()
     }
 
     @Test

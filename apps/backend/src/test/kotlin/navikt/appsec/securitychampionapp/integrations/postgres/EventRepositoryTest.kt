@@ -1,26 +1,22 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.api.dto.Event
 import navikt.appsec.securitychampionapp.integrations.postgress.EventRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PlaybookEventRepository
 import navikt.appsec.securitychampionapp.integrations.playbook.PlaybookEvent
 import org.assertj.core.api.Assertions
 import org.flywaydb.core.Flyway
-import org.flywaydb.core.api.FlywayException
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
 import org.springframework.jdbc.core.JdbcTemplate
+import navikt.appsec.securitychampionapp.testsupport.PostgresTestDatabase
+import javax.sql.DataSource
+import org.flywaydb.core.api.FlywayException
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.dao.DataAccessException
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.dao.DuplicateKeyException
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -29,52 +25,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class EventRepositoryTest {
-
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-    }
-
-    lateinit var dataSource: HikariDataSource
-    lateinit var jdbcTemplate: JdbcTemplate
+class EventRepositoryTest : PostgresIntegrationTest() {
     lateinit var repository: EventRepository
-    lateinit var flyway: Flyway
 
     @BeforeAll
     fun setupRepository() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 2
-        }
-        jdbcTemplate = JdbcTemplate(dataSource)
         repository = EventRepository(jdbcTemplate)
-        flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .cleanDisabled(false)
-            .load()
-    }
-
-    @AfterAll
-    fun closeDataSource() {
-        dataSource.close()
-    }
-
-    @BeforeEach
-    fun setup() {
-        flyway.clean()
-        flyway.migrate()
     }
 
     @Test
@@ -105,22 +61,26 @@ class EventRepositoryTest {
 
     @Test
     fun `should report legacy duplicates during migration without deleting events`() {
-        flyway.clean()
-        Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .target("17.0")
-            .load()
-            .migrate()
-        insertEvent(name = "Security meetup", location = "Oslo")
-        insertEvent(name = " SECURITY MEETUP ", location = " OSLO ")
+        PostgresTestDatabase.isolated().use { database ->
+            val flyway = database.flyway()
+            flyway.clean()
+            Flyway.configure()
+                .dataSource(database.dataSource)
+                .locations("classpath:db/migration")
+                .target("17.0")
+                .load()
+                .migrate()
+            val isolatedJdbc = JdbcTemplate(database.dataSource)
+            insertEvent(name = "Security meetup", location = "Oslo", source = database.dataSource)
+            insertEvent(name = " SECURITY MEETUP ", location = " OSLO ", source = database.dataSource)
 
-        Assertions.assertThatThrownBy { flyway.migrate() }
-            .isInstanceOf(FlywayException::class.java)
-            .hasStackTraceContaining("Duplicate program events exist")
-            .hasStackTraceContaining("no events have been deleted")
-        Assertions.assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM Events", Int::class.java))
-            .isEqualTo(2)
+            Assertions.assertThatThrownBy { flyway.migrate() }
+                .isInstanceOf(FlywayException::class.java)
+                .hasStackTraceContaining("Duplicate program events exist")
+                .hasStackTraceContaining("no events have been deleted")
+            Assertions.assertThat(isolatedJdbc.queryForObject("SELECT count(*) FROM Events", Int::class.java))
+                .isEqualTo(2)
+        }
     }
 
     private fun testEvent() = Event(
@@ -220,11 +180,14 @@ class EventRepositoryTest {
     @Test
     fun `should propagate event database failures`() {
         jdbcTemplate.execute("ALTER TABLE Events RENAME TO events_unavailable")
-
-        Assertions.assertThatThrownBy { repository.getAllEvents() }
-            .isInstanceOf(DataAccessException::class.java)
-        Assertions.assertThatThrownBy { repository.addEvent(testEvent()) }
-            .isInstanceOf(DataAccessException::class.java)
+        try {
+            Assertions.assertThatThrownBy { repository.getAllEvents() }
+                .isInstanceOf(DataAccessException::class.java)
+            Assertions.assertThatThrownBy { repository.addEvent(testEvent()) }
+                .isInstanceOf(DataAccessException::class.java)
+        } finally {
+            jdbcTemplate.execute("ALTER TABLE events_unavailable RENAME TO Events")
+        }
     }
 
     @Test
@@ -263,9 +226,10 @@ class EventRepositoryTest {
         deltaEvent: Boolean = true,
         location: String = "Oslo",
         eventType: String = "WORKSHOP",
-        amountOfPeopleJoined: Int = 0
+        amountOfPeopleJoined: Int = 0,
+        source: DataSource = dataSource,
     ) {
-        dataSource.connection.use { connection ->
+        source.connection.use { connection ->
             connection.prepareStatement(
                 """
                     INSERT INTO Events (

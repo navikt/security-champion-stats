@@ -1,64 +1,12 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresJobLock
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.springframework.jdbc.core.JdbcTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Duration
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class PostgresJobLockTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbcTemplate: JdbcTemplate
-    private lateinit var flyway: Flyway
-
-    @BeforeAll
-    fun setUp() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            driverClassName = "org.postgresql.Driver"
-        }
-        jdbcTemplate = JdbcTemplate(dataSource)
-        flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .cleanDisabled(false)
-            .load()
-    }
-
-    @AfterAll
-    fun tearDown() {
-        dataSource.close()
-    }
-
-    @BeforeEach
-    fun resetDatabase() {
-        flyway.clean()
-        flyway.migrate()
-    }
-
+class PostgresJobLockTest : PostgresIntegrationTest(maxPoolSize = 10) {
     @Test
     fun `should skip a sequential scheduled duplicate until its interval expires`() {
         val jobLock = PostgresJobLock(dataSource)

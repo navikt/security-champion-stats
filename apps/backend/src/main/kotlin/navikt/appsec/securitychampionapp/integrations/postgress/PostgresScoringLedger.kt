@@ -19,7 +19,8 @@ import navikt.appsec.securitychampionapp.app.scoring.ActivityPoints
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfiguration
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationPreview
 import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationRequest
-import navikt.appsec.securitychampionapp.app.scoring.ScoringImpact
+import navikt.appsec.securitychampionapp.app.scoring.PricedCredit
+import navikt.appsec.securitychampionapp.app.scoring.ScoringConfigurationChanges
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTier
 import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
 import org.springframework.jdbc.core.JdbcTemplate
@@ -30,9 +31,6 @@ import java.time.LocalDate
 import java.time.Instant
 import java.sql.Timestamp
 import java.util.UUID
-import java.io.ByteArrayOutputStream
-import java.io.DataOutputStream
-import java.security.MessageDigest
 
 @Repository
 class PostgresScoringLedger(
@@ -141,84 +139,39 @@ class PostgresScoringLedger(
         String::class.java,
     ) ?: error("No scoring configuration exists")
 
-    private data class CreditChange(val id: UUID, val participantId: UUID, val delta: Int)
-    private data class ConfigurationChanges(
-        val credits: List<CreditChange>,
-        val preview: ScoringConfigurationPreview,
-    )
-
     private fun configurationChanges(
         request: ScoringConfigurationRequest,
         before: ScoringConfiguration,
-    ): ConfigurationChanges {
+    ): ScoringConfigurationChanges {
         jdbcTemplate.queryForObject(
             "SELECT id FROM program_seasons WHERE ends_on IS NULL FOR SHARE", UUID::class.java,
         )
         val season = currentSeason()
-        val desiredPoints = request.activities.associate { it.creditType to it.points }
-        val credits = if (request.applyRetroactively) {
-            jdbcTemplate.query(
-                """
-                    SELECT credit.id, credit.participant_id, credit.credit_type,
-                        credit.points + COALESCE(SUM(adjustment.points_delta), 0) AS effective_points
-                    FROM activity_credits AS credit
-                    LEFT JOIN point_adjustments AS adjustment ON adjustment.source_credit_id = credit.id
-                        AND adjustment.scoring_configuration_version IS NOT NULL
-                    WHERE credit.season_id = ? AND credit.revoked_at IS NULL
-                    GROUP BY credit.id
-                    ORDER BY credit.id
-                """.trimIndent(),
-                { rs, _ ->
-                    CreditChange(
-                        rs.getObject("id", UUID::class.java),
-                        rs.getObject("participant_id", UUID::class.java),
-                        Math.toIntExact(
-                            desiredPoints.getValue(ActivityCreditType.valueOf(rs.getString("credit_type"))).toLong() -
-                                rs.getLong("effective_points"),
-                        ),
-                    )
-                },
-                season.id,
-            ).filter { it.delta != 0 }
-        } else {
-            emptyList()
-        }
-        val deltas = credits.groupBy { it.participantId }.mapValues { (_, values) -> values.sumOf { it.delta.toLong() } }
-        val after = ScoringConfiguration(before.version + 1, request.tiers, request.activities)
-        val scores = scoresForSeason(season.id).sortedBy { it.participantId }
-        val impacts = scores.map {
-            val pointsAfter = it.points + (deltas[it.participantId] ?: 0L)
-            ScoringImpact(
-                it.participantId, it.fullName, it.points, pointsAfter,
-                before.levelFor(it.points), after.levelFor(pointsAfter),
-            )
-        }.filter { it.pointsBefore != it.pointsAfter || it.levelBefore != it.levelAfter }
-        val bytes = ByteArrayOutputStream()
-        DataOutputStream(bytes).use { out ->
-            out.writeLong(before.version)
-            out.writeUTF(season.id.toString())
-            out.writeUTF(season.startsOn.toString())
-            out.writeUTF(season.nextResetDate.toString())
-            out.writeBoolean(request.applyRetroactively)
-            out.writeUTF(request.reason)
-            out.writeInt(request.tiers.size)
-            request.tiers.forEach { out.writeUTF(it.name); out.writeInt(it.points) }
-            request.activities.forEach { out.writeUTF(it.creditType.name); out.writeInt(it.points) }
-            out.writeInt(credits.size)
-            credits.forEach {
-                out.writeUTF(it.id.toString()); out.writeUTF(it.participantId.toString()); out.writeInt(it.delta)
-            }
-            out.writeInt(scores.size)
-            scores.forEach {
-                out.writeUTF(it.participantId.toString()); out.writeUTF(it.fullName); out.writeLong(it.points)
-            }
-        }
-        val token = MessageDigest.getInstance("SHA-256").digest(bytes.toByteArray()).joinToString("") { "%02x".format(it) }
-        return ConfigurationChanges(
-            credits,
-            ScoringConfigurationPreview(token, season, credits.size, credits.sumOf { it.delta.toLong() }, impacts),
-        )
+        val pricedCredits = if (request.applyRetroactively) pricedCredits(season.id) else emptyList()
+        return ScoringConfigurationChanges.calculate(request, before, season, pricedCredits, scoresForSeason(season.id))
     }
+
+    private fun pricedCredits(seasonId: UUID): List<PricedCredit> = jdbcTemplate.query(
+        """
+            SELECT credit.id, credit.participant_id, credit.credit_type,
+                credit.points + COALESCE(SUM(adjustment.points_delta), 0) AS effective_points
+            FROM activity_credits AS credit
+            LEFT JOIN point_adjustments AS adjustment ON adjustment.source_credit_id = credit.id
+                AND adjustment.scoring_configuration_version IS NOT NULL
+            WHERE credit.season_id = ? AND credit.revoked_at IS NULL
+            GROUP BY credit.id
+            ORDER BY credit.id
+        """.trimIndent(),
+        { rs, _ ->
+            PricedCredit(
+                rs.getObject("id", UUID::class.java),
+                rs.getObject("participant_id", UUID::class.java),
+                ActivityCreditType.valueOf(rs.getString("credit_type")),
+                rs.getLong("effective_points"),
+            )
+        },
+        seasonId,
+    )
 
     override fun creditPoints(participantId: UUID, creditType: ActivityCreditType, uniquenessKey: String): Int =
         jdbcTemplate.queryForObject(

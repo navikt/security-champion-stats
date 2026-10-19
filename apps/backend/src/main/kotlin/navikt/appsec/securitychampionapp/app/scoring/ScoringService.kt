@@ -3,8 +3,11 @@ package navikt.appsec.securitychampionapp.app.scoring
 import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import org.springframework.stereotype.Service
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.annotation.Isolation
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
@@ -18,66 +21,77 @@ private val PROGRAM_TIME_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 class ScoringService(
     private val repository: ScoringLedger,
     private val adminGroupMembers: AdminGroupMembers,
+    transactionManager: PlatformTransactionManager,
     private val auditService: ProgramAuditService? = null,
 ) {
-    @Transactional
-    fun adminOverview(): AdminScoringOverview {
-        val configuration = repository.configuration()
-        val season = repository.currentSeason()
-        val scores = repository.scoresForSeason(season.id)
-        val adminEmails = adminGroupMembers.emails()
-        return AdminScoringOverview(
-            season = season,
-            today = LocalDate.now(PROGRAM_TIME_ZONE),
-            participants = scores.map {
-                AdminParticipantScore(
-                    participantId = it.participantId,
-                    fullName = it.fullName,
-                    email = it.email,
-                    active = it.active,
-                    points = it.points,
-                    level = configuration.levelFor(it.points),
-                    isAdmin = it.email.trim().lowercase(Locale.ROOT) in adminEmails,
-                )
-            },
-            configuration = configuration,
-        )
+    // configuration() takes a FOR SHARE lock, so these transactions must remain writable.
+    private val transaction = TransactionTemplate(transactionManager)
+    private val summaryTransaction = TransactionTemplate(transactionManager).apply {
+        isolationLevel = TransactionDefinition.ISOLATION_REPEATABLE_READ
     }
 
-    fun recognition(): List<RecognitionEntry> =
-        ranked(repository.scoresForCurrentSeason(activeOnly = true))
+    fun adminOverview(): AdminScoringOverview {
+        val adminEmails = adminGroupMembers.emails()
+        return requireNotNull(transaction.execute {
+            val configuration = repository.configuration()
+            val season = repository.currentSeason()
+            val scores = repository.scoresForSeason(season.id)
+            AdminScoringOverview(
+                season = season,
+                today = LocalDate.now(PROGRAM_TIME_ZONE),
+                participants = scores.map {
+                    AdminParticipantScore(
+                        participantId = it.participantId,
+                        fullName = it.fullName,
+                        email = it.email,
+                        active = it.active,
+                        points = it.points,
+                        level = configuration.levelFor(it.points),
+                        isAdmin = it.email.trim().lowercase(Locale.ROOT) in adminEmails,
+                    )
+                },
+                configuration = configuration,
+            )
+        })
+    }
+
+    fun recognition(): List<RecognitionEntry> {
+        val adminEmails = adminGroupMembers.emails()
+        return ranked(repository.scoresForCurrentSeason(activeOnly = true), adminEmails)
             .filter { it.points > 0 && it.rank <= 5 }
             .map { RecognitionEntry(it.fullName, it.rank) }
-
-    @Transactional
-    fun leaderboard(currentParticipantId: UUID? = null): List<LeaderboardEntry> {
-        val configuration = repository.configuration()
-        return ranked(repository.scoresForCurrentSeason(activeOnly = true))
-            .filter { it.points > 0 }
-            .map {
-                LeaderboardEntry(
-                    it.fullName,
-                    it.rank,
-                    it.points,
-                    configuration.levelFor(it.points),
-                    isCurrentUser = it.participantId == currentParticipantId,
-                )
-            }
     }
 
-    @Transactional
+    fun leaderboard(currentParticipantId: UUID? = null): List<LeaderboardEntry> {
+        val adminEmails = adminGroupMembers.emails()
+        return requireNotNull(transaction.execute {
+            val configuration = repository.configuration()
+            ranked(repository.scoresForCurrentSeason(activeOnly = true), adminEmails)
+                .filter { it.points > 0 }
+                .map {
+                    LeaderboardEntry(
+                        it.fullName,
+                        it.rank,
+                        it.points,
+                        configuration.levelFor(it.points),
+                        isCurrentUser = it.participantId == currentParticipantId,
+                    )
+                }
+        })
+    }
+
     fun ownScore(participantId: UUID): OwnSeasonScore {
-        val configuration = repository.configuration()
-        val season = repository.currentSeason()
-        val points = repository.scoreForParticipant(participantId, season.id)
-        val rank = if (points > 0) {
-            ranked(repository.scoresForSeason(season.id, activeOnly = true))
-                .firstOrNull { it.participantId == participantId }
-                ?.rank
-        } else {
-            null
+        val (score, scores) = requireNotNull(transaction.execute {
+            val configuration = repository.configuration()
+            val season = repository.currentSeason()
+            val points = repository.scoreForParticipant(participantId, season.id)
+            val scores = if (points > 0) repository.scoresForSeason(season.id, activeOnly = true) else null
+            OwnSeasonScore(season, points, configuration.levelFor(points), null, configuration.tiers) to scores
+        })
+        val rank = scores?.let {
+            ranked(it, adminGroupMembers.emails()).firstOrNull { it.participantId == participantId }?.rank
         }
-        return OwnSeasonScore(season, points, configuration.levelFor(points), rank, configuration.tiers)
+        return score.copy(rank = rank)
     }
 
     fun creditsForParticipant(participantId: UUID): List<ActivityCredit> {
@@ -113,62 +127,65 @@ class ScoringService(
         return ParticipantScoringHistory(currentSeason.id, seasons, entries)
     }
 
-    // Not read-only: configuration() takes a FOR SHARE lock, which PostgreSQL rejects in read-only transactions.
-    @Transactional(isolation = Isolation.REPEATABLE_READ)
     fun scoreSummaryForParticipant(
         participantId: UUID,
         selectedSeason: String?,
         admin: Boolean,
     ): Any {
-        if (!repository.participantExists(participantId)) throw ScoringTargetNotFoundException()
-        val currentSeason = repository.currentSeason()
-        val availableSeasons = repository.scoreHistorySeasons()
-        val season = when {
-            selectedSeason == null -> currentSeason.id
-            selectedSeason == "all" -> null
-            else -> {
-                val seasonId = try {
-                    UUID.fromString(selectedSeason)
-                } catch (_: IllegalArgumentException) {
-                    throw InvalidScoringRequestException("The season ID is invalid")
+        val (unrankedSummary, scores) = requireNotNull(summaryTransaction.execute {
+            if (!repository.participantExists(participantId)) throw ScoringTargetNotFoundException()
+            val currentSeason = repository.currentSeason()
+            val availableSeasons = repository.scoreHistorySeasons()
+            val season = when {
+                selectedSeason == null -> currentSeason.id
+                selectedSeason == "all" -> null
+                else -> {
+                    val seasonId = try {
+                        UUID.fromString(selectedSeason)
+                    } catch (_: IllegalArgumentException) {
+                        throw InvalidScoringRequestException("The season ID is invalid")
+                    }
+                    if (availableSeasons.none { it.id == seasonId }) {
+                        throw InvalidScoringRequestException("The season does not exist")
+                    }
+                    seasonId
                 }
-                if (availableSeasons.none { it.id == seasonId }) {
-                    throw InvalidScoringRequestException("The season does not exist")
-                }
-                seasonId
             }
-        }
 
-        val records = repository.scoringHistoryForParticipant(participantId)
-        val selectedRecords = records.filter { season == null || it.seasonId == season }
-        val points = selectedRecords.sumOf { it.points.toLong() }
-        val rank = season?.takeIf { points > 0 }?.let { seasonId ->
-            ranked(repository.scoresForSeason(seasonId, activeOnly = true))
-                .firstOrNull { it.participantId == participantId }
-                ?.rank
-        }
-        val ruleChanges = selectedRecords
-            .filter { it.type == ScoringHistoryEntryType.SCORING_RULE_CHANGE }
-            .sumOf { it.points.toLong() }
-        val manualAdjustments = selectedRecords
-            .filter { it.type == ScoringHistoryEntryType.ADJUSTMENT }
-            .sumOf { it.points.toLong() }
+            val records = repository.scoringHistoryForParticipant(participantId)
+            val selectedRecords = records.filter { season == null || it.seasonId == season }
+            val points = selectedRecords.sumOf { it.points.toLong() }
+            val scores = season?.takeIf { points > 0 }?.let { seasonId ->
+                repository.scoresForSeason(seasonId, activeOnly = true)
+            }
+            val ruleChanges = selectedRecords
+                .filter { it.type == ScoringHistoryEntryType.SCORING_RULE_CHANGE }
+                .sumOf { it.points.toLong() }
+            val manualAdjustments = selectedRecords
+                .filter { it.type == ScoringHistoryEntryType.ADJUSTMENT }
+                .sumOf { it.points.toLong() }
 
-        val summary = ScoreSummary(
-            points = points,
-            tier = repository.configuration().levelFor(points),
-            rank = rank,
-            breakdown = ScoreBreakdown(
-                slack = selectedRecords.pointsFor(ActivityCreditType.SLACK_WEEK),
-                deltaRegistration = selectedRecords.pointsFor(ActivityCreditType.DELTA_REGISTRATION),
-                githubCommit = selectedRecords.pointsFor(ActivityCreditType.GITHUB_COMMIT),
-                githubPullRequest = selectedRecords.pointsFor(ActivityCreditType.GITHUB_PULL_REQUEST),
-                securityEvent = selectedRecords.pointsFor(ActivityCreditType.SECURITY_EVENT_CONTRIBUTION),
-                adjustments = manualAdjustments + if (admin) 0 else ruleChanges,
-                ruleChanges = if (admin) ruleChanges else 0,
-            ),
-            seasons = availableSeasons,
-        )
+            val summary = ScoreSummary(
+                points = points,
+                tier = repository.configuration().levelFor(points),
+                rank = null,
+                breakdown = ScoreBreakdown(
+                    slack = selectedRecords.pointsFor(ActivityCreditType.SLACK_WEEK),
+                    deltaRegistration = selectedRecords.pointsFor(ActivityCreditType.DELTA_REGISTRATION),
+                    githubCommit = selectedRecords.pointsFor(ActivityCreditType.GITHUB_COMMIT),
+                    githubPullRequest = selectedRecords.pointsFor(ActivityCreditType.GITHUB_PULL_REQUEST),
+                    securityEvent = selectedRecords.pointsFor(ActivityCreditType.SECURITY_EVENT_CONTRIBUTION),
+                    adjustments = manualAdjustments + if (admin) 0 else ruleChanges,
+                    ruleChanges = if (admin) ruleChanges else 0,
+                ),
+                seasons = availableSeasons,
+            )
+            summary to scores
+        })
+        val rank = scores?.let {
+            ranked(it, adminGroupMembers.emails()).firstOrNull { it.participantId == participantId }?.rank
+        }
+        val summary = unrankedSummary.copy(rank = rank)
         return if (admin) {
             summary
         } else {
@@ -438,8 +455,7 @@ class ScoringService(
         return reset
     }
 
-    private fun ranked(scores: List<ParticipantSeasonScore>): List<RankedScore> {
-        val adminEmails = adminGroupMembers.emails()
+    private fun ranked(scores: List<ParticipantSeasonScore>, adminEmails: Set<String>): List<RankedScore> {
         val sorted = scores.filterNot { it.email.trim().lowercase(Locale.ROOT) in adminEmails }.sortedWith(
             compareByDescending<ParticipantSeasonScore> { it.points }
                 .thenBy { it.fullName.lowercase() }

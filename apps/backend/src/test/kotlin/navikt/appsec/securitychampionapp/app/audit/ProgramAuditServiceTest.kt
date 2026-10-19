@@ -10,6 +10,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.springframework.transaction.PlatformTransactionManager
 import java.time.Clock
 import java.util.UUID
 
@@ -58,6 +59,7 @@ class ProgramAuditServiceTest {
         val scoringService = ScoringService(
             scoringRepository,
             AdminGroupMembers { emptySet() },
+            mock<PlatformTransactionManager>(),
             ProgramAuditService(auditRepository, Clock.systemUTC()),
         )
 

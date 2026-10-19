@@ -7,7 +7,14 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.core.io.buffer.DefaultDataBufferFactory
+import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.web.reactive.function.client.ClientResponse
 import org.springframework.web.reactive.function.client.WebClient
+import reactor.core.publisher.Flux
+import reactor.core.publisher.Mono
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.URLDecoder
 import java.time.Clock
@@ -15,6 +22,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class GraphAdminGroupMembersTest {
     private lateinit var server: HttpServer
@@ -89,7 +99,65 @@ class GraphAdminGroupMembersTest {
         assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
         graphStatus = 200
         firstPage = """{"value":[]}"""
+        now = now.plusSeconds(10)
         assertThat(source.emails()).isEmpty()
+    }
+
+    @Test
+    fun `concurrent callers share failed refresh until cooldown expires without using stale membership`() {
+        assertThat(source.emails()).containsExactly("admin@nav.no")
+        now = now.plusSeconds(300)
+        graphStatus = 403
+        val ready = CountDownLatch(10)
+        val start = CountDownLatch(1)
+        Executors.newFixedThreadPool(10).use { executor ->
+            val calls = (1..10).map {
+                executor.submit {
+                    ready.countDown()
+                    check(start.await(5, TimeUnit.SECONDS))
+                    assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
+                }
+            }
+            try {
+                assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue()
+            } finally {
+                start.countDown()
+            }
+            calls.forEach { it.get(10, TimeUnit.SECONDS) }
+        }
+        assertThat(requests.count { it == "/token" }).isEqualTo(2)
+        graphStatus = 200
+        firstPage = """{"value":[]}"""
+        now = now.plusSeconds(9)
+        assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
+        assertThat(requests.count { it == "/token" }).isEqualTo(2)
+        now = now.plusSeconds(1)
+        assertThat(source.emails()).isEmpty()
+        assertThat(requests.count { it == "/token" }).isEqualTo(3)
+    }
+
+    @Test
+    fun `interrupted successful response bodies fail as unavailable for token and membership requests`() {
+        val interruptedClient = WebClient.builder().exchangeFunction {
+            Mono.just(
+                ClientResponse.create(HttpStatus.OK)
+                    .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .body(Flux.concat(
+                        Flux.just(DefaultDataBufferFactory.sharedInstance.wrap("""{"value":[""".toByteArray())),
+                        Flux.error(IOException("Connection closed during response body")),
+                    ))
+                    .build(),
+            )
+        }.build()
+        for (interruptToken in listOf(false, true)) {
+            val members = GraphAdminGroupMembers(
+                if (interruptToken) WebClient.create() else interruptedClient,
+                if (interruptToken) interruptedClient else WebClient.create(),
+                "$baseUrl/v1.0", "$baseUrl/token", "admin-group", clock,
+            )
+            assertThatThrownBy { members.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
+            assertThatThrownBy { members.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
+        }
     }
 
     @Test
@@ -99,6 +167,7 @@ class GraphAdminGroupMembersTest {
         secondPage = """{"error":"unavailable"}"""
         assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
         secondPage = """{"value":[]}"""
+        now = now.plusSeconds(10)
         assertThat(source.emails()).containsExactly("first@nav.no")
         assertThat(requests.count { it == "/token" }).isEqualTo(2)
     }
@@ -115,6 +184,7 @@ class GraphAdminGroupMembersTest {
         )) {
             firstPage = body
             assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
+            now = now.plusSeconds(10)
         }
         tokenStatus = 403
         assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
@@ -133,6 +203,7 @@ class GraphAdminGroupMembersTest {
             assertThatThrownBy { source.emails() }.isInstanceOf(AdminGroupUnavailableException::class.java)
             assertThat(requests).allMatch { it == "/token" || it.startsWith("/v1.0/groups/admin-group/members?") }
             assertThat(requests.size).isLessThanOrEqualTo(3)
+            now = now.plusSeconds(10)
         }
     }
 }

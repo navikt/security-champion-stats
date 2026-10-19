@@ -20,7 +20,9 @@ deployed through the repository's GitHub Actions and NAIS configuration.
 - For substantial or ambiguous changes, present the proposed approach and get approval before editing.
 - Do not add unrelated features, broad documentation, or comments that only restate the code.
 - Preserve existing behavior unless a change is part of the approved request. Do not discard unrelated worktree changes.
-- When changing behavior or setup, update the relevant app README briefly.
+- Describe behavior changes and their rationale in commit messages and PR bodies; use Git history and blame to
+  trace why code changed. Update READMEs only when setup, usage, or operational guidance needs correcting, not as
+  a change log.
 - Never expose credentials, personal data, or internal exception details in API responses.
 
 ## Architecture and code

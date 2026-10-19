@@ -71,7 +71,7 @@ class EventClaimIntegrationTest {
         participants = ProgramParticipantRepository(jdbc)
         store = PostgresEventClaimStore(jdbc, ObjectMapper())
         ledger = PostgresScoringLedger(jdbc)
-        service = EventClaimService(store, participants, ledger, ScoringService(ledger, AdminGroupMembers { emptySet() }, audit), audit, clock)
+        service = EventClaimService(store, participants, ledger, ScoringService(ledger, AdminGroupMembers { emptySet() }, DataSourceTransactionManager(dataSource), audit), audit, clock)
         season = ledger.currentSeason().id
         jdbc.update("UPDATE program_seasons SET starts_on = '2026-01-01' WHERE id = ?", season)
         host = participant("host@nav.no")

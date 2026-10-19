@@ -8,6 +8,7 @@ import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientRequestException
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import tools.jackson.databind.JsonNode
@@ -26,20 +27,32 @@ class GraphAdminGroupMembers(
 ) : AdminGroupMembers {
     private data class Snapshot(val emails: Set<String>, val expiresAt: Instant)
     private var snapshot: Snapshot? = null
+    private var retryAfter: Instant? = null
 
     @Synchronized
     override fun emails(): Set<String> {
         snapshot?.takeIf { clock.instant().isBefore(it.expiresAt) }?.let { return it.emails }
-        if (tokenEndpoint.isBlank() || groupId.isBlank()) throw AdminGroupUnavailableException()
+        retryAfter?.takeIf { clock.instant().isBefore(it) }?.let { throw AdminGroupUnavailableException() }
         val emails = try {
+            if (tokenEndpoint.isBlank() || groupId.isBlank()) throw AdminGroupUnavailableException()
             fetchMembers(acquireToken())
+        } catch (_: AdminGroupUnavailableException) {
+            unavailable()
         } catch (_: WebClientRequestException) {
-            throw AdminGroupUnavailableException()
+            unavailable()
+        } catch (_: WebClientResponseException) {
+            unavailable()
         } catch (_: DecodingException) {
-            throw AdminGroupUnavailableException()
+            unavailable()
         }
         snapshot = Snapshot(emails, clock.instant().plusSeconds(300))
+        retryAfter = null
         return emails
+    }
+
+    private fun unavailable(): Nothing {
+        retryAfter = clock.instant().plusSeconds(10)
+        throw AdminGroupUnavailableException()
     }
 
     private fun acquireToken(): String =

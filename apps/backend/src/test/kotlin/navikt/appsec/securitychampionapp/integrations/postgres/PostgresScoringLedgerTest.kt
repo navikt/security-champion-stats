@@ -66,6 +66,7 @@ import org.springframework.dao.DataAccessException
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import org.springframework.transaction.interceptor.TransactionInterceptor
 import org.springframework.transaction.support.TransactionTemplate
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
@@ -390,13 +391,46 @@ class PostgresScoringLedgerTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = ["adminOverview", "leaderboard", "ownScore", "scoreSummary", "recognition"])
+    fun `should resolve admin membership without holding a database transaction or connection`(read: String) {
+        val participantId = createParticipant("membership-boundary@nav.no")
+        val season = repository.currentSeason()
+        insertCredit(participantId, season.id, "GITHUB_PULL_REQUEST", "pull:membership-boundary", 3, season.startsOn)
+        var membershipLookups = 0
+        val members = AdminGroupMembers {
+            membershipLookups++
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse()
+            assertThat(dataSource.hikariPoolMXBean.activeConnections).isZero()
+            emptySet()
+        }
+        val service = ProxyFactory(ScoringService(repository, members, transactionManager)).apply {
+            isProxyTargetClass = true
+            addAdvice(TransactionInterceptor().apply {
+                transactionManager = this@PostgresScoringLedgerTest.transactionManager
+                transactionAttributeSource = AnnotationTransactionAttributeSource()
+            })
+        }.proxy as ScoringService
+
+        when (read) {
+            "adminOverview" -> service.adminOverview()
+            "leaderboard" -> service.leaderboard()
+            "ownScore" -> service.ownScore(participantId)
+            "scoreSummary" -> service.scoreSummaryForParticipant(participantId, null, admin = false)
+            "recognition" -> service.recognition()
+            else -> error("Unknown scoring read: $read")
+        }
+
+        assertThat(membershipLookups).isEqualTo(1)
+    }
+
+    @ParameterizedTest
     @ValueSource(booleans = [true, false])
     fun `should summarize participant scores against the database`(admin: Boolean) {
         val participantId = createParticipant("summary@nav.no")
         val season = repository.currentSeason()
         insertCredit(participantId, season.id, "GITHUB_PULL_REQUEST", "pull:summary", 3, season.startsOn)
         repository.addAdjustment(participantId, 2, "Manual bonus", "admin@nav.no", null)
-        val service = ProxyFactory(ScoringService(repository, AdminGroupMembers { emptySet() })).apply {
+        val service = ProxyFactory(ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager)).apply {
             isProxyTargetClass = true
             addAdvice(TransactionInterceptor().apply {
                 transactionManager = this@PostgresScoringLedgerTest.transactionManager
@@ -456,7 +490,7 @@ class PostgresScoringLedgerTest {
         assertThat(history.single { it.sourceReference == "zero-credit" }.points).isZero()
         assertThat(history.single { it.reason == "Current season correction" }.sourceCreditId).isNull()
 
-        val summary = ScoringService(repository, AdminGroupMembers { emptySet() }).scoringHistoryForParticipant(participantId)
+        val summary = ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).scoringHistoryForParticipant(participantId)
         summary.seasons.forEach {
             assertThat(it.points).isEqualTo(repository.scoreForParticipant(participantId, it.id))
             assertThat(it.points).isEqualTo(it.creditPoints.values.sum() + it.adjustmentPoints + it.scoringRulePoints)
@@ -501,7 +535,7 @@ class PostgresScoringLedgerTest {
                 }
             }
             val service = ProxyFactory(
-                ScoringService(ledger, AdminGroupMembers { emptySet() }, ProgramAuditService(auditRepository, Clock.systemUTC())),
+                ScoringService(ledger, AdminGroupMembers { emptySet() }, transactionManager, ProgramAuditService(auditRepository, Clock.systemUTC())),
             ).apply {
                 isProxyTargetClass = true
                 addAdvice(TransactionInterceptor().apply {
@@ -543,7 +577,7 @@ class PostgresScoringLedgerTest {
         assertThat(preview.participants.single().levelAfter).isEqualTo("Champion")
         assertThat(preview.participants.single().pointsAfter).isEqualTo(1)
         repository.saveConfiguration(request.copy(previewToken = preview.token), "admin@nav.no")
-        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).ownScore(participantId).level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).ownScore(participantId).level).isEqualTo("Champion")
         assertThat(jdbcTemplate.queryForObject(
             "SELECT after_values->'tiers'->0->>'name' FROM program_scoring_audit WHERE action = 'SCORING_CONFIGURATION_UPDATED'",
             String::class.java,
@@ -604,10 +638,10 @@ class PostgresScoringLedgerTest {
                 .isEqualTo(CreditAwardResult.DUPLICATE)
             assertThat(repository.creditPoints(participantId, type, "activity:${type.name}")).isEqualTo(type.ordinal)
         }
-        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).ownScore(participantId).level).isEqualTo("Champion")
-        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).ownScore(participantId).tiers).isEqualTo(saved.tiers)
-        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).leaderboard().single().level).isEqualTo("Champion")
-        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).adminOverview().participants.single().level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).ownScore(participantId).level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).ownScore(participantId).tiers).isEqualTo(saved.tiers)
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).leaderboard().single().level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).adminOverview().participants.single().level).isEqualTo("Champion")
     }
 
     @Test
@@ -891,7 +925,7 @@ class PostgresScoringLedgerTest {
             override fun identities() = listOf(GitHubIdentity(10, "person", "github@nav.no"))
             override fun contributions(since: Instant, until: Instant) = contributions
         }
-        val service = GitHubScoringService(source, mapping, repository, ScoringService(repository, AdminGroupMembers { emptySet() }))
+        val service = GitHubScoringService(source, mapping, repository, ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager))
         assertThat(service.sync(now)).isEqualTo(GitHubSyncSummary(2, 2, 0, 0))
         assertThat(service.sync(now)).isEqualTo(GitHubSyncSummary(2, 0, 2, 0))
         contributions = emptyList()
@@ -995,7 +1029,7 @@ class PostgresScoringLedgerTest {
             )
         ).isEqualTo(CreditAwardResult.DUPLICATE)
 
-        val overview = ScoringService(repository, AdminGroupMembers { emptySet() }).adminOverview()
+        val overview = ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager).adminOverview()
         assertThat(overview.participants.single().points).isEqualTo(3)
         assertThat(repository.creditsForParticipant(participantId).single().points).isEqualTo(3)
     }
@@ -1095,7 +1129,7 @@ class PostgresScoringLedgerTest {
 
     @Test
     fun `should rank ties together and omit zero score participants`() {
-        val service = ScoringService(repository, AdminGroupMembers { emptySet() })
+        val service = ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager)
         val participantIds = (1..6).map { createParticipant("person$it@nav.no") }
         val zeroScoreParticipant = createParticipant("zero@nav.no")
         participantIds.forEachIndexed { index, id ->
@@ -1139,7 +1173,7 @@ class PostgresScoringLedgerTest {
                 ).isEqualTo(CreditAwardResult.AWARDED)
             }
         }
-        val service = ScoringService(repository, AdminGroupMembers { emptySet() })
+        val service = ScoringService(repository, AdminGroupMembers { emptySet() }, transactionManager)
 
         assertThat(service.recognition()).containsExactly(
             RecognitionEntry("first", 1),

@@ -12,16 +12,20 @@ import org.mockito.kotlin.any
 import java.time.LocalDate
 import java.time.Instant
 import org.springframework.dao.DataAccessResourceFailureException
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.SimpleTransactionStatus
 import java.util.UUID
 
 class ScoringServiceTest {
     private val repository: ScoringLedger = mock()
     private val adminGroupMembers: AdminGroupMembers = mock()
-    private val service = ScoringService(repository, adminGroupMembers)
+    private val transactionManager: PlatformTransactionManager = mock()
+    private val service = ScoringService(repository, adminGroupMembers, transactionManager)
     @BeforeEach
     fun configureScoring() {
         whenever(repository.configuration()).thenReturn(defaultScoringConfiguration)
         whenever(adminGroupMembers.emails()).thenReturn(emptySet())
+        whenever(transactionManager.getTransaction(any())).thenReturn(SimpleTransactionStatus())
     }
     private val season = SeasonSummary(
         id = UUID.randomUUID(),
@@ -253,11 +257,13 @@ class ScoringServiceTest {
         val participant = UUID.randomUUID()
         whenever(repository.currentSeason()).thenReturn(season)
         whenever(repository.scoreForParticipant(participant, season.id)).thenReturn(0L)
+        whenever(adminGroupMembers.emails()).thenThrow(AdminGroupUnavailableException())
 
         val result = service.ownScore(participant)
 
         assertEquals(0L, result.points)
         assertEquals(null, result.rank)
+        verify(adminGroupMembers, never()).emails()
     }
 
     @Test
@@ -351,14 +357,29 @@ class ScoringServiceTest {
 
     @Test
     fun `should fail scoring reads when admin membership cannot be verified`() {
+        val participant = UUID.randomUUID()
         whenever(adminGroupMembers.emails()).thenThrow(AdminGroupUnavailableException())
         whenever(repository.scoresForCurrentSeason(activeOnly = true)).thenReturn(emptyList())
         whenever(repository.currentSeason()).thenReturn(season)
         whenever(repository.scoresForSeason(season.id)).thenReturn(emptyList())
+        whenever(repository.scoreForParticipant(participant, season.id)).thenReturn(1L)
+        whenever(repository.participantExists(participant)).thenReturn(true)
+        whenever(repository.scoringHistoryForParticipant(participant)).thenReturn(listOf(
+            ScoringHistoryEntry(
+                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, Instant.now(), null,
+                season.id, season.startsOn, null, 1, ActivityCreditType.SLACK_WEEK,
+                "week", null, null, null, null,
+            ),
+        ))
 
         assertThrows(AdminGroupUnavailableException::class.java) { service.leaderboard() }
         assertThrows(AdminGroupUnavailableException::class.java) { service.recognition() }
         assertThrows(AdminGroupUnavailableException::class.java) { service.adminOverview() }
+        assertThrows(AdminGroupUnavailableException::class.java) { service.ownScore(participant) }
+        assertThrows(AdminGroupUnavailableException::class.java) { service.scoreSummaryForParticipant(participant, null, admin = false) }
+        val summary = service.scoreSummaryForParticipant(participant, "all", admin = false) as ParticipantScoreSummary
+        assertEquals(1L, summary.points)
+        assertEquals(null, summary.rank)
     }
 
     private fun score(id: UUID, name: String, points: Long) =

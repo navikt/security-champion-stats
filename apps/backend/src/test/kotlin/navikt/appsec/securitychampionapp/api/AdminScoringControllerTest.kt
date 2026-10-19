@@ -46,6 +46,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.PlatformTransactionManager
 import tools.jackson.databind.ObjectMapper
 import java.time.LocalDate
 import java.time.Instant
@@ -67,6 +68,9 @@ class AdminScoringControllerTest {
 
     @MockitoBean
     lateinit var adminGroupMembers: AdminGroupMembers
+
+    @MockitoBean
+    lateinit var transactionManager: PlatformTransactionManager
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter

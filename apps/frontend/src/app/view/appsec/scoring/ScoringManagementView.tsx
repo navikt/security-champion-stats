@@ -186,6 +186,7 @@ export function ScoringManagementView({
 		let rank = 0;
 		let previousPoints: number | null = null;
 		return ordered.map((participant) => {
+			if (participant.isAdmin) return { participant, rank: null };
 			if (participant.points !== previousPoints) {
 				rank += 1;
 				previousPoints = participant.points;
@@ -610,6 +611,10 @@ export function ScoringManagementView({
 						<BodyShort size="small" className="hubRedesign__muted">
 							{activeCount} active · ranked by season points
 						</BodyShort>
+						<BodyShort size="small" className="hubRedesign__muted">
+							Administrators retain points but are excluded from the season
+							leaderboard.
+						</BodyShort>
 					</div>
 					<div className="scoringView__participantTools">
 						<fieldset className="scoringView__activeFilter">
@@ -664,6 +669,9 @@ export function ScoringManagementView({
 									<Table.Row
 										className={[
 											"scoringView__participantRow",
+											participant.isAdmin
+												? "scoringView__participantRow--admin"
+												: "",
 											!participant.active
 												? "scoringView__participantRow--inactive"
 												: "",
@@ -674,8 +682,15 @@ export function ScoringManagementView({
 											.filter(Boolean)
 											.join(" ")}
 									>
-										<Table.DataCell className="hubRedesign__dim scoringView__tabular">
-											{rank}
+										<Table.DataCell
+											className="hubRedesign__dim scoringView__tabular"
+											aria-label={
+												participant.isAdmin
+													? "Not ranked (administrator)"
+													: undefined
+											}
+										>
+											{rank ?? "—"}
 										</Table.DataCell>
 										<Table.HeaderCell scope="row">
 											<div className="scoringView__participantIdentity">
@@ -691,6 +706,18 @@ export function ScoringManagementView({
 												/>
 												{participant.active ? "Active" : "Deactivated"}
 											</span>
+											{participant.isAdmin && (
+												<>
+													{" "}
+													<Tag
+														size="xsmall"
+														variant="moderate"
+														data-color="meta-purple"
+													>
+														Admin
+													</Tag>
+												</>
+											)}
 										</Table.DataCell>
 										<Table.DataCell
 											align="right"

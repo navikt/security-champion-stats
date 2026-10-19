@@ -150,6 +150,7 @@ export type AdminParticipantScore = {
 	active: boolean;
 	points: number;
 	level: string;
+	isAdmin: boolean;
 };
 export type AdminScoringOverview = {
 	season: SeasonSummary;

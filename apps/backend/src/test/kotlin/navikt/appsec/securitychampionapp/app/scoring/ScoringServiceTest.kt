@@ -12,14 +12,20 @@ import org.mockito.kotlin.any
 import java.time.LocalDate
 import java.time.Instant
 import org.springframework.dao.DataAccessResourceFailureException
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.SimpleTransactionStatus
 import java.util.UUID
 
 class ScoringServiceTest {
     private val repository: ScoringLedger = mock()
-    private val service = ScoringService(repository)
+    private val adminGroupMembers: AdminGroupMembers = mock()
+    private val transactionManager: PlatformTransactionManager = mock()
+    private val service = ScoringService(repository, adminGroupMembers, transactionManager)
     @BeforeEach
     fun configureScoring() {
         whenever(repository.configuration()).thenReturn(defaultScoringConfiguration)
+        whenever(adminGroupMembers.emails()).thenReturn(emptySet())
+        whenever(transactionManager.getTransaction(any())).thenReturn(SimpleTransactionStatus())
     }
     private val season = SeasonSummary(
         id = UUID.randomUUID(),
@@ -251,11 +257,13 @@ class ScoringServiceTest {
         val participant = UUID.randomUUID()
         whenever(repository.currentSeason()).thenReturn(season)
         whenever(repository.scoreForParticipant(participant, season.id)).thenReturn(0L)
+        whenever(adminGroupMembers.emails()).thenThrow(AdminGroupUnavailableException())
 
         val result = service.ownScore(participant)
 
         assertEquals(0L, result.points)
         assertEquals(null, result.rank)
+        verify(adminGroupMembers, never()).emails()
     }
 
     @Test
@@ -298,6 +306,80 @@ class ScoringServiceTest {
 
             assertEquals(expectedLevel, service.ownScore(participant).level)
         }
+    }
+
+    @Test
+    fun `should exclude admins before ranking and retain their dashboard scores`() {
+        val adminId = UUID.randomUUID()
+        val first = UUID.randomUUID()
+        val tied = UUID.randomUUID()
+        val last = UUID.randomUUID()
+        val scores = listOf(
+            score(adminId, "Admin", 100L).copy(email = " ADMIN@nav.no "),
+            score(first, "First", 10L),
+            score(tied, "Tied", 10L),
+            score(last, "Last", 5L),
+        )
+        whenever(adminGroupMembers.emails()).thenReturn(setOf("admin@nav.no"))
+        whenever(repository.currentSeason()).thenReturn(season)
+        whenever(repository.scoresForCurrentSeason(activeOnly = true)).thenReturn(scores)
+        whenever(repository.scoresForSeason(season.id, activeOnly = true)).thenReturn(scores)
+        whenever(repository.scoresForSeason(season.id)).thenReturn(scores)
+        whenever(repository.scoreForParticipant(adminId, season.id)).thenReturn(100L)
+        whenever(repository.scoreForParticipant(last, season.id)).thenReturn(5L)
+        whenever(repository.participantExists(adminId)).thenReturn(true)
+        whenever(repository.scoreHistorySeasons()).thenReturn(listOf(ScoreHistorySeason(season.id, season.startsOn, null)))
+        whenever(repository.scoringHistoryForParticipant(adminId)).thenReturn(listOf(
+            ScoringHistoryEntry(
+                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, Instant.now(), null,
+                season.id, season.startsOn, null, 100, ActivityCreditType.SLACK_WEEK,
+                "week", null, null, null, null,
+            ),
+        ))
+
+        val leaderboard = service.leaderboard(adminId)
+        assertEquals(listOf("First", "Tied", "Last"), leaderboard.map { it.fullName })
+        assertEquals(listOf(1, 1, 3), leaderboard.map { it.rank })
+        assertEquals(listOf(false, false, false), leaderboard.map { it.isCurrentUser })
+        assertEquals(leaderboard.map { it.fullName }, service.recognition().map { it.fullName })
+        assertEquals(null, service.ownScore(adminId).rank)
+        assertEquals(100L, service.ownScore(adminId).points)
+        assertEquals(3, service.ownScore(last).rank)
+        val summary = service.scoreSummaryForParticipant(adminId, null, admin = false) as ParticipantScoreSummary
+        assertEquals(null, summary.rank)
+        assertEquals(100L, summary.points)
+        val participants = service.adminOverview().participants
+        assertEquals(4, participants.size)
+        assertEquals(true, participants.first().isAdmin)
+        assertEquals(100L, participants.first().points)
+        assertEquals(listOf(false, false, false), participants.drop(1).map { it.isAdmin })
+    }
+
+    @Test
+    fun `should fail scoring reads when admin membership cannot be verified`() {
+        val participant = UUID.randomUUID()
+        whenever(adminGroupMembers.emails()).thenThrow(AdminGroupUnavailableException())
+        whenever(repository.scoresForCurrentSeason(activeOnly = true)).thenReturn(emptyList())
+        whenever(repository.currentSeason()).thenReturn(season)
+        whenever(repository.scoresForSeason(season.id)).thenReturn(emptyList())
+        whenever(repository.scoreForParticipant(participant, season.id)).thenReturn(1L)
+        whenever(repository.participantExists(participant)).thenReturn(true)
+        whenever(repository.scoringHistoryForParticipant(participant)).thenReturn(listOf(
+            ScoringHistoryEntry(
+                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, Instant.now(), null,
+                season.id, season.startsOn, null, 1, ActivityCreditType.SLACK_WEEK,
+                "week", null, null, null, null,
+            ),
+        ))
+
+        assertThrows(AdminGroupUnavailableException::class.java) { service.leaderboard() }
+        assertThrows(AdminGroupUnavailableException::class.java) { service.recognition() }
+        assertThrows(AdminGroupUnavailableException::class.java) { service.adminOverview() }
+        assertThrows(AdminGroupUnavailableException::class.java) { service.ownScore(participant) }
+        assertThrows(AdminGroupUnavailableException::class.java) { service.scoreSummaryForParticipant(participant, null, admin = false) }
+        val summary = service.scoreSummaryForParticipant(participant, "all", admin = false) as ParticipantScoreSummary
+        assertEquals(1L, summary.points)
+        assertEquals(null, summary.rank)
     }
 
     private fun score(id: UUID, name: String, points: Long) =

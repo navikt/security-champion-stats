@@ -32,7 +32,8 @@ team-catalog:
   url: http://localhost:8089
 
 graph:
-  apiUrl: http://localhost:8081/mock/graph
+  apiUrl: http://localhost:8089/graph
+  token-endpoint: http://localhost:8089/graph-token
 slack:
   channel-participation:
     enabled: false

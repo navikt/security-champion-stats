@@ -6,6 +6,7 @@ import navikt.appsec.securitychampionapp.app.events.EventReminderConflictExcepti
 import navikt.appsec.securitychampionapp.app.events.EventSignupUnavailableException
 import navikt.appsec.securitychampionapp.app.events.InvalidEventReminderMessageException
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupUnavailableException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringTargetNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.SourceCreditNotFoundException
 import navikt.appsec.securitychampionapp.app.scoring.StaleScoringConfigurationException
@@ -35,6 +36,15 @@ import java.sql.SQLException
 @RestControllerAdvice
 class ApiExceptionHandler {
     private val logger = LoggerFactory.getLogger(ApiExceptionHandler::class.java)
+
+    @ExceptionHandler(AdminGroupUnavailableException::class)
+    fun adminGroupUnavailable(request: WebRequest): ResponseEntity<ProblemDetail> {
+        logger.warn("Scoring request blocked because administrator group membership is unavailable")
+        return problem(
+            HttpStatus.SERVICE_UNAVAILABLE, "Administrator membership unavailable",
+            "Administrator group membership could not be verified. Try again later.", request,
+        )
+    }
 
     @ExceptionHandler(InvalidEventReminderMessageException::class)
     fun invalidReminderMessage(exception: InvalidEventReminderMessageException, request: WebRequest): ResponseEntity<ProblemDetail> =

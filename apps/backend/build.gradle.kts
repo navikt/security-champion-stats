@@ -1,9 +1,8 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm") version "2.4.20"
     application
-    java
     id("org.springframework.boot") version "4.1.1"
     kotlin("plugin.spring") version "2.4.20"
 }
@@ -11,7 +10,6 @@ plugins {
 group = "no.navikt.appsec.securitychampionstats"
 
 dependencies {
-
     implementation(libs.bundles.spring) {
         exclude("org.springframework.boot", "spring-boot-starter-tomcat")
     }
@@ -32,6 +30,10 @@ dependencies {
 
 kotlin {
     jvmToolchain(25)
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_25
+        freeCompilerArgs.addAll("-Xjsr305=strict")
+    }
 }
 
 application {
@@ -51,10 +53,4 @@ tasks {
     withType<Wrapper> {
         gradleVersion = "9.7.1"
     }
-}
-
-val compileKotlin: KotlinCompile by tasks
-
-compileKotlin.compilerOptions {
-    freeCompilerArgs.set(listOf("-Xannotation-default-target=param-property"))
 }

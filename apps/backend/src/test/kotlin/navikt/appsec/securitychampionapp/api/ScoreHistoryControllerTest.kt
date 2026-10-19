@@ -11,6 +11,7 @@ import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.ScoreHistoryRecord
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupMembers
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
@@ -36,6 +37,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.PlatformTransactionManager
 import java.time.Instant
 import java.util.UUID
 
@@ -51,6 +53,12 @@ class ScoreHistoryControllerTest {
 
     @MockitoBean
     lateinit var scoringRepository: ScoringLedger
+
+    @MockitoBean
+    lateinit var adminGroupMembers: AdminGroupMembers
+
+    @MockitoBean
+    lateinit var transactionManager: PlatformTransactionManager
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter

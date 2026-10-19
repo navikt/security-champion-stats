@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.audit
 
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupMembers
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
@@ -9,6 +10,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.springframework.transaction.PlatformTransactionManager
 import java.time.Clock
 import java.util.UUID
 
@@ -56,6 +58,8 @@ class ProgramAuditServiceTest {
             .thenThrow(IllegalStateException("audit database unavailable"))
         val scoringService = ScoringService(
             scoringRepository,
+            AdminGroupMembers { emptySet() },
+            mock<PlatformTransactionManager>(),
             ProgramAuditService(auditRepository, Clock.systemUTC()),
         )
 

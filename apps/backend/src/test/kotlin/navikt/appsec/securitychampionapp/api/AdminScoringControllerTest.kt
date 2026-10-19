@@ -15,6 +15,7 @@ import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntry
 import navikt.appsec.securitychampionapp.app.scoring.ScoringHistoryEntryType
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupMembers
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
@@ -45,6 +46,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.PlatformTransactionManager
 import tools.jackson.databind.ObjectMapper
 import java.time.LocalDate
 import java.time.Instant
@@ -63,6 +65,12 @@ class AdminScoringControllerTest {
 
     @MockitoBean
     lateinit var scoringRepository: ScoringLedger
+
+    @MockitoBean
+    lateinit var adminGroupMembers: AdminGroupMembers
+
+    @MockitoBean
+    lateinit var transactionManager: PlatformTransactionManager
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter

@@ -1,6 +1,6 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
 import navikt.appsec.securitychampionapp.app.audit.AuditRunContext
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
@@ -10,77 +10,30 @@ import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepo
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.PostgresScoringLedger
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.aop.framework.ProxyFactory
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource
 import org.springframework.transaction.interceptor.TransactionInterceptor
 import org.springframework.transaction.support.TransactionTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import tools.jackson.databind.json.JsonMapper
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class ProgramAuditRepositoryTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbcTemplate: JdbcTemplate
+class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
     private lateinit var repository: ProgramAuditRepository
     private lateinit var auditService: ProgramAuditService
     private lateinit var scoringRepository: PostgresScoringLedger
     private lateinit var participantRepository: ProgramParticipantRepository
-    private lateinit var flyway: Flyway
 
     @BeforeAll
     fun setupRepository() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 2
-        }
-        jdbcTemplate = JdbcTemplate(dataSource)
         repository = ProgramAuditRepository(jdbcTemplate, JsonMapper.builder().build())
         auditService = ProgramAuditService(repository, Clock.systemUTC())
         scoringRepository = PostgresScoringLedger(jdbcTemplate)
         participantRepository = ProgramParticipantRepository(jdbcTemplate)
-        flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .cleanDisabled(false)
-            .load()
-    }
-
-    @AfterAll
-    fun closeDataSource() {
-        dataSource.close()
-    }
-
-    @BeforeEach
-    fun resetDatabase() {
-        flyway.clean()
-        flyway.migrate()
     }
 
     @Test

@@ -1,62 +1,29 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.membership.*
 import navikt.appsec.securitychampionapp.app.participation.DeactivationReason
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackChannelParticipationRepository
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.*
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SlackChannelParticipationRepositoryTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-    }
-
+class SlackChannelParticipationRepositoryTest : PostgresIntegrationTest() {
     private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbc: JdbcTemplate
     private lateinit var repository: SlackChannelParticipationRepository
     private lateinit var participants: ProgramParticipantRepository
-    private lateinit var flyway: Flyway
 
     @BeforeAll
     fun setup() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            maximumPoolSize = 2
-        }
-        jdbc = JdbcTemplate(dataSource)
-        repository = SlackChannelParticipationRepository(jdbc, TransactionTemplate(DataSourceTransactionManager(dataSource)))
-        participants = ProgramParticipantRepository(jdbc)
-        flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load()
+        repository = SlackChannelParticipationRepository(jdbcTemplate, TransactionTemplate(DataSourceTransactionManager(dataSource)))
+        participants = ProgramParticipantRepository(jdbcTemplate)
     }
-
-    @BeforeEach
-    fun reset() {
-        flyway.clean()
-        flyway.migrate()
-    }
-
-    @AfterAll
-    fun close() = dataSource.close()
 
     @Test
     fun `departure deactivates with a reason, retains history and queues one notice`() {
@@ -71,7 +38,7 @@ class SlackChannelParticipationRepositoryTest {
         assertThat(repository.dueNotices("C_CHANNEL").map { it.participantId to it.slackUserId })
             .containsExactly(id to "U_LEAVER")
         assertThat(
-            jdbc.queryForObject(
+            jdbcTemplate.queryForObject(
                 "SELECT after_values ->> 'status' FROM program_participant_audit WHERE participant_id = ?",
                 String::class.java, id,
             ),
@@ -114,7 +81,7 @@ class SlackChannelParticipationRepositoryTest {
         repository.apply("C_CHANNEL", now, departure(id))
         repository.apply("C_CHANNEL", now, ChannelCheckPlan(emptyList(), emptyMap(), setOf(id)))
 
-        val history = jdbc.queryForList(
+        val history = jdbcTemplate.queryForList(
             """
                 SELECT before_values::text AS before, after_values::text AS after FROM program_participant_audit
                 WHERE participant_id = ? ORDER BY id
@@ -143,7 +110,7 @@ class SlackChannelParticipationRepositoryTest {
         participants.updateStatus(adminHandled, true, "admin@nav.no")
 
         assertThat(
-            jdbc.queryForObject(
+            jdbcTemplate.queryForObject(
                 "SELECT status FROM slack_channel_departure_notices WHERE participant_id = ?",
                 String::class.java, returned,
             ),

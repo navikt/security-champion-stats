@@ -1,60 +1,27 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.membership.MembershipAnnouncementKind
 import navikt.appsec.securitychampionapp.app.membership.MembershipDeliveryStatus
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramParticipantRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.SlackMembershipRepository
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.*
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
 import java.time.Duration
 import java.time.Instant
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class SlackMembershipRepositoryTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbc: JdbcTemplate
+class SlackMembershipRepositoryTest : PostgresIntegrationTest() {
     private lateinit var repository: SlackMembershipRepository
     private lateinit var participants: ProgramParticipantRepository
-    private lateinit var flyway: Flyway
 
     @BeforeAll
     fun setup() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            maximumPoolSize = 2
-        }
-        jdbc = JdbcTemplate(dataSource)
-        repository = SlackMembershipRepository(jdbc, TransactionTemplate(DataSourceTransactionManager(dataSource)))
-        participants = ProgramParticipantRepository(jdbc)
-        flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load()
+        repository = SlackMembershipRepository(jdbcTemplate, TransactionTemplate(DataSourceTransactionManager(dataSource)))
+        participants = ProgramParticipantRepository(jdbcTemplate)
     }
-
-    @BeforeEach
-    fun reset() {
-        flyway.clean()
-        flyway.migrate()
-    }
-
-    @AfterAll
-    fun close() = dataSource.close()
 
     @Test
     fun `baseline is silent and later membership changes are recorded once`() {
@@ -103,7 +70,7 @@ class SlackMembershipRepositoryTest {
         participants.permanentlyDelete(second)
 
         assertThat(repository.announcements("S_GROUP")).isEmpty()
-        assertThat(jdbc.queryForObject(
+        assertThat(jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM slack_membership_snapshot WHERE participant_id = ?", Int::class.java, second,
         )).isZero()
     }

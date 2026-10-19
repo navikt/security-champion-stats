@@ -1,68 +1,19 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import org.assertj.core.api.Assertions
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
-import org.springframework.jdbc.core.JdbcTemplate
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import org.springframework.dao.DataAccessException
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.util.UUID
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class MemberRepositoryTest {
-
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-
-    }
-
-    lateinit var dataSource: HikariDataSource
-    lateinit var jdbcTemplate: JdbcTemplate
-    lateinit var repository: MemberRepository
-    lateinit var flyway: Flyway
+class MemberRepositoryTest : PostgresIntegrationTest() {
+    private lateinit var repository: MemberRepository
 
     @BeforeAll
     fun setupRepository() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 2
-        }
-        jdbcTemplate = JdbcTemplate(dataSource)
         repository = MemberRepository(jdbcTemplate)
-        flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .cleanDisabled(false)
-            .load()
-    }
-
-    @AfterAll
-    fun closeDataSource() {
-        dataSource.close()
-    }
-
-    @BeforeEach
-    fun setup() {
-        flyway.clean()
-        flyway.migrate()
     }
 
     @Test
@@ -101,19 +52,25 @@ class MemberRepositoryTest {
     @Test
     fun `should propagate member database failures`() {
         jdbcTemplate.execute("ALTER TABLE Members RENAME TO members_unavailable")
-
-        Assertions.assertThatThrownBy { repository.getMemberByEmail("test@nav.no") }
-            .isInstanceOf(DataAccessException::class.java)
-        Assertions.assertThatThrownBy { repository.addMember("Test User", "id", "test@nav.no", emptyList()) }
-            .isInstanceOf(DataAccessException::class.java)
+        try {
+            Assertions.assertThatThrownBy { repository.getMemberByEmail("test@nav.no") }
+                .isInstanceOf(DataAccessException::class.java)
+            Assertions.assertThatThrownBy { repository.addMember("Test User", "id", "test@nav.no", emptyList()) }
+                .isInstanceOf(DataAccessException::class.java)
+        } finally {
+            jdbcTemplate.execute("ALTER TABLE members_unavailable RENAME TO Members")
+        }
     }
 
     @Test
     fun `should propagate graph database failures`() {
         jdbcTemplate.execute("ALTER TABLE SCData RENAME TO sc_data_unavailable")
-
-        Assertions.assertThatThrownBy { repository.getSCAmountOverTime() }
-            .isInstanceOf(DataAccessException::class.java)
+        try {
+            Assertions.assertThatThrownBy { repository.getSCAmountOverTime() }
+                .isInstanceOf(DataAccessException::class.java)
+        } finally {
+            jdbcTemplate.execute("ALTER TABLE sc_data_unavailable RENAME TO SCData")
+        }
     }
 
     private fun insertMember(

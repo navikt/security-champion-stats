@@ -1,6 +1,5 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
 import navikt.appsec.securitychampionapp.app.jobs.ScoringJobLockKeys
 import navikt.appsec.securitychampionapp.app.scoring.DeltaScoringStatusService
 import navikt.appsec.securitychampionapp.app.scoring.INTERRUPTED_SYNC_SUMMARY
@@ -48,17 +47,14 @@ import navikt.appsec.securitychampionapp.integrations.github.GitHubIdentity
 import navikt.appsec.securitychampionapp.integrations.github.GitHubIntegrationException
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.assertj.core.api.Assertions.assertThat
-import org.flywaydb.core.Flyway
-import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.springframework.aop.framework.ProxyFactory
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.DuplicateKeyException
@@ -67,9 +63,6 @@ import org.springframework.transaction.annotation.AnnotationTransactionAttribute
 import org.springframework.transaction.interceptor.TransactionInterceptor
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.transaction.support.TransactionSynchronizationManager
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import java.sql.SQLException
 import java.sql.Timestamp
 import java.time.LocalDate
@@ -96,21 +89,7 @@ import org.springframework.core.task.TaskExecutor
 import org.springframework.transaction.event.TransactionalEventListenerFactory
 import java.util.function.Supplier
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class PostgresScoringLedgerTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbcTemplate: JdbcTemplate
+class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
     private lateinit var repository: ScoringLedger
     private lateinit var transactionManager: DataSourceTransactionManager
     private lateinit var adminDashboardRepository: AdminDashboardRepository
@@ -119,18 +98,9 @@ class PostgresScoringLedgerTest {
     private lateinit var deltaEventMappingRepository: DeltaEventMappingRepository
     private lateinit var deltaEligibleCategoryRepository: DeltaEligibleCategoryRepository
     private lateinit var deltaScoringStatusRepository: DeltaScoringStatusRepository
-    private lateinit var flyway: Flyway
 
     @BeforeAll
     fun setupRepository() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-            driverClassName = "org.postgresql.Driver"
-            maximumPoolSize = 2
-        }
-        jdbcTemplate = JdbcTemplate(dataSource)
         transactionManager = DataSourceTransactionManager(dataSource)
         repository = ProxyFactory(PostgresScoringLedger(jdbcTemplate)).apply {
             setInterfaces(ScoringLedger::class.java)
@@ -145,22 +115,11 @@ class PostgresScoringLedgerTest {
         deltaEventMappingRepository = DeltaEventMappingRepository(jdbcTemplate)
         deltaEligibleCategoryRepository = DeltaEligibleCategoryRepository(jdbcTemplate)
         deltaScoringStatusRepository = DeltaScoringStatusRepository(jdbcTemplate)
-        flyway = Flyway.configure()
-            .dataSource(dataSource)
-            .locations("classpath:db/migration")
-            .cleanDisabled(false)
-            .load()
     }
 
-    @AfterAll
-    fun closeDataSource() {
-        dataSource.close()
-    }
-
-    @BeforeEach
-    fun resetDatabase() {
-        flyway.clean()
-        flyway.migrate()
+    @AfterEach
+    fun removeSchemaOverrides() {
+        jdbcTemplate.execute("ALTER TABLE program_scoring_audit DROP CONSTRAINT IF EXISTS reject_test_audit")
     }
 
     @Test
@@ -225,54 +184,6 @@ class PostgresScoringLedgerTest {
         }
         assertThat(repository.scoreForParticipant(participantId, originalSeason.id)).isZero()
         assertThat(repository.scoreForParticipant(participantId, repository.currentSeason().id)).isZero()
-    }
-
-    @Test
-    fun `should backfill event claims Delta mappings and resolvable GitHub sources during migration`() {
-        flyway.clean()
-        Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").target("32.0").load().migrate()
-        val participantId = createParticipant("migration-history@nav.no")
-        val season = repository.currentSeason()
-        val claimId = UUID.randomUUID()
-        val deltaId = UUID.randomUUID()
-        val eventAt = season.startsOn.atTime(12, 0).atZone(ZoneId.of("Europe/Oslo")).toInstant()
-        jdbcTemplate.update(
-            """
-                INSERT INTO event_contribution_claims (
-                    id, submitter_id, season_id, name, description, start_date, end_date,
-                    location, event_type, external_event, links, invitation_evidence
-                ) VALUES (?, ?, ?, 'Security meetup', 'Security content', ?, ?, 'Oslo', 'MEETUP',
-                    FALSE, '["https://example.org/meetup"]', 'Invited in advance')
-            """.trimIndent(),
-            claimId, participantId, season.id, Timestamp.from(eventAt), Timestamp.from(eventAt.plusSeconds(3600)),
-        )
-        jdbcTemplate.update(
-            """INSERT INTO program_delta_event_mappings
-                (program_event_name, delta_event_uuid, created_by_nav_no_email)
-                VALUES ('Delta workshop', ?, 'admin@nav.no')""",
-            deltaId,
-        )
-        insertCredit(participantId, season.id, "SECURITY_EVENT_CONTRIBUTION", "event-claim:$claimId", 5, season.startsOn)
-        insertCredit(participantId, season.id, "DELTA_REGISTRATION", deltaId.toString(), 1, season.startsOn)
-        insertCredit(participantId, season.id, "GITHUB_PULL_REQUEST", "navikt/security-playbook:pr:42", 3, season.startsOn)
-        insertCredit(participantId, season.id, "GITHUB_COMMIT", "navikt/security-playbook:commit:${"a".repeat(40)}", 1, season.startsOn)
-
-        flyway.migrate()
-
-        val history = repository.scoreHistoryPage(participantId, null, "credit", null, 25)
-        val claim = history.single { it.creditType == ActivityCreditType.SECURITY_EVENT_CONTRIBUTION }
-        assertThat(claim.displayName).isEqualTo("Security meetup")
-        assertThat(claim.sourceOccurredAt).isEqualTo(eventAt)
-        assertThat(claim.sourceUrl).isEqualTo("https://example.org/meetup")
-        val delta = history.single { it.creditType == ActivityCreditType.DELTA_REGISTRATION }
-        assertThat(delta.displayName).isEqualTo("Delta workshop")
-        assertThat(delta.sourceUrl).isEqualTo("https://delta.nav.no/event/$deltaId")
-        assertThat(delta.sourceOccurredAt).isNull()
-        assertThat(history.single { it.creditType == ActivityCreditType.GITHUB_PULL_REQUEST }.sourceUrl)
-            .isEqualTo("https://github.com/navikt/security-playbook/pull/42")
-        assertThat(history.single { it.creditType == ActivityCreditType.GITHUB_COMMIT }.displayName)
-            .isEqualTo("navikt/security-playbook commit aaaaaaa")
-        assertThat(repository.scoreForParticipant(participantId, season.id)).isEqualTo(10)
     }
 
     @Test

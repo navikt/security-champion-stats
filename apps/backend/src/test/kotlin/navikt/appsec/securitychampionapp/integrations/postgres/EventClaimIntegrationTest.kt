@@ -1,6 +1,6 @@
 package navikt.appsec.securitychampionapp.integrations.postgres
 
-import com.zaxxer.hikari.HikariDataSource
+import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.events.*
 import navikt.appsec.securitychampionapp.app.scoring.*
@@ -11,14 +11,9 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.spy
 import org.mockito.Mockito.clearInvocations
 import org.mockito.Mockito.mockingDetails
-import org.flywaydb.core.Flyway
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import tools.jackson.databind.ObjectMapper
 import java.sql.Timestamp
 import java.time.Clock
@@ -27,17 +22,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.UUID
 
-@Testcontainers
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class EventClaimIntegrationTest {
-    companion object {
-        @JvmStatic
-        @Container
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16-alpine")
-    }
-
-    private lateinit var dataSource: HikariDataSource
-    private lateinit var jdbc: JdbcTemplate
+class EventClaimIntegrationTest : PostgresIntegrationTest(maxPoolSize = 10) {
     private lateinit var tx: TransactionTemplate
     private lateinit var store: PostgresEventClaimStore
     private lateinit var participants: ProgramParticipantRepository
@@ -48,26 +33,15 @@ class EventClaimIntegrationTest {
     private lateinit var season: UUID
     private val audit = mock<ProgramAuditService>()
     private val clock = Clock.fixed(Instant.parse("2026-10-07T14:00:00Z"), ZoneOffset.UTC)
+    private val jdbc get() = jdbcTemplate
 
     @BeforeAll
     fun setup() {
-        dataSource = HikariDataSource().apply {
-            jdbcUrl = postgres.jdbcUrl
-            username = postgres.username
-            password = postgres.password
-        }
-        jdbc = JdbcTemplate(dataSource)
         tx = TransactionTemplate(DataSourceTransactionManager(dataSource))
     }
 
-    @AfterAll
-    fun close() { dataSource.close() }
-
     @BeforeEach
     fun reset() {
-        val flyway = Flyway.configure().dataSource(dataSource).cleanDisabled(false).load()
-        flyway.clean()
-        flyway.migrate()
         participants = ProgramParticipantRepository(jdbc)
         store = PostgresEventClaimStore(jdbc, ObjectMapper())
         ledger = PostgresScoringLedger(jdbc)
@@ -228,7 +202,12 @@ class EventClaimIntegrationTest {
         jdbc.execute("""CREATE FUNCTION reject_claim_publication() RETURNS trigger LANGUAGE plpgsql AS
             'BEGIN RAISE EXCEPTION ''publication unavailable''; END'""")
         jdbc.execute("CREATE TRIGGER reject_claim_publication BEFORE INSERT ON Events FOR EACH ROW EXECUTE FUNCTION reject_claim_publication()")
-        assertThrows<org.springframework.dao.DataAccessException> { review(claim, host) }
+        try {
+            assertThrows<org.springframework.dao.DataAccessException> { review(claim, host) }
+        } finally {
+            jdbc.execute("DROP TRIGGER reject_claim_publication ON Events")
+            jdbc.execute("DROP FUNCTION reject_claim_publication()")
+        }
         assertThat(ledger.creditsForParticipant(host)).isEmpty()
         assertThat(store.find(claim.id)?.reviews).isEmpty()
         assertThat(store.find(claim.id)?.published).isFalse()

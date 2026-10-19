@@ -8,6 +8,8 @@ import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRoleState
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogRolesDisabledException
 import navikt.appsec.securitychampionapp.app.membership.TeamCatalogChampionStatusOverview
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -21,16 +23,19 @@ data class SaveTeamCatalogRolesRequest(val selectedTeamIds: List<String>)
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "Teamkatalogen")
 class TeamCatalogRoleController(
     private val teamCatalogRoleService: TeamCatalogRoleService,
 ) {
     @GetMapping("/team-catalog/roles")
+    @Operation(summary = "Get the current user's Teamkatalogen roles")
     fun memberships(): TeamCatalogRoleState =
         withPrincipal { principal ->
             teamCatalogRoleService.currentTeams(principal.email, principal.navIdent)
         }
 
     @PutMapping("/team-catalog/roles")
+    @Operation(summary = "Update the current user's selected Teamkatalogen roles")
     fun saveSelection(@RequestBody request: SaveTeamCatalogRolesRequest): TeamCatalogRoleSaveResult {
         if (request.selectedTeamIds.any { it.isBlank() } ||
             request.selectedTeamIds.size != request.selectedTeamIds.toSet().size
@@ -51,6 +56,7 @@ class TeamCatalogRoleController(
     }
 
     @GetMapping("/admin/team-catalog/roles")
+    @Operation(summary = "Get Teamkatalogen champion status")
     fun championStatus(): TeamCatalogChampionStatusOverview =
         try {
             teamCatalogRoleService.championStatus()

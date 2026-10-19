@@ -5,6 +5,9 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaCategoryNotFoundExcept
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEligibleCategory
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEligibleCategoryService
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -19,13 +22,17 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/admin/delta/eligible-categories")
+@Tag(name = "Delta integration")
 class AdminDeltaEligibleCategoryController(
     private val service: DeltaEligibleCategoryService,
 ) {
     @GetMapping
+    @Operation(summary = "List eligible Delta categories")
     fun categories(): ResponseEntity<List<DeltaEligibleCategory>> = ResponseEntity.ok(service.categories())
 
     @PostMapping
+    @Operation(summary = "Make a Delta category eligible for scoring")
+    @ApiResponse(responseCode = "201", description = "Category marked eligible")
     fun addCategory(@RequestBody request: AddDeltaEligibleCategoryRequest): ResponseEntity<Any> =
         try {
             ResponseEntity.status(HttpStatus.CREATED)
@@ -45,6 +52,8 @@ class AdminDeltaEligibleCategoryController(
         }
 
     @DeleteMapping("/{categoryId}")
+    @Operation(summary = "Remove an eligible Delta category")
+    @ApiResponse(responseCode = "204", description = "Category eligibility removed")
     fun removeCategory(@PathVariable categoryId: Int): ResponseEntity<Any> =
         if (service.removeCategory(categoryId, currentPrincipal().email)) {
             ResponseEntity.noContent().build()

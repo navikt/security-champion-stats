@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditPage
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -11,10 +13,12 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/admin/audit")
+@Tag(name = "Administration")
 class AdminAuditController(
     private val auditService: ProgramAuditService,
 ) {
     @GetMapping
+    @Operation(summary = "Search the program audit log")
     fun audit(
         @RequestParam(required = false) q: String?,
         @RequestParam(required = false) category: String?,

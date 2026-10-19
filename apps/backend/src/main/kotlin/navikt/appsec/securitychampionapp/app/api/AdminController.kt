@@ -13,6 +13,9 @@ import navikt.appsec.securitychampionapp.integrations.postgress.MemberRepository
 import navikt.appsec.securitychampionapp.integrations.postgress.dto.EventType
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
 import navikt.appsec.securitychampionapp.utils.Validate
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
@@ -33,6 +36,7 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin")
+@Tag(name = "Administration")
 class AdminController(
     private val repo: MemberRepository,
     private val participantRepository: ParticipantStore,
@@ -42,6 +46,8 @@ class AdminController(
     private val logger = LoggerFactory.getLogger(AdminController::class.java)
 
     @PostMapping("/member", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "Add a program member")
+    @ApiResponse(responseCode = "201", description = "Member created")
     fun addMember(@RequestBody memberInfo: AddMember): ResponseEntity<Any> {
         if (!validate.isValidEmail(memberInfo.email) or !validate.isValidName(memberInfo.fullName)) {
             logger.warn(
@@ -60,12 +66,15 @@ class AdminController(
     }
 
     @DeleteMapping("/member/{id}")
+    @Operation(summary = "Delete a member record")
+    @ApiResponse(responseCode = "202", description = "Deletion accepted")
     fun deleteMember(@PathVariable id: String): ResponseEntity<Any> {
         repo.deleteMember(id)
         return ResponseEntity.status(HttpStatus.ACCEPTED).build()
     }
 
     @GetMapping("/participants")
+    @Operation(summary = "List all program participants")
     fun getProgramParticipants(): ResponseEntity<List<AdminProgramParticipantView>> =
         ResponseEntity.ok(
             participantRepository.findAllParticipants().map {
@@ -82,6 +91,8 @@ class AdminController(
         )
 
     @PutMapping("/participants/{id}/status", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "Update a participant's active status")
+    @ApiResponse(responseCode = "204", description = "Participant status updated")
     fun updateParticipantStatus(
         @PathVariable id: String,
         @RequestBody request: UpdateParticipantStatusRequest,
@@ -101,6 +112,8 @@ class AdminController(
     }
 
     @DeleteMapping("/participants/{id}", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "Permanently delete a participant")
+    @ApiResponse(responseCode = "204", description = "Participant deleted")
     fun permanentlyDeleteParticipant(
         @PathVariable id: String,
         @RequestBody request: DeleteParticipantRequest,
@@ -125,6 +138,8 @@ class AdminController(
     }
 
     @PostMapping("/events")
+    @Operation(summary = "Create an event")
+    @ApiResponse(responseCode = "201", description = "Event created")
     fun addEvent(@RequestBody event: Event): ResponseEntity<Any> {
         val startDate = runCatching { Instant.parse(event.startDate) }.getOrNull()
         val endDate = runCatching { Instant.parse(event.endDate) }.getOrNull()
@@ -170,10 +185,12 @@ class AdminController(
     }
 
     @GetMapping("/dashboard/members")
+    @Operation(summary = "Get member counts over time")
     fun getAllMembers(): ResponseEntity<List<SCdata>> =
         ResponseEntity.ok(repo.getSCAmountOverTime())
 
     @PostMapping("/member/attended/{email}")
+    @Operation(summary = "Record that a member attended a meeting")
     fun validateMemberAttendingMeeting(@PathVariable email: String): ResponseEntity<Any> =
         ResponseEntity.ok().build()
 

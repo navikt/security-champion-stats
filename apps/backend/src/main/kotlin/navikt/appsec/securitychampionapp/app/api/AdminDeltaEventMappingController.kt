@@ -5,6 +5,9 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMapping
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCreditsException
 import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingService
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -20,13 +23,17 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/delta/event-mappings")
+@Tag(name = "Delta integration")
 class AdminDeltaEventMappingController(
     private val service: DeltaEventMappingService,
 ) {
     @GetMapping
+    @Operation(summary = "List configured Delta event mappings")
     fun mappings(): ResponseEntity<List<DeltaEventMapping>> = ResponseEntity.ok(service.mappings())
 
     @PostMapping
+    @Operation(summary = "Map a program event to a Delta event")
+    @ApiResponse(responseCode = "201", description = "Event mapping created")
     fun addMapping(@RequestBody request: AddDeltaEventMappingRequest): ResponseEntity<Any> {
         val mapping = try {
             service.addMapping(
@@ -45,6 +52,8 @@ class AdminDeltaEventMappingController(
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Remove a Delta event mapping")
+    @ApiResponse(responseCode = "204", description = "Event mapping removed")
     fun removeMapping(@PathVariable id: String): ResponseEntity<Any> {
         val mappingId = id.toUuid() ?: throw ApiRequestException(
             HttpStatus.BAD_REQUEST,

@@ -11,6 +11,9 @@ import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
 import navikt.appsec.securitychampionapp.app.scoring.UpdateSeasonResetDateRequest
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -27,14 +30,17 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/scoring")
+@Tag(name = "Scoring")
 class AdminScoringController(
     private val scoringService: ScoringService,
 ) {
     @GetMapping
+    @Operation(summary = "Get the scoring administration overview")
     fun overview(): ResponseEntity<AdminScoringOverview> =
         ResponseEntity.ok(scoringService.adminOverview())
 
     @GetMapping("/participants/{id}/credits")
+    @Operation(summary = "List a participant's scoring credits")
     fun participantCredits(@PathVariable id: String): ResponseEntity<List<ActivityCredit>> {
         val participantId = id.toUuid()
             ?: throw InvalidScoringRequestException("The participant ID is invalid")
@@ -42,6 +48,7 @@ class AdminScoringController(
     }
 
     @GetMapping("/participants/{id}/history")
+    @Operation(summary = "Get a participant's scoring history")
     fun participantHistory(@PathVariable id: String): ResponseEntity<ParticipantScoringHistory> {
         val participantId = id.toUuid()
             ?: throw InvalidScoringRequestException("The participant ID is invalid")
@@ -49,6 +56,8 @@ class AdminScoringController(
     }
 
     @PostMapping("/participants/{id}/adjustments")
+    @Operation(summary = "Adjust a participant's score")
+    @ApiResponse(responseCode = "201", description = "Score adjustment recorded")
     fun addAdjustment(
         @PathVariable id: String,
         @RequestBody request: PointAdjustmentRequest,
@@ -68,6 +77,7 @@ class AdminScoringController(
     }
 
     @PutMapping("/season/reset-date")
+    @Operation(summary = "Update the next scoring season reset date")
     fun updateNextResetDate(
         @RequestBody request: UpdateSeasonResetDateRequest,
     ): ResponseEntity<Any> {
@@ -84,6 +94,7 @@ class AdminScoringController(
     }
 
     @PostMapping("/season/reset")
+    @Operation(summary = "Reset the scoring season")
     fun resetSeason(@RequestBody request: ResetSeasonRequest): ResponseEntity<Any> =
         ResponseEntity.ok(
             scoringService.resetManually(

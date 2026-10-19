@@ -5,6 +5,9 @@ import navikt.appsec.securitychampionapp.app.events.EventReminderService
 import navikt.appsec.securitychampionapp.app.jobs.EventReminderJob
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -14,15 +17,19 @@ data class SendEventRemindersRequest(val expectedVersion: String, val message: S
 
 @RestController
 @RequestMapping("/api/admin/events/{eventId}/reminders")
+@Tag(name = "Administration")
 class AdminEventReminderController(
     private val service: EventReminderService,
     private val job: EventReminderJob,
 ) {
     @GetMapping
+    @Operation(summary = "Preview recipients for event reminders")
     fun preview(@PathVariable eventId: String): ResponseEntity<EventReminderPreview> =
         ResponseEntity.ok().header("Cache-Control", "no-store").body(service.preview(eventId))
 
     @PostMapping
+    @Operation(summary = "Send reminders to event participants")
+    @ApiResponse(responseCode = "202", description = "Reminder batch accepted")
     fun send(@PathVariable eventId: String, @RequestBody request: SendEventRemindersRequest): ResponseEntity<Void> {
         if (!request.confirmed || request.expectedVersion.isBlank()) {
             throw ApiRequestException(HttpStatus.BAD_REQUEST, "Confirmation required", "Preview and confirm the reminder recipients")

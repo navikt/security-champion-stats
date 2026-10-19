@@ -8,6 +8,9 @@ import navikt.appsec.securitychampionapp.app.membership.MembershipSyncBusyExcept
 import navikt.appsec.securitychampionapp.app.membership.MembershipPreviewChangedException
 import navikt.appsec.securitychampionapp.app.membership.SlackMembershipPreview
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -19,17 +22,23 @@ data class SyncSlackMembershipRequest(val expectedVersion: String? = null)
 
 @RestController
 @RequestMapping("/api/admin/slack/membership")
+@Tag(name = "Slack integration")
 class AdminSlackMembershipController(private val job: SlackMembershipSyncJob) {
     @GetMapping
+    @Operation(summary = "Get Slack membership sync configuration")
     fun configuration(): SlackMembershipConfiguration = job.configuration()
 
     @GetMapping("/preview")
+    @Operation(summary = "Preview Slack membership synchronization")
     fun preview(): SlackMembershipPreview = job.preview()
 
     @GetMapping("/announcements")
+    @Operation(summary = "List Slack membership announcements")
     fun announcements(): List<MembershipAnnouncement> = job.announcements()
 
     @PostMapping("/sync")
+    @Operation(summary = "Start a Slack membership sync")
+    @ApiResponse(responseCode = "202", description = "Sync accepted")
     fun sync(@RequestBody(required = false) request: SyncSlackMembershipRequest?): ResponseEntity<Void> {
         val result = try {
             job.triggerManualSync(principal().email, request?.expectedVersion)
@@ -53,6 +62,8 @@ class AdminSlackMembershipController(private val job: SlackMembershipSyncJob) {
     }
 
     @PostMapping("/announcements/{id}/resolve")
+    @Operation(summary = "Resolve an uncertain Slack announcement delivery")
+    @ApiResponse(responseCode = "204", description = "Delivery resolved")
     fun resolve(@PathVariable id: UUID, @RequestBody request: ResolveMembershipDeliveryRequest): ResponseEntity<Void> {
         val resolved = try {
             job.resolveUncertain(id, request.retry, principal().email)

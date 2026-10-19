@@ -3,6 +3,9 @@ package navikt.appsec.securitychampionapp.app.api
 import navikt.appsec.securitychampionapp.app.jobs.GitHubScoringSyncJob
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -12,8 +15,11 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/admin/github")
+@Tag(name = "GitHub integration")
 class AdminGitHubScoringController(private val job: GitHubScoringSyncJob) {
     @PostMapping("/sync")
+    @Operation(summary = "Start a GitHub scoring sync")
+    @ApiResponse(responseCode = "202", description = "Sync accepted")
     fun sync(): ResponseEntity<Void> {
         val principal = requireNotNull(SecurityContextHolder.getContext().authentication).principal as AppPrincipal
         return when (job.triggerManualSync(principal.email)) {

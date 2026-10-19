@@ -8,6 +8,8 @@ import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.app.participation.ParticipationStatus
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -17,15 +19,18 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "Scoring")
 class ScoringController(
     private val scoringService: ScoringService,
     private val participantRepository: ParticipantStore,
 ) {
     @GetMapping("/recognition")
+    @Operation(summary = "List participant recognition")
     fun recognition(): ResponseEntity<List<RecognitionEntry>> =
         ResponseEntity.ok(scoringService.recognition())
 
     @GetMapping("/leaderboard")
+    @Operation(summary = "Get the participant leaderboard")
     fun leaderboard(): ResponseEntity<List<LeaderboardEntry>> {
         val authentication = requireNotNull(SecurityContextHolder.getContext().authentication)
         val isAdmin = authentication.authorities.any { it.authority == "ROLE_$ADMIN_ROLE" }
@@ -45,6 +50,7 @@ class ScoringController(
     }
 
     @GetMapping("/scoring/me")
+    @Operation(summary = "Get the current user's active-season score")
     fun ownScore(): ResponseEntity<OwnSeasonScore> {
         val principal = currentPrincipal()
         val participant = participantRepository.findByNavNoEmail(principal.email)

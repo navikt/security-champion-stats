@@ -4,6 +4,8 @@ import navikt.appsec.securitychampionapp.app.audit.ParticipantHistoryEntry
 import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -14,11 +16,13 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "Scoring")
 class HistoryController(
     private val participantRepository: ParticipantStore,
     private val scoringService: ScoringService,
 ) {
     @GetMapping("/history")
+    @Operation(summary = "Get the current user's scoring history")
     fun history(
         @RequestParam(required = false) season: String? = null,
         @RequestParam(required = false) type: String? = null,

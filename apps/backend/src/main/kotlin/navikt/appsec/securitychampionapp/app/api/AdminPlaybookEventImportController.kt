@@ -3,6 +3,9 @@ package navikt.appsec.securitychampionapp.app.api
 import navikt.appsec.securitychampionapp.app.jobs.PlaybookEventImportJob
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -12,8 +15,11 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/admin/playbook/events")
+@Tag(name = "Event integrations")
 class AdminPlaybookEventImportController(private val importJob: PlaybookEventImportJob) {
     @PostMapping("/sync")
+    @Operation(summary = "Start an import of playbook events")
+    @ApiResponse(responseCode = "202", description = "Import accepted")
     fun triggerImport(): ResponseEntity<Void> =
         when (importJob.triggerManualImport(currentPrincipal().email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()

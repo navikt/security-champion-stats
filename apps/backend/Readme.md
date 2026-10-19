@@ -21,9 +21,11 @@ application.
 
 ## API documentation
 
-Open Swagger UI at [`http://localhost:8080/swagger-ui.html`](http://localhost:8080/swagger-ui.html) while the
-backend is running. In production, API requests use Entra ID authentication; administrator operations require
-membership in the configured Entra group.
+The OpenAPI document is generated from the Spring MVC controllers and DTOs at
+[`http://localhost:8080/v3/api-docs`](http://localhost:8080/v3/api-docs). Open Swagger UI at
+[`http://localhost:8080/swagger-ui.html`](http://localhost:8080/swagger-ui.html) to browse it while the backend is
+running. In production, API requests use Entra ID authentication; administrator operations require membership in the
+configured Entra group.
 
 ## Build and test
 

@@ -4,6 +4,8 @@ import navikt.appsec.securitychampionapp.app.participation.ParticipantStore
 import navikt.appsec.securitychampionapp.app.scoring.InvalidScoringRequestException
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -16,17 +18,20 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api")
+@Tag(name = "Scoring")
 class ScoreHistoryController(
     private val scoringService: ScoringService,
     private val participantRepository: ParticipantStore,
 ) {
     @GetMapping("/me/score-summary")
+    @Operation(summary = "Get the current user's score summary")
     fun ownSummary(@RequestParam(required = false) season: String?): ResponseEntity<Any> {
         val participantId = ownParticipantId()
         return ResponseEntity.ok(scoringService.scoreSummaryForParticipant(participantId, season, admin = false))
     }
 
     @GetMapping("/me/score-history")
+    @Operation(summary = "Get the current user's score history")
     fun ownHistory(
         @RequestParam(required = false) season: String?,
         @RequestParam(required = false) type: String?,
@@ -47,6 +52,7 @@ class ScoreHistoryController(
     }
 
     @GetMapping("/participants/{id}/score-summary")
+    @Operation(summary = "Get a participant's score summary")
     fun adminSummary(
         @PathVariable id: String,
         @RequestParam(required = false) season: String?,
@@ -56,6 +62,7 @@ class ScoreHistoryController(
     }
 
     @GetMapping("/participants/{id}/score-history")
+    @Operation(summary = "Get a participant's score history")
     fun adminHistory(
         @PathVariable id: String,
         @RequestParam(required = false) season: String?,

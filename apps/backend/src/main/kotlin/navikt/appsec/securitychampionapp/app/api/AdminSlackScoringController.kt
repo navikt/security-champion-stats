@@ -6,6 +6,9 @@ import navikt.appsec.securitychampionapp.app.scoring.SlackScoringService
 import navikt.appsec.securitychampionapp.app.jobs.SlackScoringSyncJob
 import navikt.appsec.securitychampionapp.app.jobs.SyncTriggerResult
 import navikt.appsec.securitychampionapp.security.dto.AppPrincipal
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.context.SecurityContextHolder
@@ -20,15 +23,19 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api/admin/slack")
+@Tag(name = "Slack integration")
 class AdminSlackScoringController(
     private val slackScoringService: SlackScoringService,
     private val slackScoringSyncJob: SlackScoringSyncJob,
 ) {
     @GetMapping
+    @Operation(summary = "Get Slack scoring mappings")
     fun overview(): ResponseEntity<SlackMappingOverview> =
         ResponseEntity.ok(slackScoringService.mappingOverview())
 
     @PostMapping("/sync")
+    @Operation(summary = "Start a Slack scoring sync")
+    @ApiResponse(responseCode = "202", description = "Sync accepted")
     fun triggerSync(): ResponseEntity<Void> =
         when (slackScoringSyncJob.triggerManualSync(currentPrincipal().email)) {
             SyncTriggerResult.STARTED -> ResponseEntity.accepted().build()
@@ -50,6 +57,8 @@ class AdminSlackScoringController(
         }
 
     @PostMapping("/mappings")
+    @Operation(summary = "Map a Slack account to a participant")
+    @ApiResponse(responseCode = "201", description = "Slack account mapping created")
     fun addMapping(@RequestBody request: AddSlackAccountMappingRequest): ResponseEntity<Any> {
         val participantId = request.participantId.toUuid() ?: throw ApiRequestException(
             HttpStatus.BAD_REQUEST,
@@ -67,6 +76,8 @@ class AdminSlackScoringController(
     }
 
     @DeleteMapping("/mappings/{slackUserId}")
+    @Operation(summary = "Remove a Slack account mapping")
+    @ApiResponse(responseCode = "204", description = "Slack account mapping removed")
     fun removeMapping(@PathVariable slackUserId: String): ResponseEntity<Any> =
         if (!slackScoringService.removeMapping(slackUserId, currentPrincipal().email)) {
             throw ApiRequestException(

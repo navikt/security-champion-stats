@@ -2,6 +2,7 @@ package navikt.appsec.securitychampionapp.app.audit
 
 import navikt.appsec.securitychampionapp.integrations.postgress.ProgramAuditRepository
 import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupMembers
 import navikt.appsec.securitychampionapp.app.scoring.CreditAwardResult
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
@@ -56,6 +57,7 @@ class ProgramAuditServiceTest {
             .thenThrow(IllegalStateException("audit database unavailable"))
         val scoringService = ScoringService(
             scoringRepository,
+            AdminGroupMembers { emptySet() },
             ProgramAuditService(auditRepository, Clock.systemUTC()),
         )
 

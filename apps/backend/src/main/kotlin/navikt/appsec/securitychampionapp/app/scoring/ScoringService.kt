@@ -10,12 +10,14 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Base64
 import java.util.UUID
+import java.util.Locale
 
 private val PROGRAM_TIME_ZONE: ZoneId = ZoneId.of("Europe/Oslo")
 
 @Service
 class ScoringService(
     private val repository: ScoringLedger,
+    private val adminGroupMembers: AdminGroupMembers,
     private val auditService: ProgramAuditService? = null,
 ) {
     @Transactional
@@ -23,6 +25,7 @@ class ScoringService(
         val configuration = repository.configuration()
         val season = repository.currentSeason()
         val scores = repository.scoresForSeason(season.id)
+        val adminEmails = adminGroupMembers.emails()
         return AdminScoringOverview(
             season = season,
             today = LocalDate.now(PROGRAM_TIME_ZONE),
@@ -34,6 +37,7 @@ class ScoringService(
                     active = it.active,
                     points = it.points,
                     level = configuration.levelFor(it.points),
+                    isAdmin = it.email.trim().lowercase(Locale.ROOT) in adminEmails,
                 )
             },
             configuration = configuration,
@@ -435,7 +439,8 @@ class ScoringService(
     }
 
     private fun ranked(scores: List<ParticipantSeasonScore>): List<RankedScore> {
-        val sorted = scores.sortedWith(
+        val adminEmails = adminGroupMembers.emails()
+        val sorted = scores.filterNot { it.email.trim().lowercase(Locale.ROOT) in adminEmails }.sortedWith(
             compareByDescending<ParticipantSeasonScore> { it.points }
                 .thenBy { it.fullName.lowercase() }
                 .thenBy { it.participantId },

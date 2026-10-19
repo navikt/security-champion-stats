@@ -14,6 +14,9 @@ activity types. The participant table supports name/email filtering, score histo
 adjustments, including corrections linked to an activity's season. Participant progress and leaderboards
 use the saved tiers, including in the Hacker theme, where the highest tier in a multi-tier progression
 receives top clearance.
+Admin-group members retain their points and history but do not appear in the season leaderboard,
+recognition, or personal season ranks. In the scoring dashboard they remain visible with a
+purple-tinted row, an **Admin** badge and no competitive rank.
 Use **View score history** beside a participant to open the shared score-history drawer.
 Administrators can inspect season summaries and paginated entries, including source references,
 recorded and activity dates in Oslo time, revoked credits, adjustment reasons and administrators,

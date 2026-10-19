@@ -47,6 +47,7 @@ data class AdminParticipantScore(
     val active: Boolean,
     val points: Long,
     val level: String,
+    val isAdmin: Boolean,
 )
 
 data class RecognitionEntry(

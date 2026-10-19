@@ -5,6 +5,7 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import navikt.appsec.securitychampionapp.app.api.ScoringController
 import navikt.appsec.securitychampionapp.app.scoring.LeaderboardEntry
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupUnavailableException
 import navikt.appsec.securitychampionapp.app.scoring.OwnSeasonScore
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
 import navikt.appsec.securitychampionapp.app.scoring.SeasonSummary
@@ -51,6 +52,17 @@ class ScoringControllerTest {
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter
+
+    @Test
+    fun `should return sanitized problem details when admin membership is unavailable`() {
+        mockAuthenticatedUser(ADMIN_ROLE)
+        whenever(scoringService.leaderboard(null)).thenThrow(AdminGroupUnavailableException())
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/leaderboard"))
+            .andExpect(status().isServiceUnavailable)
+            .andExpect(jsonPath("$.title").value("Administrator membership unavailable"))
+            .andExpect(jsonPath("$.detail").value("Administrator group membership could not be verified. Try again later."))
+    }
 
     @Test
     fun `should expose names and ranks without points in recognition`() {

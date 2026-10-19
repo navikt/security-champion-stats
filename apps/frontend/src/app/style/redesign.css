@@ -1597,6 +1597,10 @@ html.hacker .hubRedesign {
 	color: var(--hub-text-secondary);
 }
 
+.scoringView__participantRow--admin {
+	background: var(--ax-bg-meta-purple-soft);
+}
+
 .scoringView__statusDot {
 	display: inline-block;
 	width: var(--ax-space-6);

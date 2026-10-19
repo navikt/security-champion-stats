@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/graph/groups/local-admin-group/members"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": {
+      "value": [
+        {
+          "@odata.type": "#microsoft.graph.user",
+          "id": "local-user",
+          "userPrincipalName": "local.user@nav.no"
+        }
+      ]
+    }
+  }
+}

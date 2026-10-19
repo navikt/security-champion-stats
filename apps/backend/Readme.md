@@ -27,6 +27,20 @@ send through `chat.postMessage` with `chat:write`; no explicit `conversations.op
 
 Scores come from season-specific activity credits and signed administrator adjustments. Season resets
 use Europe/Oslo dates and keep previous seasons intact; legacy point balances are not migrated.
+Members of the configured Entra administrator group keep their points and history but are excluded
+before calculating leaderboard, recognition and personal season ranks. The scoring dashboard marks
+them as administrators. Membership is read from Microsoft Graph's paginated direct group members,
+matching `userPrincipalName` to participant email (the same identity as Entra `preferred_username`).
+Successful snapshots are cached per instance for five minutes; failed refreshes return HTTP 503
+rather than using expired membership or including administrators.
+
+Before deploying, arrange tenant administrator consent for the backend Entra application's Microsoft
+Graph application permissions `GroupMember.Read.All` and `User.ReadBasic.All` (needed to read members'
+user principal names). The application requests `https://graph.microsoft.com/.default` through
+`NAIS_TOKEN_ENDPOINT`; no additional client secret is stored in this repository. The existing
+`spring.security.token-validation.groups` value selects the same group used for administrator access.
+The local profile uses Graph and token stubs in the existing WireMock service on port 8089.
+
 Administrators can inspect each participant's complete recorded scoring ledger at
 `GET /api/admin/scoring/participants/{id}/history`, including records from before audit rollout.
 It returns season totals and activity breakdowns alongside dated credits, revocations, reasoned

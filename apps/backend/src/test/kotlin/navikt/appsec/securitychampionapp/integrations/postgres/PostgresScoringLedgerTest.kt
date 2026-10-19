@@ -22,6 +22,7 @@ import navikt.appsec.securitychampionapp.app.scoring.DeltaEventMappingHasCredits
 import navikt.appsec.securitychampionapp.app.scoring.SlackSyncSummary
 import navikt.appsec.securitychampionapp.integrations.delta.DeltaFailure
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupMembers
 import navikt.appsec.securitychampionapp.app.scoring.RecognitionEntry
 import navikt.appsec.securitychampionapp.app.audit.ProgramAuditService
 import navikt.appsec.securitychampionapp.app.audit.AuditOutcome
@@ -395,7 +396,7 @@ class PostgresScoringLedgerTest {
         val season = repository.currentSeason()
         insertCredit(participantId, season.id, "GITHUB_PULL_REQUEST", "pull:summary", 3, season.startsOn)
         repository.addAdjustment(participantId, 2, "Manual bonus", "admin@nav.no", null)
-        val service = ProxyFactory(ScoringService(repository)).apply {
+        val service = ProxyFactory(ScoringService(repository, AdminGroupMembers { emptySet() })).apply {
             isProxyTargetClass = true
             addAdvice(TransactionInterceptor().apply {
                 transactionManager = this@PostgresScoringLedgerTest.transactionManager
@@ -455,7 +456,7 @@ class PostgresScoringLedgerTest {
         assertThat(history.single { it.sourceReference == "zero-credit" }.points).isZero()
         assertThat(history.single { it.reason == "Current season correction" }.sourceCreditId).isNull()
 
-        val summary = ScoringService(repository).scoringHistoryForParticipant(participantId)
+        val summary = ScoringService(repository, AdminGroupMembers { emptySet() }).scoringHistoryForParticipant(participantId)
         summary.seasons.forEach {
             assertThat(it.points).isEqualTo(repository.scoreForParticipant(participantId, it.id))
             assertThat(it.points).isEqualTo(it.creditPoints.values.sum() + it.adjustmentPoints + it.scoringRulePoints)
@@ -500,7 +501,7 @@ class PostgresScoringLedgerTest {
                 }
             }
             val service = ProxyFactory(
-                ScoringService(ledger, ProgramAuditService(auditRepository, Clock.systemUTC())),
+                ScoringService(ledger, AdminGroupMembers { emptySet() }, ProgramAuditService(auditRepository, Clock.systemUTC())),
             ).apply {
                 isProxyTargetClass = true
                 addAdvice(TransactionInterceptor().apply {
@@ -542,7 +543,7 @@ class PostgresScoringLedgerTest {
         assertThat(preview.participants.single().levelAfter).isEqualTo("Champion")
         assertThat(preview.participants.single().pointsAfter).isEqualTo(1)
         repository.saveConfiguration(request.copy(previewToken = preview.token), "admin@nav.no")
-        assertThat(ScoringService(repository).ownScore(participantId).level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).ownScore(participantId).level).isEqualTo("Champion")
         assertThat(jdbcTemplate.queryForObject(
             "SELECT after_values->'tiers'->0->>'name' FROM program_scoring_audit WHERE action = 'SCORING_CONFIGURATION_UPDATED'",
             String::class.java,
@@ -603,10 +604,10 @@ class PostgresScoringLedgerTest {
                 .isEqualTo(CreditAwardResult.DUPLICATE)
             assertThat(repository.creditPoints(participantId, type, "activity:${type.name}")).isEqualTo(type.ordinal)
         }
-        assertThat(ScoringService(repository).ownScore(participantId).level).isEqualTo("Champion")
-        assertThat(ScoringService(repository).ownScore(participantId).tiers).isEqualTo(saved.tiers)
-        assertThat(ScoringService(repository).leaderboard().single().level).isEqualTo("Champion")
-        assertThat(ScoringService(repository).adminOverview().participants.single().level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).ownScore(participantId).level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).ownScore(participantId).tiers).isEqualTo(saved.tiers)
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).leaderboard().single().level).isEqualTo("Champion")
+        assertThat(ScoringService(repository, AdminGroupMembers { emptySet() }).adminOverview().participants.single().level).isEqualTo("Champion")
     }
 
     @Test
@@ -890,7 +891,7 @@ class PostgresScoringLedgerTest {
             override fun identities() = listOf(GitHubIdentity(10, "person", "github@nav.no"))
             override fun contributions(since: Instant, until: Instant) = contributions
         }
-        val service = GitHubScoringService(source, mapping, repository, ScoringService(repository))
+        val service = GitHubScoringService(source, mapping, repository, ScoringService(repository, AdminGroupMembers { emptySet() }))
         assertThat(service.sync(now)).isEqualTo(GitHubSyncSummary(2, 2, 0, 0))
         assertThat(service.sync(now)).isEqualTo(GitHubSyncSummary(2, 0, 2, 0))
         contributions = emptyList()
@@ -994,7 +995,7 @@ class PostgresScoringLedgerTest {
             )
         ).isEqualTo(CreditAwardResult.DUPLICATE)
 
-        val overview = ScoringService(repository).adminOverview()
+        val overview = ScoringService(repository, AdminGroupMembers { emptySet() }).adminOverview()
         assertThat(overview.participants.single().points).isEqualTo(3)
         assertThat(repository.creditsForParticipant(participantId).single().points).isEqualTo(3)
     }
@@ -1094,7 +1095,7 @@ class PostgresScoringLedgerTest {
 
     @Test
     fun `should rank ties together and omit zero score participants`() {
-        val service = ScoringService(repository)
+        val service = ScoringService(repository, AdminGroupMembers { emptySet() })
         val participantIds = (1..6).map { createParticipant("person$it@nav.no") }
         val zeroScoreParticipant = createParticipant("zero@nav.no")
         participantIds.forEachIndexed { index, id ->
@@ -1138,7 +1139,7 @@ class PostgresScoringLedgerTest {
                 ).isEqualTo(CreditAwardResult.AWARDED)
             }
         }
-        val service = ScoringService(repository)
+        val service = ScoringService(repository, AdminGroupMembers { emptySet() })
 
         assertThat(service.recognition()).containsExactly(
             RecognitionEntry("first", 1),

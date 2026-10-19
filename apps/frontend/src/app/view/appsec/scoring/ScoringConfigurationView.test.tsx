@@ -47,6 +47,7 @@ const overview: AdminScoringOverview = {
 			active: true,
 			points: 8,
 			level: "Novice",
+			isAdmin: false,
 		},
 	],
 };

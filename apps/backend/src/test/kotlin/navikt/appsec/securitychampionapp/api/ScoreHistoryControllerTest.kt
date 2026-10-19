@@ -11,6 +11,7 @@ import navikt.appsec.securitychampionapp.app.scoring.ActivityCreditType
 import navikt.appsec.securitychampionapp.app.scoring.ScoreHistoryRecord
 import navikt.appsec.securitychampionapp.app.scoring.ScoringLedger
 import navikt.appsec.securitychampionapp.app.scoring.ScoringService
+import navikt.appsec.securitychampionapp.app.scoring.AdminGroupMembers
 import navikt.appsec.securitychampionapp.config.ADMIN_ROLE
 import navikt.appsec.securitychampionapp.config.SecurityConfig
 import navikt.appsec.securitychampionapp.config.USER_ROLE
@@ -51,6 +52,9 @@ class ScoreHistoryControllerTest {
 
     @MockitoBean
     lateinit var scoringRepository: ScoringLedger
+
+    @MockitoBean
+    lateinit var adminGroupMembers: AdminGroupMembers
 
     @MockitoBean
     lateinit var introspectionFilter: AppAuthenticationFilter

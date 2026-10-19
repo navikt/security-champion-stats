@@ -1,0 +1,8 @@
+{
+  "request": { "method": "POST", "url": "/graph-token" },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "jsonBody": { "access_token": "local-graph-token" }
+  }
+}

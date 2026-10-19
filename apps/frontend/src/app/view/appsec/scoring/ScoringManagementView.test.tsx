@@ -31,6 +31,7 @@ const overview: AdminScoringOverview = {
 			active: true,
 			points: 8,
 			level: "Novice",
+			isAdmin: false,
 		},
 	],
 };
@@ -47,6 +48,53 @@ describe("ScoringManagementView", () => {
 	afterEach(() => {
 		vi.restoreAllMocks();
 		window.history.replaceState(null, "", "/appsec/scoring");
+	});
+
+	it("distinguishes admins without removing their points or counting them in ranks", () => {
+		const adminOverview: AdminScoringOverview = {
+			...overview,
+			participants: [
+				{
+					...overview.participants[0],
+					participantId: "admin",
+					fullName: "Program Admin",
+					points: 100,
+					isAdmin: true,
+				},
+				overview.participants[0],
+				{
+					...overview.participants[0],
+					participantId: "second",
+					fullName: "Second Person",
+					points: 5,
+				},
+			],
+		};
+		render(
+			<ScoringManagementView overview={adminOverview} onRefresh={vi.fn()} />,
+		);
+
+		const adminRow = screen.getByRole("row", { name: /Program Admin/ });
+		expect(adminRow).toHaveClass("scoringView__participantRow--admin");
+		const adminCells = within(adminRow);
+		expect(adminCells.getByText("Admin")).toBeInTheDocument();
+		expect(
+			adminCells.getByRole("cell", { name: "Not ranked (administrator)" }),
+		).toHaveTextContent("—");
+		expect(adminCells.getByRole("cell", { name: "100" })).toBeInTheDocument();
+		expect(
+			adminCells.getByRole("button", {
+				name: "Adjust",
+			}),
+		).toBeInTheDocument();
+		const firstRow = screen.getByRole("row", { name: /Example Person/ });
+		const secondRow = screen.getByRole("row", { name: /Second Person/ });
+		expect(
+			within(firstRow).getByRole("cell", { name: "1" }),
+		).toBeInTheDocument();
+		expect(
+			within(secondRow).getByRole("cell", { name: "2" }),
+		).toBeInTheDocument();
 	});
 
 	it("loads score history only when the participant history action is opened", async () => {
@@ -448,6 +496,7 @@ describe("ScoringManagementView", () => {
 					active: true,
 					points: 8,
 					level: "Novice",
+					isAdmin: false,
 				},
 				{
 					participantId: "participant-3",
@@ -456,6 +505,7 @@ describe("ScoringManagementView", () => {
 					active: false,
 					points: 2,
 					level: "Novice",
+					isAdmin: false,
 				},
 			],
 		};

@@ -15,6 +15,7 @@ const participant: AdminParticipantScore = {
 	active: false,
 	points: 0,
 	level: "Novice",
+	isAdmin: false,
 };
 const credit: ScoringHistoryEntry = {
 	id: "credit-1",

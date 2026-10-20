@@ -1,10 +1,10 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
     application
     id("org.springframework.boot") version "4.1.1"
-    kotlin("plugin.spring") version "2.4.20"
+    kotlin("plugin.spring") version "2.4.21"
 }
 
 group = "no.navikt.appsec.securitychampionstats"

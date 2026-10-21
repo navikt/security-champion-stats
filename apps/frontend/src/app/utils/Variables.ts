@@ -349,6 +349,7 @@ export type SlackMembershipConfiguration = {
 };
 export type SlackMembershipPreview = {
 	version: string;
+	userDisplayNames: Record<string, string>;
 	addedUserIds: string[];
 	removedUserIds: string[];
 	unresolvedParticipantIds: string[];

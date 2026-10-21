@@ -69,13 +69,18 @@ class AdminSlackMembershipControllerTest {
     @Test
     fun `admin can inspect a read-only membership preview`() {
         authenticated(ADMIN_ROLE)
-        whenever(job.preview()).thenReturn(SlackMembershipPreview(setOf("U_NEW"), setOf("U_OLD"), emptySet(), 128))
+        whenever(job.preview()).thenReturn(SlackMembershipPreview(
+            setOf("U_NEW"), setOf("U_OLD"), emptySet(), 128,
+            userDisplayNames = mapOf("U_NEW" to "New Person", "U_OLD" to "Former Person"),
+        ))
 
         mvc.perform(get("/api/admin/slack/membership/preview"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.activeParticipants").value(128))
             .andExpect(jsonPath("$.addedUserIds[0]").value("U_NEW"))
             .andExpect(jsonPath("$.removedUserIds[0]").value("U_OLD"))
+            .andExpect(jsonPath("$.userDisplayNames.U_NEW").value("New Person"))
+            .andExpect(jsonPath("$.userDisplayNames.U_OLD").value("Former Person"))
     }
 
     @Test

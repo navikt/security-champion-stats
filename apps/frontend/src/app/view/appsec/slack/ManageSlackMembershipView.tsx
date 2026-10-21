@@ -330,7 +330,9 @@ export function ManageSlackMembershipView({
 						</Heading>
 						<ul>
 							{preview.addedUserIds.map((id) => (
-								<li key={id}>{id}</li>
+								<li key={id}>
+									{preview.userDisplayNames[id] || "Name unavailable"} ({id})
+								</li>
 							))}
 						</ul>
 						<Heading level="3" size="small">
@@ -338,7 +340,9 @@ export function ManageSlackMembershipView({
 						</Heading>
 						<ul>
 							{preview.removedUserIds.map((id) => (
-								<li key={id}>{id}</li>
+								<li key={id}>
+									{preview.userDisplayNames[id] || "Name unavailable"} ({id})
+								</li>
 							))}
 						</ul>
 						<Heading level="3" size="small">

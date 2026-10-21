@@ -18,7 +18,8 @@ describe("Slack membership administration", () => {
 				version: "reviewed-version",
 				activeParticipants: 128,
 				addedUserIds: ["U_NEW"],
-				removedUserIds: ["U_OLD"],
+				removedUserIds: ["U_OLD", "U_UNKNOWN"],
+				userDisplayNames: { U_NEW: "New Person", U_OLD: "Former Person" },
 				unresolvedParticipantIds: [],
 			});
 		render(<ManageSlackMembershipView participants={[]} onRefresh={vi.fn()} />);
@@ -34,8 +35,9 @@ describe("Slack membership administration", () => {
 		expect(
 			await screen.findByText("128 active participants"),
 		).toBeInTheDocument();
-		expect(screen.getByText("U_NEW")).toBeInTheDocument();
-		expect(screen.getByText("U_OLD")).toBeInTheDocument();
+		expect(screen.getByText("New Person (U_NEW)")).toBeInTheDocument();
+		expect(screen.getByText("Former Person (U_OLD)")).toBeInTheDocument();
+		expect(screen.getByText("Name unavailable (U_UNKNOWN)")).toBeInTheDocument();
 	});
 
 	it("queues dry-run sync without claiming that reconciliation finished", async () => {
@@ -61,6 +63,7 @@ describe("Slack membership administration", () => {
 		vi.spyOn(Apies, "getSlackMembershipPreview").mockResolvedValue({
 			version: "reviewed-version",
 			activeParticipants: 128,
+			userDisplayNames: {},
 			addedUserIds: ["U_NEW"],
 			removedUserIds: ["U_OLD"],
 			unresolvedParticipantIds: [],
@@ -188,6 +191,7 @@ describe("Slack membership administration", () => {
 		vi.spyOn(Apies, "getSlackMembershipPreview").mockResolvedValue({
 			version: "reviewed-version",
 			activeParticipants: 128,
+			userDisplayNames: {},
 			addedUserIds: [],
 			removedUserIds: [],
 			unresolvedParticipantIds: ["participant-1"],
@@ -292,6 +296,7 @@ describe("Slack membership administration", () => {
 		vi.spyOn(Apies, "getSlackMembershipPreview").mockResolvedValue({
 			version: "old-version",
 			activeParticipants: 1,
+			userDisplayNames: {},
 			addedUserIds: [],
 			removedUserIds: [],
 			unresolvedParticipantIds: [],

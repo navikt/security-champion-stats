@@ -13,6 +13,7 @@ import java.util.UUID
 data class SlackIdentityResolution(
     val users: Map<UUID, String>,
     val unresolvedParticipantIds: Set<UUID>,
+    val userDisplayNames: Map<String, String> = emptyMap(),
 )
 
 fun interface SlackParticipantDirectory {
@@ -66,6 +67,7 @@ data class SlackMembershipPreview(
     val unresolvedParticipantIds: Set<UUID>,
     val activeParticipants: Int,
     val version: String = "",
+    val userDisplayNames: Map<String, String> = emptyMap(),
 )
 
 data class SlackMembershipSettings(
@@ -106,6 +108,7 @@ class SlackMembershipService(
             resolution.unresolvedParticipantIds,
             active.size,
             snapshotVersion(active, resolution, existing),
+            resolution.userDisplayNames.filterKeys { it in (desired - existing) || it in (existing - desired) },
         )
         if (expectedVersion != null && expectedVersion != preview.version) throw MembershipPreviewChangedException()
         if (dryRun) return preview

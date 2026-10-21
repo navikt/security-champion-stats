@@ -121,10 +121,22 @@ class SlackMembershipServiceTest {
     fun `dry run reports differences without persisting or sending`() {
         prepare()
         whenever(slack.members("S_GROUP")).thenReturn(setOf("U_OLD"))
+        whenever(directory.resolve(any())).thenReturn(SlackIdentityResolution(
+            mapOf(participant.id to "U_ACTIVE"),
+            emptySet(),
+            mapOf("U_ACTIVE" to "Active Person", "U_OLD" to "Former Person", "U_OTHER" to "Other Person"),
+        ))
 
         val result = service.sync(true)
 
         assertThat(result.removedUserIds).containsExactly("U_OLD")
+        assertThat(result.userDisplayNames).containsExactlyInAnyOrderEntriesOf(
+            mapOf("U_ACTIVE" to "Active Person", "U_OLD" to "Former Person"),
+        )
+        whenever(directory.resolve(any())).thenReturn(SlackIdentityResolution(
+            mapOf(participant.id to "U_ACTIVE"), emptySet(), mapOf("U_ACTIVE" to "Renamed Person"),
+        ))
+        assertThat(service.sync(true).version).isEqualTo(result.version)
         verifyNoInteractions(state, roles)
         verify(slack, never()).replaceMembers(any(), any())
         verify(slack, never()).announce(any(), any(), any(), any())

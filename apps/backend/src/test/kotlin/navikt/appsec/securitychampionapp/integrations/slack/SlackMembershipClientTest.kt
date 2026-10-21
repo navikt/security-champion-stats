@@ -73,6 +73,35 @@ class SlackMembershipClientTest {
     }
 
     @Test
+    fun `directory names include nonparticipants and fall back from display name to real name and username`() {
+        whenever(mappings.mappedParticipants()).thenReturn(emptyMap())
+        whenever(client.usersList(any<UsersListRequest>())).thenReturn(page(listOf(
+            human().apply {
+                profile.displayName = " Display Name "
+                profile.realName = "Real Name"
+                name = "username"
+            },
+            User().apply {
+                id = "U_FORMER"
+                profile = User.Profile().apply { displayName = " "; realName = "Former Person" }
+                name = "former"
+            },
+            User().apply { id = "U_USERNAME"; name = "username-only" },
+            User().apply { id = "U_UNNAMED" },
+        )))
+
+        val result = service.resolve(listOf(participant))
+
+        assertThat(result.userDisplayNames).containsExactlyInAnyOrderEntriesOf(mapOf(
+            "U_PERSON" to "Display Name",
+            "U_FORMER" to "Former Person",
+            "U_USERNAME" to "username-only",
+        ))
+        verify(client, times(1)).usersList(any<UsersListRequest>())
+        verify(client, never()).usersInfo(any<UsersInfoRequest>())
+    }
+
+    @Test
     fun `approved mappings take precedence over automatic email lookup`() {
         whenever(mappings.mappedParticipants()).thenReturn(mapOf(
             "U_APPROVED" to MappedSlackParticipant("U_APPROVED", participant.id, true, Instant.EPOCH),

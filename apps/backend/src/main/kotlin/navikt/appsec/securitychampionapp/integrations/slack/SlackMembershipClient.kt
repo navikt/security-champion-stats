@@ -71,7 +71,11 @@ class SlackMembershipClient(
         val duplicateUserIds = users.values.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
         users.filterValues { it in duplicateUserIds }.keys.forEach { unresolved += it }
         unresolved.forEach(users::remove)
-        return SlackIdentityResolution(users, unresolved)
+        val userDisplayNames = directory.mapNotNull { user ->
+            val id = user.id?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+            user.slackDisplayName()?.let { id to it }
+        }.toMap()
+        return SlackIdentityResolution(users, unresolved, userDisplayNames)
     }
 
     private fun readDirectory(): List<User> {

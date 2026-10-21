@@ -22,6 +22,11 @@ private val DEFAULT_RETRY_AFTER: Duration = Duration.ofSeconds(1)
 private val MAX_RETRY_AFTER: Duration = Duration.ofSeconds(60)
 private val THREAD_FETCH_DELAY: Duration = Duration.ofMillis(1200)
 
+internal fun User.slackDisplayName(): String? =
+    sequenceOf(profile?.displayName, profile?.realName, realName, name)
+        .mapNotNull { it?.trim()?.takeIf(String::isNotBlank) }
+        .firstOrNull()
+
 @Service
 class SlackApiService(
     private val client: MethodsClient,
@@ -93,9 +98,7 @@ class SlackApiService(
 
     fun fetchUserDisplayName(userId: String): String? {
         val user = fetchUser(userId) ?: return null
-        return sequenceOf(user.profile?.displayName, user.profile?.realName, user.realName)
-            .mapNotNull { it?.trim()?.takeIf(String::isNotBlank) }
-            .firstOrNull()
+        return user.slackDisplayName()
     }
 
     private fun fetchUser(userId: String): User? {

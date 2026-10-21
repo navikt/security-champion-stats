@@ -93,6 +93,30 @@ describe("EventsView", () => {
 		).toBeInTheDocument();
 	});
 
+	it("keeps today's finished event featured and upcoming until Oslo midnight", () => {
+		vi.setSystemTime(new Date("2026-10-20T21:59:59Z"));
+		const { rerender } = render(<EventsView events={[nextEvent]} />);
+
+		expect(screen.getByRole("heading", { name: nextEvent.name })).toBeInTheDocument();
+		expect(
+			within(eventSection("Upcoming events")).getByText(nextEvent.name),
+		).toBeInTheDocument();
+		expect(
+			within(eventSection("Past events")).queryByText(nextEvent.name),
+		).not.toBeInTheDocument();
+
+		vi.setSystemTime(new Date("2026-10-20T22:00:00Z"));
+		rerender(<EventsView events={[nextEvent]} />);
+
+		expect(screen.queryByRole("heading", { name: nextEvent.name })).not.toBeInTheDocument();
+		expect(
+			within(eventSection("Upcoming events")).queryByText(nextEvent.name),
+		).not.toBeInTheDocument();
+		expect(
+			within(eventSection("Past events")).getByText(nextEvent.name),
+		).toBeInTheDocument();
+	});
+
 	it("shows the empty upcoming message when there are no future events", () => {
 		render(<EventsView events={[recentEvent]} />);
 

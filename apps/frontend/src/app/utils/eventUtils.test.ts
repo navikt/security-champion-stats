@@ -28,6 +28,46 @@ describe("date-only events", () => {
 		expect(getNextEvent([event], now)).toEqual(event);
 	});
 
+	describe("end-of-day event display", () => {
+		const timed: SecurityEvent = {
+			...event,
+			allDay: false,
+			startDate: "2026-10-20T08:00:00Z",
+			endDate: "2026-10-20T09:00:00Z",
+		};
+
+		it.each([
+			"2026-10-20T08:30:00Z",
+			"2026-10-20T10:00:00Z",
+			"2026-10-20T21:59:59Z",
+		])("keeps today's ongoing and finished events upcoming at %s", (instant) => {
+			const now = new Date(instant);
+			expect(getUpcomingEvents([timed], now, "endOfDay")).toEqual([timed]);
+			expect(getPastEvents([timed], now, "endOfDay")).toEqual([]);
+		});
+
+		it.each([
+			["2026-10-20T08:00:00Z", "2026-10-20T09:00:00Z", "2026-10-20T22:00:00Z"],
+			["2026-11-25T08:00:00Z", "2026-11-25T09:00:00Z", "2026-11-25T23:00:00Z"],
+		])("moves timed events to the past at Oslo midnight after %s", (startDate, endDate, instant) => {
+			const ended = { ...timed, startDate, endDate };
+			const now = new Date(instant);
+			expect(getUpcomingEvents([ended], now, "endOfDay")).toEqual([]);
+			expect(getPastEvents([ended], now, "endOfDay")).toEqual([ended]);
+		});
+
+		it("keeps overnight events upcoming through their final Oslo date", () => {
+			const overnight = {
+				...timed,
+				startDate: "2026-10-20T21:00:00Z",
+				endDate: "2026-10-20T23:00:00Z",
+			};
+			const now = new Date("2026-10-21T12:00:00Z");
+			expect(getUpcomingEvents([overnight], now, "endOfDay")).toEqual([overnight]);
+			expect(getPastEvents([overnight], now, "endOfDay")).toEqual([]);
+		});
+	});
+
 	it("moves events to the past at midnight in Oslo rather than UTC", () => {
 		const now = new Date("2026-10-22T22:00:00Z");
 		expect(getUpcomingEvents([event], now)).toEqual([]);

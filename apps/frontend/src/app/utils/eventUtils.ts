@@ -7,25 +7,31 @@ export function sortEventsByDate(events: SecurityEvent[]): SecurityEvent[] {
 export function getUpcomingEvents(
 	events: SecurityEvent[],
 	now = new Date(),
+	cutoff: "now" | "endOfDay" = "now",
 ): SecurityEvent[] {
 	const today = osloDate(now);
 	return sortEventsByDate(events).filter((event) =>
 		event.allDay
 			? event.endDate >= today
-			: new Date(event.startDate).getTime() > now.getTime(),
+			: cutoff === "endOfDay"
+				? osloDate(new Date(event.endDate ?? event.startDate)) >= today
+				: new Date(event.startDate).getTime() > now.getTime(),
 	);
 }
 
 export function getPastEvents(
 	events: SecurityEvent[],
 	now = new Date(),
+	cutoff: "now" | "endOfDay" = "now",
 ): SecurityEvent[] {
 	const today = osloDate(now);
 	return events
 		.filter((event) =>
 			event.allDay
 				? event.endDate < today
-				: new Date(event.endDate ?? event.startDate).getTime() < now.getTime(),
+				: cutoff === "endOfDay"
+					? osloDate(new Date(event.endDate ?? event.startDate)) < today
+					: new Date(event.endDate ?? event.startDate).getTime() < now.getTime(),
 		)
 		.sort((a, b) => compareEvents(a, b, -1));
 }

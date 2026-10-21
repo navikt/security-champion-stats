@@ -43,10 +43,10 @@ export function OverviewEvents({
 	loading: boolean;
 }) {
 	const [tab, setTab] = useState<EventTab>("upcoming");
-	const upcoming = useMemo(() => getUpcomingEvents(events), [events]);
+	const upcoming = useMemo(() => getUpcomingEvents(events, new Date(), "endOfDay"), [events]);
 	const past = useMemo(() => {
 		const seasonStart = seasonStartsOn ? new Date(seasonStartsOn).getTime() : null;
-		return getPastEvents(events).filter(
+		return getPastEvents(events, new Date(), "endOfDay").filter(
 			(event) =>
 				seasonStart === null || new Date(event.startDate).getTime() >= seasonStart,
 		);

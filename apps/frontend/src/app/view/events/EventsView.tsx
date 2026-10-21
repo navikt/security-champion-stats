@@ -1,6 +1,5 @@
 import type { SecurityEvent } from "@/app/utils/Variables";
 import {
-	getNextEvent,
 	getPastEvents,
 	getUpcomingEvents,
 } from "@/app/utils/eventUtils";
@@ -22,11 +21,10 @@ export function EventsView({
 	limit,
 	scrollAfter,
 }: EventsViewProps) {
-	const nextEvent = getNextEvent(events);
-
-	const upcomingEvents: SecurityEvent[] = getUpcomingEvents(events);
-
-	const pastEvents: SecurityEvent[] = getPastEvents(events);
+	const now = new Date();
+	const upcomingEvents = getUpcomingEvents(events, now, "endOfDay");
+	const pastEvents = getPastEvents(events, now, "endOfDay");
+	const nextEvent = upcomingEvents[0];
 
 	return (
 		<main

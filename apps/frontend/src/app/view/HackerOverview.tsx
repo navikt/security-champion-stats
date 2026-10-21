@@ -165,8 +165,9 @@ function OpsListing({
 	failed: boolean;
 	loading: boolean;
 }) {
-	const upcoming = getUpcomingEvents(events);
-	const past = getPastEvents(events);
+	const now = new Date();
+	const upcoming = getUpcomingEvents(events, now, "endOfDay");
+	const past = getPastEvents(events, now, "endOfDay");
 	const archived = past.slice(0, 5);
 	return (
 		<TerminalPanel title={hackerCopy.events.title}>

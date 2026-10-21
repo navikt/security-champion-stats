@@ -12,15 +12,19 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 import org.springframework.transaction.PlatformTransactionManager
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
 class ProgramAuditServiceTest {
+    private val clock = Clock.fixed(Instant.parse("2026-10-20T12:00:00Z"), ZoneOffset.UTC)
+
     @Test
     fun `should preserve the primary operation when best effort audit persistence fails`() {
         val repository = mock<ProgramAuditRepository>()
         whenever(repository.participantExists(UUID.fromString(PARTICIPANT_ID)))
             .thenThrow(IllegalStateException("audit database unavailable"))
-        val service = ProgramAuditService(repository, Clock.systemUTC())
+        val service = ProgramAuditService(repository, clock)
 
         assertThat(
             service.record(
@@ -34,7 +38,7 @@ class ProgramAuditServiceTest {
     @Test
     fun `should reject non-membership actions from participant history hooks`() {
         val repository = mock<ProgramAuditRepository>()
-        val service = ProgramAuditService(repository, Clock.systemUTC())
+        val service = ProgramAuditService(repository, clock)
 
         assertThat(service.recordParticipantEvent(UUID.fromString(PARTICIPANT_ID), "CREDIT_AWARDED")).isFalse()
     }
@@ -60,7 +64,7 @@ class ProgramAuditServiceTest {
             scoringRepository,
             AdminGroupMembers { emptySet() },
             mock<PlatformTransactionManager>(),
-            ProgramAuditService(auditRepository, Clock.systemUTC()),
+            ProgramAuditService(auditRepository, clock),
         )
 
         val result = scoringService.awardCredit(

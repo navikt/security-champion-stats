@@ -14,6 +14,8 @@ import org.springframework.web.reactive.function.client.WebClient
 import tools.jackson.databind.json.JsonMapper
 import java.net.InetSocketAddress
 import java.time.Duration
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class TeamCatalogRoleClientTest {
     private lateinit var server: HttpServer
@@ -23,7 +25,7 @@ class TeamCatalogRoleClientTest {
     private var observedMembershipPath: String? = null
     private var observedMembershipQuery: String? = null
     private var failTeamTwo = false
-    private var delayTeamOneMillis = 0L
+    private var releaseTeamOneResponse: CountDownLatch? = null
     private val membershipResponse = """
         {
           "teams": [
@@ -86,7 +88,7 @@ class TeamCatalogRoleClientTest {
         observedMembershipPath = null
         observedMembershipQuery = null
         failTeamTwo = false
-        delayTeamOneMillis = 0
+        releaseTeamOneResponse = null
         server = HttpServer.create(InetSocketAddress("localhost", 0), 0)
         server.createContext("/") { exchange ->
             val response = if (exchange.requestMethod == "GET") {
@@ -96,7 +98,13 @@ class TeamCatalogRoleClientTest {
             } else {
                 val teamId = exchange.requestURI.path.substringAfterLast("/")
                 putBodies[teamId] = exchange.requestBody.bufferedReader().readText()
-                if (teamId == "team-1" && delayTeamOneMillis > 0) Thread.sleep(delayTeamOneMillis)
+                if (teamId == "team-1") {
+                    releaseTeamOneResponse?.let {
+                        check(it.await(5, TimeUnit.SECONDS))
+                        exchange.close()
+                        return@createContext
+                    }
+                }
                 if (failTeamTwo && teamId == "team-2") {
                     exchange.sendResponseHeaders(503, -1)
                     return@createContext
@@ -204,16 +212,21 @@ class TeamCatalogRoleClientTest {
 
     @Test
     fun `treats a timed out put as a per-team failure and continues`() {
-        delayTeamOneMillis = 1_500
+        val releaseResponse = CountDownLatch(1)
+        releaseTeamOneResponse = releaseResponse
         val timeoutClient = TeamCatalogRoleClient(
             WebClient.builder().baseUrl("http://localhost:${server.address.port}").build(),
             Duration.ofMillis(300),
         )
 
-        val result = timeoutClient.saveSelection("person@nav.no", "A12345", setOf("team-1"), true)
+        try {
+            val result = timeoutClient.saveSelection("person@nav.no", "A12345", setOf("team-1"), true)
 
-        assertThat(result.updates.map { it.status })
-            .containsExactly(TeamCatalogRoleUpdateStatus.FAILED, TeamCatalogRoleUpdateStatus.UPDATED)
-        assertThat(putBodies.keys).contains("team-2")
+            assertThat(result.updates.map { it.status })
+                .containsExactly(TeamCatalogRoleUpdateStatus.FAILED, TeamCatalogRoleUpdateStatus.UPDATED)
+            assertThat(putBodies.keys).contains("team-2")
+        } finally {
+            releaseResponse.countDown()
+        }
     }
 }

@@ -11,11 +11,10 @@ import org.junit.jupiter.api.*
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class SlackChannelParticipationRepositoryTest : PostgresIntegrationTest() {
-    private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+    private val now = Instant.parse("2026-10-20T12:00:00Z")
     private lateinit var repository: SlackChannelParticipationRepository
     private lateinit var participants: ProgramParticipantRepository
 

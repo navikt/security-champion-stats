@@ -54,6 +54,16 @@ deployed through the repository's GitHub Actions and NAIS configuration.
   - Frontend: from `apps/frontend`, run `pnpm test` and `pnpm build`.
 - Report any failed or blocked checks accurately; do not claim unrun checks passed.
 
+### Time and timestamp assertions
+
+- Use fixed ISO 8601 timestamps, normally at whole-second precision, for persistence and lifecycle fixtures. Derive later syncs, deployments, and cutoffs from the same fixed instant instead of separate `now()` calls.
+- Assert exact equality for supplied timestamps that the database can represent, including timestamps nested in data classes, lists, and maps.
+- Do not compare live-clock timestamps by truncating both sides to milliseconds, seconds, or minutes. Java and Kotlin instants support nanoseconds; PostgreSQL stores microseconds and can round into the next millisecond or second.
+- For timestamps generated inside the code under test, use an injected fixed clock where supported. Otherwise, assert a bounded time range with an explicit allowance for database precision.
+- Keep the full date and timezone. Do not compare only `HH:mm` or `mm:ss`, which can hide incorrect dates.
+- Use subsecond fixtures only when that precision is the behavior under test, and account explicitly for the storage boundary's rounding. Do not reduce production timestamp precision to fix a test.
+- Keep SLA, ordering, and retention boundary tests deterministic with explicit times on each side of the boundary. Do not add sleeps or broad tolerances to make them pass.
+
 ## Relevant references
 
 - `apps/backend/Readme.md` and `apps/frontend/Readme.md`: application setup and behavior.

@@ -68,6 +68,7 @@ import java.sql.Timestamp
 import java.time.LocalDate
 import java.time.Instant
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.CyclicBarrier
@@ -90,6 +91,9 @@ import org.springframework.transaction.event.TransactionalEventListenerFactory
 import java.util.function.Supplier
 
 class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
+    private val fixedNow = Instant.parse("2026-10-20T12:00:00Z")
+    private val fixedClock = Clock.fixed(fixedNow, ZoneOffset.UTC)
+
     private lateinit var repository: ScoringLedger
     private lateinit var transactionManager: DataSourceTransactionManager
     private lateinit var adminDashboardRepository: AdminDashboardRepository
@@ -446,7 +450,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
                 }
             }
             val service = ProxyFactory(
-                ScoringService(ledger, AdminGroupMembers { emptySet() }, transactionManager, ProgramAuditService(auditRepository, Clock.systemUTC())),
+                ScoringService(ledger, AdminGroupMembers { emptySet() }, transactionManager, ProgramAuditService(auditRepository, fixedClock)),
             ).apply {
                 isProxyTargetClass = true
                 addAdvice(TransactionInterceptor().apply {
@@ -821,7 +825,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
     @Test
     fun `should persist GitHub credits once and remove mappings source facts and history on deletion`() {
         val id = createParticipant("github@nav.no")
-        val now = Instant.now()
+        val now = fixedNow
         jdbcTemplate.update(
             "UPDATE program_participants SET created_at = ? WHERE id = ?",
             java.sql.Timestamp.from(now.minusSeconds(3600)), id,
@@ -860,7 +864,11 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
         assertThat(service.sync(now).unmappedAuthors).isEqualTo(1)
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_participants", Int::class.java)).isZero()
         val reenrolledId = createParticipant("github@nav.no")
-        assertThat(service.sync(Instant.now()).creditsAwarded).isZero()
+        jdbcTemplate.update(
+            "UPDATE program_participants SET created_at = ? WHERE id = ?",
+            Timestamp.from(now.plusSeconds(7_200)), reenrolledId,
+        )
+        assertThat(service.sync(now.plusSeconds(3_600)).creditsAwarded).isZero()
         assertThat(repository.scoreForParticipant(reenrolledId, repository.currentSeason().id)).isZero()
     }
 
@@ -869,7 +877,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
         val id = createParticipant("canonical@nav.no")
         jdbcTemplate.update("UPDATE program_participants SET email = 'profile@nav.no' WHERE id = ?", id)
         val mapping = GitHubIdentityMappingRepository(jdbcTemplate)
-        val now = Instant.now()
+        val now = fixedNow
         assertThat(mapping.refresh(listOf(GitHubIdentity(10, "person", "CANONICAL@nav.no")), now)[10]?.participantId)
             .isEqualTo(id)
         assertThatThrownBy {
@@ -886,7 +894,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
     fun `should enforce GitHub uniqueness across participants and reject stale season or enrollment evidence`() {
         val id = createParticipant("one@nav.no")
         val other = createParticipant("two@nav.no")
-        val now = Instant.now()
+        val now = fixedNow
         val season = repository.currentSeason()
         jdbcTemplate.update(
             "UPDATE program_participants SET created_at = ? WHERE id IN (?, ?)",
@@ -906,7 +914,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
     @Test
     fun `should preserve GitHub last success on failure and identify interrupted runs`() {
         val status = GitHubScoringStatusRepository(jdbcTemplate)
-        val now = Instant.parse("2026-10-06T12:00:00.123456Z")
+        val now = Instant.parse("2026-10-06T12:00:00Z")
         status.recordStarted(now)
         status.recordSucceeded(now, GitHubSyncSummary(5, 2, 2, 1))
         status.recordStarted(now.plusSeconds(60))
@@ -1000,12 +1008,12 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
     @Test
     fun `should assign an adjustment to the source credit season`() {
         val participantId = createParticipant("person@nav.no")
-        val today = LocalDate.now(ZoneId.of("Europe/Oslo"))
         val firstSeason = repository.currentSeason()
+        val nextSeasonStart = firstSeason.startsOn.plusDays(1)
         repository.awardCredit(participantId, ActivityCreditType.DELTA_REGISTRATION, "event:1", "Event 1")
 
-        repository.resetManually(today.plusDays(1), "Start next season", "admin@nav.no")
-        repository.resetManually(today.plusDays(2), "Start another season", "admin@nav.no")
+        repository.resetManually(nextSeasonStart, "Start next season", "admin@nav.no")
+        repository.resetManually(nextSeasonStart.plusDays(1), "Start another season", "admin@nav.no")
 
         val creditId = repository.creditsForParticipant(participantId).single().id
         val adjustment = repository.addAdjustment(

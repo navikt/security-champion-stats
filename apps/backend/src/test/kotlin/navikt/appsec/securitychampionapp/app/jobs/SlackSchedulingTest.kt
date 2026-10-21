@@ -16,6 +16,8 @@ import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor
 import org.springframework.scheduling.config.CronTask
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 
 class SlackSchedulingTest {
     private val runner = ApplicationContextRunner()
@@ -87,6 +89,6 @@ class SlackSchedulingTest {
         fun statusRepository(): SlackScoringStatusRepository = mock()
 
         @Bean
-        fun clock(): Clock = Clock.systemUTC()
+        fun clock(): Clock = Clock.fixed(Instant.parse("2026-10-20T12:00:00Z"), ZoneOffset.UTC)
     }
 }

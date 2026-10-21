@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import navikt.appsec.securitychampionapp.testsupport.PostgresIntegrationTest
 import org.springframework.dao.DataAccessException
+import java.time.OffsetDateTime
 import java.util.UUID
 
 class MemberRepositoryTest : PostgresIntegrationTest() {
@@ -82,6 +83,7 @@ class MemberRepositoryTest : PostgresIntegrationTest() {
         level: String = "1",
         teams: List<String> = emptyList()
     ) {
+        val timestamp = OffsetDateTime.parse("2026-10-20T12:00:00Z")
         dataSource.connection.use { connection ->
             val teamsArray = connection.createArrayOf("text", teams.toTypedArray())
             connection.prepareStatement(
@@ -102,8 +104,8 @@ class MemberRepositoryTest : PostgresIntegrationTest() {
                 statement.setString(1, id)
                 statement.setString(2, fullname)
                 statement.setInt(3, points)
-                statement.setObject(4, java.time.OffsetDateTime.now())
-                statement.setObject(5, java.time.OffsetDateTime.now())
+                statement.setObject(4, timestamp)
+                statement.setObject(5, timestamp)
                 statement.setString(6, email)
                 statement.setBoolean(7, inProgram)
                 statement.setString(8, level)

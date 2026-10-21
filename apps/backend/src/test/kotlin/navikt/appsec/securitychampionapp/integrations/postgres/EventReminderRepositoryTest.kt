@@ -8,6 +8,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.*
 import java.time.Duration
 import java.time.Instant
+import java.sql.Timestamp
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -16,6 +17,9 @@ class EventReminderRepositoryTest : PostgresIntegrationTest() {
     private lateinit var repository: EventReminderRepository
     private lateinit var participants: ProgramParticipantRepository
     private val eventId = UUID.randomUUID()
+
+    private fun postgresNow(): Instant =
+        requireNotNull(jdbcTemplate.queryForObject("SELECT NOW()", Timestamp::class.java)).toInstant()
 
     @BeforeAll
     fun setup() {
@@ -66,10 +70,20 @@ class EventReminderRepositoryTest : PostgresIntegrationTest() {
         val participantId = enroll()
         val delivery = UUID.randomUUID()
         repository.claim(eventId, participantId, "U_SYNTHETIC", delivery)
-        repository.finish(delivery, ReminderDeliveryStatus.FAILED, retryAfter = Duration.ofMinutes(15))
-        assertThat(repository.deliveries(eventId).single().nextAttemptAt).isAfter(Instant.now().plusSeconds(890))
+        val retryDelay = Duration.ofMinutes(15)
+        val before = postgresNow()
+        repository.finish(delivery, ReminderDeliveryStatus.FAILED, retryAfter = retryDelay)
+        val after = postgresNow()
+        val databasePrecisionAllowance = Duration.ofNanos(1_000)
+        assertThat(repository.deliveries(eventId).single().nextAttemptAt).isBetween(
+            before.plus(retryDelay).minus(databasePrecisionAllowance),
+            after.plus(retryDelay).plus(databasePrecisionAllowance),
+        )
         assertThat(repository.claim(eventId, participantId, "U_SYNTHETIC", UUID.randomUUID())).isFalse()
-        jdbcTemplate.update("UPDATE event_reminder_deliveries SET next_attempt_at = NOW() - INTERVAL '1 second'")
+        jdbcTemplate.update(
+            "UPDATE event_reminder_deliveries SET next_attempt_at = ?",
+            Timestamp.from(Instant.parse("2000-01-01T00:00:00Z")),
+        )
         val retry = UUID.randomUUID()
         assertThat(repository.claim(eventId, participantId, "U_CHANGED", retry)).isTrue()
         repository.finish(retry, ReminderDeliveryStatus.SENT, "456.789")

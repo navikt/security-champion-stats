@@ -21,6 +21,7 @@ class ScoringServiceTest {
     private val adminGroupMembers: AdminGroupMembers = mock()
     private val transactionManager: PlatformTransactionManager = mock()
     private val service = ScoringService(repository, adminGroupMembers, transactionManager)
+    private val historyAt = Instant.parse("2026-10-20T12:00:00Z")
     @BeforeEach
     fun configureScoring() {
         whenever(repository.configuration()).thenReturn(defaultScoringConfiguration)
@@ -331,7 +332,7 @@ class ScoringServiceTest {
         whenever(repository.scoreHistorySeasons()).thenReturn(listOf(ScoreHistorySeason(season.id, season.startsOn, null)))
         whenever(repository.scoringHistoryForParticipant(adminId)).thenReturn(listOf(
             ScoringHistoryEntry(
-                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, Instant.now(), null,
+                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, historyAt, null,
                 season.id, season.startsOn, null, 100, ActivityCreditType.SLACK_WEEK,
                 "week", null, null, null, null,
             ),
@@ -366,7 +367,7 @@ class ScoringServiceTest {
         whenever(repository.participantExists(participant)).thenReturn(true)
         whenever(repository.scoringHistoryForParticipant(participant)).thenReturn(listOf(
             ScoringHistoryEntry(
-                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, Instant.now(), null,
+                UUID.randomUUID(), ScoringHistoryEntryType.CREDIT, historyAt, null,
                 season.id, season.startsOn, null, 1, ActivityCreditType.SLACK_WEEK,
                 "week", null, null, null, null,
             ),

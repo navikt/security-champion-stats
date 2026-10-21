@@ -12,10 +12,14 @@ import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
 import java.time.Duration
 import java.time.Instant
+import java.sql.Timestamp
 
 class SlackMembershipRepositoryTest : PostgresIntegrationTest() {
     private lateinit var repository: SlackMembershipRepository
     private lateinit var participants: ProgramParticipantRepository
+
+    private fun postgresNow(): Instant =
+        requireNotNull(jdbcTemplate.queryForObject("SELECT NOW()", Timestamp::class.java)).toInstant()
 
     @BeforeAll
     fun setup() {
@@ -99,12 +103,18 @@ class SlackMembershipRepositoryTest : PostgresIntegrationTest() {
         val second = enroll("second")
         repository.observe("S_GROUP", mapOf(first to "U_FIRST", second to "U_SECOND"))
         val announcement = repository.announcements("S_GROUP").single()
-        val before = Instant.now()
+        val retryDelay = Duration.ofMinutes(15)
         repository.updateDelivery(announcement.id, MembershipDeliveryStatus.SENDING)
-        repository.deferDelivery(announcement.id, Duration.ofMinutes(15))
+        val before = postgresNow()
+        repository.deferDelivery(announcement.id, retryDelay)
+        val after = postgresNow()
         val deferred = repository.announcements("S_GROUP").single()
         assertThat(deferred.status).isEqualTo(MembershipDeliveryStatus.PENDING)
-        assertThat(deferred.nextAttemptAt).isAfter(before.plusSeconds(890))
+        val databasePrecisionAllowance = Duration.ofNanos(1_000)
+        assertThat(deferred.nextAttemptAt).isBetween(
+            before.plus(retryDelay).minus(databasePrecisionAllowance),
+            after.plus(retryDelay).plus(databasePrecisionAllowance),
+        )
         repository.recoverInterruptedDeliveries("S_GROUP")
         assertThat(repository.announcements("S_GROUP").single()).isEqualTo(deferred)
         repository.updateDelivery(announcement.id, MembershipDeliveryStatus.UNCERTAIN)

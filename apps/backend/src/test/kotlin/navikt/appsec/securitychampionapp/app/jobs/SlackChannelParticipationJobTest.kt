@@ -10,13 +10,15 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
 
 class SlackChannelParticipationJobTest {
     private val lock = mock<PostgresJobLock>()
     private val repository = mock<SlackChannelParticipationRepository>()
     private val job = SlackChannelParticipationJob(
         lock, mock(), mock(), repository, SlackChannelParticipationProperties(enabled = true),
-        SlackChannelParticipationSettings("C_CHANNEL", 5), mock(), Clock.systemUTC(),
+        SlackChannelParticipationSettings("C_CHANNEL", 5), mock(),
+        Clock.fixed(Instant.parse("2026-10-20T12:00:00Z"), ZoneOffset.UTC),
     )
 
     @Test

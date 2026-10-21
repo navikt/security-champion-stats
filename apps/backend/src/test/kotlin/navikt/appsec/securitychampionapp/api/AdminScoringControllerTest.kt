@@ -340,7 +340,7 @@ class AdminScoringControllerTest {
     @Test
     fun `should reset a season when an admin confirms with a reason`() {
         mockAuthenticatedUser(ADMIN_ROLE)
-        val today = LocalDate.now(ZoneId.of("Europe/Oslo"))
+        val today = Instant.now().atZone(ZoneId.of("Europe/Oslo")).toLocalDate()
         val nextResetDate = today.plusMonths(3)
         val previousSeason = SeasonSummary(UUID.randomUUID(), today.minusDays(1), null, nextResetDate)
         val newSeason = SeasonSummary(UUID.randomUUID(), today, null, nextResetDate)

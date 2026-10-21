@@ -20,9 +20,13 @@ import org.springframework.transaction.support.TransactionTemplate
 import tools.jackson.databind.json.JsonMapper
 import java.time.Clock
 import java.time.Instant
+import java.time.ZoneOffset
+import java.sql.Timestamp
 import java.util.UUID
 
 class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
+    private val fixedNow = Instant.parse("2026-10-20T12:00:00Z")
+    private val expiredAt = fixedNow.atOffset(ZoneOffset.UTC).minusMonths(13).toInstant()
     private lateinit var repository: ProgramAuditRepository
     private lateinit var auditService: ProgramAuditService
     private lateinit var scoringRepository: PostgresScoringLedger
@@ -31,7 +35,7 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
     @BeforeAll
     fun setupRepository() {
         repository = ProgramAuditRepository(jdbcTemplate, JsonMapper.builder().build())
-        auditService = ProgramAuditService(repository, Clock.systemUTC())
+        auditService = ProgramAuditService(repository, Clock.fixed(fixedNow, ZoneOffset.UTC))
         scoringRepository = PostgresScoringLedger(jdbcTemplate)
         participantRepository = ProgramParticipantRepository(jdbcTemplate)
     }
@@ -45,7 +49,7 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
             "CREDIT_AWARDED", AuditOutcome.SUCCEEDED, targetParticipantId = participantId,
             details = mapOf("creditType" to "DELTA_REGISTRATION", "sourceReference" to eventId),
         )
-        val source = CreditSourceContext("Security workshop", "https://delta.nav.no/event/$eventId", Instant.now())
+        val source = CreditSourceContext("Security workshop", "https://delta.nav.no/event/$eventId", fixedNow)
         scoringRepository.updateCreditSource(ActivityCreditType.DELTA_REGISTRATION, eventId, source)
 
         val (events, total) = repository.adminPage("Security workshop", 0, 10, "credits")
@@ -179,15 +183,29 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
     @Test
     fun `should purge failed membership attempts and operational events older than twelve months only`() {
         val participantId = createParticipant("person@nav.no")
-        auditService.record("ADMIN_MUTATION", AuditOutcome.SUCCEEDED)
+        auditService.record("ADMIN_MUTATION_OLD", AuditOutcome.SUCCEEDED)
+        auditService.record("ADMIN_MUTATION_AT_CUTOFF", AuditOutcome.SUCCEEDED)
+        auditService.record("ADMIN_MUTATION_RECENT", AuditOutcome.SUCCEEDED)
         auditService.recordParticipantEvent(participantId, "PARTICIPANT_LEFT")
         auditService.recordParticipantEvent(participantId, "PARTICIPANT_REJOINED", outcome = AuditOutcome.FAILED)
-        jdbcTemplate.update("UPDATE program_audit_events SET created_at = NOW() - INTERVAL '13 months'")
+        jdbcTemplate.update(
+            "UPDATE program_audit_events SET created_at = ? WHERE action IN ('ADMIN_MUTATION_OLD', 'PARTICIPANT_REJOINED')",
+            Timestamp.from(expiredAt),
+        )
+        val retentionBoundary = fixedNow.atOffset(ZoneOffset.UTC).minusMonths(12).toInstant()
+        jdbcTemplate.update(
+            "UPDATE program_audit_events SET created_at = ? WHERE action = 'ADMIN_MUTATION_AT_CUTOFF'",
+            Timestamp.from(retentionBoundary),
+        )
 
-        assertThat(repository.deleteExpiredOperationalEvents(Instant.now())).isEqualTo(2)
+        assertThat(repository.deleteExpiredOperationalEvents(fixedNow)).isEqualTo(2)
 
         val retained = repository.adminPage(null, 0, 10).first
-        assertThat(retained.map { it.action }).containsExactly("PARTICIPANT_LEFT")
+        assertThat(retained.map { it.action }).containsExactlyInAnyOrder(
+            "PARTICIPANT_LEFT",
+            "ADMIN_MUTATION_AT_CUTOFF",
+            "ADMIN_MUTATION_RECENT",
+        )
     }
 
     @Test
@@ -198,16 +216,19 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
             """
                 INSERT INTO program_participant_audit (
                     participant_id, action, before_values, after_values, created_at
-                ) VALUES (?, 'SLACK_MAPPING_ADDED', '{}', '{}', NOW() - INTERVAL '13 months')
-            """.trimIndent(), participantId,
+                ) VALUES (?, 'SLACK_MAPPING_ADDED', '{}', '{}', ?)
+            """.trimIndent(), participantId, Timestamp.from(expiredAt),
         )
         jdbcTemplate.update(
             """
                 INSERT INTO program_scoring_audit (action, before_values, after_values, created_at)
-                VALUES ('SEASON_RESET_DATE_UPDATED', '{}', '{}', NOW() - INTERVAL '13 months')
-            """.trimIndent(),
+                VALUES ('SEASON_RESET_DATE_UPDATED', '{}', '{}', ?)
+            """.trimIndent(), Timestamp.from(expiredAt),
         )
-        jdbcTemplate.update("UPDATE program_participant_audit SET created_at = NOW() - INTERVAL '13 months'")
+        jdbcTemplate.update(
+            "UPDATE program_participant_audit SET created_at = ?",
+            Timestamp.from(expiredAt),
+        )
         jdbcTemplate.update(
             """
                 INSERT INTO program_scoring_audit (action, before_values, after_values)
@@ -217,12 +238,14 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
         jdbcTemplate.update("UPDATE program_participants SET status = 'ACTIVE' WHERE id = ?", participantId)
         scoringRepository.awardCredit(participantId, ActivityCreditType.GITHUB_COMMIT, "commit:1", "Commit 1")
         scoringRepository.addAdjustment(participantId, 1, "Correction", "admin@nav.no", null)
-        jdbcTemplate.update("UPDATE program_scoring_audit SET created_at = NOW() - INTERVAL '13 months' "
-            + "WHERE action = 'POINTS_ADJUSTED'")
-        jdbcTemplate.update("UPDATE activity_credits SET awarded_at = NOW() - INTERVAL '13 months'")
-        jdbcTemplate.update("UPDATE point_adjustments SET created_at = NOW() - INTERVAL '13 months'")
+        jdbcTemplate.update(
+            "UPDATE program_scoring_audit SET created_at = ? WHERE action = 'POINTS_ADJUSTED'",
+            Timestamp.from(expiredAt),
+        )
+        jdbcTemplate.update("UPDATE activity_credits SET awarded_at = ?", Timestamp.from(expiredAt))
+        jdbcTemplate.update("UPDATE point_adjustments SET created_at = ?", Timestamp.from(expiredAt))
 
-        assertThat(repository.deleteExpiredOperationalEvents(Instant.now())).isEqualTo(3)
+        assertThat(repository.deleteExpiredOperationalEvents(fixedNow)).isEqualTo(3)
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_participant_audit", Int::class.java))
             .isEqualTo(1)
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM program_scoring_audit", Int::class.java))
@@ -233,6 +256,11 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
 
     @Test
     fun `should not expose pre-rollout domain records as new participant history`() {
+        val beforeRollout = fixedNow.minusSeconds(1)
+        jdbcTemplate.update(
+            "UPDATE program_audit_rollout SET started_at = ? WHERE singleton = TRUE",
+            Timestamp.from(fixedNow),
+        )
         val participantId = createParticipant("person@nav.no")
         scoringRepository.awardCredit(
             participantId,
@@ -242,9 +270,9 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
         )
         scoringRepository.addAdjustment(participantId, 1, "Legacy correction", "admin@nav.no", null)
         participantRepository.updateStatus(participantId, active = false, actorNavNoEmail = "admin@nav.no")
-        jdbcTemplate.update("UPDATE activity_credits SET awarded_at = NOW() - INTERVAL '1 day'")
-        jdbcTemplate.update("UPDATE point_adjustments SET created_at = NOW() - INTERVAL '1 day'")
-        jdbcTemplate.update("UPDATE program_participant_audit SET created_at = NOW() - INTERVAL '1 day'")
+        jdbcTemplate.update("UPDATE activity_credits SET awarded_at = ?", Timestamp.from(beforeRollout))
+        jdbcTemplate.update("UPDATE point_adjustments SET created_at = ?", Timestamp.from(beforeRollout))
+        jdbcTemplate.update("UPDATE program_participant_audit SET created_at = ?", Timestamp.from(beforeRollout))
         auditService.recordParticipantEvent(participantId, "PARTICIPANT_LEFT", details = mapOf("status" to "LEFT"))
 
         assertThat(repository.participantHistory(participantId).map { it.action })
@@ -262,7 +290,10 @@ class ProgramAuditRepositoryTest : PostgresIntegrationTest(maxPoolSize = 2) {
             })
         }
         val transactionalRepository = proxyFactory.proxy as ProgramAuditRepository
-        val transactionalService = ProgramAuditService(transactionalRepository, Clock.systemUTC())
+        val transactionalService = ProgramAuditService(
+            transactionalRepository,
+            Clock.fixed(fixedNow, ZoneOffset.UTC),
+        )
         val participantId = createParticipant("person@nav.no")
         val transaction = TransactionTemplate(manager)
 

@@ -103,11 +103,15 @@ export function ManageSlackMappingsView({
 			{notice && <BodyShort role="status">{notice}</BodyShort>}
 			{error && <BodyShort role="alert">{error}</BodyShort>}
 
-			<section aria-labelledby="unmapped-heading">
-				<VStack gap="space-16">
-					<Heading level="3" size="medium" id="unmapped-heading">
-						Unmapped Slack accounts
-					</Heading>
+			<ExpansionCard
+				aria-label={`Unmapped Slack accounts (${overview.unmappedAuthors.length})`}
+			>
+				<ExpansionCard.Header>
+					<ExpansionCard.Title as="h3">
+						Unmapped Slack accounts ({overview.unmappedAuthors.length})
+					</ExpansionCard.Title>
+				</ExpansionCard.Header>
+				<ExpansionCard.Content>
 					<Table size="small">
 						<Table.Header>
 							<Table.Row>
@@ -172,8 +176,8 @@ export function ManageSlackMappingsView({
 							)}
 						</Table.Body>
 					</Table>
-				</VStack>
-			</section>
+				</ExpansionCard.Content>
+			</ExpansionCard>
 
 			<ExpansionCard
 				aria-label={`Approved mappings (${overview.mappings.length})`}

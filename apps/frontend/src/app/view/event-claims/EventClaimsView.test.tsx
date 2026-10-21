@@ -239,6 +239,83 @@ describe("Event claims", () => {
 		);
 	});
 
+	it("clears copied event fields when switching back to a new event without losing claim details", async () => {
+		const user = userEvent.setup();
+		const event = {
+			id: "12345678-1234-1234-1234-123456789abc",
+			name: claim.name,
+			description: claim.description,
+			startDate: claim.startDate,
+			endDate: claim.endDate,
+			location: claim.location,
+			type: "workshop" as const,
+			externalEvent: true,
+			deltaEvent: false,
+			link: claim.links[0],
+		};
+		render(
+			<EventClaimForm
+				overview={overview}
+				events={[event]}
+				onSaved={vi.fn()}
+				onCancel={vi.fn()}
+			/>,
+		);
+		await user.type(
+			screen.getByLabelText("Advance invitation evidence"),
+			claim.invitationEvidence,
+		);
+		await user.type(
+			screen.getByLabelText(
+				"Substantive organizing or presenting contribution 1",
+			),
+			claim.contributors[0].contribution,
+		);
+		const selector = screen.getByLabelText("Existing event (optional)");
+		await user.selectOptions(selector, event.id);
+		expect(screen.getByLabelText("Event name")).toHaveValue(event.name);
+		expect(screen.getByLabelText("Security content delivered")).toHaveValue(
+			event.description,
+		);
+		expect(
+			screen.getByLabelText("Start date and time (your local time)"),
+		).not.toHaveValue("");
+		expect(
+			screen.getByLabelText("End date and time (your local time)"),
+		).not.toHaveValue("");
+		expect(screen.getByLabelText("Location")).toHaveValue(event.location);
+		expect(screen.getByLabelText("Event and resource links")).toHaveValue(
+			event.link,
+		);
+
+		await user.selectOptions(selector, "");
+
+		for (const label of [
+			"Event name",
+			"Security content delivered",
+			"Start date and time (your local time)",
+			"End date and time (your local time)",
+			"Location",
+			"Event and resource links",
+		]) {
+			expect(screen.getByLabelText(label)).toHaveValue("");
+		}
+		expect(screen.getByLabelText("Event name")).not.toHaveAttribute("readonly");
+		expect(screen.getByLabelText("Event type")).toHaveValue("meetup");
+		expect(screen.getByLabelText("Internal or external event")).toHaveValue(
+			"internal",
+		);
+		expect(screen.getByLabelText("Advance invitation evidence")).toHaveValue(
+			claim.invitationEvidence,
+		);
+		expect(screen.getByLabelText("Participant 1")).toHaveValue("host");
+		expect(
+			screen.getByLabelText(
+				"Substantive organizing or presenting contribution 1",
+			),
+		).toHaveValue(claim.contributors[0].contribution);
+	});
+
 	it("names retained reviews when the contributor is removed and no longer active", async () => {
 		vi.mocked(EventClaimsApi.overview).mockResolvedValue({
 			...overview,

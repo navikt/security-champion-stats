@@ -59,6 +59,11 @@ describe("ManageSlackMappingsView", () => {
 			/>,
 		);
 
+		fireEvent.click(
+			within(
+				screen.getByRole("region", { name: "Unmapped Slack accounts (2)" }),
+			).getByRole("button"),
+		);
 		expect(
 			screen.getByRole("rowheader", { name: "Slack Display Name U_SLACK" }),
 		).toBeVisible();
@@ -119,7 +124,7 @@ describe("ManageSlackMappingsView", () => {
 		removeMapping.mockRestore();
 	});
 
-	it("should explicitly map an unmapped Slack account to a participant", async () => {
+	it("collapses unmapped accounts by default and preserves mapping after expanding", async () => {
 		const addMapping = vi
 			.spyOn(Apies, "addSlackMapping")
 			.mockResolvedValue(201);
@@ -132,6 +137,15 @@ describe("ManageSlackMappingsView", () => {
 			/>,
 		);
 
+		const toggle = within(
+			screen.getByRole("region", { name: "Unmapped Slack accounts (1)" }),
+		).getByRole("button");
+		expect(toggle).toHaveAttribute("aria-expanded", "false");
+		expect(
+			screen.queryByRole("button", { name: "Map account" }),
+		).not.toBeInTheDocument();
+		fireEvent.click(toggle);
+		expect(toggle).toHaveAttribute("aria-expanded", "true");
 		fireEvent.change(
 			screen.getByLabelText("Participant for Slack account U_SLACK"),
 			{
@@ -148,6 +162,8 @@ describe("ManageSlackMappingsView", () => {
 		);
 		expect(onRefresh).toHaveBeenCalled();
 
+		fireEvent.click(toggle);
+		expect(toggle).toHaveAttribute("aria-expanded", "false");
 		addMapping.mockRestore();
 	});
 
@@ -163,6 +179,11 @@ describe("ManageSlackMappingsView", () => {
 			/>,
 		);
 
+		fireEvent.click(
+			within(
+				screen.getByRole("region", { name: "Unmapped Slack accounts (1)" }),
+			).getByRole("button"),
+		);
 		fireEvent.change(
 			screen.getByLabelText("Participant for Slack account U_SLACK"),
 			{

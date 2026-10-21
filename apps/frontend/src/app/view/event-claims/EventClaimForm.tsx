@@ -172,23 +172,20 @@ export function EventClaimForm({
 							const selected = existingEvents.find(
 								(item) => item.id === event.target.value,
 							);
-							update("eventId", selected?.id ?? null);
-							if (selected) {
-								setForm((current) => ({
-									...current,
-									eventId: selected.id,
-									name: selected.name,
-									description: selected.description ?? "",
-									location: selected.location ?? "",
-									type: selected.type,
-									externalEvent: selected.externalEvent,
-									startDate: selected.startDate,
-									endDate: selected.endDate,
-								}));
-								setStart(localDateTime(selected.startDate));
-								setEnd(localDateTime(selected.endDate));
-								setLinks(selected.link ?? "");
-							}
+							setForm((current) => ({
+								...current,
+								eventId: selected?.id ?? null,
+								name: selected?.name ?? "",
+								description: selected?.description ?? "",
+								location: selected?.location ?? "",
+								type: selected?.type ?? "meetup",
+								externalEvent: selected?.externalEvent ?? false,
+								startDate: selected?.startDate ?? "",
+								endDate: selected?.endDate ?? "",
+							}));
+							setStart(selected ? localDateTime(selected.startDate) : "");
+							setEnd(selected ? localDateTime(selected.endDate) : "");
+							setLinks(selected?.link ?? "");
 						}}
 					>
 						<option value="">Create a new event with this claim</option>

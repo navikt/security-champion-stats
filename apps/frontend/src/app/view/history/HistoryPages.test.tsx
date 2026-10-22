@@ -36,6 +36,7 @@ beforeEach(() => {
 			githubCommit: 0,
 			githubPullRequest: 0,
 			securityEvent: 0,
+			feedback: 0,
 			adjustments: 0,
 		},
 		seasons: [{ id: "season", startsOn: "2026-01-01", endsOn: null }],

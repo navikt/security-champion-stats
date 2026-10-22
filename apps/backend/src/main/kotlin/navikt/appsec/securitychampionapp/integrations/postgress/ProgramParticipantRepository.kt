@@ -202,6 +202,16 @@ class ProgramParticipantRepository(
                 WHERE actor_nav_no_email IN (SELECT nav_no_email FROM target)
                 RETURNING id
             ),
+            anonymized_feedback_actors AS (
+                UPDATE program_feedback_history SET actor_email = NULL
+                WHERE actor_email IN (SELECT nav_no_email FROM target)
+                RETURNING id
+            ),
+            released_feedback AS (
+                UPDATE program_feedback SET owner_email = NULL, status = 'OPEN', version = version + 1
+                WHERE owner_email IN (SELECT nav_no_email FROM target)
+                RETURNING id
+            ),
             anonymized_slack_creators AS (
                 UPDATE slack_account_mappings SET created_by_nav_no_email = NULL
                 WHERE created_by_nav_no_email IN (SELECT nav_no_email FROM target)

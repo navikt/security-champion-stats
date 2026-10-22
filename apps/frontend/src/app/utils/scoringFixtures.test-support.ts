@@ -14,5 +14,6 @@ export const defaultScoringConfiguration: ScoringConfiguration = {
 		{ creditType: "GITHUB_COMMIT", points: 1 },
 		{ creditType: "GITHUB_PULL_REQUEST", points: 3 },
 		{ creditType: "SECURITY_EVENT_CONTRIBUTION", points: 3 },
+		{ creditType: "FEEDBACK", points: 1 },
 	],
 };

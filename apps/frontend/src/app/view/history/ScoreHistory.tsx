@@ -82,6 +82,7 @@ const CREDIT_LABELS: Record<
 	GITHUB_COMMIT: "GitHub commit",
 	GITHUB_PULL_REQUEST: "GitHub pull request",
 	SECURITY_EVENT_CONTRIBUTION: "Security event",
+	FEEDBACK: "Qualifying feedback",
 };
 const SCORE_ROWS: {
 	key: keyof ScoreBreakdown;
@@ -117,6 +118,12 @@ const SCORE_ROWS: {
 		key: "securityEvent",
 		label: "Security event",
 		className: "securityEvent",
+		signed: false,
+	},
+	{
+		key: "feedback",
+		label: "Qualifying feedback",
+		className: "feedback",
 		signed: false,
 	},
 	{
@@ -1140,7 +1147,9 @@ function EntryIcon({ entry }: { entry: HistoryEntry }) {
 						? "commit"
 						: entry.creditType === "GITHUB_PULL_REQUEST"
 							? "pullRequest"
-							: "securityEvent"
+							: entry.creditType === "FEEDBACK"
+								? "feedback"
+								: "securityEvent"
 			: entry.kind === "adjustment"
 				? "adjustment"
 				: "membership";

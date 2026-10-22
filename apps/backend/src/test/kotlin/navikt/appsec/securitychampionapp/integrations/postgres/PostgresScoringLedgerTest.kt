@@ -523,7 +523,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
         } finally {
             executor.shutdownNow()
         }
-        assertThat(repository.configuration().version).isEqualTo(2)
+        assertThat(repository.configuration().version).isEqualTo(request.expectedVersion + 1)
         assertThat(repository.scoreForParticipant(participantId, repository.currentSeason().id)).isEqualTo(4)
         assertThat(jdbcTemplate.queryForObject(
             "SELECT COUNT(*) FROM point_adjustments WHERE scoring_configuration_version IS NOT NULL", Int::class.java,
@@ -544,7 +544,7 @@ class PostgresScoringLedgerTest : PostgresIntegrationTest(maxPoolSize = 2) {
         val preview = service.preview(request)
         val saved = service.save(request.copy(previewToken = preview.token), "admin@nav.no")
 
-        assertThat(saved.version).isEqualTo(2)
+        assertThat(saved.version).isEqualTo(current.version + 1)
         assertThat(saved.tiers).containsExactly(ScoringTier("Starter", 0), ScoringTier("Champion", 5))
         ActivityCreditType.entries.forEach { type ->
             assertThat(repository.awardCredit(participantId, type, "activity:${type.name}", "source:${type.name}"))

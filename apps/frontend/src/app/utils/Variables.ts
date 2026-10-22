@@ -138,7 +138,8 @@ export type ActivityCredit = {
 		| "DELTA_REGISTRATION"
 		| "GITHUB_COMMIT"
 		| "GITHUB_PULL_REQUEST"
-		| "SECURITY_EVENT_CONTRIBUTION";
+		| "SECURITY_EVENT_CONTRIBUTION"
+		| "FEEDBACK";
 	sourceReference: string;
 	points: number;
 	seasonStartsOn: string;
@@ -202,6 +203,7 @@ export type ScoreBreakdown = {
 	githubCommit: number;
 	githubPullRequest: number;
 	securityEvent: number;
+	feedback: number;
 	adjustments: number;
 	ruleChanges?: number;
 };

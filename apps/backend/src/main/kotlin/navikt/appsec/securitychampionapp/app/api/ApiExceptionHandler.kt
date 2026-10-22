@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.app.api
 
 import navikt.appsec.securitychampionapp.app.events.EventClaimException
 import navikt.appsec.securitychampionapp.app.events.EventClaimFailure
+import navikt.appsec.securitychampionapp.app.feedback.FeedbackException
+import navikt.appsec.securitychampionapp.app.feedback.FeedbackFailure
 import navikt.appsec.securitychampionapp.app.events.EventReminderConflictException
 import navikt.appsec.securitychampionapp.app.events.EventSignupUnavailableException
 import navikt.appsec.securitychampionapp.app.events.InvalidEventReminderMessageException
@@ -36,6 +38,17 @@ import java.sql.SQLException
 @RestControllerAdvice
 class ApiExceptionHandler {
     private val logger = LoggerFactory.getLogger(ApiExceptionHandler::class.java)
+
+    @ExceptionHandler(FeedbackException::class)
+    fun feedbackFailure(exception: FeedbackException, request: WebRequest): ResponseEntity<ProblemDetail> {
+        val status = when (exception.failure) {
+            FeedbackFailure.INVALID -> HttpStatus.BAD_REQUEST
+            FeedbackFailure.FORBIDDEN -> HttpStatus.FORBIDDEN
+            FeedbackFailure.CONFLICT -> HttpStatus.CONFLICT
+            FeedbackFailure.NOT_FOUND -> HttpStatus.NOT_FOUND
+        }
+        return problem(status, status.reasonPhrase, requireNotNull(exception.message), request)
+    }
 
     @ExceptionHandler(AdminGroupUnavailableException::class)
     fun adminGroupUnavailable(request: WebRequest): ResponseEntity<ProblemDetail> {

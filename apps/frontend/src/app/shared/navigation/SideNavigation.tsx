@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import "../../style/SideNavigation.css";
 import {
 	ClipboardCheckmarkIcon,
+	ChatIcon,
 	ChevronDownIcon,
 	TimelineIcon,
 } from "@navikt/aksel-icons";
@@ -157,6 +158,19 @@ export function SideNavigation({ me }: { me: Me }) {
 							/>
 						)}
 						Event claims
+					</Link>
+				)}
+				{me.isActive && (
+					<Link
+						href="/feedback"
+						className={[
+							"sideNavigation__item",
+							isActivePath(pathName, "/feedback") ? "sideNavigation__item--active" : "",
+						].filter(Boolean).join(" ")}
+						aria-current={isActivePath(pathName, "/feedback") ? "page" : undefined}
+					>
+						{!hacker && <ChatIcon aria-hidden className="sideNavigation__icon" />}
+						Feedback
 					</Link>
 				)}
 				{me.isParticipant && (

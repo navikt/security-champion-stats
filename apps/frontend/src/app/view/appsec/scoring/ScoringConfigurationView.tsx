@@ -44,6 +44,11 @@ const ACTIVITY_TYPES = [
 		label: "Security-event contribution",
 		color: "securityEvent",
 	},
+	{
+		creditType: "FEEDBACK",
+		label: "Qualifying feedback",
+		color: "feedback",
+	},
 ] as const;
 
 type DraftTier = { id: number; name: string; points: string };

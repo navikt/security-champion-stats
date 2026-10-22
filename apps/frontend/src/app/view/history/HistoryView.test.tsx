@@ -27,6 +27,7 @@ const summary = {
 		githubCommit: 0,
 		githubPullRequest: 0,
 		securityEvent: 0,
+		feedback: 0,
 		adjustments: 4,
 	},
 	seasons,

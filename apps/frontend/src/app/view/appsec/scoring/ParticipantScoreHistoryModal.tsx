@@ -26,6 +26,7 @@ const ACTIVITY_TYPES: ActivityCredit["creditType"][] = [
 	"GITHUB_COMMIT",
 	"GITHUB_PULL_REQUEST",
 	"SECURITY_EVENT_CONTRIBUTION",
+	"FEEDBACK",
 ];
 const PAGE_SIZE = 50;
 const dateTime = new Intl.DateTimeFormat("en-GB", {

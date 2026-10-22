@@ -10,6 +10,7 @@ enum class ActivityCreditType {
     GITHUB_COMMIT,
     GITHUB_PULL_REQUEST,
     SECURITY_EVENT_CONTRIBUTION,
+    FEEDBACK,
 }
 
 data class CreditSourceContext(
@@ -135,6 +136,7 @@ data class ScoreBreakdown(
     val securityEvent: Long,
     val adjustments: Long,
     val ruleChanges: Long = 0,
+    val feedback: Long = 0,
 )
 
 data class ScoreSummary(
@@ -152,6 +154,7 @@ data class ParticipantScoreBreakdown(
     val githubPullRequest: Long,
     val securityEvent: Long,
     val adjustments: Long,
+    val feedback: Long = 0,
 )
 
 data class ParticipantScoreSummary(

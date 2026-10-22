@@ -12,6 +12,8 @@ export function creditTypeLabel(creditType: ActivityCredit["creditType"]): strin
 			return "GitHub pull request";
 		case "SECURITY_EVENT_CONTRIBUTION":
 			return "Security event contribution";
+		case "FEEDBACK":
+			return "Qualifying feedback";
 	}
 }
 

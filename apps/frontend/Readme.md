@@ -34,6 +34,17 @@ pnpm build
 
 The frontend uses Next.js API routes to proxy requests to the backend.
 
+## Feedback
+
+Active participants can submit feedback from **Feedback** in the navigation. The app confirms submission without
+exposing the admin workflow. Administrators use **Administration > Feedback inbox** to search submissions,
+take or release ownership, record follow-up actions, and close or reopen feedback. Opening a submission does not claim it.
+
+An owner can award one qualifying feedback credit, initially worth 1 point and configurable in the scoring dashboard.
+Another administrator must assess an administrator's own submission. Scoring is separate from handling:
+closing or reopening feedback does not change its credit. Exceptional contributions and score corrections use manual adjustments.
+Internal notes remain admin-only; recording an external ticket or contact does not create a ticket or send a message.
+
 ## Deployment
 
 The [frontend deployment workflow](../../.github/workflows/deploy-frontend.yaml) builds and deploys the application

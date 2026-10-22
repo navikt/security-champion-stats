@@ -453,6 +453,22 @@ html.hacker .hubRedesign {
 	background-color: var(--sc-danger);
 }
 
+.feedback__content {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.scoreHistory__category--feedback,
+.dashboardView__activityLabel--feedback {
+	color: var(--ax-text-meta-purple);
+}
+
+.scoreHistory__category--feedback,
+.scoringView__activityDot--feedback,
+.dashboardView__activityBar--feedback {
+	background-color: var(--ax-text-meta-purple);
+}
+
 .scoreHistory__category--adjustment {
 	color: var(--ax-text-meta-purple);
 	background-color: var(--ax-bg-meta-purple-softA);
@@ -578,6 +594,7 @@ html.hacker .hubRedesign {
 .scoreHistory__entryIcon--delta,
 .scoreHistory__entryIcon--commit,
 .scoreHistory__entryIcon--pullRequest,
+.scoreHistory__entryIcon--feedback,
 .scoreHistory__entryIcon--securityEvent {
 	background: var(--sc-primary-soft);
 	color: var(--sc-primary);

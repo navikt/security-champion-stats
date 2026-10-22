@@ -28,6 +28,7 @@ const CATEGORIES = [
 		color: "securityEvent",
 	},
 	{ key: "POINT_ADJUSTMENT", label: "Admin adj.", color: "adjustment" },
+	{ key: "FEEDBACK", label: "Feedback", color: "feedback" },
 ] as const;
 
 const CREDIT_TYPE_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ const CREDIT_TYPE_LABELS: Record<string, string> = {
 	GITHUB_COMMIT: "GitHub commit",
 	GITHUB_PULL_REQUEST: "GitHub pull request",
 	SECURITY_EVENT_CONTRIBUTION: "Security event contribution",
+	FEEDBACK: "Qualifying feedback",
 	POINT_ADJUSTMENT: "Administrator adjustments",
 };
 

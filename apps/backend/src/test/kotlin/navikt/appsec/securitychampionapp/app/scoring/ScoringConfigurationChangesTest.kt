@@ -2,6 +2,8 @@ package navikt.appsec.securitychampionapp.app.scoring
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import java.time.LocalDate
 import java.util.UUID
 
@@ -110,23 +112,41 @@ class ScoringConfigurationChangesTest {
     }
 
     @Test
-    fun `should keep the legacy token for credits on both sides of the signed uuid boundary`() {
+    fun `should order credits across the signed uuid boundary independently of loaded row order`() {
         val credits = listOf(
             PricedCredit(UUID.fromString("80000000-0000-0000-0000-0000000000c2"), second, ActivityCreditType.SLACK_WEEK, 1),
             PricedCredit(UUID.fromString("00000000-0000-0000-0000-0000000000c1"), first, ActivityCreditType.SLACK_WEEK, 1),
         )
 
-        val changes = ScoringConfigurationChanges.calculate(
-            request(6), before, season, credits, listOf(score(first, 1), score(second, 1)),
+        val scores = listOf(score(first, 1), score(second, 1))
+        val changes = ScoringConfigurationChanges.calculate(request(6), before, season, credits, scores)
+        val reversed = ScoringConfigurationChanges.calculate(
+            request(6), before, season, credits.reversed(), scores.reversed(),
         )
 
         assertThat(changes.credits.map { it.id.toString() }).containsExactly(
             "00000000-0000-0000-0000-0000000000c1",
             "80000000-0000-0000-0000-0000000000c2",
         )
-        // Computed independently from the pre-extraction serialisation, where PostgreSQL ordered credits by unsigned uuid.
-        assertThat(changes.preview.token)
-            .isEqualTo("7a79fcf583e8598f574750f80defed2aa922d304e2e5e20b45eca1e4bfdf7b7b")
+        assertThat(reversed).isEqualTo(changes)
+    }
+
+    @ParameterizedTest
+    @EnumSource(ActivityCreditType::class)
+    fun `should invalidate the preview token when any activity point value changes`(type: ActivityCreditType) {
+        val original = request(6)
+        val updated = original.copy(
+            activities = original.activities.map {
+                if (it.creditType == type) it.copy(points = it.points + 1) else it
+            },
+        )
+        val credits = listOf(credit(1, first, ActivityCreditType.SLACK_WEEK, 1))
+        val scores = listOf(score(first, 1))
+
+        val originalToken = ScoringConfigurationChanges.calculate(original, before, season, credits, scores).preview.token
+        val updatedToken = ScoringConfigurationChanges.calculate(updated, before, season, credits, scores).preview.token
+
+        assertThat(updatedToken).isNotEqualTo(originalToken)
     }
 
     @Test

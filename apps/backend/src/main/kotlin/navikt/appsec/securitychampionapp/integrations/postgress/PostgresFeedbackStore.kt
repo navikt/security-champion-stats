@@ -31,8 +31,12 @@ class PostgresFeedbackStore(private val jdbc: JdbcTemplate) : FeedbackStore {
         )
     }
 
-    private val query = """SELECT f.*, p.fullname, p.nav_no_email, p.status AS participant_status
-        FROM program_feedback f JOIN program_participants p ON p.id = f.submitter_id"""
+    private val query = """SELECT f.*, p.fullname, p.nav_no_email, p.status AS participant_status,
+        coalesce(o.fullname, f.owner_email) AS owner_name, c.points AS awarded_points,
+        EXISTS (SELECT 1 FROM program_feedback_reads r WHERE r.feedback_id = f.id AND r.reader_email = ?) AS read_by_me
+        FROM program_feedback f JOIN program_participants p ON p.id = f.submitter_id
+        LEFT JOIN program_participants o ON o.nav_no_email = f.owner_email
+        LEFT JOIN activity_credits c ON c.id = f.credit_id"""
     private val rowMapper = RowMapper { rs, _ ->
         Feedback(
             id = rs.getObject("id", UUID::class.java),
@@ -45,16 +49,18 @@ class PostgresFeedbackStore(private val jdbc: JdbcTemplate) : FeedbackStore {
             scoreDecision = FeedbackScoreDecision.valueOf(rs.getString("score_decision")),
             creditId = rs.getObject("credit_id", UUID::class.java), version = rs.getLong("version"),
             createdAt = rs.getTimestamp("created_at").toInstant(),
+            ownerName = rs.getString("owner_name"), readByMe = rs.getBoolean("read_by_me"),
+            awardedPoints = rs.getObject("awarded_points", Int::class.javaObjectType),
         )
     }
 
-    override fun find(id: UUID, lock: Boolean): Feedback? = jdbc.query(
-        "$query WHERE f.id = ?" + if (lock) " FOR UPDATE OF f" else "", rowMapper, id,
+    override fun find(id: UUID, lock: Boolean, actorEmail: String?): Feedback? = jdbc.query(
+        "$query WHERE f.id = ?" + if (lock) " FOR UPDATE OF f" else "", rowMapper, actorEmail, id,
     ).singleOrNull()
 
-    override fun search(search: FeedbackSearch, actorEmail: String): List<Feedback> {
+    override fun search(search: FeedbackSearch, actorEmail: String, cursor: FeedbackCursor?): List<Feedback> {
         val conditions = mutableListOf<String>()
-        val args = mutableListOf<Any>()
+        val args = mutableListOf<Any>(actorEmail)
         if (search.query.isNotEmpty()) {
             conditions += """(strpos(lower(f.title || ' ' || f.description || ' ' || p.fullname || ' ' || p.nav_no_email), lower(?)) > 0
                 OR EXISTS (SELECT 1 FROM program_feedback_history h WHERE h.feedback_id = f.id
@@ -63,21 +69,58 @@ class PostgresFeedbackStore(private val jdbc: JdbcTemplate) : FeedbackStore {
             args += search.query
         }
         search.status?.let { conditions += "f.status = ?"; args += it.name }
+        if (search.activeOnly) conditions += "f.status <> 'CLOSED'"
         search.scoreDecision?.let { conditions += "f.score_decision = ?"; args += it.name }
         when (search.owner) {
             "mine" -> { conditions += "f.owner_email = ?"; args += actorEmail }
             "unassigned" -> conditions += "f.owner_email IS NULL"
         }
+        cursor?.let {
+            conditions += "(f.created_at, f.id) < (?, ?)"
+            args += Timestamp.from(it.at)
+            args += it.id
+        }
         val where = if (conditions.isEmpty()) "" else " WHERE ${conditions.joinToString(" AND ")}"
-        args += search.offset
-        return jdbc.query("$query$where ORDER BY f.created_at DESC, f.id DESC LIMIT 26 OFFSET ?", rowMapper, *args.toTypedArray())
+        return jdbc.query("$query$where ORDER BY f.created_at DESC, f.id DESC LIMIT 51", rowMapper, *args.toTypedArray())
+    }
+
+    override fun counts(actorEmail: String): FeedbackCounts = requireNotNull(jdbc.queryForObject(
+        """SELECT count(*) AS total,
+            count(*) FILTER (WHERE f.status <> 'CLOSED') AS active,
+            count(*) FILTER (WHERE f.status = 'OPEN') AS open,
+            count(*) FILTER (WHERE f.status = 'IN_PROGRESS') AS in_progress,
+            count(*) FILTER (WHERE f.status = 'CLOSED') AS resolved,
+            count(*) FILTER (WHERE r.feedback_id IS NULL) AS unread,
+            count(*) FILTER (WHERE f.status <> 'CLOSED' AND f.owner_email IS NULL) AS unassigned,
+            count(*) FILTER (WHERE f.status <> 'CLOSED' AND f.owner_email = ?) AS mine
+            FROM program_feedback f
+            LEFT JOIN program_feedback_reads r ON r.feedback_id = f.id AND r.reader_email = ?""",
+        { rs, _ -> FeedbackCounts(
+            rs.getInt("active"), rs.getInt("open"), rs.getInt("in_progress"), rs.getInt("resolved"),
+            rs.getInt("total"), rs.getInt("unread"), rs.getInt("unassigned"), rs.getInt("mine"),
+        ) }, actorEmail, actorEmail,
+    ))
+
+    override fun markRead(id: UUID, actorEmail: String, at: Instant) {
+        jdbc.update(
+            """INSERT INTO program_feedback_reads(feedback_id, reader_email, read_at) VALUES (?, ?, ?)
+                ON CONFLICT (feedback_id, reader_email) DO NOTHING""",
+            id, actorEmail, Timestamp.from(at),
+        )
     }
 
     override fun history(id: UUID): List<FeedbackHistory> = jdbc.query(
-        "SELECT * FROM program_feedback_history WHERE feedback_id = ? ORDER BY id",
+        """SELECT h.*, coalesce(a.fullname, h.actor_email) AS actor_name,
+            coalesce(o.fullname, h.previous_owner_email) AS previous_owner_name
+            FROM program_feedback_history h
+            LEFT JOIN program_participants a ON a.nav_no_email = h.actor_email
+            LEFT JOIN program_participants o ON o.nav_no_email = h.previous_owner_email
+            WHERE h.feedback_id = ? ORDER BY h.id DESC""",
         { rs, _ -> FeedbackHistory(
             rs.getLong("id"), rs.getString("actor_email"), FeedbackAction.valueOf(rs.getString("action")),
             rs.getString("note"), rs.getString("ticket_url"), rs.getTimestamp("created_at").toInstant(),
+            rs.getString("actor_name"), rs.getString("previous_owner_name"),
+            rs.getString("status")?.let(FeedbackStatus::valueOf),
         ) }, id,
     )
 
@@ -96,7 +139,7 @@ class PostgresFeedbackStore(private val jdbc: JdbcTemplate) : FeedbackStore {
         return id
     }
 
-    override fun update(feedback: Feedback, request: FeedbackActionRequest, actor: String, at: Instant) {
+    override fun update(feedback: Feedback, request: FeedbackActionRequest, actor: String, at: Instant, previousOwner: String?) {
         val updated = jdbc.update(
             """UPDATE program_feedback SET status = ?, owner_email = ?, score_decision = ?, credit_id = ?,
                 version = version + 1 WHERE id = ? AND version = ?""",
@@ -104,9 +147,9 @@ class PostgresFeedbackStore(private val jdbc: JdbcTemplate) : FeedbackStore {
         )
         check(updated == 1) { "Locked feedback changed unexpectedly" }
         jdbc.update(
-            """INSERT INTO program_feedback_history(feedback_id, actor_email, action, note, ticket_url, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)""",
-            feedback.id, actor, request.action.name, request.note, request.ticketUrl, Timestamp.from(at),
+            """INSERT INTO program_feedback_history(feedback_id, actor_email, action, note, ticket_url, created_at, previous_owner_email, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            feedback.id, actor, request.action.name, request.note, request.ticketUrl, Timestamp.from(at), previousOwner, request.status?.name,
         )
     }
 }

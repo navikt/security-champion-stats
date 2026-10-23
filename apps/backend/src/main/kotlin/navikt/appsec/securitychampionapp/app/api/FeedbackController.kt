@@ -24,14 +24,25 @@ class AdminFeedbackController(private val service: FeedbackService) {
     @GetMapping
     fun search(
         @RequestParam(defaultValue = "") q: String,
-        @RequestParam(required = false) status: FeedbackStatus?,
+        @RequestParam(defaultValue = "active") status: String,
         @RequestParam(defaultValue = "all") owner: String,
         @RequestParam(required = false) scoreDecision: FeedbackScoreDecision?,
-        @RequestParam(defaultValue = "0") offset: Int,
-    ) = service.search(FeedbackSearch(q, status, owner, scoreDecision, offset), feedbackActor())
+        @RequestParam(required = false) cursor: String?,
+    ): FeedbackPage {
+        val selectedStatus = when (status) {
+            "active", "all" -> null
+            else -> FeedbackStatus.entries.find { it.name == status }
+                ?: throw FeedbackException(FeedbackFailure.INVALID, "Select a valid feedback status")
+        }
+        return service.search(FeedbackSearch(q, selectedStatus, owner, scoreDecision, cursor, status == "active"), feedbackActor())
+    }
 
     @GetMapping("/{id}")
-    fun detail(@PathVariable id: UUID) = service.detail(id)
+    fun detail(@PathVariable id: UUID) = service.detail(id, feedbackActor())
+
+    @PostMapping("/{id}/read")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun markRead(@PathVariable id: UUID) = service.markRead(id, feedbackActor())
 
     @PostMapping("/{id}/actions")
     fun act(@PathVariable id: UUID, @RequestBody request: FeedbackActionRequest) = service.act(id, feedbackActor(), request)

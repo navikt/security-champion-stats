@@ -68,6 +68,7 @@ class FeedbackControllerTest {
         mvc.perform(get("/api/admin/feedback/$id")).andExpect(status().isForbidden)
         mvc.perform(post("/api/admin/feedback/$id/actions").contentType(MediaType.APPLICATION_JSON).content("{}"))
             .andExpect(status().isForbidden)
+        mvc.perform(post("/api/admin/feedback/$id/read")).andExpect(status().isForbidden)
         mvc.perform(get("/api/feedback")).andExpect(status().isMethodNotAllowed)
         verifyNoInteractions(service)
     }
@@ -91,7 +92,7 @@ class FeedbackControllerTest {
     @Test
     fun `administrators can search and conflicts use problem details`() {
         authenticate("ADMIN")
-        whenever(service.search(FeedbackSearch(query = "menu", owner = "mine"), "user@nav.no"))
+        whenever(service.search(FeedbackSearch(query = "menu", owner = "mine", activeOnly = true), "user@nav.no"))
             .thenReturn(FeedbackPage(emptyList(), null, "user@nav.no"))
         mvc.perform(get("/api/admin/feedback").param("q", "menu").param("owner", "mine"))
             .andExpect(status().isOk).andExpect(jsonPath("$.items").isEmpty)
@@ -103,5 +104,15 @@ class FeedbackControllerTest {
             .andExpect(status().isConflict)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.detail").value("The feedback changed. Reload it before continuing"))
+    }
+
+    @Test
+    fun `read state uses authenticated identity and invalid filters return problem details`() {
+        authenticate("ADMIN")
+        mvc.perform(post("/api/admin/feedback/$id/read")).andExpect(status().isNoContent)
+        org.mockito.kotlin.verify(service).markRead(id, "user@nav.no")
+        mvc.perform(get("/api/admin/feedback").param("status", "invalid"))
+            .andExpect(status().isBadRequest)
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
     }
 }

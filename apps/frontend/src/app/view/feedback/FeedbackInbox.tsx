@@ -1,437 +1,630 @@
 "use client";
 
-import { Button, Select, Textarea, TextField, VStack } from "@navikt/ds-react";
-import { type FormEvent, useEffect, useState } from "react";
+import { ArrowCirclepathIcon } from "@navikt/aksel-icons";
+import {
+	BodyShort,
+	Button,
+	Heading,
+	Select,
+	Skeleton,
+	TextField,
+	ToggleGroup,
+} from "@navikt/ds-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useMe } from "@/app/shared/hooks/UseMe";
 import {
 	type Feedback,
-	type FeedbackAction,
 	FeedbackApi,
+	type FeedbackCounts,
 	type FeedbackPage,
 } from "./FeedbackApi";
+import { FeedbackDetail } from "./FeedbackDetail";
+import {
+	ownerLabel,
+	receivedLabel,
+	scoreLabels,
+	statusLabels,
+} from "./FeedbackPresentation";
+import "@/app/style/feedback/FeedbackInbox.css";
 
-const statusLabels = {
-	OPEN: "Open",
-	IN_PROGRESS: "In progress",
-	CLOSED: "Closed",
-};
-const scoreLabels = {
-	PENDING: "Not assessed",
-	QUALIFIED: "Qualified",
-	NOT_QUALIFIED: "Does not qualify",
-};
-const actionLabels: Record<FeedbackAction, string> = {
-	CLAIM: "Take ownership",
-	RELEASE: "Release ownership",
-	NOTE: "Add internal note",
-	INTERNAL_DISCUSSION: "Record internal discussion",
-	EXTERNAL_TICKET: "Record external ticket",
-	CONTACT_SUBMITTER: "Record contact with submitter",
-	CLOSE: "Close feedback",
-	REOPEN: "Reopen feedback",
-	QUALIFY: "Qualify and award feedback credit",
-	DECLINE: "Mark as not qualifying",
-};
-const dateTime = new Intl.DateTimeFormat("en-GB", {
-	dateStyle: "medium",
-	timeStyle: "short",
-	timeZone: "Europe/Oslo",
-});
+const BASE_PATH = "/appsec/feedback";
+const statusFilters: {
+	value: string;
+	label: string;
+	count: keyof FeedbackCounts;
+}[] = [
+	{ value: "active", label: "Active", count: "active" },
+	{ value: "OPEN", label: "Open", count: "open" },
+	{ value: "IN_PROGRESS", label: "In progress", count: "inProgress" },
+	{ value: "CLOSED", label: "Resolved", count: "resolved" },
+	{ value: "all", label: "All", count: "all" },
+];
 
-function FeedbackDetail({
-	id,
-	actor,
-	onUpdated,
-}: {
-	id: string;
-	actor: string;
-	onUpdated: () => void;
-}) {
-	const [feedback, setFeedback] = useState<Feedback | null>(null);
-	const [attempt, setAttempt] = useState(0);
-	const [busy, setBusy] = useState(false);
-	const [error, setError] = useState("");
-	const [message, setMessage] = useState("");
-	const [action, setAction] = useState<FeedbackAction>("NOTE");
-	const [note, setNote] = useState("");
-	const [ticketUrl, setTicketUrl] = useState("");
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt triggers an explicit reload.
-	useEffect(() => {
-		let current = true;
-		setFeedback(null);
-		setError("");
-		setMessage("");
-		setAction("NOTE");
-		FeedbackApi.detail(id)
-			.then((result) => {
-				if (current) setFeedback(result);
-			})
-			.catch((error: unknown) => {
-				console.error("Failed to load feedback", error);
-				if (current)
-					setError(
-						error instanceof Error
-							? error.message
-							: "The feedback could not be loaded.",
-					);
-			});
-		return () => {
-			current = false;
-		};
-	}, [id, attempt]);
-
-	async function act(nextAction: FeedbackAction) {
-		if (!feedback || busy) return;
-		setError("");
-		setMessage("");
-		if (
-			!["CLAIM", "RELEASE", "REOPEN"].includes(nextAction) &&
-			(note.trim().length < 1 || note.trim().length > 3000)
-		) {
-			setError("Provide a note of up to 3000 characters.");
-			return;
-		}
-		setBusy(true);
-		try {
-			const result = await FeedbackApi.act(
-				feedback,
-				nextAction,
-				["CLAIM", "RELEASE", "REOPEN"].includes(nextAction) ? "" : note,
-				nextAction === "EXTERNAL_TICKET" ? ticketUrl : undefined,
-			);
-			setFeedback(result);
-			setNote("");
-			setTicketUrl("");
-			setAction("NOTE");
-			setMessage("The action has been saved.");
-			onUpdated();
-		} catch (error) {
-			console.error("Feedback action failed", error);
-			setError(
-				error instanceof Error
-					? error.message
-					: "The action could not be saved.",
-			);
-		} finally {
-			setBusy(false);
-		}
-	}
-
-	const owned =
-		feedback?.ownerEmail === actor && feedback.status === "IN_PROGRESS";
-	const actions: FeedbackAction[] = [
-		"NOTE",
-		"INTERNAL_DISCUSSION",
-		"EXTERNAL_TICKET",
-		"CONTACT_SUBMITTER",
-		"CLOSE",
-	];
-	if (feedback?.scoreDecision === "PENDING") {
-		if (
-			feedback.submitterActive &&
-			feedback.submitterEmail.toLowerCase() !== actor.toLowerCase()
-		)
-			actions.push("QUALIFY");
-		actions.push("DECLINE");
-	}
-	return (
-		<VStack
-			as="section"
-			gap="space-16"
-			aria-label="Selected feedback"
-			aria-busy={busy}
-		>
-			<Button
-				variant="secondary"
-				disabled={busy}
-				onClick={() => setAttempt((value) => value + 1)}
-			>
-				Reload feedback
-			</Button>
-			{error && <p role="alert">{error}</p>}
-			{message && <p role="status">{message}</p>}
-			{!feedback && !error && <p role="status">Loading feedback...</p>}
-			{feedback && (
-				<>
-					<h2>{feedback.title}</h2>
-					<p>
-						From {feedback.submitterName} ({feedback.submitterEmail}) on{" "}
-						{dateTime.format(new Date(feedback.createdAt))}
-					</p>
-					<p className="feedback__content">{feedback.description}</p>
-					<p>
-						Status: {statusLabels[feedback.status]} | Owner:{" "}
-						{feedback.ownerEmail ?? "Unassigned"} | Scoring:{" "}
-						{scoreLabels[feedback.scoreDecision]}
-					</p>
-					{feedback.status === "OPEN" && (
-						<Button disabled={busy} onClick={() => act("CLAIM")}>
-							Take ownership
-						</Button>
-					)}
-					{feedback.status === "CLOSED" && (
-						<Button disabled={busy} onClick={() => act("REOPEN")}>
-							Reopen feedback
-						</Button>
-					)}
-					{owned && (
-						<>
-							<Button
-								variant="secondary"
-								disabled={busy}
-								onClick={() => act("RELEASE")}
-							>
-								Release ownership
-							</Button>
-							<VStack
-								as="form"
-								gap="space-16"
-								noValidate
-								onSubmit={(event: FormEvent) => {
-									event.preventDefault();
-									void act(action);
-								}}
-							>
-								<Select
-									label="Follow-up action"
-									value={action}
-									disabled={busy}
-									onChange={(event) => {
-										const selected = actions.find(
-											(value) => value === event.target.value,
-										);
-										if (selected) setAction(selected);
-									}}
-								>
-									{actions.map((value) => (
-										<option key={value} value={value}>
-											{actionLabels[value]}
-										</option>
-									))}
-								</Select>
-								<Textarea
-									label="Internal note"
-									description="Only administrators can read this note. Record what happened; this does not send messages or create tickets."
-									value={note}
-									maxLength={3000}
-									aria-required
-									readOnly={busy}
-									onChange={(event) => setNote(event.target.value)}
-								/>
-								{action === "EXTERNAL_TICKET" && (
-									<TextField
-										label="Ticket URL"
-										type="url"
-										aria-required
-										maxLength={1000}
-										value={ticketUrl}
-										readOnly={busy}
-										onChange={(event) => setTicketUrl(event.target.value)}
-									/>
-								)}
-								<Button type="submit" loading={busy} disabled={busy}>
-									Save action
-								</Button>
-							</VStack>
-						</>
-					)}
-					<h3>Handling history</h3>
-					{feedback.history.length === 0 ? (
-						<p>No actions recorded. Reading feedback does not claim it.</p>
-					) : (
-						<ol>
-							{feedback.history.map((entry) => (
-								<li key={entry.id}>
-									<p>
-										{actionLabels[entry.action]} |{" "}
-										{entry.actorEmail ?? "Deleted administrator"} |{" "}
-										{dateTime.format(new Date(entry.createdAt))}
-									</p>
-									{entry.note && (
-										<p className="feedback__content">{entry.note}</p>
-									)}
-									{entry.ticketUrl && (
-										<a href={entry.ticketUrl} target="_blank" rel="noreferrer">
-											Open external ticket
-										</a>
-									)}
-								</li>
-							))}
-						</ol>
-					)}
-				</>
-			)}
-		</VStack>
+function updateUrl(params: URLSearchParams, id: string | null, push = false) {
+	const path = id ? `${BASE_PATH}/${encodeURIComponent(id)}` : BASE_PATH;
+	const query = params.toString();
+	window.history[push ? "pushState" : "replaceState"](
+		null,
+		"",
+		`${path}${query ? `?${query}` : ""}`,
 	);
 }
 
-export function FeedbackInbox() {
+function Inbox() {
 	const { me, loading } = useMe();
-	const [query, setQuery] = useState("");
-	const [status, setStatus] = useState("");
-	const [owner, setOwner] = useState("all");
-	const [score, setScore] = useState("");
-	const [params, setParams] = useState(() => new URLSearchParams());
+	const searchParams = useSearchParams();
+	const pathname = usePathname();
+	const selected = pathname.startsWith(`${BASE_PATH}/`)
+		? pathname.slice(BASE_PATH.length + 1)
+		: null;
+	const params = new URLSearchParams();
+	params.set("status", searchParams.get("status") ?? "active");
+	params.set("owner", searchParams.get("owner") ?? "all");
+	if (searchParams.get("q")) params.set("q", searchParams.get("q") ?? "");
+	if (searchParams.get("scoreDecision"))
+		params.set("scoreDecision", searchParams.get("scoreDecision") ?? "");
+	const filterKey = params.toString();
+	const [query, setQuery] = useState(searchParams.get("q") ?? "");
+	const urlQuery = searchParams.get("q") ?? "";
 	const [page, setPage] = useState<FeedbackPage | null>(null);
-	const [selected, setSelected] = useState<string | null>(null);
+	const [pageKey, setPageKey] = useState("");
 	const [error, setError] = useState("");
 	const [attempt, setAttempt] = useState(0);
 	const [fetching, setFetching] = useState(false);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: attempt refreshes the inbox after a saved action or retry.
+	const [loadingMore, setLoadingMore] = useState(false);
+	const [updated, setUpdated] = useState(false);
+	const searchRef = useRef<HTMLInputElement>(null);
+	const listRef = useRef<HTMLDivElement>(null);
+	const moreRef = useRef<HTMLButtonElement>(null);
+	const loadedLimit = useRef(50);
+	const previousKey = useRef(filterKey);
+	const latestSelection = useRef(selected);
+	latestSelection.current = selected;
+	const latestParams = useRef(filterKey);
+	latestParams.current = filterKey;
+	const initialDeepLink = useRef(selected);
+	const pageRequest = useRef(0);
+	const paginationController = useRef<AbortController | null>(null);
+	const pageCurrent = pageKey === filterKey;
+
+	useEffect(() => {
+		setQuery(urlQuery);
+	}, [urlQuery]);
+
+	useEffect(() => {
+		if (query === urlQuery) return;
+		const timeout = window.setTimeout(() => {
+			const next = new URLSearchParams(latestParams.current);
+			if (query.trim()) next.set("q", query.trim());
+			else next.delete("q");
+			updateUrl(next, latestSelection.current);
+		}, 250);
+		return () => window.clearTimeout(timeout);
+	}, [query, urlQuery]);
+
+	const refresh = useCallback(() => {
+		setAttempt((value) => value + 1);
+	}, []);
+
 	useEffect(() => {
 		if (loading || !me.isAdmin) return;
-		let current = true;
-		setFetching(true);
-		setError("");
-		FeedbackApi.search(params)
-			.then((result) => {
-				if (current) setPage(result);
-			})
-			.catch((error: unknown) => {
-				console.error("Feedback search failed", error);
-				if (current)
-					setError(
-						error instanceof Error
-							? error.message
-							: "Feedback could not be loaded.",
-					);
-			})
-			.finally(() => {
-				if (current) setFetching(false);
-			});
-		return () => {
-			current = false;
-		};
-	}, [loading, me.isAdmin, params, attempt]);
+		const interval = window.setInterval(refresh, 60_000);
+		return () => window.clearInterval(interval);
+	}, [loading, me.isAdmin, refresh]);
 
-	function search(event: FormEvent) {
-		event.preventDefault();
-		const next = new URLSearchParams({ q: query, owner });
-		if (status) next.set("status", status);
-		if (score) next.set("scoreDecision", score);
-		setParams(next);
+	useEffect(() => {
+		if (loading || !me.isAdmin) return;
+		const controller = new AbortController();
+		const generation = ++pageRequest.current;
+		paginationController.current?.abort();
+		paginationController.current = null;
+		if (previousKey.current !== filterKey) {
+			loadedLimit.current = 50;
+			initialDeepLink.current = null;
+		}
+		previousKey.current = filterKey;
+		setFetching(true);
+		setLoadingMore(false);
+		setError("");
+		async function load() {
+			try {
+				let result: FeedbackPage;
+				const items: Feedback[] = [];
+				const next = new URLSearchParams(filterKey);
+				do {
+					result = await FeedbackApi.search(next, controller.signal);
+					items.push(...result.items);
+					if (result.nextCursor) next.set("cursor", result.nextCursor);
+				} while (
+					result.nextCursor &&
+					(items.length < loadedLimit.current ||
+						(latestSelection.current &&
+							!initialDeepLink.current &&
+							!items.some((item) => item.id === latestSelection.current)))
+				);
+				if (controller.signal.aborted || generation !== pageRequest.current)
+					return;
+				setPage({ ...result, items });
+				loadedLimit.current = Math.max(50, Math.ceil(items.length / 50) * 50);
+				setPageKey(filterKey);
+				const id = latestSelection.current;
+				if (
+					!items.some((item) => item.id === id) &&
+					!(initialDeepLink.current && initialDeepLink.current === id)
+				) {
+					updateUrl(new URLSearchParams(filterKey), items[0]?.id ?? null);
+				}
+				if (attempt > 0) setUpdated(true);
+			} catch (cause) {
+				if (controller.signal.aborted || generation !== pageRequest.current)
+					return;
+				console.error("Failed to load feedback inbox", cause);
+				setError(
+					cause instanceof Error
+						? cause.message
+						: "The inbox could not be loaded.",
+				);
+			} finally {
+				if (!controller.signal.aborted && generation === pageRequest.current)
+					setFetching(false);
+			}
+		}
+		void load();
+		return () => {
+			controller.abort();
+			paginationController.current?.abort();
+		};
+	}, [loading, me.isAdmin, filterKey, attempt]);
+
+	useEffect(() => {
+		if (!updated) return;
+		const timeout = window.setTimeout(() => setUpdated(false), 4000);
+		return () => window.clearTimeout(timeout);
+	}, [updated]);
+
+	const loadMore = useCallback(async () => {
+		if (
+			!page?.nextCursor ||
+			loadingMore ||
+			fetching ||
+			!pageCurrent ||
+			paginationController.current
+		)
+			return;
+		const generation = pageRequest.current;
+		const controller = new AbortController();
+		paginationController.current = controller;
+		setLoadingMore(true);
+		setError("");
+		try {
+			const next = new URLSearchParams(filterKey);
+			next.set("cursor", page.nextCursor);
+			const result = await FeedbackApi.search(next, controller.signal);
+			if (controller.signal.aborted || generation !== pageRequest.current)
+				return;
+			setPage((current) =>
+				current
+					? {
+							...result,
+							items: [
+								...current.items,
+								...result.items.filter(
+									(item) =>
+										!current.items.some((existing) => existing.id === item.id),
+								),
+							],
+						}
+					: result,
+			);
+			loadedLimit.current += 50;
+		} catch (cause) {
+			if (controller.signal.aborted || generation !== pageRequest.current)
+				return;
+			console.error("Failed to load more feedback", cause);
+			setError(
+				cause instanceof Error
+					? cause.message
+					: "More feedback could not be loaded.",
+			);
+		} finally {
+			if (paginationController.current === controller) {
+				paginationController.current = null;
+				if (!controller.signal.aborted && generation === pageRequest.current)
+					setLoadingMore(false);
+			}
+		}
+	}, [page, loadingMore, fetching, pageCurrent, filterKey]);
+
+	useEffect(() => {
+		if (
+			error ||
+			!moreRef.current ||
+			!page?.nextCursor ||
+			!window.IntersectionObserver
+		)
+			return;
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+			},
+			{ root: listRef.current },
+		);
+		observer.observe(moreRef.current);
+		return () => observer.disconnect();
+	}, [loadMore, page?.nextCursor, error]);
+
+	function filter(name: string, value: string) {
+		const next = new URLSearchParams(filterKey);
+		if (value) next.set(name, value);
+		else next.delete(name);
+		initialDeepLink.current = null;
+		updateUrl(next, selected);
 	}
-	function paginate(offset: number) {
-		const next = new URLSearchParams(params);
-		next.set("offset", String(offset));
-		setParams(next);
-	}
+	const select = useCallback((id: string) => {
+		initialDeepLink.current = null;
+		updateUrl(new URLSearchParams(latestParams.current), id, true);
+	}, []);
+	const move = useCallback(
+		(direction: number, focus = false) => {
+			if (!pageCurrent || !page?.items.length) return;
+			const index = page.items.findIndex((item) => item.id === selected);
+			const next =
+				page.items[
+					Math.max(0, Math.min(page.items.length - 1, index + direction))
+				];
+			select(next.id);
+			if (focus) document.getElementById(`feedback-${next.id}`)?.focus();
+			document
+				.getElementById(`feedback-${next.id}`)
+				?.scrollIntoView?.({ block: "nearest" });
+		},
+		[page, selected, pageCurrent, select],
+	);
+
+	useEffect(() => {
+		function keydown(event: KeyboardEvent) {
+			if (
+				event.defaultPrevented ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.altKey
+			)
+				return;
+			const target = event.target;
+			if (
+				target instanceof HTMLElement &&
+				target.closest("input, textarea, select, [contenteditable='true']")
+			) {
+				if (event.key === "Escape") target.blur();
+				return;
+			}
+		}
+		document.addEventListener("keydown", keydown);
+		return () => document.removeEventListener("keydown", keydown);
+	}, []);
+
+	const opened = useCallback((id: string, wasUnread: boolean) => {
+		setPage((current) => {
+			if (!current) return current;
+			const item = current.items.find((item) => item.id === id);
+			const unread = item ? !item.readByMe : wasUnread;
+			return {
+				...current,
+				items: current.items.map((item) =>
+					item.id === id ? { ...item, readByMe: true } : item,
+				),
+				counts: {
+					...current.counts,
+					unread: Math.max(0, current.counts.unread - (unread ? 1 : 0)),
+				},
+			};
+		});
+	}, []);
+	const changed = useCallback(
+		(feedback: Feedback) => {
+			setPage((current) =>
+				current
+					? {
+							...current,
+							items: current.items.map((item) =>
+								item.id === feedback.id ? feedback : item,
+							),
+						}
+					: current,
+			);
+			initialDeepLink.current = null;
+			refresh();
+		},
+		[refresh],
+	);
 
 	if (loading) return <p role="status">Loading...</p>;
 	if (!me.isAdmin) return <p>Administrator access is required.</p>;
-	const offset = Number(params.get("offset") ?? 0);
+	const counts = page?.counts;
+	const items = pageCurrent ? (page?.items ?? []) : [];
+	const index = items.findIndex((item) => item.id === selected);
+
 	return (
-		<VStack gap="space-24">
-			<h1>Feedback inbox</h1>
-			<p>
-				Read without claiming, or take ownership to follow up. Scoring and
-				handling are independent.
-			</p>
-			<VStack as="form" gap="space-16" onSubmit={search}>
-				<TextField
-					label="Search feedback"
-					description="Search submissions, submitters, internal notes, or ticket URLs."
-					value={query}
-					maxLength={200}
-					onChange={(event) => setQuery(event.target.value)}
-				/>
+		<div className="hubRedesign feedbackInbox">
+			<div className="feedbackInbox__header">
+				<header className="hubRedesign__header">
+					<BodyShort size="small" className="hubRedesign__eyebrow">
+						Admin only
+					</BodyShort>
+					<Heading level="1" size="large">
+						Feedback inbox
+					</Heading>
+					<BodyShort>
+						Read without claiming, or take ownership to follow up. Scoring and
+						handling are independent.
+					</BodyShort>
+				</header>
+				<dl className="feedbackInbox__counters">
+					{(["unread", "unassigned", "mine"] as const).map((key) => (
+						<div
+							key={key}
+							className={`hubRedesign__stat feedbackInbox__counter--${key}`}
+							data-attention={
+								(key === "unassigned" && (counts?.unassigned ?? 0) > 0) ||
+								undefined
+							}
+						>
+							<dt className="hubRedesign__statLabel">
+								{key === "unread"
+									? "Unread"
+									: key === "mine"
+										? "Mine"
+										: "Unassigned"}
+							</dt>
+							<dd className="hubRedesign__statValue">{counts?.[key] ?? "–"}</dd>
+						</div>
+					))}
+				</dl>
+			</div>
+			<section className="feedbackInbox__toolbar" aria-label="Inbox filters">
+				<div className="feedbackInbox__search">
+					<TextField
+						ref={searchRef}
+						label="Search feedback"
+						size="small"
+						hideLabel
+						placeholder="Search feedback"
+						maxLength={200}
+						value={query}
+						onChange={(event) => setQuery(event.target.value)}
+					/>
+					{query && (
+						<Button
+							size="xsmall"
+							variant="tertiary"
+							onClick={() => setQuery("")}
+						>
+							Clear
+						</Button>
+					)}
+				</div>
+				<div className="feedbackInbox__statusFilter">
+					<ToggleGroup
+						size="small"
+						aria-label="Status"
+						aria-controls="feedback-list"
+						value={params.get("status") ?? "active"}
+						onChange={(value) => filter("status", value)}
+					>
+						{statusFilters.map(({ value, label, count }) => (
+							<ToggleGroup.Item
+								key={value}
+								value={value}
+								label={`${label} ${counts?.[count] ?? "–"}`}
+							/>
+						))}
+					</ToggleGroup>
+				</div>
 				<Select
-					label="Status"
-					value={status}
-					onChange={(event) => setStatus(event.target.value)}
+					label="Status filter"
+					size="small"
+					className="feedbackInbox__mobileStatus"
+					value={params.get("status") ?? "active"}
+					onChange={(event) => filter("status", event.target.value)}
 				>
-					<option value="">All statuses</option>
-					{Object.entries(statusLabels).map(([value, label]) => (
+					{statusFilters.map(({ value, label, count }) => (
 						<option key={value} value={value}>
-							{label}
+							{label} {counts?.[count] ?? "–"}
 						</option>
 					))}
 				</Select>
 				<Select
-					label="Owner"
-					value={owner}
-					onChange={(event) => setOwner(event.target.value)}
+					label="Owner filter"
+					hideLabel
+					size="small"
+					value={params.get("owner") ?? "all"}
+					onChange={(event) => filter("owner", event.target.value)}
 				>
 					<option value="all">All owners</option>
 					<option value="mine">Assigned to me</option>
 					<option value="unassigned">Unassigned</option>
 				</Select>
 				<Select
-					label="Scoring decision"
-					value={score}
-					onChange={(event) => setScore(event.target.value)}
+					label="Scoring filter"
+					hideLabel
+					size="small"
+					value={params.get("scoreDecision") ?? ""}
+					onChange={(event) => filter("scoreDecision", event.target.value)}
 				>
-					<option value="">All decisions</option>
+					<option value="">All scoring</option>
 					{Object.entries(scoreLabels).map(([value, label]) => (
 						<option key={value} value={value}>
 							{label}
 						</option>
 					))}
 				</Select>
-				<Button type="submit" loading={fetching}>
-					Search
-				</Button>
-			</VStack>
-			{error && <p role="alert">{error}</p>}
-			<Button
-				variant="secondary"
-				disabled={fetching}
-				onClick={() => setAttempt((value) => value + 1)}
-			>
-				Refresh inbox
-			</Button>
-			{fetching && <p role="status">Loading feedback...</p>}
-			{!fetching && !error && page?.items.length === 0 && (
-				<p>No feedback matches your search.</p>
-			)}
-			{!fetching && !error && page && (
-				<>
-					<ul>
-						{page.items.map((feedback) => (
-							<li key={feedback.id}>
-								<Button
-									variant="tertiary"
-									aria-pressed={selected === feedback.id}
-									onClick={() => setSelected(feedback.id)}
-								>
-									{feedback.title}
-								</Button>
-								<p>
-									{feedback.submitterName} | {statusLabels[feedback.status]} |{" "}
-									{feedback.ownerEmail ?? "Unassigned"} |{" "}
-									{scoreLabels[feedback.scoreDecision]} |{" "}
-									{dateTime.format(new Date(feedback.createdAt))}
-								</p>
-							</li>
-						))}
-					</ul>
-					{offset > 0 && (
-						<Button
-							variant="secondary"
-							onClick={() => paginate(Math.max(0, offset - 25))}
-						>
-							Previous page
-						</Button>
-					)}
-					{page.nextOffset !== null && (
-						<Button
-							variant="secondary"
-							onClick={() => paginate(page.nextOffset ?? 0)}
-						>
-							Next page
-						</Button>
-					)}
-				</>
-			)}
-			{selected && page && (
-				<FeedbackDetail
-					key={selected}
-					id={selected}
-					actor={page.actorEmail}
-					onUpdated={() => setAttempt((value) => value + 1)}
+				<Button
+					size="small"
+					variant="secondary"
+					icon={<ArrowCirclepathIcon aria-hidden />}
+					title="Refresh inbox"
+					aria-label="Refresh inbox"
+					loading={fetching}
+					onClick={refresh}
 				/>
+			</section>
+			{error && (
+				<div
+					className="hubRedesign__attention hubRedesign__attention--danger"
+					role="alert"
+				>
+					{error}{" "}
+					<Button size="small" variant="tertiary" onClick={refresh}>
+						Retry inbox
+					</Button>
+				</div>
 			)}
-		</VStack>
+			<div className="feedbackInbox__panes">
+				<section
+					className="hubRedesign__card feedbackInbox__listPane"
+					aria-label="Feedback list"
+				>
+					<div className="feedbackInbox__listHeader">
+						<span>
+							{items.length} items
+							{pageCurrent && page?.nextCursor ? " loaded" : ""}
+						</span>
+						<span role="status">
+							{updated ? "Updated just now" : "Focus a row: j / k to move"}
+						</span>
+					</div>
+					<div ref={listRef} className="feedbackInbox__scroll">
+						{fetching && !pageCurrent && (
+							<div role="status" aria-label="Loading feedback">
+								{[0, 1, 2, 3, 4, 5].map((key) => (
+									<div key={key} className="feedbackInbox__skeleton">
+										<Skeleton variant="text" width="80%" />
+										<Skeleton variant="text" width="60%" />
+										<Skeleton variant="text" />
+									</div>
+								))}
+							</div>
+						)}
+						{!fetching && !error && items.length === 0 && (
+							<p className="feedbackInbox__empty">
+								No feedback matches these filters.
+							</p>
+						)}
+						<div
+							id="feedback-list"
+							role="listbox"
+							aria-label="Feedback"
+							aria-busy={fetching}
+						>
+							{items.map((feedback) => (
+								<button
+									key={feedback.id}
+									id={`feedback-${feedback.id}`}
+									type="button"
+									role="option"
+									aria-selected={selected === feedback.id}
+									aria-label={`${feedback.readByMe ? "" : "Unread: "}${feedback.title}, ${feedback.submitterName}, ${statusLabels[feedback.status]}, ${ownerLabel(feedback, page?.actorEmail ?? "")}, ${scoreLabels[feedback.scoreDecision]}`}
+									tabIndex={
+										selected === feedback.id ||
+										(index < 0 && feedback.id === items[0]?.id)
+											? 0
+											: -1
+									}
+									className={`feedbackInbox__row${feedback.readByMe ? "" : " feedbackInbox__row--unread"}`}
+									onClick={() => select(feedback.id)}
+									onKeyDown={(event) => {
+										if (event.metaKey || event.ctrlKey || event.altKey) return;
+										if (event.key === "/") {
+											event.preventDefault();
+											searchRef.current?.focus();
+										} else if (
+											["ArrowDown", "ArrowUp", "j", "k"].includes(event.key)
+										) {
+											event.preventDefault();
+											move(
+												event.key === "ArrowDown" || event.key === "j" ? 1 : -1,
+												true,
+											);
+										}
+									}}
+								>
+									<span className="feedbackInbox__unreadDot" aria-hidden />
+									<span className="feedbackInbox__rowContent">
+										<span className="feedbackInbox__subject">
+											{feedback.title}
+										</span>
+										<span>{feedback.submitterName}</span>
+										<span className="hubRedesign__muted">
+											{feedback.description.replace(/\s+/g, " ").slice(0, 160)}
+										</span>
+										<span className="feedbackInbox__meta">
+											<span
+												className={`feedbackInbox__status--${feedback.status}`}
+											>
+												{statusLabels[feedback.status]}
+											</span>
+											{" · "}
+											{
+												ownerLabel(feedback, page?.actorEmail ?? "").split(
+													" ",
+												)[0]
+											}
+											{" · "}
+											<span
+												className={`feedbackInbox__score--${feedback.scoreDecision}`}
+											>
+												{scoreLabels[feedback.scoreDecision]}
+											</span>
+										</span>
+									</span>
+									<time
+										dateTime={feedback.createdAt}
+										className="feedbackInbox__received"
+									>
+										{receivedLabel(feedback.createdAt)}
+									</time>
+								</button>
+							))}
+						</div>
+						{pageCurrent && page?.nextCursor && (
+							<div className="feedbackInbox__more">
+								<Button
+									ref={moreRef}
+									size="small"
+									variant="tertiary"
+									loading={loadingMore}
+									disabled={fetching || loadingMore}
+									onClick={() => void loadMore()}
+								>
+									Load more feedback
+								</Button>
+							</div>
+						)}
+					</div>
+				</section>
+				{selected && (
+					<FeedbackDetail
+						key={selected}
+						id={selected}
+						actor={page?.actorEmail ?? me.username}
+						refreshKey={attempt}
+						onUpdated={changed}
+						onOpened={opened}
+						onMove={move}
+						hasPrevious={index > 0}
+						hasNext={index >= 0 && index < items.length - 1}
+					/>
+				)}
+			</div>
+		</div>
+	);
+}
+
+export function FeedbackInbox() {
+	return (
+		<Suspense fallback={<p role="status">Loading feedback inbox...</p>}>
+			<Inbox />
+		</Suspense>
 	);
 }

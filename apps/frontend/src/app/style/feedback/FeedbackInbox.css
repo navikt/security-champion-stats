@@ -1,0 +1,445 @@
+.feedbackInbox p,
+.feedbackInbox dl,
+.feedbackInbox dd {
+	margin: 0;
+}
+
+.feedbackInbox__header,
+.feedbackInbox__toolbar,
+.feedbackInbox__panes,
+.feedbackInbox__subjectHeader,
+.feedbackInbox__actions,
+.feedbackInbox__from,
+.feedbackInbox__composerFooter,
+.feedbackInbox__ownershipHint {
+	display: flex;
+	align-items: center;
+	gap: var(--sc-space-3);
+}
+
+.feedbackInbox__header {
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: var(--sc-space-6);
+}
+
+.feedbackInbox__counters {
+	display: flex;
+	flex-shrink: 0;
+	gap: var(--sc-space-6);
+}
+
+.feedbackInbox__counters dt,
+.feedbackInbox__propertyLabel,
+.feedbackInbox__received,
+.feedbackInbox__meta,
+.feedbackInbox__listHeader,
+.feedbackInbox__from,
+.feedbackInbox small {
+	font-size: 0.875rem;
+}
+
+.feedbackInbox__counters dd {
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+
+.feedbackInbox__counter--unread dd,
+.feedbackInbox__status--OPEN {
+	color: var(--hub-info);
+}
+
+.feedbackInbox__counter--unassigned[data-attention] dd,
+.feedbackInbox__status--IN_PROGRESS {
+	color: var(--hub-warning);
+}
+
+.feedbackInbox__status--CLOSED,
+.feedbackInbox__score--QUALIFIED {
+	color: var(--hub-accent);
+}
+
+.feedbackInbox__score--PENDING,
+.feedbackInbox__score--NOT_QUALIFIED {
+	color: var(--hub-text-secondary);
+}
+
+.feedbackInbox__toolbar {
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.feedbackInbox__search {
+	display: flex;
+	flex: 1 1 15rem;
+	min-width: 0;
+	align-items: center;
+	gap: var(--sc-space-1);
+}
+
+.feedbackInbox__search > :first-child {
+	flex: 1;
+}
+
+.feedbackInbox__mobileStatus {
+	display: none;
+}
+
+.feedbackInbox__panes {
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: var(--sc-space-4);
+}
+
+.feedbackInbox__listPane {
+	flex: 1 1 20rem;
+	max-width: 26.25rem;
+	min-width: min(100%, 20rem);
+	overflow: hidden;
+}
+
+.feedbackInbox__detail {
+	flex: 999 1 27.5rem;
+	min-width: min(100%, 27.5rem);
+	overflow: hidden;
+}
+
+.feedbackInbox__listHeader {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--sc-space-2);
+	padding: var(--sc-space-3) var(--sc-space-4);
+	color: var(--hub-text-muted);
+	border-bottom: 1px solid var(--hub-border);
+}
+
+.feedbackInbox__scroll {
+	max-height: calc(100vh - 18rem);
+	min-height: 18.75rem;
+	overflow-y: auto;
+}
+
+.feedbackInbox__row {
+	display: grid;
+	grid-template-columns: var(--sc-space-2) minmax(0, 1fr) auto;
+	align-items: start;
+	gap: var(--sc-space-2);
+	width: 100%;
+	padding: var(--sc-space-3);
+	border: 0;
+	border-left: var(--sc-space-1) solid transparent;
+	border-bottom: 1px solid var(--hub-border-subtle);
+	background: transparent;
+	color: var(--hub-text);
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+}
+
+.feedbackInbox__row:hover {
+	background: var(--hub-hover);
+}
+
+.feedbackInbox__row[aria-selected="true"] {
+	border-left-color: var(--hub-accent);
+	background: var(--hub-inset);
+}
+
+.feedbackInbox__row:focus-visible {
+	outline: 2px solid var(--sc-focus);
+	outline-offset: -2px;
+}
+
+.feedbackInbox__unreadDot {
+	width: var(--sc-space-2);
+	height: var(--sc-space-2);
+	margin-top: var(--sc-space-2);
+	border-radius: var(--sc-radius-pill);
+	background: transparent;
+}
+
+.feedbackInbox__row--unread .feedbackInbox__unreadDot {
+	background: var(--hub-info);
+}
+
+.feedbackInbox__rowContent {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: var(--sc-space-1);
+	font-size: 0.875rem;
+}
+
+.feedbackInbox__rowContent > span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.feedbackInbox__subject {
+	font-size: 1rem;
+	font-weight: 500;
+}
+
+.feedbackInbox__row--unread .feedbackInbox__subject {
+	font-weight: 700;
+}
+
+.feedbackInbox__received {
+	color: var(--hub-text-muted);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.feedbackInbox__empty,
+.feedbackInbox__skeleton,
+.feedbackInbox__more {
+	padding: var(--sc-space-5);
+}
+
+.feedbackInbox__empty {
+	text-align: center;
+	color: var(--hub-text-secondary);
+}
+
+.feedbackInbox__skeleton + .feedbackInbox__skeleton {
+	border-top: 1px solid var(--hub-border-subtle);
+}
+
+.feedbackInbox__detailHeader {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sc-space-3);
+	padding: var(--sc-space-5) var(--sc-space-6);
+	border-bottom: 1px solid var(--hub-border);
+}
+
+.feedbackInbox__subjectHeader {
+	justify-content: space-between;
+	align-items: flex-start;
+}
+
+.feedbackInbox__subjectHeader > :first-child {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.feedbackInbox__actions {
+	flex-wrap: wrap;
+	gap: var(--sc-space-2);
+}
+
+.feedbackInbox__subjectHeader .feedbackInbox__actions {
+	flex-shrink: 0;
+	flex-wrap: nowrap;
+}
+
+.feedbackInbox__from {
+	flex-wrap: wrap;
+	gap: var(--sc-space-2);
+	color: var(--hub-text-secondary);
+	overflow-wrap: anywhere;
+}
+
+.feedbackInbox__from strong {
+	color: var(--hub-text);
+}
+
+.feedbackInbox__avatar {
+	display: grid;
+	place-items: center;
+	width: var(--sc-space-8);
+	height: var(--sc-space-8);
+	flex-shrink: 0;
+	border-radius: var(--sc-radius-pill);
+	background: var(--hub-inset);
+	font-weight: 600;
+}
+
+.feedbackInbox__properties {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.625rem), 1fr));
+	gap: 1px;
+	background: var(--hub-border);
+	border-bottom: 1px solid var(--hub-border);
+}
+
+.feedbackInbox__property {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--sc-space-2);
+	padding: var(--sc-space-3) var(--sc-space-4);
+	background: var(--hub-inset);
+	overflow-wrap: anywhere;
+}
+
+.feedbackInbox__propertyLabel {
+	color: var(--hub-text-secondary);
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.feedbackInbox__property small {
+	color: var(--hub-text-secondary);
+}
+
+.feedbackInbox__detailBody {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sc-space-5);
+	padding: var(--sc-space-5) var(--sc-space-6);
+}
+
+.feedbackInbox__bodyText,
+.feedbackInbox__note {
+	max-width: 72ch;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	line-height: 1.6;
+}
+
+.feedbackInbox a {
+	color: var(--hub-info);
+	overflow-wrap: anywhere;
+}
+
+.feedbackInbox__composer,
+.feedbackInbox__ownershipHint {
+	min-width: 0;
+	background: var(--hub-inset);
+	border: 1px solid var(--hub-border-strong);
+	border-radius: var(--sc-radius-md);
+}
+
+.feedbackInbox__ownershipHint {
+	flex-wrap: wrap;
+	padding: var(--sc-space-4);
+	justify-content: space-between;
+}
+
+.feedbackInbox__composerForm {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sc-space-3);
+	padding: var(--sc-space-4);
+}
+
+.feedbackInbox__composerFooter {
+	justify-content: space-between;
+	align-items: flex-end;
+	flex-wrap: wrap;
+}
+
+.feedbackInbox__composerFooter small {
+	flex: 1 1 15rem;
+	color: var(--hub-text-secondary);
+}
+
+.feedbackInbox__message {
+	padding: var(--sc-space-3) var(--sc-space-6);
+	color: var(--hub-accent);
+}
+
+.feedbackInbox__timeline {
+	list-style: none;
+	padding: 0;
+	margin: var(--sc-space-4) 0 0;
+}
+
+.feedbackInbox__historyEntry {
+	position: relative;
+	display: grid;
+	grid-template-columns: var(--sc-space-3) minmax(0, 1fr);
+	gap: var(--sc-space-3);
+	padding-bottom: var(--sc-space-4);
+}
+
+.feedbackInbox__historyEntry:not(:last-child)::before {
+	position: absolute;
+	top: var(--sc-space-3);
+	bottom: 0;
+	left: calc(var(--sc-space-1) - 0.5px);
+	width: 1px;
+	background: var(--hub-border-strong);
+	content: "";
+}
+
+.feedbackInbox__timelineDot {
+	width: var(--sc-space-2);
+	height: var(--sc-space-2);
+	margin-top: var(--sc-space-2);
+	border-radius: var(--sc-radius-pill);
+	background: var(--hub-accent);
+}
+
+.feedbackInbox__historyEntry--NOTE .feedbackInbox__timelineDot {
+	background: var(--hub-text-secondary);
+}
+
+.feedbackInbox__historyEntry--EXTERNAL_TICKET .feedbackInbox__timelineDot {
+	background: var(--hub-info);
+}
+
+.feedbackInbox__historyEntry p {
+	color: var(--hub-text-secondary);
+	font-size: 0.875rem;
+}
+
+.feedbackInbox__historyEntry strong {
+	color: var(--hub-text);
+}
+
+.feedbackInbox__historyEntry .feedbackInbox__note {
+	margin-top: var(--sc-space-2);
+	padding: var(--sc-space-3);
+	border: 1px solid var(--hub-border);
+	border-radius: var(--sc-radius-sm);
+	background: var(--hub-inset);
+	color: var(--hub-text);
+	font-size: 1rem;
+}
+
+@media (max-width: 60rem) {
+	.feedbackInbox__header {
+		flex-wrap: wrap;
+	}
+}
+
+@media (min-width: 62.5rem) and (max-width: 75rem) {
+	.feedbackInbox__listPane {
+		flex-basis: 18rem;
+		min-width: min(100%, 18rem);
+	}
+
+	.feedbackInbox__detail {
+		flex-basis: 25rem;
+		min-width: min(100%, 25rem);
+	}
+}
+
+@media (max-width: 48rem) {
+	.feedbackInbox__listPane {
+		max-width: none;
+		flex-basis: 100%;
+	}
+
+	.feedbackInbox__scroll {
+		max-height: 50vh;
+	}
+
+	.feedbackInbox__statusFilter {
+		display: none;
+	}
+
+	.feedbackInbox__mobileStatus {
+		display: block;
+	}
+
+	.feedbackInbox__detailHeader,
+	.feedbackInbox__detailBody {
+		padding: var(--sc-space-4);
+	}
+}

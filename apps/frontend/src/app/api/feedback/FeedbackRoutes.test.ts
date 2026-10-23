@@ -1,10 +1,11 @@
 // @vitest-environment node
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { POST } from "./route";
-import { GET as search } from "../admin/feedback/route";
-import { GET as detail } from "../admin/feedback/[id]/route";
 import { POST as act } from "../admin/feedback/[id]/actions/route";
+import { POST as markRead } from "../admin/feedback/[id]/read/route";
+import { GET as detail } from "../admin/feedback/[id]/route";
+import { GET as search } from "../admin/feedback/route";
+import { POST } from "./route";
 
 vi.mock("@/app/utils/Validation", () => ({
 	getBackendToken: vi.fn().mockResolvedValue("synthetic-token"),
@@ -21,7 +22,7 @@ describe.each([
 		invoke: (request: NextRequest) => POST(request),
 	},
 	{
-		path: "/api/admin/feedback?q=menu&owner=mine&offset=25",
+		path: "/api/admin/feedback?q=menu&owner=mine&cursor=next",
 		method: "GET",
 		invoke: (request: NextRequest) => search(request),
 	},
@@ -37,6 +38,12 @@ describe.each([
 		invoke: (request: NextRequest) =>
 			act(request, { params: Promise.resolve({ id: "id-1" }) }),
 	},
+	{
+		path: "/api/admin/feedback/id-1/read",
+		method: "POST",
+		invoke: (request: NextRequest) =>
+			markRead(request, { params: Promise.resolve({ id: "id-1" }) }),
+	},
 ])("$method $path", ({ path, method, invoke }) => {
 	it.each([201, 403, 409, 500])(
 		"preserves the backend response (%i)",
@@ -44,14 +51,12 @@ describe.each([
 			const body = '{"detail":"Feedback response"}';
 			const contentType =
 				status === 201 ? "application/json" : "application/problem+json";
-			const fetch = vi
-				.fn()
-				.mockResolvedValue(
-					new Response(body, {
-						status,
-						headers: { "Content-Type": contentType },
-					}),
-				);
+			const fetch = vi.fn().mockResolvedValue(
+				new Response(body, {
+					status,
+					headers: { "Content-Type": contentType },
+				}),
+			);
 			vi.stubGlobal("fetch", fetch);
 			const response = await invoke(
 				new NextRequest(`https://frontend.invalid${path}`, {

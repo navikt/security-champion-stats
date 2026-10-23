@@ -37,13 +37,20 @@ The frontend uses Next.js API routes to proxy requests to the backend.
 ## Feedback
 
 Active participants can submit feedback from **Feedback** in the navigation. The app confirms submission without
-exposing the admin workflow. Administrators use **Administration > Feedback inbox** to search submissions,
-take or release ownership, record follow-up actions, and close or reopen feedback. Opening a submission does not claim it.
+exposing the admin workflow. Administrators use **Administration > Feedback inbox** at `/appsec/feedback` to search
+submissions and follow up in a two-pane inbox. Filters apply immediately and are preserved in the URL; individual
+submissions have shareable links at `/appsec/feedback/{id}`. The inbox refreshes every minute. Use **j/k** to move
+between submissions, **/** to focus search, **t** to take ownership, and **Ctrl/Cmd+Enter** to submit a note or ticket link.
 
-An owner can award one qualifying feedback credit, initially worth 1 point and configurable in the scoring dashboard.
-Another administrator must assess an administrator's own submission. Scoring is separate from handling:
-closing or reopening feedback does not change its credit. Exceptional contributions and score corrections use manual adjustments.
-Internal notes remain admin-only; recording an external ticket or contact does not create a ticket or send a message.
+Opening a submission marks it read for that administrator without claiming it or adding handling history.
+Only the owner can change its status, add internal notes, or link tickets. Administrators can take over ownership;
+releasing ownership does not change the status.
+
+Any administrator can assess feedback independently of ownership and award one qualifying credit, initially worth
+1 point and configurable in the scoring dashboard. Administrators cannot award their own submissions, and recorded
+scoring decisions cannot be reset in the inbox. Resolving or reopening feedback does not change its credit.
+Exceptional contributions and score corrections use manual adjustments. Internal notes remain admin-only;
+linking a ticket does not create a ticket or notify the submitter.
 
 ## Deployment
 

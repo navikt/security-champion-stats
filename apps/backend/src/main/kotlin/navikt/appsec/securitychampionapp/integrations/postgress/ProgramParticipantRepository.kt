@@ -203,12 +203,20 @@ class ProgramParticipantRepository(
                 RETURNING id
             ),
             anonymized_feedback_actors AS (
-                UPDATE program_feedback_history SET actor_email = NULL
+                UPDATE program_feedback_history
+                SET actor_email = CASE WHEN actor_email IN (SELECT nav_no_email FROM target) THEN NULL ELSE actor_email END,
+                    previous_owner_email = CASE WHEN previous_owner_email IN (SELECT nav_no_email FROM target) THEN NULL ELSE previous_owner_email END
                 WHERE actor_email IN (SELECT nav_no_email FROM target)
+                   OR previous_owner_email IN (SELECT nav_no_email FROM target)
                 RETURNING id
             ),
+            deleted_feedback_reads AS (
+                DELETE FROM program_feedback_reads
+                WHERE reader_email IN (SELECT nav_no_email FROM target)
+                RETURNING feedback_id
+            ),
             released_feedback AS (
-                UPDATE program_feedback SET owner_email = NULL, status = 'OPEN', version = version + 1
+                UPDATE program_feedback SET owner_email = NULL, version = version + 1
                 WHERE owner_email IN (SELECT nav_no_email FROM target)
                 RETURNING id
             ),

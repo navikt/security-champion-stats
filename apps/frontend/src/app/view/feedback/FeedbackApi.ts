@@ -10,7 +10,9 @@ export type FeedbackAction =
 	| "CLOSE"
 	| "REOPEN"
 	| "QUALIFY"
-	| "DECLINE";
+	| "DECLINE"
+	| "TAKE_OVER"
+	| "STATUS";
 export type Feedback = {
 	id: string;
 	submitterId: string;
@@ -22,6 +24,9 @@ export type Feedback = {
 	description: string;
 	status: FeedbackStatus;
 	ownerEmail: string | null;
+	ownerName: string | null;
+	readByMe: boolean;
+	awardedPoints: number | null;
 	scoreDecision: FeedbackScoreDecision;
 	creditId: string | null;
 	version: number;
@@ -33,24 +38,40 @@ export type Feedback = {
 		note: string;
 		ticketUrl: string | null;
 		createdAt: string;
+		actorName: string | null;
+		previousOwnerName: string | null;
+		status: FeedbackStatus | null;
 	}[];
 };
 export type FeedbackPage = {
 	items: Feedback[];
-	nextOffset: number | null;
+	nextCursor: string | null;
 	actorEmail: string;
+	counts: FeedbackCounts;
+};
+export type FeedbackCounts = {
+	active: number;
+	open: number;
+	inProgress: number;
+	resolved: number;
+	all: number;
+	unread: number;
+	unassigned: number;
+	mine: number;
 };
 
-async function request<T>(
+async function checkedRequest(
 	path: string,
 	method = "GET",
 	body?: unknown,
-): Promise<T> {
+	signal?: AbortSignal,
+): Promise<Response> {
 	const response = await fetch(path, {
 		method,
 		headers:
 			body === undefined ? undefined : { "Content-Type": "application/json" },
 		body: body === undefined ? undefined : JSON.stringify(body),
+		signal,
 	});
 	if (!response.ok) {
 		const problem: unknown = response.headers
@@ -67,21 +88,49 @@ async function request<T>(
 				: "The feedback request could not be completed. Try again.",
 		);
 	}
-	return response.json();
+	return response;
+}
+
+async function request<T>(
+	path: string,
+	method = "GET",
+	body?: unknown,
+	signal?: AbortSignal,
+): Promise<T> {
+	return (await checkedRequest(path, method, body, signal)).json();
 }
 
 export const FeedbackApi = {
 	submit: (body: { id: string; title: string; description: string }) =>
 		request<{ id: string }>("/api/feedback", "POST", body),
-	search: (params: URLSearchParams) =>
-		request<FeedbackPage>(`/api/admin/feedback?${params}`),
-	detail: (id: string) =>
-		request<Feedback>(`/api/admin/feedback/${encodeURIComponent(id)}`),
+	search: (params: URLSearchParams, signal?: AbortSignal) =>
+		request<FeedbackPage>(
+			`/api/admin/feedback?${params}`,
+			"GET",
+			undefined,
+			signal,
+		),
+	detail: (id: string, signal?: AbortSignal) =>
+		request<Feedback>(
+			`/api/admin/feedback/${encodeURIComponent(id)}`,
+			"GET",
+			undefined,
+			signal,
+		),
+	markRead: async (id: string, signal?: AbortSignal) => {
+		await checkedRequest(
+			`/api/admin/feedback/${encodeURIComponent(id)}/read`,
+			"POST",
+			undefined,
+			signal,
+		);
+	},
 	act: (
 		feedback: Feedback,
 		action: FeedbackAction,
 		note = "",
 		ticketUrl?: string,
+		status?: FeedbackStatus,
 	) =>
 		request<Feedback>(
 			`/api/admin/feedback/${encodeURIComponent(feedback.id)}/actions`,
@@ -91,6 +140,7 @@ export const FeedbackApi = {
 				action,
 				note,
 				ticketUrl,
+				status,
 			},
 		),
 };

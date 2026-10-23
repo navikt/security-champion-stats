@@ -171,31 +171,6 @@ export function FeedbackDetail({
 		[feedback, actor, note, ticketUrl, onUpdated],
 	);
 
-	useEffect(() => {
-		function keydown(event: KeyboardEvent) {
-			if (
-				event.defaultPrevented ||
-				event.metaKey ||
-				event.ctrlKey ||
-				event.altKey
-			)
-				return;
-			if (
-				event.target instanceof HTMLElement &&
-				event.target.closest(
-					"input, textarea, select, [contenteditable='true']",
-				)
-			)
-				return;
-			if (event.key === "t" && feedback && !owns(feedback, actor)) {
-				event.preventDefault();
-				void act("CLAIM");
-			}
-		}
-		document.addEventListener("keydown", keydown);
-		return () => document.removeEventListener("keydown", keydown);
-	}, [feedback, actor, act]);
-
 	const owned = feedback ? owns(feedback, actor) : false;
 	const canAward =
 		feedback?.submitterActive &&
@@ -295,6 +270,18 @@ export function FeedbackDetail({
 									variant={owned ? "tertiary" : "secondary"}
 									disabled={busy}
 									onClick={() => void act(owned ? "RELEASE" : "CLAIM")}
+									onKeyDown={(event) => {
+										if (
+											!owned &&
+											event.key === "t" &&
+											!event.metaKey &&
+											!event.ctrlKey &&
+											!event.altKey
+										) {
+											event.preventDefault();
+											void act("CLAIM");
+										}
+									}}
 								>
 									{owned ? "Release" : ownershipLabel}
 								</Button>

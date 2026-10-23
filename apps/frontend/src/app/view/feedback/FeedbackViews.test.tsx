@@ -404,7 +404,7 @@ describe("Admin feedback inbox", () => {
 		).toBeInTheDocument();
 	});
 
-	it("navigates with keyboard shortcuts but ignores them while typing", async () => {
+	it("only handles character navigation shortcuts on a focused feedback row", async () => {
 		serverItems.push({
 			...feedback,
 			id: "feedback-2",
@@ -413,16 +413,137 @@ describe("Admin feedback inbox", () => {
 		render(<FeedbackInbox />);
 		await screen.findByRole("heading", { name: feedback.title });
 		fireEvent.keyDown(document.body, { key: "j" });
+		expect(window.location.pathname).toContain(feedback.id);
+		const first = screen.getByRole("option", { name: /Improve navigation/ });
+		first.focus();
+		fireEvent.keyDown(first, { key: "j" });
 		await screen.findByRole("heading", { name: "Second submission" });
-		fireEvent.keyDown(document.body, { key: "/" });
+		const second = screen.getByRole("option", { name: /Second submission/ });
+		expect(second).toHaveFocus();
+		fireEvent.keyDown(second, { key: "/" });
 		const search = screen.getByLabelText("Search feedback");
 		expect(search).toHaveFocus();
 		fireEvent.keyDown(search, { key: "k" });
 		expect(window.location.pathname).toContain("feedback-2");
 		fireEvent.keyDown(search, { key: "Escape" });
 		expect(search).not.toHaveFocus();
-		fireEvent.keyDown(document.body, { key: "k" });
+		second.focus();
+		fireEvent.keyDown(second, { key: "k" });
 		await screen.findByRole("heading", { name: feedback.title });
+	});
+
+	it("only takes ownership with t when the ownership button has focus", async () => {
+		save({
+			...feedback,
+			ownerEmail: "admin@nav.no",
+			status: "IN_PROGRESS",
+			version: 2,
+		});
+		render(<FeedbackInbox />);
+		await screen.findByRole("heading", { name: feedback.title });
+		const refresh = screen.getByRole("button", { name: "Refresh inbox" });
+		refresh.focus();
+		fireEvent.keyDown(refresh, { key: "t" });
+		expect(FeedbackApi.act).not.toHaveBeenCalled();
+		const take = screen.getAllByRole("button", { name: "Take ownership" })[0];
+		take.focus();
+		fireEvent.keyDown(take, { key: "t" });
+		await waitFor(() => expect(FeedbackApi.act).toHaveBeenCalledTimes(1));
+	});
+
+	it("preserves note and ticket drafts while matching filters reload", async () => {
+		serverItems = [
+			{ ...feedback, ownerEmail: "admin@nav.no", status: "IN_PROGRESS" },
+		];
+		render(<FeedbackInbox />);
+		fireEvent.change(
+			await screen.findByRole("textbox", { name: "Internal note" }),
+			{ target: { value: "Unsaved note" } },
+		);
+		fireEvent.click(screen.getByRole("tab", { name: "Link ticket" }));
+		fireEvent.change(screen.getByLabelText("Ticket URL"), {
+			target: { value: "https://example.org/draft" },
+		});
+		let resolveSearch!: (
+			page: Awaited<ReturnType<typeof FeedbackApi.search>>,
+		) => void;
+		vi.mocked(FeedbackApi.search).mockImplementationOnce(
+			() =>
+				new Promise((resolve) => {
+					resolveSearch = resolve;
+				}),
+		);
+		fireEvent.change(screen.getByLabelText("Owner filter"), {
+			target: { value: "mine" },
+		});
+		await waitFor(() => expect(FeedbackApi.search).toHaveBeenCalledTimes(2));
+		expect(screen.getByLabelText("Ticket URL")).toHaveValue(
+			"https://example.org/draft",
+		);
+		await act(async () =>
+			resolveSearch({
+				items: serverItems,
+				nextCursor: null,
+				actorEmail: "admin@nav.no",
+				counts,
+			}),
+		);
+		expect(screen.getByLabelText("Ticket URL")).toHaveValue(
+			"https://example.org/draft",
+		);
+		fireEvent.click(screen.getByRole("tab", { name: "Internal note" }));
+		expect(screen.getByRole("textbox", { name: "Internal note" })).toHaveValue(
+			"Unsaved note",
+		);
+	});
+
+	it("loads past the refreshed page boundary to retain the selected owner's draft", async () => {
+		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+		const firstPage = Array.from({ length: 49 }, (_, index) => ({
+			...feedback,
+			id: `newer-${index}`,
+			title: `Newer ${index}`,
+		}));
+		const owned: Feedback = {
+			...feedback,
+			ownerEmail: "admin@nav.no",
+			status: "IN_PROGRESS",
+		};
+		serverItems = [...firstPage, owned];
+		vi.mocked(FeedbackApi.search).mockResolvedValueOnce({
+			items: serverItems,
+			nextCursor: null,
+			actorEmail: "admin@nav.no",
+			counts,
+		});
+		render(<FeedbackInbox />);
+		await screen.findByRole("option", { name: /Improve navigation/ });
+		fireEvent.click(screen.getByRole("option", { name: /Improve navigation/ }));
+		fireEvent.change(
+			await screen.findByRole("textbox", { name: "Internal note" }),
+			{ target: { value: "Boundary draft" } },
+		);
+		vi.mocked(FeedbackApi.search)
+			.mockResolvedValueOnce({
+				items: [{ ...feedback, id: "newest", title: "Newest" }, ...firstPage],
+				nextCursor: "boundary",
+				actorEmail: "admin@nav.no",
+				counts,
+			})
+			.mockResolvedValueOnce({
+				items: [owned],
+				nextCursor: null,
+				actorEmail: "admin@nav.no",
+				counts,
+			});
+		await act(async () => {
+			vi.advanceTimersByTime(60_000);
+		});
+		await waitFor(() => expect(FeedbackApi.search).toHaveBeenCalledTimes(3));
+		expect(window.location.pathname).toContain(feedback.id);
+		expect(screen.getByRole("textbox", { name: "Internal note" })).toHaveValue(
+			"Boundary draft",
+		);
 	});
 
 	it("keeps selection on refresh and selects the first match when filters exclude it", async () => {

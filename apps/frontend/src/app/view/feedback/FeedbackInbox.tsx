@@ -136,10 +136,17 @@ function Inbox() {
 					result = await FeedbackApi.search(next, controller.signal);
 					items.push(...result.items);
 					if (result.nextCursor) next.set("cursor", result.nextCursor);
-				} while (result.nextCursor && items.length < loadedLimit.current);
+				} while (
+					result.nextCursor &&
+					(items.length < loadedLimit.current ||
+						(latestSelection.current &&
+							!initialDeepLink.current &&
+							!items.some((item) => item.id === latestSelection.current)))
+				);
 				if (controller.signal.aborted || generation !== pageRequest.current)
 					return;
 				setPage({ ...result, items });
+				loadedLimit.current = Math.max(50, Math.ceil(items.length / 50) * 50);
 				setPageKey(filterKey);
 				const id = latestSelection.current;
 				if (
@@ -292,21 +299,10 @@ function Inbox() {
 				if (event.key === "Escape") target.blur();
 				return;
 			}
-			if (event.key === "/") {
-				event.preventDefault();
-				searchRef.current?.focus();
-			} else if (event.key === "j" || event.key === "k") {
-				event.preventDefault();
-				move(
-					event.key === "j" ? 1 : -1,
-					target instanceof HTMLElement &&
-						target.getAttribute("role") === "option",
-				);
-			}
 		}
 		document.addEventListener("keydown", keydown);
 		return () => document.removeEventListener("keydown", keydown);
-	}, [move]);
+	}, []);
 
 	const opened = useCallback((id: string, wasUnread: boolean) => {
 		setPage((current) => {
@@ -348,8 +344,6 @@ function Inbox() {
 	const counts = page?.counts;
 	const items = pageCurrent ? (page?.items ?? []) : [];
 	const index = items.findIndex((item) => item.id === selected);
-	const showDetail =
-		selected && (items.length > 0 || initialDeepLink.current === selected);
 
 	return (
 		<div className="hubRedesign feedbackInbox">
@@ -497,7 +491,7 @@ function Inbox() {
 							{pageCurrent && page?.nextCursor ? " loaded" : ""}
 						</span>
 						<span role="status">
-							{updated ? "Updated just now" : "j / k to move"}
+							{updated ? "Updated just now" : "Focus a row: j / k to move"}
 						</span>
 					</div>
 					<div ref={listRef} className="feedbackInbox__scroll">
@@ -540,9 +534,18 @@ function Inbox() {
 									className={`feedbackInbox__row${feedback.readByMe ? "" : " feedbackInbox__row--unread"}`}
 									onClick={() => select(feedback.id)}
 									onKeyDown={(event) => {
-										if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+										if (event.metaKey || event.ctrlKey || event.altKey) return;
+										if (event.key === "/") {
 											event.preventDefault();
-											move(event.key === "ArrowDown" ? 1 : -1, true);
+											searchRef.current?.focus();
+										} else if (
+											["ArrowDown", "ArrowUp", "j", "k"].includes(event.key)
+										) {
+											event.preventDefault();
+											move(
+												event.key === "ArrowDown" || event.key === "j" ? 1 : -1,
+												true,
+											);
 										}
 									}}
 								>
@@ -600,7 +603,7 @@ function Inbox() {
 						)}
 					</div>
 				</section>
-				{showDetail && (
+				{selected && (
 					<FeedbackDetail
 						key={selected}
 						id={selected}

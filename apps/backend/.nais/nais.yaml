@@ -14,7 +14,7 @@ spec:
     - name: SLACK_MEMBERSHIP_ENABLED
       value: "true"
     - name: SLACK_MEMBERSHIP_DRY_RUN
-      value: "false"
+      value: "true"
     - name: SLACK_MEMBERSHIP_WELCOME_CHANNEL_ID
       value: CN8N938K1
     - name: SLACK_MEMBERSHIP_ADMIN_CHANNEL_ID

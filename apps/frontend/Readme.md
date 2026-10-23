@@ -39,8 +39,10 @@ The frontend uses Next.js API routes to proxy requests to the backend.
 Active participants can submit feedback from **Feedback** in the navigation. The app confirms submission without
 exposing the admin workflow. Administrators use **Administration > Feedback inbox** at `/appsec/feedback` to search
 submissions and follow up in a two-pane inbox. Filters apply immediately and are preserved in the URL; individual
-submissions have shareable links at `/appsec/feedback/{id}`. The inbox refreshes every minute. Use **j/k** to move
-between submissions, **/** to focus search, **t** to take ownership, and **Ctrl/Cmd+Enter** to submit a note or ticket link.
+submissions have shareable links at `/appsec/feedback/{id}`. The inbox refreshes every minute. With a feedback row
+focused, use **j/k** or the arrow keys to move between submissions and **/** to focus search. With the ownership
+button in the property strip focused, use **t** to take ownership or take over. These character shortcuts do not
+operate elsewhere on the page. Use **Ctrl/Cmd+Enter** in the composer to submit a note or ticket link.
 
 Opening a submission marks it read for that administrator without claiming it or adding handling history.
 Only the owner can change its status, add internal notes, or link tickets. Administrators can take over ownership;

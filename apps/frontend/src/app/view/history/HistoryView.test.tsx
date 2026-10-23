@@ -206,7 +206,9 @@ describe("participant score history", () => {
 				expect.objectContaining({ cursor: "cursor-1" }),
 			),
 		);
-		expect(screen.getAllByText(/Weekly participation/)).toHaveLength(2);
+		await waitFor(() =>
+			expect(screen.getAllByText(/Weekly participation/)).toHaveLength(2),
+		);
 
 		vi.restoreAllMocks();
 		vi.spyOn(Apies, "getScoreHistorySummary").mockRejectedValue(

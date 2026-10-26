@@ -9,7 +9,7 @@ junit-container = "1.21.4"
 spring-doc = "3.1.1"
 flyway = "13.10.0"
 mockito-kotlin = "6.4.0"
-spring-boot = "4.1.1"
+spring-boot = "4.1.2"
 jackson-module = "3.2.3"
 
 [libraries]

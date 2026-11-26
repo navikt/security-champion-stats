@@ -24,7 +24,7 @@ spec:
     - name: TEAM_CATALOG_ROLE_UPDATES_ENABLED
       value: "true"
     - name: TEAM_CATALOG_ROLE_UPDATES_DRY_RUN
-      value: "true"
+      value: "false"
     - name: DELTA_SCORING_ENABLED
       value: "true"
     - name: DELTA_EVENTS_ENABLED

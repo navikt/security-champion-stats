@@ -1,7 +1,10 @@
 {
   "request": {
     "method": "PUT",
-    "urlPathPattern": "/team/v2/.*"
+    "urlPathPattern": "/team/v2/.*",
+    "headers": {
+      "Authorization": { "equalTo": "Bearer local-team-catalog-token" }
+    }
   },
   "response": {
     "status": 200,

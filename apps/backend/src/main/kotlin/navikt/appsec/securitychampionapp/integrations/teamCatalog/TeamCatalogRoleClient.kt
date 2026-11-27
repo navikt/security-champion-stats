@@ -28,6 +28,7 @@ private const val SECURITY_CHAMPION_ROLE = "SECURITY_CHAMPION"
 @Service
 class TeamCatalogRoleClient(
     private val externalServiceWebClient: WebClient,
+    private val tokenProvider: TeamCatalogOboTokenProvider,
     private val requestTimeout: Duration = Duration.ofSeconds(30),
 ) : TeamCatalogRoleManagement {
     private val logger = LoggerFactory.getLogger(TeamCatalogRoleClient::class.java)
@@ -86,13 +87,26 @@ class TeamCatalogRoleClient(
             PlannedRoleUpdate(team, operation, request, preview)
         }
 
+        val token = if (writeEnabled && plannedUpdates.isNotEmpty()) {
+            try {
+                tokenProvider.token()
+            } catch (_: TeamCatalogAuthenticationException) {
+                null
+            }
+        } else {
+            null
+        }
         val updates = plannedUpdates.map { planned ->
             val status = if (!writeEnabled) {
                 TeamCatalogRoleUpdateStatus.PREVIEW
+            } else if (token == null) {
+                logger.warn("Teamkatalogen role update authentication failed for team {}", planned.team.id)
+                TeamCatalogRoleUpdateStatus.FAILED
             } else {
                 try {
                     externalServiceWebClient.put()
                         .uri("/team/v2/{id}", planned.team.id)
+                        .headers { it.setBearerAuth(token) }
                         .bodyValue(planned.request)
                         .retrieve()
                         .toBodilessEntity()

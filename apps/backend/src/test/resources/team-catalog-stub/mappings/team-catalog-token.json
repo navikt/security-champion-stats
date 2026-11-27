@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/team-catalog-token",
+    "bodyPatterns": [
+      { "contains": "identity_provider=entra_id" },
+      { "contains": "user_token=" }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "access_token": "local-team-catalog-token",
+      "token_type": "Bearer",
+      "expires_in": 3600
+    }
+  }
+}

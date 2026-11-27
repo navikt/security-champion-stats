@@ -72,6 +72,8 @@ team-catalog:
   roles:
     enabled: ${TEAM_CATALOG_ROLE_UPDATES_ENABLED:false}
     dry-run: ${TEAM_CATALOG_ROLE_UPDATES_DRY_RUN:true}
+    token-exchange-endpoint: ${NAIS_TOKEN_EXCHANGE_ENDPOINT:}
+    target: ${TEAM_CATALOG_ROLE_TARGET:prod-gcp:org:team-catalog-backend}
 
 delta:
   events:

@@ -93,7 +93,7 @@ class TokenIntrospection(
                 }
 
             val principal = AppPrincipal(preferredUsername, navIdent)
-            val authentication = UsernamePasswordAuthenticationToken(principal, null, authorities)
+            val authentication = UsernamePasswordAuthenticationToken(principal, rawToken, authorities)
             SecurityContextHolder.getContext().authentication = authentication
             filterChain.doFilter(request, response)
         } catch (e: Exception) {

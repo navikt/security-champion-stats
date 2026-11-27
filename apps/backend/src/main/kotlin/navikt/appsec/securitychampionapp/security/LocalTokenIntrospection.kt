@@ -64,7 +64,7 @@ class LocalTokenIntrospection(
         )
         val principal = AppPrincipal(result.preferredUsername!!, result.ident!!)
         val authentication = UsernamePasswordAuthenticationToken(
-            principal, null, listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
+            principal, token.substringAfter(" ").trim(), listOf(SimpleGrantedAuthority("ROLE_$ADMIN_ROLE"))
         )
         SecurityContextHolder.getContext().authentication = authentication
         filterChain.doFilter(request, response)

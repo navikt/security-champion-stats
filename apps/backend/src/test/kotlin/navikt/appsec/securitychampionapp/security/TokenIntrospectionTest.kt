@@ -1,10 +1,17 @@
 package navikt.appsec.securitychampionapp.security
 
+import navikt.appsec.securitychampionapp.security.dto.TokenResponse
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer
+import org.springframework.mock.web.MockHttpServletRequest
+import org.springframework.mock.web.MockHttpServletResponse
+import org.springframework.security.core.Authentication
+import org.springframework.security.core.context.SecurityContextHolder
 import tools.jackson.databind.ObjectMapper
 
 class TokenIntrospectionTest {
@@ -25,6 +32,42 @@ class TokenIntrospectionTest {
                 assertThat(context.startupFailure)
                     .hasStackTraceContaining("spring.security.token-validation.groups")
             }
+    }
+
+    @Test
+    fun `should expose the validated bearer token as protected credentials`() {
+        whenever(tokenClient.validate(any(), any(), any())).thenReturn(
+            TokenResponse(
+                active = true,
+                preferredUsername = "user@example.test",
+                ident = "TEST123",
+                groups = emptyList(),
+                error = null,
+            ),
+        )
+        val filter = TokenIntrospection(
+            tokenClient,
+            "entra_id",
+            "http://localhost/introspect",
+            "test-admin-group",
+            mock<ObjectMapper>(),
+        )
+        val request = MockHttpServletRequest("GET", "/api/member").apply {
+            servletPath = "/api/member"
+            addHeader("Authorization", "Bearer user-token")
+        }
+        var authentication: Authentication? = null
+
+        try {
+            filter.doFilter(request, MockHttpServletResponse()) { _, _ ->
+                authentication = SecurityContextHolder.getContext().authentication
+            }
+        } finally {
+            SecurityContextHolder.clearContext()
+        }
+
+        assertThat(authentication?.credentials).isEqualTo("user-token")
+        assertThat(authentication.toString()).doesNotContain("user-token")
     }
 
     @Test

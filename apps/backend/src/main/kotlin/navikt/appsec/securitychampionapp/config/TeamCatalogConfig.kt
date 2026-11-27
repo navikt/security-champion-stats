@@ -1,5 +1,6 @@
 package navikt.appsec.securitychampionapp.config
 
+import navikt.appsec.securitychampionapp.integrations.teamCatalog.TeamCatalogOboTokenProvider
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -22,4 +23,15 @@ class TeamCatalogConfig {
             }
             .defaultHeader("accept", "*/*")
             .build()
+
+    @Bean
+    fun teamCatalogOboTokenProvider(
+        @Value("\${team-catalog.roles.token-exchange-endpoint}") tokenExchangeEndpoint: String,
+        @Value("\${team-catalog.roles.target}") target: String,
+    ): TeamCatalogOboTokenProvider =
+        TeamCatalogOboTokenProvider(
+            tokenClient = WebClient.builder().build(),
+            tokenExchangeEndpoint = tokenExchangeEndpoint,
+            target = target,
+        )
 }
